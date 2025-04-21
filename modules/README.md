@@ -3,6 +3,8 @@
 Extract any modules into this folder.
 
 * Modules should be named uniquely, in a manner that identifies their purpose.
+* Modules should be inside of a subfolder of `modules`, named after their package.
+  * Example: `modules/birds/` would contain the `birds` module/package.
 
 * Module folders should container a `datafiles` folder that contains any datafiles needed.
   * Files within `datafiles` will be treated as though located within the actual `_datafiles`
@@ -24,10 +26,10 @@ Extract any modules into this folder.
 
 ## Basic user command function
 
-* time.go
-* time/*
+* time/time.go
+* time/files/*
 
 ## User command with maintained state and save/loading of data
 
-* leaderbaord.go
-* leaderboard/*
+* leaderboards/leaderboards.go
+* leaderboards/files/*
