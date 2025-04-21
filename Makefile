@@ -102,24 +102,36 @@ server.crt server.key:
 # Run: go tool dist list
 #
 #
+.PHONY: ungenerate
+ungenerate: ### Build a binary for a raspberry pi zero 2w
+	@cp cmd/generate/_all-modules.go modules/all-modules.go
+
+.PHONY: generate
+generate: ### Build a binary for a raspberry pi zero 2w
+	@go generate
+
 .PHONY: build_rpi_zero2w
-build_rpi_zero2w: ### Build a binary for a raspberry pi zero 2w
+build_rpi_zero2w: generate ### Build a binary for a raspberry pi zero 2w
 	env GOOS=linux GOARCH=arm64 go build -o $(BIN)-rpi
+	make ungenerate
 
 .PHONY: build_win64
-build_win64: ### Build a binary for 64bit windows
+build_win64: generate ### Build a binary for 64bit windows
 	env GOOS=windows GOARCH=amd64 go build -o $(BIN)-win64.exe
+	make ungenerate
 
 .PHONY: build_linux64
-build_linux64: ### Build a binary for linux
+build_linux64: generate ### Build a binary for linux
 	env GOOS=linux GOARCH=amd64 go build -o $(BIN)-linux64
+	make ungenerate
 
 .PHONY: build
 build: validate build_local  ### Validate the code and build the binary.
 
 .PHONY: build_local
-build_local:
-	CGO_ENABLED=0 go build -trimpath -a -o $(BIN) 
+build_local: generate
+	CGO_ENABLED=0 go build -trimpath -a -o $(BIN)
+	make ungenerate
 
 # Go targets
 
