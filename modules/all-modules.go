@@ -4,3 +4,13 @@
 // (from the project root)
 
 package modules
+
+import (
+	"fmt"
+	"os"
+)
+
+func init() {
+	fmt.Println("!!! Run \"go generate\" before building this project !!!")
+	os.Exit(0)
+}
