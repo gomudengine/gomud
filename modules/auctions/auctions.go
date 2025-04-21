@@ -25,7 +25,7 @@ var (
 	//////////////////////////////////////////////////////////////////////
 
 	//go:embed files/*
-	auctions_Files embed.FS // All vars must be a unique name since the module package/namespace is shared between modules.
+	files embed.FS // All vars must be a unique name since the module package/namespace is shared between modules.
 )
 
 // ////////////////////////////////////////////////////////////////////
@@ -53,7 +53,7 @@ func init() {
 	//
 	// Add the embedded filesystem
 	//
-	if err := a.plug.AttachFileSystem(auctions_Files); err != nil {
+	if err := a.plug.AttachFileSystem(files); err != nil {
 		panic(err)
 	}
 	//
