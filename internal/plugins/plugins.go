@@ -441,7 +441,11 @@ func Load(dataFilesPath string) {
 		}
 	}
 
-	mudlog.Info("plugins", "loadedCount", pluginCt)
+	if pluginCt == 0 {
+		mudlog.Warn("plugins", "loadedCount", pluginCt, "error", "Did you forget to run \"go generate\" before compiling the server? This error can be ignored.")
+	} else {
+		mudlog.Info("plugins", "loadedCount", pluginCt)
+	}
 }
 
 func Save() {
