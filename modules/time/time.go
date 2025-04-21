@@ -1,4 +1,4 @@
-package modules
+package time
 
 import (
 	"embed"
@@ -18,7 +18,7 @@ var (
 	// It embeds the relative path into the var below it.
 	//////////////////////////////////////////////////////////////////////
 
-	//go:embed time/*
+	//go:embed files/*
 	time_Files embed.FS // All vars must be a unique name since the module package/namespace is shared between modules.
 )
 

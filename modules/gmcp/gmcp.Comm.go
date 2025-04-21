@@ -1,4 +1,4 @@
-package modules
+package gmcp
 
 import (
 	"github.com/GoMudEngine/GoMud/internal/events"

@@ -5,6 +5,7 @@ _datafiles/**/plugin-data/*
 **/config-overrides.yaml
 **/.roundcount
 vendor/
+modules/all-modules.go
 server.crt
 server.key
 __debug*

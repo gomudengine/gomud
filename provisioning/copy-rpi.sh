@@ -8,7 +8,7 @@ RPI_BIN="go-mud-server-rpi"
 
 # Build the raspberry pi binary... building on the rpi is problematic.
 echo "Building bin for Raspberry Pi Zero"
-make build_rpi
+make build_rpi_zero2w
 
 # Kill the process before overwriting the binary
 echo "Killing process on RaspPi: ${RPI_HOST}"

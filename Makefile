@@ -102,9 +102,9 @@ server.crt server.key:
 # Run: go tool dist list
 #
 #
-.PHONY: build_rpi
-build_rpi: ### Build a binary for a raspberry pi
-	env GOOS=linux GOARCH=arm GOARM=5 go build -o $(BIN)-rpi
+.PHONY: build_rpi_zero2w
+build_rpi_zero2w: ### Build a binary for a raspberry pi zero 2w
+	env GOOS=linux GOARCH=arm64 go build -o $(BIN)-rpi
 
 .PHONY: build_win64
 build_win64: ### Build a binary for 64bit windows
