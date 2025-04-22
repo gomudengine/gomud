@@ -103,11 +103,11 @@ server.crt server.key:
 #
 #
 .PHONY: ungenerate
-ungenerate: ### Build a binary for a raspberry pi zero 2w
+ungenerate: ### Reverts to a clean version of modules/all-modules.go
 	@cp cmd/generate/_all-modules.go modules/all-modules.go
 
 .PHONY: generate
-generate: ### Build a binary for a raspberry pi zero 2w
+generate: ### Generates include directives for modules
 	@go generate
 
 .PHONY: build_rpi_zero2w
