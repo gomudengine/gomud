@@ -126,6 +126,33 @@ type ConnectionDetails struct {
 	heartbeat         *heartbeatManager
 }
 
+func (cd *ConnectionDetails) IsLocal() bool {
+
+	remoteAddrStr := ``
+
+	if cd.wsConn == nil {
+		// Unix sockets are always local
+		if _, ok := cd.conn.(*net.UnixConn); ok {
+			return true
+		}
+		remoteAddrStr = cd.conn.RemoteAddr().String()
+	} else {
+		remoteAddrStr = cd.wsConn.RemoteAddr().String()
+	}
+
+	host, _, err := net.SplitHostPort(remoteAddrStr)
+	if err != nil {
+		// e.g. not “host:port” syntax
+		return false
+	}
+
+	ip := net.ParseIP(host)
+	if ip == nil {
+		return false
+	}
+	return ip.IsLoopback()
+}
+
 func (cd *ConnectionDetails) IsWebSocket() bool {
 	return cd.wsConn != nil
 }

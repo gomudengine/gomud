@@ -12,15 +12,21 @@ Extract any modules into this folder.
 
 ## Things Modules can do:
 
-* Provide template files
-* Add or Override user commands or mob commands
-* Save/Load their own data
-* Track their own config values
-* Modify help menu
-* Add help aliases
-* Add command aliases
-* Listen for/Handle events
-* Access the rest of the code
+* Access core GoMud code.
+* Listen for, handle and/or cancel events (See `modules/auctions`)
+  * For example, run custom code every `NewRound{}` event, or do something whenever a `LevelUp{}` event is fired.
+* Handle Telnet IAC commands (See `modules/gmcp`)
+* Add a handler for new connections (See `modules/gmcp`)
+* Add web pages to default web site (See `modules/leaderboards`)
+  * Web page template with custom data
+  * (optional) Add navigation links
+  * (optional) provide any downloadable/linkable assets (images, files, etc)
+* Add/Over-write existing template files (See `modules/auctions`)
+* Add/Over-write help files (See `modules/auctions`)
+* Add/Over-write user or mob commands  (See `modules/auctions`)
+* Save/Load their own data (See `modules/leaderboards`)
+* Track their own config values (See `modules/leaderboards`)
+* Modify help menu items, command aliases, help aliases  (See `modules/leaderboards`)
 
 # Examples
 
