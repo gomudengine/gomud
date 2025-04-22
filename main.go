@@ -923,7 +923,7 @@ func loadAllDataFiles(isReload bool) {
 	mobs.LoadDataFiles()
 	pets.LoadDataFiles()
 	quests.LoadDataFiles()
-	templates.LoadAliases()
+	templates.LoadAliases(plugins.GetPluginRegistry())
 	keywords.LoadAliases(plugins.GetPluginRegistry())
 	mutators.LoadDataFiles()
 	colorpatterns.LoadColorPatterns()

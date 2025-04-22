@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"text/template"
@@ -12,10 +13,12 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/colorpatterns"
 	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/fileloader"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/ansitags"
 	"github.com/mattn/go-runewidth"
+	"gopkg.in/yaml.v2"
 
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
@@ -236,81 +239,6 @@ func Process(fname string, data any, receivingUserId ...int) (string, error) {
 	return fmt.Sprintf(`[TEMPLATE READ ERROR: FNF (%s) `, strings.Join(allFiles, `, `)), fmt.Errorf(`Files not found: %s`, strings.Join(allFiles, `, `))
 }
 
-func ProcessOld(name string, data any) (string, error) {
-	ansiLock.RLock()
-	defer ansiLock.RUnlock()
-
-	var buf bytes.Buffer
-
-	if fileBytes, err := readFile(util.FilePath(`templates`, `/`, name+`.template`)); err == nil {
-
-		tpl, err := template.New(name).Funcs(funcMap).Parse(string(fileBytes))
-		if err != nil {
-			return string(fileBytes), err
-		}
-
-		err = tpl.Execute(&buf, data)
-		if err != nil {
-			mudlog.Error("could not parse template file", "error", err)
-			return "[TEMPLATE ERROR]", err
-		}
-
-		// return the final data as a string, parse ansi tags if needed (No need to parse if it was preparsed)
-		return ansitags.Parse(buf.String()), nil
-
-	} else {
-		// All templates must end with .template
-		var fullPath string = util.FilePath(string(configs.GetFilePathsConfig().DataFiles), `/`, `templates`, `/`, name+`.template`)
-
-		fInfo, err := os.Stat(fullPath)
-		if err != nil {
-			//mudlog.Error("could not stat template file", "error", err)
-			return "[TEMPLATE READ ERROR]", err
-		}
-
-		var cache cacheEntry
-		var ok bool
-
-		cacheLock.Lock()
-		defer cacheLock.Unlock()
-
-		// check if the template is in the cache
-		if cache, ok = templateCache[name]; !ok || cache.older(fInfo.ModTime()) {
-
-			// Get the file contents
-			fileContents, err := os.ReadFile(fullPath)
-			if err != nil {
-				mudlog.Error("could not read template file", "error", err)
-				return "[TEMPLATE READ ERROR]", err
-			}
-
-			// parse the file contents as a template
-			tpl, err := template.New(name).Funcs(funcMap).Parse(string(fileContents))
-			if err != nil {
-				return string(fileContents), err
-			}
-
-			// add the template to the cache
-			cache = cacheEntry{tpl: tpl, modified: fInfo.ModTime()}
-			templateCache[name] = cache
-		}
-
-		// execute the template and store the results into a buffer
-
-		err = cache.tpl.Execute(&buf, data)
-		if err != nil {
-			mudlog.Error("could not parse template file", "error", err)
-			return "[TEMPLATE ERROR]", err
-		}
-
-		// return the final data as a string, parse ansi tags if needed (No need to parse if it was preparsed)
-		return ansitags.Parse(buf.String()), nil
-
-	}
-
-	return buf.String(), nil
-}
-
 func ProcessText(text string, data any, ansiFlags ...AnsiFlag) (string, error) {
 
 	var parseAnsiTags bool = false
@@ -493,7 +421,7 @@ func AnsiParse(input string) string {
 
 // Loads the ansi aliases from the config file
 // Only if the file has been modified since the last load
-func LoadAliases() {
+func LoadAliases(f ...fileloader.ReadableGroupFS) {
 
 	// Get the file info
 	fInfo, err := os.Stat(util.FilePath(string(configs.GetFilePathsConfig().DataFiles) + `/ansi-aliases.yaml`))
@@ -513,6 +441,26 @@ func LoadAliases() {
 	ansiAliasFileModTime = fInfo.ModTime()
 	if err = ansitags.LoadAliases(util.FilePath(string(configs.GetFilePathsConfig().DataFiles) + `/ansi-aliases.yaml`)); err != nil {
 		mudlog.Info("ansitags.LoadAliases()", "changed", true, "Time Taken", time.Since(start), "error", err.Error())
+	}
+
+	OLPath := util.FilePath(`data-overlays`, `/`, `ansi-aliases.yaml`)
+	for _, files := range f {
+		if b, err := files.ReadFile(OLPath); err == nil {
+
+			data := make(map[string]map[string]string, 100)
+			if err := yaml.Unmarshal(b, &data); err != nil {
+				continue
+			}
+
+			for aliasGroup, aliases := range data {
+				for alias, valStr := range aliases {
+					if valInt, err := strconv.Atoi(valStr); err == nil {
+						ansitags.SetAlias(alias, valInt, aliasGroup)
+					}
+				}
+			}
+
+		}
 	}
 
 	mudlog.Info("ansitags.LoadAliases()", "changed", true, "Time Taken", time.Since(start))

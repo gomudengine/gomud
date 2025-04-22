@@ -1,6 +1,6 @@
 
-<ansi fg="blue-bold">*******************************************************************************</ansi>
-<ansi fg="blue-bold">* * * AUCTION * AUCTION * AUCTION * AUCTION * AUCTION * AUCTION * AUCTION * * *</ansi>
+<ansi fg="auction-banner">*******************************************************************************</ansi>
+<ansi fg="auction-banner">* * * AUCTION * AUCTION * AUCTION * AUCTION * AUCTION * AUCTION * AUCTION * * *</ansi>
 
     <ansi fg="yellow">The auction will end in <ansi fg="white-bold">{{ secondsFrom .EndTime }} seconds</ansi>!</ansi>
 
@@ -14,6 +14,6 @@
 {{ end }}
     <ansi fg="command">bid <ansi fg="gold">(gold amount)</ansi></ansi> to bid on this auction.
 
-<ansi fg="blue-bold">* * * AUCTION * AUCTION * AUCTION * AUCTION * AUCTION * AUCTION * AUCTION * * *</ansi>
-<ansi fg="blue-bold">*******************************************************************************</ansi>
+<ansi fg="auction-banner">* * * AUCTION * AUCTION * AUCTION * AUCTION * AUCTION * AUCTION * AUCTION * * *</ansi>
+<ansi fg="auction-banner">*******************************************************************************</ansi>
 

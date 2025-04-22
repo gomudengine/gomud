@@ -8,4 +8,5 @@ vendor/
 modules/all-modules.go
 server.crt
 server.key
+tmp-gomud.exe
 __debug*

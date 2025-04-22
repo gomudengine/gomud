@@ -74,14 +74,19 @@ clean:
 ## Run Targets
 
 .PHONY: run 
-run: ### Build and run server.
+run: generate  ### Build and run server.
+	go build -o tmp-gomud.exe
+	make ungenerate
+	./tmp-gomud.exe
+
+.PHONY: run-docker
+run-docker: ### Build and run server in docker.
 	$(DOCKER_COMPOSE) up --build --remove-orphans server
+
 
 .PHONY: client
 client: ### Build and run client terminal client
 	$(DOCKER_COMPOSE) run --rm terminal telnet go-mud-server 33333
-
-
 
 .PHONY: image_tag
 image_tag:

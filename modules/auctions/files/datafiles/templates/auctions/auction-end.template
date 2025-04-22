@@ -1,6 +1,6 @@
 
-<ansi fg="blue-bold">*******************************************************************************</ansi>
-<ansi fg="blue-bold">* * * AUCTION END * AUCTION END * AUCTION END * AUCTION END * AUCTION END * * *</ansi>
+<ansi fg="auction-banner">*******************************************************************************</ansi>
+<ansi fg="auction-banner">* * * AUCTION END * AUCTION END * AUCTION END * AUCTION END * AUCTION END * * *</ansi>
 
     <ansi fg="yellow">The auction has <ansi fg="white-bold">ENDED!</ansi></ansi>
 
@@ -12,6 +12,6 @@
 
     Type <ansi fg="command">help auction</ansi> to learn more about auctions.
 
-<ansi fg="blue-bold">* * * AUCTION END * AUCTION END * AUCTION END * AUCTION END * AUCTION END * * *</ansi>
-<ansi fg="blue-bold">*******************************************************************************</ansi>
+<ansi fg="auction-banner">* * * AUCTION END * AUCTION END * AUCTION END * AUCTION END * AUCTION END * * *</ansi>
+<ansi fg="auction-banner">*******************************************************************************</ansi>
 
