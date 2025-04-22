@@ -12,5 +12,5 @@ import (
 
 func init() {
 	fmt.Println("!!! Run \"go generate\" before building this project !!!")
-	os.Exit(0)
+	os.Exit(1)
 }

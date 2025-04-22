@@ -11,8 +11,8 @@ RUN mkdir -p /app/log
 RUN touch /app/log/logfile.log
 
 COPY . .
+RUN go generate
 RUN go build -o ${BIN}
-
 
 FROM alpine:latest AS runner
 ARG BIN=go-mud-server
