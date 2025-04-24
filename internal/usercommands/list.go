@@ -135,9 +135,6 @@ func List(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 
 			sort.Slice(rows, func(i, j int) bool {
 				return rows[i][0] < rows[j][0]
-				num1, _ := strconv.Atoi(rows[i][3])
-				num2, _ := strconv.Atoi(rows[j][3])
-				return num1 < num2
 			})
 
 			saleItemsData := templates.GetTable(fmt.Sprintf(`%s by <ansi fg="mobname">%s</ansi>`, colorpatterns.ApplyColorPattern(`Items available`, `cyan`), mob.Character.Name), headers, rows)

@@ -166,7 +166,7 @@ mod:
 
 .PHONY: vet
 vet:
-	@go vet
+	@go vet -composites=false ./...           
 
 .PHONY: set_gopath
 set_gopath:

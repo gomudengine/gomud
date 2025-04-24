@@ -183,6 +183,15 @@ func main() {
 
 	mudlog.Info(`========================`)
 
+	if path, err := mapper.GetPath(1, 1); err == nil {
+		fmt.Println(path)
+		for _, step := range path {
+			fmt.Printf("Go %s -> room %d\n", step.ExitName, step.RoomId)
+		}
+	} else {
+		fmt.Println("ERROR", err)
+	}
+
 	// Create the user index
 	idx := users.NewUserIndex()
 	if !idx.Exists() {
