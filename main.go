@@ -292,10 +292,8 @@ func main() {
 		}
 	}()
 
-	// Send the worker shutdown signal for each worker thread to read
-	workerShutdownChan <- true
-	workerShutdownChan <- true
-	workerShutdownChan <- true
+	// Close the channel, signalling to the worker threads to shutdown.
+	close(workerShutdownChan)
 
 	// Wait for all workers to finish their tasks.
 	// Otherwise we end up getting flushed file saves incomplete.
