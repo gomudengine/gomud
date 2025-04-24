@@ -15,11 +15,23 @@ var (
 	ErrPathDestMatch = errors.New(`path destination is same as source`)
 )
 
-// PathStep is one move: take ExitName to arrive in RoomID.
-type PathStep struct {
-	ExitName string
-	RoomId   int
-	Waypoint bool
+// pathStep is one move: take ExitName to arrive in RoomID.
+type pathStep struct {
+	exitName string
+	roomId   int
+	waypoint bool
+}
+
+func (p pathStep) ExitName() string {
+	return p.exitName
+}
+
+func (p pathStep) RoomId() int {
+	return p.roomId
+}
+
+func (p pathStep) Waypoint() bool {
+	return p.waypoint
 }
 
 // internal struct to record how we reached each node
@@ -74,7 +86,7 @@ func (r *mapper) heuristic(a, b int) float64 {
 }
 
 // FindPath returns the sequence of ExitName/RoomID steps from startRoom to goalRoom.
-func (r *mapper) findPath(startRoom, goalRoom int) ([]PathStep, error) {
+func (r *mapper) findPath(startRoom, goalRoom int) ([]pathStep, error) {
 
 	if startRoom == goalRoom {
 		return nil, ErrPathDestMatch
@@ -114,13 +126,13 @@ func (r *mapper) findPath(startRoom, goalRoom int) ([]PathStep, error) {
 		// reached goal!
 		if current.roomId == goalRoom {
 			// reconstruct path
-			var path []PathStep
+			var path []pathStep
 			cur := goalRoom
 			for cur != startRoom {
 				info := cameFrom[cur]
 
 				// record the exit name and the room we arrived in
-				path = append(path, PathStep{ExitName: info.viaExit, RoomId: cur})
+				path = append(path, pathStep{exitName: info.viaExit, roomId: cur})
 				cur = info.prevRoom
 			}
 
@@ -134,7 +146,7 @@ func (r *mapper) findPath(startRoom, goalRoom int) ([]PathStep, error) {
 				}
 
 				// Mark the final room as the waypoint
-				path[pathLen-1].Waypoint = true
+				path[pathLen-1].waypoint = true
 			}
 			return path, nil
 		}
@@ -168,7 +180,7 @@ func (r *mapper) findPath(startRoom, goalRoom int) ([]PathStep, error) {
 	return nil, ErrPathNotFound
 }
 
-func GetPath(startRoomId int, endRoomId ...int) ([]PathStep, error) {
+func GetPath(startRoomId int, endRoomId ...int) ([]pathStep, error) {
 
 	start := time.Now()
 	defer func() {
@@ -176,29 +188,29 @@ func GetPath(startRoomId int, endRoomId ...int) ([]PathStep, error) {
 	}()
 
 	if len(endRoomId) == 0 {
-		return []PathStep{}, ErrPathNotFound
+		return []pathStep{}, ErrPathNotFound
 	}
 
 	startRoom := rooms.LoadRoom(startRoomId)
 	if startRoom == nil {
-		return []PathStep{}, ErrPathNotFound
+		return []pathStep{}, ErrPathNotFound
 	}
 
 	m := GetZoneMapper(startRoom.Zone)
 	if m == nil {
-		return []PathStep{}, ErrPathNotFound
+		return []pathStep{}, ErrPathNotFound
 	}
 
 	rNow := startRoomId
-	finalPath := []PathStep{}
+	finalPath := []pathStep{}
 	for _, roomId := range endRoomId {
 		if !m.HasRoom(roomId) {
-			return []PathStep{}, ErrPathNotFound
+			return []pathStep{}, ErrPathNotFound
 		}
 
 		p, err := m.findPath(rNow, roomId)
 		if err != nil {
-			return []PathStep{}, ErrPathNotFound
+			return []pathStep{}, ErrPathNotFound
 		}
 
 		finalPath = append(finalPath, p...)

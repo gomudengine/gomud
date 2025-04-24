@@ -61,11 +61,11 @@ func Test_findPath_Simple(t *testing.T) {
 		t.Fatalf("expected path length 2, got %d", len(path))
 	}
 
-	if got := path[0]; got.ExitName != "east" || got.RoomId != 2 || got.Waypoint {
+	if got := path[0]; got.exitName != "east" || got.roomId != 2 || got.waypoint {
 		t.Errorf("step0 = %+v; want {ExitName:east RoomId:2 Waypoint:false}", got)
 	}
-	if got := path[1]; got.ExitName != "south" || got.RoomId != 3 || got.Waypoint {
-		t.Errorf("step1 = %+v; want {ExitName:south RoomId:3 Waypoint:false}", got)
+	if got := path[1]; got.exitName != "south" || got.roomId != 3 || !got.waypoint {
+		t.Errorf("step1 = %+v; want {ExitName:south RoomId:3 Waypoint:true}", got)
 	}
 }
 
@@ -92,10 +92,10 @@ func Test_findPath_Cycle(t *testing.T) {
 		t.Fatalf("expected path length 2, got %d", len(path))
 	}
 
-	if got := path[0]; got.ExitName != "to2" || got.RoomId != 2 {
+	if got := path[0]; got.exitName != "to2" || got.roomId != 2 {
 		t.Errorf("step0 = %+v; want {ExitName:to2 RoomId:2}", got)
 	}
-	if got := path[1]; got.ExitName != "to3" || got.RoomId != 3 {
+	if got := path[1]; got.exitName != "to3" || got.roomId != 3 {
 		t.Errorf("step1 = %+v; want {ExitName:to3 RoomId:3}", got)
 	}
 }
