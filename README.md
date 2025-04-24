@@ -16,6 +16,10 @@ If you have comments, questions, suggestions:
 
 [Guides](_datafiles/guides/README.md) - Community created guides to help get started.
 
+# Contributor Guide
+
+Interested in contributing? Check out our [CONTRIBUTING.md](https://github.com/GoMudEngine/GoMud/.github/CONTRIBUTING.md) to learn about the process.
+
 ## Screenshots
 
 Click below to see in-game screenshots of just a handful of features:
