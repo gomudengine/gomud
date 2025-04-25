@@ -204,6 +204,11 @@ func GetPath(startRoomId int, endRoomId ...int) ([]pathStep, error) {
 	rNow := startRoomId
 	finalPath := []pathStep{}
 	for _, roomId := range endRoomId {
+
+		if rNow == roomId { // Avoid repeating id's
+			continue
+		}
+
 		if !m.HasRoom(roomId) {
 			return []pathStep{}, ErrPathNotFound
 		}

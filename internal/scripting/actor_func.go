@@ -749,6 +749,21 @@ func (a ScriptActor) GetLastInputRound() uint64 {
 	return 0
 }
 
+func (a ScriptActor) Pathing() bool {
+	if a.mobRecord == nil {
+		return false
+	}
+	return a.mobRecord.Path.Current() != nil || a.mobRecord.Path.Len() > 0
+}
+
+func (a ScriptActor) PathingAtWaypoint() bool {
+	if a.mobRecord == nil {
+		return false
+	}
+	pathStep := a.mobRecord.Path.Current()
+	return pathStep != nil && pathStep.Waypoint()
+}
+
 // ////////////////////////////////////////////////////////
 //
 // # These functions get exported to the scripting engine
