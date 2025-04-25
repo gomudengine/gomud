@@ -1,6 +1,7 @@
 package mapper
 
 import (
+	"errors"
 	"testing"
 )
 
@@ -102,7 +103,8 @@ func Test_findPath_Cycle(t *testing.T) {
 
 func Test_GetPath_StartNotFound(t *testing.T) {
 	_, err := GetPath(999999)
-	if err != ErrPathNotFound {
+
+	if !errors.Is(err, ErrPathNotFound) {
 		t.Fatalf("expected ErrPathNotFound for missing start, got %v", err)
 	}
 }
