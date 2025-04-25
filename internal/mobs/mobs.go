@@ -76,8 +76,9 @@ type Mob struct {
 	QuestFlags      []string `yaml:"questflags,omitempty,flow"` // What quest flags are set on this mob?
 	BuffIds         []int    `yaml:"buffids,omitempty"`         // Buff Id's this mob always has upon spawn
 	tempDataStore   map[string]any
-	conversationId  int  // Identifier of conversation currently involved in.
-	hasConverseFile bool // whether they have a converse file to look for conversations in
+	conversationId  int       // Identifier of conversation currently involved in.
+	hasConverseFile bool      // whether they have a converse file to look for conversations in
+	Path            PathQueue `yaml:"-"` // a pre-calculated path the mob is following.
 }
 
 func MobInstanceExists(instanceId int) bool {

@@ -48,6 +48,7 @@ var (
 		"lookforaid":     {LookForAid, false},
 		"lookfortrouble": {LookForTrouble, false},
 		"noop":           {Noop, true},
+		"pathto":         {Pathto, false},
 		"portal":         {Portal, false},
 		"put":            {Put, false},
 		"remove":         {Remove, false},

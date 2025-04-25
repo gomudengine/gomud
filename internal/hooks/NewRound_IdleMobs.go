@@ -3,6 +3,7 @@ package hooks
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -76,6 +77,54 @@ func IdleMobs(e events.Event) events.ListenerReturn {
 				}
 			}
 			continue
+		}
+
+		// Check whether they are currently in the middle of a path, or have one waiting to start.
+		if currentStep := mob.Path.Current(); currentStep != nil || mob.Path.Len() > 0 {
+
+			if currentStep == nil {
+				//mob.Command(`say I'm beginning a new path.`)
+			} else {
+
+				// If their currentStep isnt' actually the room they are in
+				// They've somehow been moved. Reclaculate a new path.
+				if currentStep.RoomId() != mob.Character.RoomId {
+					//mob.Command(`say I seem to have wandered off my path.`)
+
+					reDoWaypoints := mob.Path.Waypoints()
+					if len(reDoWaypoints) > 0 {
+						newCommand := `pathto`
+						for _, wpInt := range reDoWaypoints {
+							newCommand += ` ` + strconv.Itoa(wpInt)
+						}
+						mob.Command(newCommand)
+						continue
+					}
+
+					mob.Command(`pathto home`)
+					continue
+				}
+
+				if currentStep.Waypoint() {
+					//mob.Command(`say I've reached a waypoint.`)
+				}
+			}
+
+			if nextStep := mob.Path.Next(); nextStep != nil {
+
+				if room := rooms.LoadRoom(mob.Character.RoomId); room != nil {
+					if exitInfo, ok := room.Exits[nextStep.ExitName()]; ok {
+						if exitInfo.RoomId == nextStep.RoomId() {
+							mob.Command(nextStep.ExitName())
+							continue
+						}
+					}
+				}
+
+			}
+
+			//mob.Command(`say I'm.... done.`)
+			mob.Path.Clear()
 		}
 
 		if mob.InConversation() {
