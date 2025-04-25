@@ -113,6 +113,10 @@ coverage:
 	go tool cover -html=bin/covdatafiles/cover.out && \
 	rm -rf bin
 
+.PHONY: js-lint
+js-lint:
+	docker run --rm -v ./:/data cytopia/eslint:latest . 
+
 #
 #
 # Cert generation for testing
