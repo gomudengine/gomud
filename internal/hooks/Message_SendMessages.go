@@ -54,7 +54,7 @@ func Message_SendMessage(e events.Event) events.ListenerReturn {
 			skip := false
 
 			if message.UserId == userId {
-				return events.Continue
+				continue
 			}
 
 			exLen := len(message.ExcludeUserIds)
@@ -68,20 +68,20 @@ func Message_SendMessage(e events.Event) events.ListenerReturn {
 			}
 
 			if skip {
-				return events.Continue
+				continue
 			}
 
 			if user := users.GetByUserId(userId); user != nil {
 
 				// If they are deafened, they cannot hear user communications
 				if message.IsCommunication && user.Deafened {
-					return events.Continue
+					continue
 				}
 
 				// If this is a quiet message, make sure the player can hear it
 				if message.IsQuiet {
 					if !user.Character.HasBuffFlag(buffs.SuperHearing) {
-						return events.Continue
+						continue
 					}
 				}
 
