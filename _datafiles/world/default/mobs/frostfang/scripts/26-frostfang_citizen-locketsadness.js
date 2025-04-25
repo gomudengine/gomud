@@ -48,13 +48,6 @@ function onAsk(mob, room, eventDetails) {
 
     }
 
-    match = UtilFindMatchIn(eventDetails.askText, lichSubjects);
-    if ( match.found ) {
-        mob.Command("say An ancient lich king eh? Do you have any proof that what you say is true?");
-
-        return true;
-    }
-
     return true;
 }
 
