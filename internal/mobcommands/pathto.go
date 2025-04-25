@@ -26,8 +26,8 @@ func Pathto(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		}
 	}
 
-	if len(toRoomIds) == 0 {
-		return false, nil
+	if len(toRoomIds) < 1 || toRoomIds[0] == mob.Character.RoomId {
+		return true, nil
 	}
 
 	path, err := mapper.GetPath(mob.Character.RoomId, toRoomIds...)

@@ -145,6 +145,14 @@ func IdleMobs(e events.Event) events.ListenerReturn {
 			mob.Path.Clear()
 		}
 
+		// if a mob shouldn't be allowed to leave their area (via wandering)
+		// but has somehow been displaced, such as pulling through combat, spells, or otherwise
+		// tell them to path back home
+		if mob.MaxWander == 0 && mob.Character.RoomId != mob.HomeRoomId {
+			mob.Command("pathto home")
+			continue
+		}
+
 		if mob.CanConverse() && util.Rand(100) < globalConverseChance {
 			if mobRoom := rooms.LoadRoom(mob.Character.RoomId); mobRoom != nil {
 				mobcommands.Converse(``, mob, mobRoom) // Execute this directly so that target mob doesn't leave the room before this command executes
@@ -159,12 +167,8 @@ func IdleMobs(e events.Event) events.ListenerReturn {
 
 			if !mob.Character.IsCharmed() { // Won't do this stuff if befriended
 
-				if mob.MaxWander > -1 && len(mob.RoomStack) > mob.MaxWander {
-					mob.GoingHome = true
-				}
-
-				if mob.GoingHome {
-					mob.Command(`go home`)
+				if mob.MaxWander > -1 && mob.WanderCount > mob.MaxWander {
+					mob.Command(`pathto home`)
 					continue
 				}
 

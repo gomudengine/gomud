@@ -7,7 +7,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
-	"github.com/GoMudEngine/GoMud/internal/util"
 )
 
 func Go(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
@@ -20,57 +19,19 @@ func Go(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	exitName := ``
 	goRoomId := 0
 
+	exitName, goRoomId = room.FindExitByName(rest)
+
 	if rest == `home` {
+		mob.Command(`pathto home`)
+		return true, nil
+	}
 
-		if mob.Character.RoomId == mob.HomeRoomId {
+	exitInfo, _ := room.GetExitInfo(exitName)
+	if exitInfo.Lock.IsLocked() {
 
-			if len(mob.RoomStack) > 0 {
-				mob.RoomStack = make([]int, 0)
-			}
-			mob.GoingHome = false
+		mob.Command(fmt.Sprintf(`emote tries to go the <ansi fg="exit">%s</ansi> exit, but it's locked.`, exitName))
 
-			return true, nil
-
-		} else {
-
-			mob.GoingHome = true
-
-			if len(mob.RoomStack) == 0 {
-
-				if util.Rand(50) == 0 {
-					goRoomId = mob.HomeRoomId
-					exitName = `mysterious`
-				} else {
-
-					mob.Command(`say I'm lost.`)
-
-					return true, nil
-				}
-			} else {
-
-				targetRoomId := mob.RoomStack[len(mob.RoomStack)-1]
-				mob.RoomStack = mob.RoomStack[:len(mob.RoomStack)-1]
-				exitName = room.FindExitTo(targetRoomId)
-				goRoomId = targetRoomId
-				if len(exitName) < 1 {
-					exitName = fmt.Sprintf(`%d room`, goRoomId)
-				}
-
-			}
-
-		}
-
-	} else {
-		exitName, goRoomId = room.FindExitByName(rest)
-
-		exitInfo, _ := room.GetExitInfo(exitName)
-		if exitInfo.Lock.IsLocked() {
-
-			mob.Command(fmt.Sprintf(`emote tries to go the <ansi fg="exit">%s</ansi> exit, but it's locked.`, exitName))
-
-			return true, nil
-		}
-
+		return true, nil
 	}
 
 	if exitName != `` {
@@ -100,22 +61,6 @@ func Go(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 			}
 
 			enterFromExit = fmt.Sprintf(`the <ansi fg="exit">%s</ansi>`, enterFromExit)
-		}
-
-		if rest != `home` {
-			// track the room we are leaving
-			repeatRoom := false
-			stackSize := len(mob.RoomStack)
-			for i := 0; i < stackSize; i++ {
-				if mob.RoomStack[i] == room.RoomId {
-					mob.RoomStack = mob.RoomStack[:i]
-					repeatRoom = true
-					break
-				}
-			}
-			if !repeatRoom && mob.MaxWander > -1 { // If they can wander forever, don't track it
-				mob.RoomStack = append(mob.RoomStack, room.RoomId)
-			}
 		}
 
 		room.RemoveMob(mob.InstanceId)

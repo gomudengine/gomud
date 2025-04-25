@@ -139,7 +139,7 @@ func Locate(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 					fmt.Sprintf(`%-4d`, mob.Character.RoomId),
 					fmt.Sprintf(`%-24s`, roomTitle),
 					fmt.Sprintf(`%-14s`, mob.Character.Zone),
-					fmt.Sprintf(`%-5s`, fmt.Sprintf(`%d/%d`, len(mob.RoomStack), mob.MaxWander)),
+					fmt.Sprintf(`%-5s`, fmt.Sprintf(`%d/%d`, mob.WanderCount, mob.MaxWander)),
 				})
 
 				if ct >= matchesPerPage {

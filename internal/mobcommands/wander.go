@@ -17,9 +17,9 @@ func Wander(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	// If they aren't home and need to go home, do it.
 	if mob.Character.RoomId != mob.HomeRoomId {
 		if mob.MaxWander > -1 { // -1 means they can wander forever and never go home. 0 means they never wander.
-			if len(mob.RoomStack) > mob.MaxWander {
+			if mob.WanderCount > mob.MaxWander {
 
-				mob.Command(`go home`)
+				mob.Command(`pathto home`)
 
 				return true, nil
 			}
@@ -58,6 +58,7 @@ func Wander(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		if r := rooms.LoadRoom(roomId); r != nil {
 			if !restrictZone || r.Zone == mob.Character.Zone {
 
+				mob.WanderCount++
 				mob.Command(fmt.Sprintf("go %s", exitName))
 
 			}

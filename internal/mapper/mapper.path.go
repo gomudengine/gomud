@@ -3,6 +3,7 @@ package mapper
 import (
 	"container/heap"
 	"errors"
+	"fmt"
 	"math"
 	"time"
 
@@ -188,17 +189,17 @@ func GetPath(startRoomId int, endRoomId ...int) ([]pathStep, error) {
 	}()
 
 	if len(endRoomId) == 0 {
-		return []pathStep{}, ErrPathNotFound
+		return []pathStep{}, fmt.Errorf("%d => %d (endRoom not found): %w", startRoomId, endRoomId, ErrPathNotFound)
 	}
 
 	startRoom := rooms.LoadRoom(startRoomId)
 	if startRoom == nil {
-		return []pathStep{}, ErrPathNotFound
+		return []pathStep{}, fmt.Errorf("%d => %d (startRoom  not found): %w", startRoomId, endRoomId, ErrPathNotFound)
 	}
 
 	m := GetZoneMapper(startRoom.Zone)
 	if m == nil {
-		return []pathStep{}, ErrPathNotFound
+		return []pathStep{}, fmt.Errorf("%d => %d (mapper not fond): %w", startRoomId, endRoomId, ErrPathNotFound)
 	}
 
 	rNow := startRoomId
@@ -210,12 +211,12 @@ func GetPath(startRoomId int, endRoomId ...int) ([]pathStep, error) {
 		}
 
 		if !m.HasRoom(roomId) {
-			return []pathStep{}, ErrPathNotFound
+			return []pathStep{}, fmt.Errorf("%d => %d (room not in mapper): %w", rNow, roomId, ErrPathNotFound)
 		}
 
 		p, err := m.findPath(rNow, roomId)
 		if err != nil {
-			return []pathStep{}, ErrPathNotFound
+			return []pathStep{}, fmt.Errorf("%d => %d: %w", rNow, roomId, ErrPathNotFound)
 		}
 
 		finalPath = append(finalPath, p...)
