@@ -581,3 +581,9 @@ func Exists(name string) bool {
 
 	return found
 }
+
+func FindUserId(username string) int {
+	idx := NewUserIndex()
+	userid, _ := idx.FindByUsername(username)
+	return int(userid)
+}

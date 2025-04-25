@@ -7,27 +7,10 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/connections"
 	"github.com/GoMudEngine/GoMud/internal/language"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
+	"github.com/GoMudEngine/GoMud/internal/templates"
 	"github.com/GoMudEngine/GoMud/internal/term"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
-
-// Condition Helpers
-
-func ConditionIsNewSignup(results map[string]string) bool {
-	return results["new-signup"] == `new`
-}
-
-// ConditionUserDoesNotExist checks if the username entered does *not* exist.
-func ConditionUserDoesNotExist(results map[string]string) bool {
-	username := results["username"] // Assumes previous step had ID "username"
-	return !users.Exists(username)
-}
-
-// ConditionUserExists checks if the username entered *does* exist.
-func ConditionUserExists(results map[string]string) bool {
-	username := results["username"] // Assumes previous step had ID "username"
-	return users.Exists(username)
-}
 
 // FinalizeLoginOrCreate is called after all prompts are successfully answered.
 func FinalizeLoginOrCreate(results map[string]string, sharedState map[string]any, clientInput *connections.ClientInput) bool {
@@ -39,6 +22,22 @@ func FinalizeLoginOrCreate(results map[string]string, sharedState map[string]any
 		userExists := users.Exists(username)
 
 		if userExists {
+
+			if results["kickuser"] == "y" {
+				// Disconnect/kick the user currently connected
+				userid := users.FindUserId(results["username"])
+				user := users.GetByUserId(userid)
+
+				existingConnectionId := user.ConnectionId()
+
+				// Send a goodbye message to the currently connected user
+				tplTxt, _ := templates.Process("goodbye", nil)
+				connections.SendTo([]byte(templates.AnsiParse(tplTxt)), existingConnectionId)
+
+				connections.Kick(existingConnectionId)
+
+			}
+
 			// Existing User Login Logic (No changes needed)
 			tmpUser, err := users.LoadUser(username)
 			if err != nil {
@@ -164,6 +163,31 @@ func GetLoginPromptHandler() connections.InputHandler {
 			MaskTemplate:   "login/password.mask", // Optional: specify if different from "*"
 			Validator:      ValidatePassword,
 			Condition:      func(results map[string]string) bool { return results["username"] != `new` }, // Only run if username was not "new"
+		},
+		{
+			ID:             "kickuser",
+			PromptTemplate: "generic/prompt.yn",
+			GetDataFunc: func(results map[string]string) map[string]any {
+				// Dynamically generate the data for the generic y/n prompt
+				return map[string]any{
+					"prompt":  "User is already connected. Kick them?",
+					"options": []string{"y", "n"},
+					"default": "n", // Default shown in the prompt, actual default on empty input handled by validator
+				}
+			},
+			MaskInput: false,
+			Validator: ValidateYesNo,
+			Condition: func(results map[string]string) bool {
+				if results["username"] == `new` {
+					return false
+				}
+
+				userid := users.FindUserId(results["username"])
+
+				user := users.GetByUserId(userid)
+
+				return user != nil && user.PasswordMatches(results["password"])
+			}, // Only run if username was not "new", password matches, and user is currently online.
 		},
 		//////////////////////////////////////////////////
 		// End If NOT a new user signup (Just a login)
