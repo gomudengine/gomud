@@ -49,8 +49,9 @@ func InactivePlayers(e events.Event) events.ListenerReturn {
 
 		if li < cutoffRound {
 			events.AddToQueue(events.System{
-				Command: `kick`,
-				Data:    user.UserId,
+				Command:     `kick`,
+				Data:        user.UserId,
+				Description: `Inactivity`,
 			})
 		}
 

@@ -3,6 +3,8 @@ package inputhandlers
 import (
 	// ... other imports
 
+	"fmt"
+
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/connections"
 	"github.com/GoMudEngine/GoMud/internal/language"
@@ -24,6 +26,9 @@ func FinalizeLoginOrCreate(results map[string]string, sharedState map[string]any
 		if userExists {
 
 			if results["kickuser"] == "y" {
+
+				connDetails := connections.Get(clientInput.ConnectionId)
+
 				// Disconnect/kick the user currently connected
 				userid := users.FindUserId(results["username"])
 				user := users.GetByUserId(userid)
@@ -34,7 +39,8 @@ func FinalizeLoginOrCreate(results map[string]string, sharedState map[string]any
 				tplTxt, _ := templates.Process("goodbye", nil)
 				connections.SendTo([]byte(templates.AnsiParse(tplTxt)), existingConnectionId)
 
-				connections.Kick(existingConnectionId)
+				users.SetZombieUser(userid)
+				connections.Kick(existingConnectionId, fmt.Sprintf(`Duplicate login (ip: %s)`, connDetails.RemoteAddr()))
 
 			}
 

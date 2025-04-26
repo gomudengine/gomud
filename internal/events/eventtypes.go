@@ -108,8 +108,9 @@ func (w WebClientCommand) Type() string { return `WebClientCommand` }
 
 // Messages that are intended to reach all users on the system
 type System struct {
-	Command string
-	Data    any
+	Command     string
+	Data        any
+	Description string
 }
 
 func (s System) Type() string { return `System` }

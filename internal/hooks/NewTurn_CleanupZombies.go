@@ -35,7 +35,11 @@ func CleanupZombies(e events.Event) events.ListenerReturn {
 			mudlog.Info("Expired Zombies", "count", len(expZombies))
 
 			for _, userId := range expZombies {
-				events.AddToQueue(events.System{Command: `leaveworld`, Data: userId})
+				events.AddToQueue(events.System{
+					Command:     `leaveworld`,
+					Data:        userId,
+					Description: `Zombie Expired`,
+				})
 			}
 
 		}

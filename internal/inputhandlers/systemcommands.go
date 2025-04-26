@@ -118,7 +118,7 @@ func trySystemCommand(cmd string, connectionId connections.ConnectionId) bool {
 
 		connections.SendTo([]byte(templates.AnsiParse(tplTxt)), connectionId)
 
-		connections.Kick(connectionId)
+		connections.Kick(connectionId, `/quit`)
 		return true
 	}
 

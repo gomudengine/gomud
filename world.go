@@ -183,7 +183,7 @@ func (w *World) HandleSystemEvents(e events.Event) events.ListenerReturn {
 		})
 
 	} else if sys.Command == `kick` {
-		w.Kick(sys.Data.(int))
+		w.Kick(sys.Data.(int), sys.Description)
 	} else if sys.Command == `leaveworld` {
 
 		if userInfo := users.GetByUserId(sys.Data.(int)); userInfo != nil {
@@ -1025,19 +1025,17 @@ func (w *World) UpdateStats() {
 }
 
 // Force disconnect a user (Makes them a zombie)
-func (w *World) Kick(userId int) {
-
-	mudlog.Info(`Kick`, `userId`, userId)
+func (w *World) Kick(userId int, reason string) {
 
 	user := users.GetByUserId(userId)
 	if user == nil {
 		return
 	}
+
 	users.SetZombieUser(userId)
+	user.EventLog.Add(`conn`, fmt.Sprintf(`Kicked (%s)`, reason))
 
-	user.EventLog.Add(`conn`, `Kicked`)
-
-	connections.Kick(user.ConnectionId())
+	connections.Kick(user.ConnectionId(), reason)
 }
 
 func (w *World) logOff(userId int) {

@@ -100,7 +100,7 @@ func Cleanup() {
 	}
 }
 
-func Kick(id ConnectionId) (err error) {
+func Kick(id ConnectionId, reason string) (err error) {
 
 	lock.Lock()
 	defer lock.Unlock()
@@ -113,7 +113,7 @@ func Kick(id ConnectionId) (err error) {
 		// keep track of the number of disconnects
 		disconnectCounter++
 		// remove the connection from the map
-		mudlog.Info("connection kicked", "connectionId", id, "remoteAddr", cd.RemoteAddr().String())
+		mudlog.Info("connection kicked", "connectionId", id, "remoteAddr", cd.RemoteAddr().String(), `reason`, reason)
 
 		return nil
 
