@@ -22,8 +22,6 @@ import (
 
 func IdleMobs(e events.Event) events.ListenerReturn {
 
-	// evt := e.(events.NewRound)
-
 	mobPathAnnounce := false // useful for debugging purposes.
 
 	mc := configs.GetMemoryConfig()
