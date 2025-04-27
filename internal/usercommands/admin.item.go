@@ -69,15 +69,16 @@ func Item(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 	return true, nil
 }
 
-func item_List(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
+func item_List(rest string, user *users.UserRecord, _ *rooms.Room, _ events.EventFlag) (bool, error) {
 
 	itmNames := []templates.NameDescription{}
-
 	longestName := 0
-	for _, itm := range items.GetAllItemNames() {
+
+	for _, itm := range items.GetAllItemSpecs() {
 
 		entry := templates.NameDescription{
-			Name: itm,
+			Id:   itm.ItemId,
+			Name: itm.Name,
 		}
 
 		// If searching for matches
@@ -85,70 +86,33 @@ func item_List(rest string, user *users.UserRecord, room *rooms.Room, flags even
 			if !strings.Contains(rest, `*`) {
 				rest += `*`
 			}
-			if util.StringWildcardMatch(strings.ToLower(itm), rest) {
-				entry.Marked = true
+			if !util.StringWildcardMatch(strings.ToLower(entry.Name), rest) {
+				continue
 			}
 		}
 
-		if len(itm) > longestName {
-			longestName = len(itm)
+		if len(entry.Name) > longestName {
+			longestName = len(entry.Name)
 		}
 
 		itmNames = append(itmNames, entry)
 	}
 
 	sort.SliceStable(itmNames, func(i, j int) bool {
-		return itmNames[i].Name < itmNames[j].Name
+		return strings.ToLower(itmNames[i].Name) < strings.ToLower(itmNames[j].Name)
 	})
 
 	numWidth := len(strconv.Itoa(len(itmNames)))
-	colWidth := 1 + numWidth + 2 +
-		longestName + 1
-	sw := 80
-	if user.ClientSettings().Display.ScreenWidth > 0 {
-		sw = int(user.ClientSettings().Display.ScreenWidth)
-	}
-
-	//cols := int(math.Floor(float64(sw) / float64(colWidth)))
+	colWidth := 1 + numWidth + 2 + longestName + 1
 
 	user.SendText(``)
-	strOut := ``
-	totalLen := 0
-	for idx, itm := range itmNames {
-
-		if totalLen+colWidth > sw {
-			strOut += term.CRLFStr
-			totalLen = 0
-		}
-
-		numStr := strconv.Itoa(idx + 1)
-
-		strOut += ` `
-
-		if itm.Marked {
-			strOut += `<ansi fg="white-bold" bg="059">`
-		}
-
-		strOut += strings.Repeat(` `, numWidth-len(numStr)) + fmt.Sprintf(`<ansi fg="red-bold">%s</ansi>`, strconv.Itoa(idx+1)) + `. ` +
-			fmt.Sprintf(`<ansi fg="yellow-bold">%s</ansi>`, itm.Name) + strings.Repeat(` `, longestName-len(itm.Name))
-
-		if itm.Marked {
-			strOut += `</ansi>`
-		}
-
-		strOut += ` `
-
-		totalLen += colWidth
-
-	}
-
+	sw := user.ClientSettings().Display.GetScreenWidth()
+	strOut := templates.DynamicList(itmNames, colWidth, sw, numWidth, longestName)
 	user.SendText(strOut)
 	user.SendText(``)
 
 	return true, nil
 }
-
-//  107. wooden shield                      108. worn boots
 
 func item_Spawn(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 

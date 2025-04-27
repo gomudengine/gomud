@@ -71,34 +71,47 @@ func Mob(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 	return true, nil
 }
 
-func mob_List(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
+func mob_List(rest string, user *users.UserRecord, _ *rooms.Room, _ events.EventFlag) (bool, error) {
 
-	mobNames := []templates.NameDescription{}
+	mobList := []templates.NameDescription{}
+	longestName := 0
 
-	for _, nm := range mobs.GetAllMobNames() {
+	for _, mob := range mobs.GetAllMobInfo() {
+
+		entry := templates.NameDescription{
+			Id:   mob.MobId,
+			Name: mob.Character.Name,
+		}
 
 		// If searching for matches
 		if len(rest) > 0 {
 			if !strings.Contains(rest, `*`) {
 				rest += `*`
 			}
-
-			if !util.StringWildcardMatch(strings.ToLower(nm), rest) {
+			if !util.StringWildcardMatch(strings.ToLower(entry.Name), rest) {
 				continue
 			}
 		}
 
-		mobNames = append(mobNames, templates.NameDescription{
-			Name: nm,
-		})
+		if len(entry.Name) > longestName {
+			longestName = len(entry.Name)
+		}
+
+		mobList = append(mobList, entry)
 	}
 
-	sort.SliceStable(mobNames, func(i, j int) bool {
-		return mobNames[i].Name < mobNames[j].Name
+	sort.SliceStable(mobList, func(i, j int) bool {
+		return strings.ToLower(mobList[i].Name) < strings.ToLower(mobList[j].Name)
 	})
 
-	tplTxt, _ := templates.Process("tables/numbered-list-doubled", mobNames, user.UserId)
-	user.SendText(tplTxt)
+	numWidth := len(strconv.Itoa(len(mobList)))
+	colWidth := 1 + numWidth + 2 + longestName + 1
+
+	user.SendText(``)
+	sw := user.ClientSettings().Display.GetScreenWidth()
+	strOut := templates.DynamicList(mobList, colWidth, sw, numWidth, longestName)
+	user.SendText(strOut)
+	user.SendText(``)
 
 	return true, nil
 }
