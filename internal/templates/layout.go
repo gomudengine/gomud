@@ -11,6 +11,10 @@ import (
 // DynamicList takes a slice of NameDescription items and formats them into a string
 // NOTE: This is a first step to moving dynamic lists into a common function.
 func DynamicList(itmNames []NameDescription, colWidth, sw, numWidth, longestName int) string {
+	if len(itmNames) == 0 {
+		return `<ansi fg="202">No items to display.</ansi>`
+	}
+
 	strOut := ``
 	totalLen := 0
 	for idx, itm := range itmNames {
