@@ -27,6 +27,14 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 		return false, fmt.Errorf(`not in a IsCharacterRoom`)
 	}
 
+	altNames := []string{}
+	nameToAlt := map[string]characters.Character{}
+
+	for _, char := range characters.LoadAlts(user.UserId) {
+		altNames = append(altNames, char.Name)
+		nameToAlt[char.Name] = char
+	}
+
 	// All possible commands:
 	// new - reroll current character (if no alts enabled, or create a new one and store the current one)
 	// change - change to another character in storage
@@ -43,7 +51,7 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 		return true, errors.New(`alt characters disabled`)
 	}
 
-	if user.Character.Level < 5 {
+	if user.Character.Level < 5 && len(nameToAlt) < 1 {
 		user.SendText(`<ansi fg="203">You must reach level 5 with this character to access character alts.</ansi>`)
 		return true, errors.New(`level 5 minimum`)
 	}
@@ -61,14 +69,6 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 	menuOptions := []string{`new`}
 
 	cmdPrompt, isNew := user.StartPrompt(`character`, rest)
-
-	altNames := []string{}
-	nameToAlt := map[string]characters.Character{}
-
-	for _, char := range characters.LoadAlts(user.UserId) {
-		altNames = append(altNames, char.Name)
-		nameToAlt[char.Name] = char
-	}
 
 	if isNew {
 
