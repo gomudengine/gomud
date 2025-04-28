@@ -18,7 +18,7 @@ If you have comments, questions, suggestions:
 
 # Contributor Guide
 
-Interested in contributing? Check out our [CONTRIBUTING.md](https://github.com/GoMudEngine/GoMud/.github/CONTRIBUTING.md) to learn about the process.
+Interested in contributing? Check out our [CONTRIBUTING.md](https://github.com/GoMudEngine/GoMud/blob/master/.github/CONTRIBUTING.md) to learn about the process.
 
 ## Screenshots
 
