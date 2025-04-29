@@ -97,7 +97,7 @@ func IdleMobs(e events.Event) events.ListenerReturn {
 				}
 			} else {
 
-				// If their currentStep isnt' actually the room they are in
+				// If their currentStep isn't actually the room they are in
 				// They've somehow been moved. Reclaculate a new path.
 				if currentStep.RoomId() != mob.Character.RoomId {
 					if mobPathAnnounce {

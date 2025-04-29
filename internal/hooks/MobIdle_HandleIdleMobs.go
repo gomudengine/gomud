@@ -23,11 +23,15 @@ func HandleIdleMobs(e events.Event) events.ListenerReturn {
 		return events.Cancel
 	}
 
+	isCharmed := mob.Character.IsCharmed()
+
 	// if a mob shouldn't be allowed to leave their area (via wandering)
 	// but has somehow been displaced, such as pulling through combat, spells, or otherwise
 	// tell them to path back home
 	if mob.MaxWander == 0 && mob.Character.RoomId != mob.HomeRoomId {
-		mob.Command("pathto home")
+		if !isCharmed {
+			mob.Command("pathto home")
+		}
 	}
 
 	if mob.CanConverse() && util.Rand(100) < int(configs.GetGamePlayConfig().MobConverseChance) {
@@ -40,32 +44,35 @@ func HandleIdleMobs(e events.Event) events.ListenerReturn {
 	handled, _ := scripting.TryMobScriptEvent("onIdle", mob.InstanceId, 0, ``, nil)
 	if !handled {
 
-		if !mob.Character.IsCharmed() { // Won't do this stuff if befriended
-
-			if mob.MaxWander > -1 && mob.WanderCount > mob.MaxWander {
-				mob.Command(`pathto home`)
-			}
-
-		}
-
-		//
-		// Look for trouble
-		//
-		if mob.Character.IsCharmed() {
+		if isCharmed {
 			// Only some mobs can apply first aid
+			// If a charmed mob can aid someone, try.
 			if mob.Character.KnowsFirstAid() {
 				mob.Command(`lookforaid`)
 			}
 		} else {
 
-			idleCmd := `lookfortrouble`
-			if util.Rand(100) < mob.ActivityLevel {
-				idleCmd = mob.GetIdleCommand()
-				if idleCmd == `` {
-					idleCmd = `lookfortrouble`
+			if mob.MaxWander > -1 && mob.WanderCount > mob.MaxWander {
+
+				// Not charmed and far from home, and should never leave home.
+				// So go home.
+				mob.Command(`pathto home`)
+
+			} else {
+
+				//
+				// Look for trouble
+				//
+
+				idleCmd := `lookfortrouble`
+				if util.Rand(100) < mob.ActivityLevel {
+					idleCmd = mob.GetIdleCommand()
+					if idleCmd == `` {
+						idleCmd = `lookfortrouble`
+					}
 				}
+				mob.Command(idleCmd)
 			}
-			mob.Command(idleCmd)
 		}
 	}
 

@@ -12,6 +12,14 @@ import (
 
 func Pathto(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
+	// If only going home, check whether a path home was already tried and marked as impossible.
+	if rest == `home` {
+		cantGoHome := mob.GetTempData(`home-impossible`)
+		if cantGoHome != nil && cantGoHome.(bool) == true {
+			return true, nil
+		}
+	}
+
 	toRoomIds := []int{}
 
 	for _, roomIdStr := range util.SplitButRespectQuotes(strings.ToLower(rest)) {
@@ -32,14 +40,24 @@ func Pathto(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 	path, err := mapper.GetPath(mob.Character.RoomId, toRoomIds...)
 	if err != nil {
+		if rest == `home` {
+			mob.SetTempData(`home-impossible`, true)
+			mob.Character.SetAdjective(`lost`, true)
+		}
 		return false, err
 	}
 
-	newPath := []mobs.PathRoom{}
+	if rest == `home` && len(path) == 0 {
+		mob.SetTempData(`home-impossible`, true)
+		mob.Character.SetAdjective(`lost`, true)
+		return true, nil
+	}
+
+	newPath := make([]mobs.PathRoom, len(path))
 
 	// Copy everything over
-	for _, p := range path {
-		newPath = append(newPath, p)
+	for idx, p := range path {
+		newPath[idx] = p
 	}
 
 	mob.Path.SetPath(newPath)
