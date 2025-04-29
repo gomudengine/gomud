@@ -7,6 +7,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/scripting"
 )
 
 func Go(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
@@ -85,6 +86,18 @@ func Go(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 		room.PlaySound(`room-exit`, `movement`)
 		destRoom.PlaySound(`room-enter`, `movement`)
+
+		// We want the `waypoint` onPath event triggered right after they enter the room.
+		if currentStep := mob.Path.Current(); currentStep != nil && currentStep.Waypoint() {
+
+			// Anytime a mob reaches a waypoint, introduce a 1 second delay before they can perform any additional commands.
+			// This gives a more natural feel to mob behavior, and gives those following a moment to catch up before the mob does something.
+			mob.Command("noop", 1)
+
+			if endPathingAndSkip, _ := scripting.TryMobScriptEvent("onPath", mob.InstanceId, 0, ``, map[string]any{`status`: `waypoint`}); endPathingAndSkip {
+				mob.Path.Clear()
+			}
+		}
 
 		return true, nil
 	}

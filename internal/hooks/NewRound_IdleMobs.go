@@ -10,6 +10,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/scripting"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
@@ -85,6 +86,12 @@ func IdleMobs(e events.Event) events.ListenerReturn {
 		if currentStep := mob.Path.Current(); currentStep != nil || mob.Path.Len() > 0 {
 
 			if currentStep == nil {
+
+				if endPathingAndSkip, _ := scripting.TryMobScriptEvent("onPath", mob.InstanceId, 0, ``, map[string]any{`status`: `start`}); endPathingAndSkip {
+					mob.Path.Clear()
+					continue
+				}
+
 				if mobPathAnnounce {
 					mob.Command(`say I'm beginning a new path.`)
 				}
@@ -133,10 +140,16 @@ func IdleMobs(e events.Event) events.ListenerReturn {
 
 			}
 
+			mob.Path.Clear()
+
+			if endPathingAndSkip, _ := scripting.TryMobScriptEvent("onPath", mob.InstanceId, 0, ``, map[string]any{`status`: `end`}); endPathingAndSkip {
+				continue
+			}
+
 			if mobPathAnnounce {
 				mob.Command(`say I'm.... done.`)
 			}
-			mob.Path.Clear()
+
 		}
 
 		events.AddToQueue(events.MobIdle{MobInstanceId: mobId})

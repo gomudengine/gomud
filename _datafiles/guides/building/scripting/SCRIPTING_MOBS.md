@@ -190,3 +190,16 @@ function onDie(mob ActorObject, room RoomObject, eventDetails object) {
 
 ---
 
+```
+function onAsk(mob ActorObject, room RoomObject, eventDetails object) {
+}
+```
+
+`onPath()` is called when mob is asked something. Returning `true` will end the pathing and skip any additional path processing. 
+NOTE: You can safely start a new path with `mob.Command('pathto 123')` before returning true, since the command will be executed slightly later in the event chain.
+
+|  Argument | Explanation |
+| --- | --- |
+| mob | [ActorObject](FUNCTIONS_ACTORS.md) |
+| room | [RoomObject](FUNCTIONS_ROOMS.md) |
+| eventDetails.status | `start`, `waypoint`, or `end` |
