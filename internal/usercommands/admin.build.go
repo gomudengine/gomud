@@ -67,15 +67,15 @@ func Build(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 			var destinationRoom *rooms.Room = nil
 			// If it's a compass direction, reject it if a room already exists in that direction
 
-			zMapper := mapper.GetZoneMapper(room.Zone)
-			if zMapper == nil {
-				err := fmt.Errorf("Could not find mapper for zone: %s", room.Zone)
+			rMapper := mapper.GetMapper(room.RoomId)
+			if rMapper == nil {
+				err := fmt.Errorf("Could not find mapper for roomId: %d", room.RoomId)
 				mudlog.Error("Map", "error", err)
 				user.SendText(`No map found (or an error occured)"`)
 				return true, err
 			}
 
-			if gotoRoomId, _ := zMapper.FindAdjacentRoom(user.Character.RoomId, exitName, 1); gotoRoomId == 0 {
+			if gotoRoomId, _ := rMapper.FindAdjacentRoom(user.Character.RoomId, exitName, 1); gotoRoomId == 0 {
 
 				if newRoom, err := rooms.BuildRoom(user.Character.RoomId, exitName, mapDirection); err != nil {
 					user.SendText(err.Error())

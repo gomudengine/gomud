@@ -181,6 +181,21 @@ func GetAllZoneNames() []string {
 	return zoneNames
 }
 
+func GetAllZoneRoomsIds(zoneName string) []int {
+
+	if zoneInfo, ok := roomManager.zones[zoneName]; ok {
+		result := make([]int, len(zoneInfo.RoomIds))
+		idx := 0
+		for roomId, _ := range zoneInfo.RoomIds {
+			result[idx] = roomId
+			idx++
+		}
+		return result
+	}
+
+	return []int{}
+}
+
 func MoveToRoom(userId int, toRoomId int, isSpawn ...bool) error {
 
 	user := users.GetByUserId(userId)

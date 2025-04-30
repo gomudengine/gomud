@@ -209,7 +209,7 @@ func GetPath(startRoomId int, endRoomId ...int) ([]pathStep, error) {
 		return []pathStep{}, fmt.Errorf("%d => %d (startRoom  not found): %w", startRoomId, endRoomId, ErrPathNotFound)
 	}
 
-	m := GetZoneMapper(startRoom.Zone)
+	m := GetMapper(startRoom.RoomId)
 	if m == nil {
 		return []pathStep{}, fmt.Errorf("%d => %d (mapper not fond): %w", startRoomId, endRoomId, ErrPathNotFound)
 	}

@@ -465,7 +465,7 @@ func lookRoom(user *users.UserRecord, roomId int, secretLook bool) {
 
 	if tinyMapOn.(bool) && roomId > 0 {
 
-		zMapper := mapper.GetZoneMapper(room.Zone)
+		zMapper := mapper.GetMapper(room.RoomId)
 		if zMapper == nil {
 
 			mudlog.Error("Map", "error", "Could not find mapper for zone:"+room.Zone)

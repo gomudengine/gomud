@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"sort"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -97,7 +97,8 @@ var (
 		"southeast-gap3": {3, 3, 0, ' '},
 	}
 
-	mapperZoneCache = map[string]*mapper{}
+	mapperZoneCache     = map[string]*mapper{} // zonename-{"random" roomId} to mapper
+	roomIdToMapperCache = map[int]string{}     // roomId to mapperZoneCache key
 )
 
 func GetDelta(exitName string) (x, y, z int) {
@@ -123,46 +124,6 @@ func GetDirectionDeltaNames() []string {
 func IsValidDirection(directionName string) bool {
 	_, ok := posDeltas[directionName]
 	return ok
-}
-
-func GetZoneMapper(zoneName string, forceRefresh ...bool) *mapper {
-
-	doRefresh := len(forceRefresh) > 0 && forceRefresh[0]
-
-	if !doRefresh {
-		if _, ok := mapperZoneCache[zoneName]; ok {
-			return mapperZoneCache[zoneName]
-		}
-	}
-
-	roomId, err := rooms.GetZoneRoot(zoneName)
-	if err != nil {
-		return nil
-	}
-
-	for zName, mapper := range mapperZoneCache {
-		if mapper.HasRoom(roomId) {
-
-			if doRefresh {
-				delete(mapperZoneCache, zName)
-				zoneName = zName
-			} else {
-				return mapper
-			}
-		}
-	}
-
-	// not found. Will need to create one.
-	tStart := time.Now()
-
-	m := NewMapper(roomId)
-	m.Start()
-
-	mudlog.Info("New Mapper", "zone", zoneName, "time taken", time.Since(tStart))
-
-	mapperZoneCache[zoneName] = m
-
-	return m
 }
 
 type positionDelta struct {
@@ -237,6 +198,14 @@ func NewMapper(rootRoomId int) *mapper {
 type crawlRoom struct {
 	RoomId int
 	Pos    positionDelta // Its x/y/z position relative to the root node
+}
+
+func (r *mapper) CrawledRoomIds() []int {
+	roomIds := []int{}
+	for roomId := range r.crawledRooms {
+		roomIds = append(roomIds, roomId)
+	}
+	return roomIds
 }
 
 func (r *mapper) Start() {
@@ -846,31 +815,48 @@ func (r *mapper) getMapNode(roomId int) *mapNode {
 	return mNode
 }
 
-func PreCacheMaps() {
+func GetMapper(roomId int, forceRefresh ...bool) *mapper {
 
-	// Sort the rooms by roomId before precaching.
-	// This ensures a somewhat predictable inferred coordinate system across
-	// MUD server starts.
-	type ZoneDetails struct {
-		Name       string
-		RootRoomId int
+	// Check the room-to-cache lookup
+	if zoneName, ok := roomIdToMapperCache[roomId]; ok {
+		return mapperZoneCache[zoneName]
 	}
 
-	allZones := []ZoneDetails{}
+	zoneName := ``
+	if room := rooms.LoadRoom(roomId); room != nil {
+		zoneName = room.Zone
+		zoneName += `-` + strconv.Itoa(roomId)
+	}
+
+	// not found. Will need to create one.
+	tStart := time.Now()
+
+	m := NewMapper(roomId)
+	m.Start()
+
+	mudlog.Info("New Mapper", "zone", zoneName, "time taken", time.Since(tStart))
+
+	roomIdToMapperCache[roomId] = zoneName
+
+	for _, crawledRoomId := range m.CrawledRoomIds() {
+		if _, ok := roomIdToMapperCache[crawledRoomId]; !ok {
+			roomIdToMapperCache[crawledRoomId] = zoneName
+		}
+	}
+
+	mapperZoneCache[zoneName] = m
+
+	return m
+}
+
+func PreCacheMaps() {
 
 	for _, name := range rooms.GetAllZoneNames() {
 		rootRoomId, _ := rooms.GetZoneRoot(name)
-		allZones = append(allZones, ZoneDetails{
-			Name:       name,
-			RootRoomId: rootRoomId,
-		})
+		GetMapper(rootRoomId)
 	}
 
-	sort.Slice(allZones, func(i, j int) bool {
-		return allZones[i].RootRoomId < allZones[j].RootRoomId
-	})
-
-	for _, zInfo := range allZones {
-		GetZoneMapper(zInfo.Name)
+	for _, roomId := range rooms.GetAllRoomIds() {
+		GetMapper(roomId)
 	}
 }

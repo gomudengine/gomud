@@ -43,7 +43,7 @@ func Teleport(rest string, user *users.UserRecord, room *rooms.Room, flags event
 				return true, nil
 			}
 
-			zMapper := mapper.GetZoneMapper(room.Zone)
+			zMapper := mapper.GetMapper(room.RoomId)
 			if zMapper == nil {
 				err := fmt.Errorf("Could not find mapper for zone: %s", room.Zone)
 				mudlog.Error("Map", "error", err)

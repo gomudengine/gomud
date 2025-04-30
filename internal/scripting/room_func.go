@@ -340,10 +340,10 @@ func GetMap(mapRoomId int, zoomLevel int, mapHeight int, mapWidth int, mapName s
 		return ""
 	}
 
-	zMapper := mapper.GetZoneMapper(room.Zone)
-	if zMapper == nil {
-		mudlog.Error("Map", "error", "Could not find mapper for zone:"+room.Zone)
-		return "Could not find mapper for zone:" + room.Zone
+	rMapper := mapper.GetMapper(room.RoomId)
+	if rMapper == nil {
+		mudlog.Error("Map", "error", "Could not find mapper for roomId:"+strconv.Itoa(room.RoomId))
+		return "Could not find mapper for roomId:" + strconv.Itoa(room.RoomId)
 	}
 
 	c := mapper.Config{
@@ -371,7 +371,7 @@ func GetMap(mapRoomId int, zoomLevel int, mapHeight int, mapWidth int, mapName s
 		}
 	}
 
-	mapOutput := zMapper.GetLimitedMap(mapRoomId, c)
+	mapOutput := rMapper.GetLimitedMap(mapRoomId, c)
 
 	legend := mapOutput.GetLegend(keywords.GetAllLegendAliases(room.Zone))
 

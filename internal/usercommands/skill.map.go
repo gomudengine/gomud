@@ -110,7 +110,7 @@ func Map(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 
 	}
 
-	zMapper := mapper.GetZoneMapper(zone)
+	zMapper := mapper.GetMapper(roomId)
 	if zMapper == nil {
 		mudlog.Error("Map", "error", "Could not find mapper for zone:"+zone)
 		user.SendText(`No map found (or an error occured)"`)
