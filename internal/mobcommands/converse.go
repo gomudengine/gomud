@@ -12,15 +12,11 @@ import (
 func Converse(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 	// Don't bother if no players are present
-	if room.PlayerCt() < 1 {
-		// return true, nil
-	}
-
 	if mob.InConversation() {
 		return true, nil
 	}
 
-	if !mob.CanConverse() {
+	if !conversations.HasConverseFile(int(mob.MobId), mob.Character.Zone) {
 		return true, nil
 	}
 
@@ -46,9 +42,13 @@ func Converse(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 			conversationId := 0
 			if rest != `` {
 				forceIndex, _ := strconv.Atoi(rest)
-				conversationId = conversations.AttemptConversation(int(mob.MobId), mob.InstanceId, mob.Character.Name, m.InstanceId, m.Character.Name, m.Character.Zone, forceIndex)
+				conversationId = conversations.AttemptConversation(int(mob.MobId), mob.InstanceId, mob.Character.Name,
+					m.InstanceId, m.Character.Name,
+					mob.Character.Zone, forceIndex)
 			} else {
-				conversationId = conversations.AttemptConversation(int(mob.MobId), mob.InstanceId, mob.Character.Name, m.InstanceId, m.Character.Name, m.Character.Zone)
+				conversationId = conversations.AttemptConversation(int(mob.MobId), mob.InstanceId, mob.Character.Name,
+					m.InstanceId, m.Character.Name,
+					mob.Character.Zone)
 			}
 
 			if conversationId > 0 {
