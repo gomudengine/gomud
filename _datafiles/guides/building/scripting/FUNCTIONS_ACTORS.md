@@ -81,6 +81,9 @@ ActorObjects are the basic object that represents Users and NPCs
   - [ActorObject.SetTameMastery(mobId int, newSkillLevel int)](#actorobjectsettamemasterymobid-int-newskilllevel-int)
   - [ActorObject.GetChanceToTame(target ScriptActor) int](#actorobjectgetchancetotametarget-scriptactor-int)
   - [ActorObject.GetStatMod(statModName string) int](#actorobjectgetstatmodstatmodname-string-int)
+  - [ActorObject.IsHome() bool](#actorobjectishome-bool)
+  - [ActorObject.Pathing() bool](#actorobjectpathing-bool)
+  - [ActorObject.PathingAtWaypoint() bool](#actorobjectpathingatwaypoint-bool)
 
 
 
@@ -553,3 +556,12 @@ returns the total specific statmod from worn items and buffs
 |  Argument | Explanation |
 | --- | --- |
 | statModName | The name of the special stat mod, such as "strength" or "tame" |
+
+## [ActorObject.IsHome() bool](/internal/scripting/actor_func.go)
+(mobs only) Returns true if the actor is at their home roomId
+
+## [ActorObject.Pathing() bool](/internal/scripting/actor_func.go)
+(mobs only) Returns true if actor is currently pathing
+
+## [ActorObject.PathingAtWaypoint() bool](/internal/scripting/actor_func.go)
+(mobs only) Returns true if actor is pathing and at a waypoint.

@@ -9,12 +9,24 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/util"
+	lru "github.com/hashicorp/golang-lru/v2"
 )
 
 var (
 	ErrPathNotFound  = errors.New(`path not found`)
 	ErrPathDestMatch = errors.New(`path destination is same as source`)
+	pathCache, _     = lru.New[pathCacheKey, pathCacheValue](128)
 )
+
+type pathCacheKey struct {
+	startRoomId int
+	endRoomId   int
+}
+
+type pathCacheValue struct {
+	steps []pathStep
+	err   error
+}
 
 // pathStep is one move: take ExitName to arrive in RoomID.
 type pathStep struct {
@@ -202,6 +214,7 @@ func GetPath(startRoomId int, endRoomId ...int) ([]pathStep, error) {
 		return []pathStep{}, fmt.Errorf("%d => %d (mapper not fond): %w", startRoomId, endRoomId, ErrPathNotFound)
 	}
 
+	cacheKey := pathCacheKey{}
 	rNow := startRoomId
 	finalPath := []pathStep{}
 	for _, roomId := range endRoomId {
@@ -210,14 +223,34 @@ func GetPath(startRoomId int, endRoomId ...int) ([]pathStep, error) {
 			continue
 		}
 
+		cacheKey.startRoomId = rNow
+		cacheKey.endRoomId = roomId
+
+		if pCache, ok := pathCache.Get(cacheKey); ok {
+
+			if pCache.err != nil {
+				return pCache.steps, fmt.Errorf("%d => %d: %w", rNow, roomId, pCache.err)
+			}
+
+			finalPath = append(finalPath, pCache.steps...)
+			rNow = roomId
+			continue
+		}
+
 		if !m.HasRoom(roomId) {
-			return []pathStep{}, fmt.Errorf("%d => %d (room not in mapper): %w", rNow, roomId, ErrPathNotFound)
+			err := fmt.Errorf("%d => %d (room not in mapper): %w", rNow, roomId, ErrPathNotFound)
+			pathCache.Add(cacheKey, pathCacheValue{steps: nil, err: err})
+			return []pathStep{}, err
 		}
 
 		p, err := m.findPath(rNow, roomId)
 		if err != nil {
+			pathCache.Add(cacheKey, pathCacheValue{steps: p, err: err})
 			return []pathStep{}, fmt.Errorf("%d => %d: %w", rNow, roomId, ErrPathNotFound)
 		}
+
+		// Add to LRU cache
+		pathCache.Add(cacheKey, pathCacheValue{steps: p, err: nil})
 
 		finalPath = append(finalPath, p...)
 		rNow = roomId

@@ -1,36 +1,37 @@
 
-SAID_STUFF = false;
-WALK_DIRECTION = 1;
-WALK_POSITION = 0;
-WALK_PATH = [362, // old dock
-            333,
-            332,
-            331,
-            330,
-            329,
-            328,
-            327,
-            326,
-            325,
-            324,
-            323,
-            322,
-            321,
-            320,
-            319] // crashing waves leading to the rocky island
+var SAID_STUFF = false; // Whether lakework has spoken this "visit" to the crash site
 
+const HOME_ROOM_ID = 362;  // old dock
+const TRASH_PICKUP_SPOTS = [331,327,323,322]; // miscellaneous points along the way to do a random emote
+const CRASH_ROOM_ID = 319; // crashing waves leading to the rocky island
 
 const boatNouns = ["boats", "oars", "ships", "paddles"];
 const crashNouns = ["rocks", "crash", "choppy", "water", "waves"];
 
+// Emotes randomly selected at various waypoints.
+const randomEmotes = [
+    "emote picks up some trash along the shoreline.",
+    "emote moves some driftwood to a pile.",
+    "emote picks up a small rock and throws it into the lake.",
+    "emote gently brushes leaves off a bench.",
+    "emote tosses a fallen branch off the trail.",
+    "emote stoops to examine a patch of wildflowers.",
+    "emote skips a stone across the water.",
+    "emote watches a dragonfly hover near the reeds.",
+    "emote nudges a small frog back toward the water.",
+    "emote smooths out a scuffed trail marker.",
+    "emote pauses to listen to the rustling trees.",
+    "emote adjusts a loose rock on the path.",
+]
+
 function onAsk(mob, room, eventDetails) {
 
-    roomId = room.RoomId();
-    
-    match = UtilFindMatchIn(eventDetails.askText, boatNouns);
+    var roomId = room.RoomId();
+
+    var match = UtilFindMatchIn(eventDetails.askText, boatNouns);
     if ( match.found ) {
 
-        if ( roomId == 319 ) {
+        if ( roomId == CRASH_ROOM_ID ) {
             
             mob.Command("say I hit those rocks just over there and lost all of our oars.");
             mob.Command("emote points to the northwest.");
@@ -49,7 +50,7 @@ function onAsk(mob, room, eventDetails) {
     if ( match.found ) {
 
 
-        if ( roomId == 319 ) {
+        if ( roomId == CRASH_ROOM_ID ) {
             
             mob.Command("say I hit those rocks just over there and lost all of our oars.");
             mob.Command("emote points to the northwest.");
@@ -79,6 +80,20 @@ function onAsk(mob, room, eventDetails) {
 
 }
 
+
+function onPath(mob, room, eventDetails) {
+
+    if ( eventDetails.status == "waypoint" && mob.GetRoomId() != CRASH_ROOM_ID ) {
+    
+        if ( UtilDiceRoll(1, 5) == 1 ) {
+            var emoteSelection = UtilDiceRoll(1, randomEmotes.length)-1;
+            mob.Command(randomEmotes[emoteSelection]);
+        }    
+
+    }
+
+}
+
 function onGive(mob, room, eventDetails) {
 
     if (eventDetails.item) {
@@ -99,61 +114,30 @@ function onGive(mob, room, eventDetails) {
 // Invoked once every round if mob is idle
 function onIdle(mob, room) {
 
-
-    if ( mob.GetRoomId() == 319 ) {
+    if ( mob.GetRoomId() == CRASH_ROOM_ID ) {
 
         if ( !SAID_STUFF ) {
             mob.Command("emote squints and peers towards a rocky island in the lake to the northwest.");
             mob.Command("emote mutters to himself.");
-            if ( UtilDiceRoll(1, 2) == 1 ) {
-                mob.Command("say Ever since I crashed my boat on those rocks, I've been demoted to cleaning up the lakeshore.");
-            }
+            mob.Command("say Ever since I crashed my boat on those rocks, I've been demoted to cleaning up the lakeshore.", 2);
 
             SAID_STUFF = true;
             return true;
         }
+    }
 
-        SAID_STUFF = false; // reset
-
-    } else if ( UtilDiceRoll(1, 2) > 1 ) {
+    if ( UtilDiceRoll(1, 2) > 1 ) {
         return true;
     }
 
-
-
-    if ( WALK_POSITION < 0 ) {
-        WALK_POSITION = 0;
-    } else if ( WALK_POSITION > WALK_PATH.length - 1) {
-        WALK_POSITION = WALK_PATH.length - 1;
+    if ( mob.IsHome() ) { 
+        SAID_STUFF = false; // reset once they get home
+        mob.Command("pathto " + TRASH_PICKUP_SPOTS.join(" ") + " " + String(CRASH_ROOM_ID));
+        return true
     }
 
-    roomNow = WALK_PATH[WALK_POSITION];
-
-    if ( roomNow != mob.GetRoomId() ) {
-        
-        WALK_POSITION = 0;
-        WALK_DIRECTION = 1;
-        mob.MoveRoom(WALK_PATH[WALK_POSITION]);
-
-    } else {
-
-        if ( WALK_POSITION >= WALK_PATH.length -1 ) {
-            WALK_DIRECTION = -1;
-        }
-        if ( WALK_POSITION < 0 ) {
-            WALK_DIRECTION = 1;
-        }
-
-        WALK_POSITION += WALK_DIRECTION;
-
-        exitList = room.GetExits();
-        for (var key in exitList) {
-            if ( exitList[key].RoomId == WALK_PATH[WALK_POSITION] ) {
-                mob.Command( exitList[key].Name );
-                
-            }
-        }
-        
+    if ( mob.GetRoomId() == CRASH_ROOM_ID ) {
+        mob.Command("pathto " + TRASH_PICKUP_SPOTS.slice().reverse().join(" ") + " home");
     }
 
     return true;

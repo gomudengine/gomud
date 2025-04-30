@@ -46,8 +46,9 @@ type World struct {
 	logoutConnectionId chan connections.ConnectionId
 	zombieFlag         chan [2]int
 	//
-	eventRequeue []events.Event
-	eventTracker map[int]struct{}
+	eventRequeue          []events.Event
+	userInputEventTracker map[int]struct{}
+	mobInputEventTracker  map[int]struct{}
 }
 
 func NewWorld(osSignalChan chan os.Signal) *World {
@@ -60,8 +61,9 @@ func NewWorld(osSignalChan chan os.Signal) *World {
 		logoutConnectionId: make(chan connections.ConnectionId),
 		zombieFlag:         make(chan [2]int),
 		//
-		eventRequeue: []events.Event{},
-		eventTracker: map[int]struct{}{},
+		eventRequeue:          []events.Event{},
+		userInputEventTracker: map[int]struct{}{},
+		mobInputEventTracker:  map[int]struct{}{},
 	}
 
 	// System commands
@@ -87,16 +89,36 @@ func (w *World) HandleInputEvents(e events.Event) events.ListenerReturn {
 
 	// If it's a mob
 	if input.MobInstanceId > 0 {
-		if input.ReadyTurn <= turnCt {
-			w.processMobInput(input.MobInstanceId, input.InputText)
-		} else {
+
+		// If an event was already processed for this user this turn, skip
+		// We put this first, so that any delayed command for a mob will block
+		// the command pipeline for the mob until executed.
+		if _, ok := w.mobInputEventTracker[input.MobInstanceId]; ok {
 			return events.CancelAndRequeue
 		}
+
+		// 0 and below, process immediately and don't count towards limit
+		if input.ReadyTurn <= 0 {
+			w.processMobInput(input.MobInstanceId, input.InputText)
+			return events.Continue
+		}
+
+		// This will cause any pending command to block all further pending commands
+		// This is important, otherwise we issue a command with a delay, but other commands
+		// Get executed while we wait.
+		w.mobInputEventTracker[input.MobInstanceId] = struct{}{}
+
+		if input.ReadyTurn > turnCt {
+			return events.CancelAndRequeue
+		}
+
+		w.processMobInput(input.MobInstanceId, input.InputText)
+
 		return events.Continue
 	}
 
 	// 0 and below, process immediately and don't count towards limit
-	if input.ReadyTurn == 0 {
+	if input.ReadyTurn <= 0 {
 
 		// If this command was potentially blocking input, unblock it now.
 		if input.Flags.Has(events.CmdUnBlockInput) {
@@ -116,7 +138,7 @@ func (w *World) HandleInputEvents(e events.Event) events.ListenerReturn {
 	}
 
 	// If an event was already processed for this user this turn, skip
-	if _, ok := w.eventTracker[input.UserId]; ok {
+	if _, ok := w.userInputEventTracker[input.UserId]; ok {
 		return events.CancelAndRequeue
 	}
 
@@ -155,7 +177,7 @@ func (w *World) HandleInputEvents(e events.Event) events.ListenerReturn {
 
 	w.processInput(input.UserId, input.InputText, events.EventFlag(input.Flags))
 
-	w.eventTracker[input.UserId] = struct{}{}
+	w.userInputEventTracker[input.UserId] = struct{}{}
 
 	return events.Continue
 }
@@ -1092,5 +1114,6 @@ func (w *World) EventLoop() {
 		events.AddToQueue(e)
 	}
 
-	clear(w.eventTracker)
+	clear(w.userInputEventTracker)
+	clear(w.mobInputEventTracker)
 }

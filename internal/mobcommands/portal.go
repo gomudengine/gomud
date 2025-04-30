@@ -48,7 +48,7 @@ func Portal(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 			mob.Command(`portal home;drop all`)
 
-			return true, fmt.Errorf("failed to find temporary exit to room")
+			return true, fmt.Errorf("failed to find worthy room with loot")
 		}
 		portalTargetRoomId = mostItemRoomId
 	}

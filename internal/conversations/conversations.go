@@ -3,6 +3,7 @@ package conversations
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -12,6 +13,7 @@ import (
 )
 
 var (
+	converseCheckCache   = map[string]bool{}
 	conversations        = map[int]*Conversation{}
 	conversationCounter  = map[string]int{}
 	conversationUniqueId = 0
@@ -77,7 +79,6 @@ func AttemptConversation(initiatorMobId int, initatorInstanceId int, initiatorNa
 		}
 
 		lowestCount := -1
-
 		for _, index := range possibleConversations {
 			val := conversationCounter[fmt.Sprintf(`%s:%d`, fileName, index)]
 			if val < lowestCount || lowestCount == -1 {
@@ -155,6 +156,13 @@ func HasConverseFile(mobId int, zone string) bool {
 
 	zone = ZoneNameSanitize(zone)
 
+	cacheKey := strconv.Itoa(mobId) + `-` + zone
+	if result, ok := converseCheckCache[cacheKey]; ok {
+		if result == false {
+			return false
+		}
+	}
+
 	convFolder := string(configs.GetFilePathsConfig().DataFiles) + `/conversations`
 
 	fileName := fmt.Sprintf("%s/%d.yaml", zone, mobId)
@@ -162,8 +170,11 @@ func HasConverseFile(mobId int, zone string) bool {
 	filePath := util.FilePath(convFolder + `/` + fileName)
 
 	if _, err := os.Stat(filePath); err != nil {
+		converseCheckCache[cacheKey] = false
 		return false
 	}
+
+	converseCheckCache[cacheKey] = true
 
 	return true
 

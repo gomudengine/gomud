@@ -11,19 +11,14 @@ import (
 
 func Shout(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
-	// Don't bother if no players are present
-	if room.PlayerCt() < 1 {
-		return true, nil
-	}
-
 	isSneaking := mob.Character.HasBuffFlag(buffs.Hidden)
 
 	rest = strings.ToUpper(rest)
 
 	if isSneaking {
-		room.SendText(fmt.Sprintf(`someone shouts, "<ansi fg="saytext-mob">%s</ansi>"`, rest), mob.InstanceId)
+		room.SendText(fmt.Sprintf(`someone shouts, "<ansi fg="saytext-mob">%s</ansi>"`, rest))
 	} else {
-		room.SendText(fmt.Sprintf(`<ansi fg="mobname">%s</ansi> shouts, "<ansi fg="saytext-mob">%s</ansi>"`, mob.Character.Name, rest), mob.InstanceId)
+		room.SendText(fmt.Sprintf(`<ansi fg="mobname">%s</ansi> shouts, "<ansi fg="saytext-mob">%s</ansi>"`, mob.Character.Name, rest))
 	}
 
 	for _, roomInfo := range room.Exits {

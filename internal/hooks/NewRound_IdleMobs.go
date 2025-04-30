@@ -8,7 +8,6 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
-	"github.com/GoMudEngine/GoMud/internal/mobcommands"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/scripting"
@@ -25,10 +24,8 @@ func IdleMobs(e events.Event) events.ListenerReturn {
 	mobPathAnnounce := false // useful for debugging purposes.
 
 	mc := configs.GetMemoryConfig()
-	gp := configs.GetGamePlayConfig()
 
 	maxBoredom := uint8(mc.MaxMobBoredom)
-	globalConverseChance := int(gp.MobConverseChance)
 
 	allMobInstances := mobs.GetAllMobInstanceIds()
 
@@ -89,12 +86,18 @@ func IdleMobs(e events.Event) events.ListenerReturn {
 		if currentStep := mob.Path.Current(); currentStep != nil || mob.Path.Len() > 0 {
 
 			if currentStep == nil {
+
+				if endPathingAndSkip, _ := scripting.TryMobScriptEvent("onPath", mob.InstanceId, 0, ``, map[string]any{`status`: `start`}); endPathingAndSkip {
+					mob.Path.Clear()
+					continue
+				}
+
 				if mobPathAnnounce {
 					mob.Command(`say I'm beginning a new path.`)
 				}
 			} else {
 
-				// If their currentStep isnt' actually the room they are in
+				// If their currentStep isn't actually the room they are in
 				// They've somehow been moved. Reclaculate a new path.
 				if currentStep.RoomId() != mob.Character.RoomId {
 					if mobPathAnnounce {
@@ -137,61 +140,19 @@ func IdleMobs(e events.Event) events.ListenerReturn {
 
 			}
 
+			mob.Path.Clear()
+
+			if endPathingAndSkip, _ := scripting.TryMobScriptEvent("onPath", mob.InstanceId, 0, ``, map[string]any{`status`: `end`}); endPathingAndSkip {
+				continue
+			}
+
 			if mobPathAnnounce {
 				mob.Command(`say I'm.... done.`)
 			}
-			mob.Path.Clear()
+
 		}
 
-		// if a mob shouldn't be allowed to leave their area (via wandering)
-		// but has somehow been displaced, such as pulling through combat, spells, or otherwise
-		// tell them to path back home
-		if mob.MaxWander == 0 && mob.Character.RoomId != mob.HomeRoomId {
-			mob.Command("pathto home")
-			continue
-		}
-
-		if mob.CanConverse() && util.Rand(100) < globalConverseChance {
-			if mobRoom := rooms.LoadRoom(mob.Character.RoomId); mobRoom != nil {
-				mobcommands.Converse(``, mob, mobRoom) // Execute this directly so that target mob doesn't leave the room before this command executes
-				//mob.Command(`converse`)
-			}
-			continue
-		}
-
-		// If they have idle commands, maybe do one of them?
-		handled, _ := scripting.TryMobScriptEvent("onIdle", mob.InstanceId, 0, ``, nil)
-		if !handled {
-
-			if !mob.Character.IsCharmed() { // Won't do this stuff if befriended
-
-				if mob.MaxWander > -1 && mob.WanderCount > mob.MaxWander {
-					mob.Command(`pathto home`)
-					continue
-				}
-
-			}
-
-			//
-			// Look for trouble
-			//
-			if mob.Character.IsCharmed() {
-				// Only some mobs can apply first aid
-				if mob.Character.KnowsFirstAid() {
-					mob.Command(`lookforaid`)
-				}
-			} else {
-
-				idleCmd := `lookfortrouble`
-				if util.Rand(100) < mob.ActivityLevel {
-					idleCmd = mob.GetIdleCommand()
-					if idleCmd == `` {
-						idleCmd = `lookfortrouble`
-					}
-				}
-				mob.Command(idleCmd)
-			}
-		}
+		events.AddToQueue(events.MobIdle{MobInstanceId: mobId})
 
 	}
 

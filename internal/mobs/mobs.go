@@ -76,7 +76,6 @@ type Mob struct {
 	BuffIds         []int    `yaml:"buffids,omitempty"`         // Buff Id's this mob always has upon spawn
 	tempDataStore   map[string]any
 	conversationId  int       // Identifier of conversation currently involved in.
-	hasConverseFile bool      // whether they have a converse file to look for conversations in
 	Path            PathQueue `yaml:"-"` // a pre-calculated path the mob is following.
 }
 
@@ -256,10 +255,6 @@ func (m *Mob) AddBuff(buffId int, source string) {
 		Source:        source,
 	})
 
-}
-
-func (m *Mob) CanConverse() bool {
-	return m.hasConverseFile
 }
 
 func (m *Mob) InConversation() bool {
@@ -587,8 +582,6 @@ func (r *Mob) Validate() error {
 	} else if r.ActivityLevel > 100 {
 		r.ActivityLevel = 100
 	}
-
-	r.hasConverseFile = conversations.HasConverseFile(int(r.MobId), r.Zone)
 
 	r.Character.Validate()
 	return nil

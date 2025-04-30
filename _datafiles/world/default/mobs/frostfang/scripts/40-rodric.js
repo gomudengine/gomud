@@ -1,6 +1,7 @@
 
 const startNouns = ["rat", "rats", "too many", "problem"];
 const thievesNouns = ["thief", "thieves", "guild", "hideout", "entrance", "dogs", "slums"];
+const INN_ROOM_ID = 61;
 
 function onAsk(mob, room, eventDetails) {
 
@@ -111,24 +112,38 @@ function onGive(mob, room, eventDetails) {
 }
 
 
-RANDOM_IDLE = [
+function onPath(mob, room, eventDetails) {
+
+    if ( eventDetails.status == "waypoint" && room.RoomId() == INN_ROOM_ID ) {
+        mob.Command("converse 1");
+    }
+
+}
+
+const RANDOM_IDLE = [
     "emote shakes his head in disbelief.",
     "emote attempts to fix a rat trap.",
     "say There's just too many rats. We'll never get rid of them all.",
     "say I'm so tired. I need a break.",
     "say I'm running out of traps. I need to find more.",
     "say I'm worried about the rats in the slums. They're everywhere!",
-    "say I'm running out of traps and don't seem to be making a dent in the rat numbers."
+    "say I'm running out of traps and don't seem to be making a dent in the rat numbers.",
+    "pathto "+String(INN_ROOM_ID),
 ];
 
 // Invoked once every round if mob is idle
 function onIdle(mob, room) {
 
+    if ( room.RoomId() == INN_ROOM_ID ) {
+        mob.Command("pathto home");
+        return true;
+    }
+
     if ( UtilGetRoundNumber()%3 != 0 ) {
         return true;
     }
 
-    randNum = UtilDiceRoll(1, 10)-1;
+    randNum = UtilDiceRoll(1, 12)-1;
     if ( randNum < RANDOM_IDLE.length ) {
         mob.Command(RANDOM_IDLE[randNum]);
         return true;
