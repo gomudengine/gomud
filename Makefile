@@ -115,7 +115,11 @@ coverage:
 
 .PHONY: js-lint
 js-lint:
-	@docker run --rm -v "$(PWD)":/app -w /app node:20 npx jshint .
+#   Grep filtering it to remove errors reported by docker image around npm packages
+#   if "### errors" is found in the output, exits with an error code of 1
+#   This should allow us to use it in CI/CD
+	@docker run --rm -v "$(PWD)":/app -w /app node:20 npx jshint . \
+	 2>&1 | grep -v "^npm " | tee /dev/stderr | grep -Eq "^[0-9]+ errors" && exit 1 || true
 
 #
 #
