@@ -6,11 +6,9 @@
 package modules
 
 import (
-	"fmt"
-	"os"
+	_ "github.com/GoMudEngine/GoMud/modules/auctions"
+	_ "github.com/GoMudEngine/GoMud/modules/follow"
+	_ "github.com/GoMudEngine/GoMud/modules/gmcp"
+	_ "github.com/GoMudEngine/GoMud/modules/leaderboards"
+	_ "github.com/GoMudEngine/GoMud/modules/time"
 )
-
-func init() {
-	fmt.Println("!!! Run \"go generate\" before building this project !!!")
-	os.Exit(1)
-}

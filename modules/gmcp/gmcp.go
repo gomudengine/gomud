@@ -283,9 +283,24 @@ func (g *GMCPModule) HandleIAC(connectionId uint64, iacCmd []byte) bool {
 				gmcpData.Client.Version = decoded.Version
 
 				if strings.EqualFold(decoded.Client, `mudlet`) {
-
 					gmcpData.Client.IsMudlet = true
 
+					// Trigger the Mudlet detected event
+					userId := 0
+					// Try to find the user ID associated with this connection
+					for _, user := range users.GetAllActiveUsers() {
+						if user.ConnectionId() == connectionId {
+							userId = user.UserId
+							break
+						}
+					}
+
+					if userId > 0 {
+						events.AddToQueue(GMCPMudletDetected{
+							ConnectionId: connectionId,
+							UserId:       userId,
+						})
+					}
 				}
 
 				g.cache.Add(connectionId, gmcpData)
