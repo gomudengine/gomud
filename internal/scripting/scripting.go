@@ -100,6 +100,7 @@ func setAllScriptingFunctions(vm *goja.Runtime) {
 	setSpellFunctions(vm)
 	setItemFunctions(vm)
 	setUtilFunctions(vm)
+	setModuleFunctions(vm)
 }
 
 func PruneVMs(forceClear ...bool) {

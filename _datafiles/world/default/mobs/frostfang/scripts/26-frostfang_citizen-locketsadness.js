@@ -152,6 +152,10 @@ function onIdle(mob, room) {
         mob.Command("emote sniffles a bit, holding back tears.");
         return true;
     default: // 1, 3
+        if ( UtilDiceRoll(1, 10) == 1 ) {
+            mob.Command("pathto 274"); // look around the bushes area
+            return true;
+        }
         return false;
     }
 

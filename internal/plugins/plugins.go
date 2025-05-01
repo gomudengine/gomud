@@ -15,6 +15,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/mobcommands"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
+	"github.com/GoMudEngine/GoMud/internal/scripting"
 	"github.com/GoMudEngine/GoMud/internal/usercommands"
 	"github.com/GoMudEngine/GoMud/internal/util"
 	"gopkg.in/yaml.v2"
@@ -229,6 +230,16 @@ func (p *Plugin) ExportFunction(stringId string, f any) {
 }
 
 // Registers a UserCommand and callback
+func (p *Plugin) AddScriptingFunction(funcName string, scriptFunc any) {
+
+	if _, ok := p.Callbacks.scriptCommands[p.name]; !ok {
+		p.Callbacks.scriptCommands[p.name] = map[string]any{}
+	}
+
+	p.Callbacks.scriptCommands[p.name][funcName] = scriptFunc
+}
+
+// Registers a UserCommand and callback
 func (p *Plugin) AddUserCommand(command string, handlerFunc usercommands.UserCommand, allowWhenDowned bool, isAdminOnly bool) {
 
 	if p.Callbacks.userCommands == nil {
@@ -419,6 +430,12 @@ func Load(dataFilesPath string) {
 
 		for cmd, info := range p.Callbacks.mobCommands {
 			mobcommands.RegisterCommand(cmd, info.Func, info.AllowedWhenDowned)
+		}
+
+		for nameSpace, funcMap := range p.Callbacks.scriptCommands {
+			for cmd, funcRef := range funcMap {
+				scripting.AddModlueFunction(nameSpace, cmd, funcRef)
+			}
 		}
 
 		// Check for config.yaml override and set missing values accordingly

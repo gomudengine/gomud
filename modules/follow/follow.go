@@ -10,6 +10,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/parties"
 	"github.com/GoMudEngine/GoMud/internal/plugins"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/scripting"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
@@ -55,6 +56,13 @@ func init() {
 	f.plug.AddUserCommand(`follow`, f.followUserCommand, true, false)
 	f.plug.AddMobCommand(`follow`, f.followMobCommand, true)
 
+	//
+	// Register any scripting functions
+	//
+	// Will be available in scripts as:
+	// module.follow.GetFollowers()
+	f.plug.AddScriptingFunction("GetFollowers", f.Scripting_GetFollowers)
+
 	events.RegisterListener(events.RoomChange{}, f.roomChangeHandler)
 	events.RegisterListener(events.PlayerDespawn{}, f.playerDespawnHandler)
 	events.RegisterListener(events.MobIdle{}, f.idleMobHandler, events.First)
@@ -77,6 +85,18 @@ type FollowModule struct {
 
 	followed  map[followId][]followId // key => who's followed. value ([]followId{}) => who's following them
 	followers map[followId]followId   // key => who's following someone. value => who's being followed
+}
+
+// Intended to be invoked by a script.
+func (f *FollowModule) Scripting_GetFollowers(targetActor scripting.ScriptActor) []*scripting.ScriptActor {
+
+	results := []*scripting.ScriptActor{}
+
+	for _, f := range f.getFollowers(followId{mobInstanceId: targetActor.InstanceId()}) {
+		results = append(results, scripting.GetActor(f.userId, f.mobInstanceId))
+	}
+
+	return results
 }
 
 // Get all followeres attached to a target

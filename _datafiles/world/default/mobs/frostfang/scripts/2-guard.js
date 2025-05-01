@@ -38,3 +38,30 @@ function onIdle(mob, room) {
 
     return false;
 }
+
+
+
+function onPath(mob, room, eventDetails) {
+
+    if ( eventDetails.status == "waypoint" ) {
+
+        if ( UtilDiceRoll(1, 5) == 1 ) {
+            
+
+            if ( modules.follow ) {
+            
+                followingActors = modules.follow.GetFollowers(mob);
+                
+                for( var i in followingActors ) {
+                    mob.Command("sayto "+followingActors[i].ShorthandId()+" Why are you following me? Leave me be.");
+                    mob.Command("follow lose");
+                    break;
+                }
+
+            }
+            
+
+        }
+    }
+
+}
