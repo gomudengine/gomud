@@ -75,6 +75,8 @@ var (
 
 func main() {
 
+	serverStartTime := time.Now()
+
 	// Capture panic and write msg/stack to logs
 	defer func() {
 		if r := recover(); r != nil {
@@ -243,8 +245,8 @@ func main() {
 
 	go worldManager.InputWorker(workerShutdownChan, &wg)
 	go worldManager.MainWorker(workerShutdownChan, &wg)
-	//go worldManager.MaintenanceWorker(workerShutdownChan, &wg)
-	//go worldManager.GameTickWorker(workerShutdownChan, &wg)
+
+	mudlog.Info("Server Ready", "Time Taken", time.Since(serverStartTime))
 
 	// block until a signal comes in
 	<-sigChan

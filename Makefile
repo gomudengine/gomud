@@ -67,9 +67,7 @@ clean:
 
 .PHONY: run 
 run: generate  ### Build and run server.
-	go build -o tmp-gomud.exe
-	make ungenerate
-	./tmp-gomud.exe
+	@go run .
 
 .PHONY: run-docker
 run-docker: ### Build and run server in docker.
