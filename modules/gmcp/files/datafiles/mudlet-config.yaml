@@ -1,4 +1,13 @@
 # Mudlet client configuration
-version: "1"
-url: "https://github.com/GoMudEngine/MudletMapper/releases/latest/download/GoMud-Mapper.mpackage"
+
+# Mapper configuration
+mapper_version: "1"
+mapper_url: "https://github.com/GoMudEngine/MudletMapper/releases/latest/download/GoMud-Mapper.mpackage"
+
+# UI configuration
+ui_version: "1"
+ui_url: "https://github.com/GoMudEngine/MudletUI/releases/latest/download/GoMudUI.mpackage"
+
+# Map data configuration
+map_version: "1"
 map_url: "https://github.com/GoMudEngine/MudletMapper/releases/latest/download/gomud.dat"
