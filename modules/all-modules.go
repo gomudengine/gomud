@@ -7,6 +7,7 @@ package modules
 
 import (
 	_ "github.com/GoMudEngine/GoMud/modules/auctions"
+	_ "github.com/GoMudEngine/GoMud/modules/follow"
 	_ "github.com/GoMudEngine/GoMud/modules/gmcp"
 	_ "github.com/GoMudEngine/GoMud/modules/leaderboards"
 	_ "github.com/GoMudEngine/GoMud/modules/time"
