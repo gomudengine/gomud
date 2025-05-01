@@ -1,7 +1,6 @@
 
-
-const sadnessSubjects = ["quest", "locket", "sad", "sadness", "crying", "sniffles", "necklace"]
-const gardenSubjects = ["garden", "where", "gardening", "quest", "locket", "sad", "sadness", "necklace"]
+var sadnessSubjects = ["quest", "locket", "sad", "sadness", "crying", "sniffles", "necklace"];
+var gardenSubjects = ["garden", "where", "gardening", "quest", "locket", "sad", "sadness", "necklace"];
 
 function onAsk(mob, room, eventDetails) {
 
@@ -31,7 +30,7 @@ function onAsk(mob, room, eventDetails) {
             mob.Command("emote sighs deeply.");
             mob.Command("say I lost my locket. I think it was when I was gardening.");
 
-            user.GiveQuest("1-start")
+            user.GiveQuest("1-start");
 
             return true;
         }
@@ -67,7 +66,7 @@ function onGive(mob, room, eventDetails) {
 
         if (eventDetails.item.ItemId == 20025) {
             
-            mob.Command("say Thank you so much! I thought I'd never see this again!")
+            mob.Command("say Thank you so much! I thought I'd never see this again!");
 
             if ( !showLocketCounter[eventDetails.sourceId] ) {
                 showLocketCounter[eventDetails.sourceId] = 0;
@@ -75,18 +74,18 @@ function onGive(mob, room, eventDetails) {
 
             // Give it back to them
             if ( showLocketCounter[eventDetails.sourceId] > 2 ) {
-                mob.GiveItem(20033) // Spawn the item in the mobs posession
+                mob.GiveItem(20033); // Spawn the item in the mobs posession
                 mob.Command("give !20033 @" + String(eventDetails.sourceId)); // Give it to the player using shorthand
             }
             
-            user.GiveQuest("1-end")
+            user.GiveQuest("1-end");
 
             return true;
 
         }
 
         if ( !user.HasQuest("1-end") ) {
-            mob.Command("say Thank you, but nothing could ever replace my locket.")
+            mob.Command("say Thank you, but nothing could ever replace my locket.");
             // Give it back to them
             mob.Command("give !"+eventDetails.item.ItemId+" @" + String(eventDetails.sourceId));
         }
@@ -95,7 +94,7 @@ function onGive(mob, room, eventDetails) {
     }
 
     if ( eventDetails.gold > 0 ) {
-        mob.Command("say Just what kind of girl do you think I am???")
+        mob.Command("say Just what kind of girl do you think I am???");
         return true;
     }
 
@@ -121,17 +120,17 @@ function onShow(mob, room, eventDetails) {
         mob.SetTempData('showLocketCounter', showLocketCounter);
 
         if ( showLocketCounter[eventDetails.sourceId] == 1 ) {
-            mob.Command("say Wow, that's it! Can I have it back?")
+            mob.Command("say Wow, that's it! Can I have it back?");
             return true;
         }
 
         if ( showLocketCounter[eventDetails.sourceId] == 2 ) {
-            mob.Command("say Please, it's only worth is sentimental value. Can I have it back?")
+            mob.Command("say Please, it's only worth is sentimental value. Can I have it back?");
             return true;
         }
 
         if ( showLocketCounter[eventDetails.sourceId] > 2 ) {
-            mob.Command("say I can trade you for this other locket I have of equal value.")
+            mob.Command("say I can trade you for this other locket I have of equal value.");
             return true;
         }
 

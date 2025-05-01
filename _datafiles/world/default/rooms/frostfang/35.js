@@ -11,9 +11,9 @@ function onCommand_west(rest, user, room) {
         SendUserMessage(user.UserId(), ' ');
         
         // Queue it with an input blocking flag and ignore further scripts flag
-        user.CommandFlagged('west', EventFlags.CmdSkipScripts|EventFlags.CmdBlockInputUntilComplete, 1)
+        user.CommandFlagged('west', EventFlags.CmdSkipScripts|EventFlags.CmdBlockInputUntilComplete, 1);
         // return true (handled) to prevent further execution
-        return true
+        return true;
 
     } 
 
@@ -25,10 +25,10 @@ function onCommand_west(rest, user, room) {
     user.GiveBuff(3, "enchantment");
 
     // Queue it with an input blocking flag and ignore further scripts flag
-    user.CommandFlagged('west', EventFlags.CmdSkipScripts|EventFlags.CmdBlockInputUntilComplete, 1)
+    user.CommandFlagged('west', EventFlags.CmdSkipScripts|EventFlags.CmdBlockInputUntilComplete, 1);
     // return true (handled) to prevent further execution
 
-    return true
+    return true;
 }
 
 

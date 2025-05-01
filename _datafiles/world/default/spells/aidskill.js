@@ -25,7 +25,7 @@ function onCast(sourceActor, targetActor) {
     SendUserMessage(targetUserId, PLUS_SIGN_LEFT+sourceName+" prepares to apply first aid on you."+PLUS_SIGN_RIGHT);
     SendRoomMessage(roomId, PLUS_SIGN_LEFT+sourceName+" prepares to provide aid to "+targetName+"."+PLUS_SIGN_RIGHT, sourceUserId, targetUserId);
 
-    return true
+    return true;
 }
 
 function onWait(sourceActor, targetActor) {

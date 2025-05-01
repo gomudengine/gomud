@@ -1,6 +1,6 @@
 
-const nouns = ["quest", "freezing", "cold", "help"]
-const crystal_nouns = ["crystals", "winterfire", "where"]
+const nouns = ["quest", "freezing", "cold", "help"];
+const crystal_nouns = ["crystals", "winterfire", "where"];
 
 function onAsk(mob, room, eventDetails) {
 
@@ -11,10 +11,10 @@ function onAsk(mob, room, eventDetails) {
     match = UtilFindMatchIn(eventDetails.askText, nouns);
     if ( match.found ) {
 
-        mob.Command("say I've been waiting for a shipment of winterfire crystals. They should have been here months ago.")
-        mob.Command("say I'll never abandon my post! Can you find out what happened to my crystals?")
+        mob.Command("say I've been waiting for a shipment of winterfire crystals. They should have been here months ago.");
+        mob.Command("say I'll never abandon my post! Can you find out what happened to my crystals?");
         
-        user.GiveQuest("5-start")
+        user.GiveQuest("5-start");
 
         return true;
     }
@@ -22,8 +22,8 @@ function onAsk(mob, room, eventDetails) {
     match = UtilFindMatchIn(eventDetails.askText, crystal_nouns);
     if ( match.found ) {
 
-        mob.Command("say The shipment was supposed to come from the far east city of Mystarion. I'm not sure what happened to it.")
-        user.GiveQuest("5-lookeast")
+        mob.Command("say The shipment was supposed to come from the far east city of Mystarion. I'm not sure what happened to it.");
+        user.GiveQuest("5-lookeast");
 
         return true;
     }
@@ -42,14 +42,14 @@ function onGive(mob, room, eventDetails) {
     }
     
     if ( eventDetails.gold > 0 ) {
-        mob.Command("say Moneys no good here, but every now and then I can pay for a little help.")
+        mob.Command("say Moneys no good here, but every now and then I can pay for a little help.");
         return true;
     }
 
     if (eventDetails.item) {
         if (eventDetails.item.ItemId != 4) {
-            mob.Command("say Finally! My winterfire crystal! Thank you so much!")
-            user.GiveQuest("4-end")
+            mob.Command("say Finally! My winterfire crystal! Thank you so much!");
+            user.GiveQuest("4-end");
             return true;
         }
     }

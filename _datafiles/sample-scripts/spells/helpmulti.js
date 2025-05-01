@@ -1,7 +1,7 @@
 
-HEAL_DICE_QTY = 1
-HEAL_DICE_SIDES = 2
-SPELL_DESCRIPTION = '<ansi fg="222">sample helpful group spell</ansi>'
+HEAL_DICE_QTY = 1;
+HEAL_DICE_SIDES = 2;
+SPELL_DESCRIPTION = '<ansi fg="222">sample helpful group spell</ansi>';
 
 
 // Called when the casting is initialized (cast command)
@@ -10,7 +10,7 @@ function onCast(sourceActor, targetActors) {
 
     SendUserMessage(sourceActor.UserId(), 'You begin to chant softly.');
     SendRoomMessage(sourceActor.GetRoomId(), sourceActor.GetCharacterName(true)+' begins to chant softly.', sourceActor.UserId());
-    return true
+    return true;
 }
 
 function onWait(sourceActor, targetActors) {

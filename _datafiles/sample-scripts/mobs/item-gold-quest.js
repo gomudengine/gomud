@@ -13,9 +13,9 @@ const REQUIRED_ITEM_ID      = 10001;
 const REQUIRED_GOLD_AMOUNT  = 10;
 
 // This corresponds to the quest defined in the _datafiles/quests/ folder.
-const QUEST_START_ID        = "1000000-start"       // All quests begin with #-start
-const QUEST_NEXT_STEP_ID    = "1000000-givegold"    // Quest steps can be called #-anything
-const QUEST_END_ID          = "1000000-end"         // All quests end with #-end
+const QUEST_START_ID        = "1000000-start";       // All quests begin with #-start
+const QUEST_NEXT_STEP_ID    = "1000000-givegold";    // Quest steps can be called #-anything
+const QUEST_END_ID          = "1000000-end";         // All quests end with #-end
 
 
 //
@@ -129,7 +129,7 @@ function onGive(mob, room, eventDetails) {
         //
         // Give them the next step of the quest
         //
-        user.GiveQuest(QUEST_NEXT_STEP_ID)
+        user.GiveQuest(QUEST_NEXT_STEP_ID);
 
         return true;
     }
@@ -172,14 +172,14 @@ function onGive(mob, room, eventDetails) {
             //
             excessGold = eventDetails.gold - REQUIRED_GOLD_AMOUNT;
             if ( excessGold > 0 ) {
-                mob.Command("say Here's your change.")
+                mob.Command("say Here's your change.");
                 mob.Command("give "+String(excessGold)+" gold " + user.ShorthandId()); // Give it to the player using shorthand
             }
 
             //
             // They have now completed the entire quest, all steps are complete.
             //
-            user.GiveQuest(QUEST_END_ID)
+            user.GiveQuest(QUEST_END_ID);
 
             return true;
         }

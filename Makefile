@@ -115,7 +115,7 @@ coverage:
 
 .PHONY: js-lint
 js-lint:
-	docker run --rm -v ./:/data cytopia/eslint:latest . 
+	@docker run --rm -v "$(PWD)":/app -w /app node:20 npx jshint .
 
 #
 #

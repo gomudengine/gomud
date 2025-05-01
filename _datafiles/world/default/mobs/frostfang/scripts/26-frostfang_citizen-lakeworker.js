@@ -22,7 +22,7 @@ const randomEmotes = [
     "emote smooths out a scuffed trail marker.",
     "emote pauses to listen to the rustling trees.",
     "emote adjusts a loose rock on the path.",
-]
+];
 
 function onAsk(mob, room, eventDetails) {
 
@@ -98,13 +98,13 @@ function onGive(mob, room, eventDetails) {
 
     if (eventDetails.item) {
         if (eventDetails.item.ItemId != 10016) {
-            mob.Command("look !"+String(eventDetails.item.ItemId))
-            mob.Command("drop !"+String(eventDetails.item.ItemId), UtilGetSecondsToTurns(5))
+            mob.Command("look !"+String(eventDetails.item.ItemId));
+            mob.Command("drop !"+String(eventDetails.item.ItemId), UtilGetSecondsToTurns(5));
             return true;
         }
 
         mob.Command("say Thanks, but my days of rowing are over. I'm just a lowly lake worker now.");
-        mob.Command("drop !"+String(eventDetails.item.ItemId))
+        mob.Command("drop !"+String(eventDetails.item.ItemId));
         return true;
     }
 
@@ -133,7 +133,7 @@ function onIdle(mob, room) {
     if ( mob.IsHome() ) { 
         SAID_STUFF = false; // reset once they get home
         mob.Command("pathto " + TRASH_PICKUP_SPOTS.join(" ") + " " + String(CRASH_ROOM_ID));
-        return true
+        return true;
     }
 
     if ( mob.GetRoomId() == CRASH_ROOM_ID ) {

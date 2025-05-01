@@ -5,7 +5,7 @@ function onCast(sourceActor, targetActor) {
 
     SendUserMessage(sourceActor.UserId(), 'You begin to chant softly.');
     SendRoomMessage(sourceActor.GetRoomId(), sourceActor.GetCharacterName(true)+' begins to chant softly.', sourceActor.UserId());
-    return true
+    return true;
 }
 
 function onWait(sourceActor, targetActor) {

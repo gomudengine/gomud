@@ -5,7 +5,7 @@ function onCast(sourceActor, targetActor) {
 
     SendUserMessage(sourceActor.UserId(), 'You begin to meditate deeply, recalling images of nature.');
     SendRoomMessage(sourceActor.GetRoomId(), sourceActor.GetCharacterName(true)+' enters a meditative trance.', sourceActor.UserId());
-    return true
+    return true;
 }
 
 function onWait(sourceActor, targetActor) {

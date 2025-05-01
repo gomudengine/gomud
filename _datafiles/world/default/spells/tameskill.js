@@ -34,7 +34,7 @@ function onCast(sourceActor, targetActor) {
     }
 
     if ( sourceActor.GetCharmCount() >= sourceActor.GetMaxCharmCount() ) {
-        sourceActor.SendText(`You already have too many followers.`)
+        sourceActor.SendText(`You already have too many followers.`);
     }
     
     chance = sourceActor.GetChanceToTame(targetActor)+sourceActor.GetStatMod(`tame`);
@@ -43,7 +43,7 @@ function onCast(sourceActor, targetActor) {
     SendUserMessage(sourceActor.UserId(), '<ansi fg="219">You begin to dance in front of the '+targetActor.GetCharacterName(true)+'.</ansi>');
     SendRoomMessage(sourceActor.GetRoomId(), `<ansi fg="219">`+sourceActor.GetCharacterName(true)+' performs a carefully choreographed dance in front of '+targetActor.GetCharacterName(true)+'.</ansi>', sourceActor.UserId());
 
-    return true
+    return true;
 }
 
 function onWait(sourceActor, targetActor) {
@@ -106,7 +106,7 @@ function onMagic(sourceActor, targetActor) {
     }
 
     if ( sourceActor.GetCharmCount() >= sourceActor.GetMaxCharmCount() ) {
-        sourceActor.SendText(`You already have too many followers.`)
+        sourceActor.SendText(`You already have too many followers.`);
     }
 
     targetName = targetActor.GetCharacterName(true);
@@ -120,7 +120,7 @@ function onMagic(sourceActor, targetActor) {
         SendUserMessage(sourceActor.UserId(), '<ansi fg="219">The '+targetName+' <ansi fg="182">RESISTS</ansi> your attempt to tame it!</ansi>');
         SendRoomMessage(sourceActor.GetRoomId(), '<ansi fg="219">The '+targetName+' <ansi fg="182">RESISTS</ansi> '+sourceName+'\'s attempt to tame it!</ansi>', sourceActor.UserId());
         
-        targetActor.Command(`attack ` + sourceActor.ShorthandId())
+        targetActor.Command(`attack ` + sourceActor.ShorthandId());
         return false;
     }
 

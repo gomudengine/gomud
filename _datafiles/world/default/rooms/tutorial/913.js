@@ -46,8 +46,7 @@ function onCommand(cmd, rest, user, room) {
 
     switch (commandNow) {
         case 0:
-
-            teacherMob.Command('emote gestures to the <ansi fg="item">graduation cap</ansi> on the ground.')
+            teacherMob.Command('emote gestures to the <ansi fg="item">graduation cap</ansi> on the ground.');
             teacherMob.Command('say type <ansi fg="command">get cap</ansi> to pick up the <ansi fg="item">graduation cap</ansi>.');
             break;
         case 1:
@@ -60,7 +59,7 @@ function onCommand(cmd, rest, user, room) {
             teacherMob.Command('say I\ll summon a portal to send you to the heart of Frostfang city, where your adventure begins.');
 
             exits = room.GetExits();
-            if ( !exits['portal'] ) {
+            if ( !exits.portal ) {
                 teacherMob.Command('emote glows intensely, and a ' + UtilApplyColorPattern('swirling portal', 'pink') + ' appears!');
                 room.AddTemporaryExit('swirling portal', ':pink', 0, 9000); // RoomId 0 is an alias for start room
             }
@@ -93,7 +92,7 @@ function onEnter(user, room) {
 
     teacherMob.Command('say Congratulation on getting to the end of the training course!');
     teacherMob.Command('drop cap');
-    teacherMob.Command('emote gestures to the <ansi fg="item">graduation cap</ansi> on the ground.', 15)
+    teacherMob.Command('emote gestures to the <ansi fg="item">graduation cap</ansi> on the ground.', 15);
     teacherMob.Command('say type <ansi fg="command">get cap</ansi> to pick up the <ansi fg="item">graduation cap</ansi>.', 15);
 
 }
@@ -122,7 +121,7 @@ function getTeacher(room) {
 
     mobIds = room.GetMobs();
     
-    for ( i in mobIds ) {
+    for ( var i in mobIds ) {
         mobActor = GetMob(mobIds[i]);
         if ( mobActor.MobTypeId() == teacherMobId ) {
             return mobActor;
@@ -141,7 +140,7 @@ function destroyTeacher(room) {
 
     mobIds = room.GetMobs();
     
-    for ( i in mobIds ) {
+    for ( var i in mobIds ) {
         mobActor = GetMob(mobIds[i]);
         if ( mobActor.MobTypeId() == teacherMobId ) {
             mobActor.Command(`suicide vanish`);
@@ -159,7 +158,7 @@ function sendWorkingCommands(user) {
         ac.push(allowed_commands[i]);
     }
     
-    for (var i in unlockedCommands ) {
+    for ( i in unlockedCommands ) {
         ac.push(unlockedCommands[i]);
     }
     
@@ -175,7 +174,7 @@ function sendWorkingCommands(user) {
 function clearGroundItems(room) {
 
     allGroundItems = room.GetItems();
-    for ( i in allGroundItems ) {
+    for ( var i in allGroundItems ) {
         room.DestroyItem(allGroundItems[i]);
     }
 

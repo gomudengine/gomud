@@ -3,7 +3,7 @@ function onCommand_use(user, item, room) {
     
     
     SendUserMessage(user.UserId(), "You thrust your fist containing the <ansi fg=\"itemname\">"+item.Name()+"</ansi> into the air. Suddenly it bursts into a shower of golden sparks.");
-    SendRoomMessage(room.RoomId(), user.GetCharacterName(true)+" thrusts their fist containing a <ansi fg=\"itemname\">"+item.Name()+"</ansi> into the air. Suddenly it bursts into a shower of golden sparks.", user.UserId())
+    SendRoomMessage(room.RoomId(), user.GetCharacterName(true)+" thrusts their fist containing a <ansi fg=\"itemname\">"+item.Name()+"</ansi> into the air. Suddenly it bursts into a shower of golden sparks.", user.UserId());
 
     SendUserMessage(user.UserId(), "");
     SendUserMessage(user.UserId(), "<ansi fg=\"yellow-bold\">*******************************************************************************</ansi>");
