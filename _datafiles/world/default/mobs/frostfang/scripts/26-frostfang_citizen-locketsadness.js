@@ -1,6 +1,6 @@
 
-var sadnessSubjects = ["quest", "locket", "sad", "sadness", "crying", "sniffles", "necklace"];
-var gardenSubjects = ["garden", "where", "gardening", "quest", "locket", "sad", "sadness", "necklace"];
+const sadnessSubjects = ["quest", "locket", "sad", "sadness", "crying", "sniffles", "necklace"];
+const gardenSubjects = ["garden", "where", "gardening", "quest", "locket", "sad", "sadness", "necklace"];
 
 function onAsk(mob, room, eventDetails) {
 

@@ -1,6 +1,6 @@
 
-var startQuestSubjects = ["quest", "bishop",  "arch", "arch-bishop", "archbishop", "trust"];
-var lichSubjects = ["lich", "old king", "evil king", "tomb", "sarcophagus"];
+const startQuestSubjects = ["quest", "bishop",  "arch", "arch-bishop", "archbishop", "trust"];
+const lichSubjects = ["lich", "old king", "evil king", "tomb", "sarcophagus"];
 
 function onAsk(mob, room, eventDetails) {
 

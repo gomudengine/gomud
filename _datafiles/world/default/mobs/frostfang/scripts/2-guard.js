@@ -1,5 +1,5 @@
 
-var PathTargets = [
+const PathTargets = [
     [1, 59, 263, 'home'],          // town square => east gate => east residential district => home
     [781, 35, 1, 'home'],          // west residential district => west gate => town square => home
     [166, 63, 76, 62, 61, 'home'], // bank => steelwhisper armory => Hacking Hut => Icy Emporium => Inn => home

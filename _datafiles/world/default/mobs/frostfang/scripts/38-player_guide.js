@@ -1,4 +1,3 @@
-/*global UtilGetRoundNumber, UtilFindMatchIn, UtilApplyColorPattern, GetUser, GetRoom, UtilDiceRoll */
 
 // Invoked once every round if mob is idle
 function onIdle(mob, room) {

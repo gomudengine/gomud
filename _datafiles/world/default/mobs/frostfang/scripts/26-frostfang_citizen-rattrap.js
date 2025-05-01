@@ -1,6 +1,6 @@
 
 
-var trapNouns = ["trap", "rat trap", "rat", "rodric"];
+const trapNouns = ["trap", "rat trap", "rat", "rodric"];
 
 function onAsk(mob, room, eventDetails) {
 

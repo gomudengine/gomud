@@ -1,7 +1,7 @@
 
-var startNouns = ["rat", "rats", "too many", "problem"];
-var thievesNouns = ["thief", "thieves", "guild", "hideout", "entrance", "dogs", "slums"];
-var INN_ROOM_ID = 61;
+const startNouns = ["rat", "rats", "too many", "problem"];
+const thievesNouns = ["thief", "thieves", "guild", "hideout", "entrance", "dogs", "slums"];
+const INN_ROOM_ID = 61;
 
 function onAsk(mob, room, eventDetails) {
 

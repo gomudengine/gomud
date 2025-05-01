@@ -1,5 +1,5 @@
 
-var asksubjects = ["quest", "bishop", "arch-bishop", "king"];
+const asksubjects = ["quest", "bishop", "arch-bishop", "king"];
 
 function onAsk(mob, room, eventDetails) {
 

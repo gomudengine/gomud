@@ -1,5 +1,5 @@
 
-var nouns = ["quest", "book", "books", "library", "spell", "spells", "worried", "worry"];
+const nouns = ["quest", "book", "books", "library", "spell", "spells", "worried", "worry"];
 
 function onAsk(mob, room, eventDetails) {
 
