@@ -4,6 +4,7 @@ _datafiles/**/users/*
 _datafiles/**/plugin-data/*
 **/config-overrides.yaml
 **/.roundcount
+**/rooms.instances
 vendor/
 server.crt
 server.key

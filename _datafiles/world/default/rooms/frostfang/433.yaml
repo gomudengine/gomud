@@ -15,8 +15,6 @@ exits:
     roomid: 111
   west:
     roomid: 166
-items:
-- itemid: 5
 spawninfo:
 - itemid: 5
   respawnrate: 1 real day

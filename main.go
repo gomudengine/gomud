@@ -134,6 +134,9 @@ func main() {
 	//
 	mudlog.Info(`========================`)
 
+	// Older versions of GoMud may not have this folder present.
+	err := os.Mkdir(util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), `/`, `rooms.instances`), os.ModeDir|0755)
+
 	// Register the plugin filesystem with the template system
 	templates.RegisterFS(plugins.GetPluginRegistry())
 	usercommands.AddFunctionExporter(plugins.GetPluginRegistry())

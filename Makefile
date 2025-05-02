@@ -63,6 +63,11 @@ clean:
 	$(DOCKER_COMPOSE) down --volumes --remove-orphans
 	docker system prune -a
 
+.PHONY: clean-instances
+clean-instances: ### Deletes all room instance data. Starts the world fresh.
+	rm -Rf _datafiles/world/default/rooms.instances
+	rm -Rf _datafiles/world/empty/rooms.instances
+
 ## Run Targets
 
 .PHONY: run 

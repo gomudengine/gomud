@@ -16,8 +16,6 @@ exits:
     roomid: 153
   south:
     roomid: 151
-items:
-- itemid: 5
 idlemessages:
 - the mountain of trash shifts slightly.
 - the trash heal trembles, threatening to collapse at any moment.

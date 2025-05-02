@@ -18,9 +18,6 @@ containers:
   ornate chest:
     lock:
       difficulty: 8
-    items:
-    - itemid: 25
-    gold: 1
 exits:
   out:
     roomid: 877

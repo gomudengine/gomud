@@ -31,7 +31,7 @@ import (
 * room.info				(See a room summary)
 * room.set				(Set properties of the room)
  */
-func Room(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
+func Room(rest string, user *users.UserRecord, liveRoom *rooms.Room, flags events.EventFlag) (bool, error) {
 
 	handled := true
 
@@ -47,6 +47,8 @@ func Room(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 
 		return handled, nil
 	}
+
+	room := rooms.LoadRoomTemplate(liveRoom.RoomId)
 
 	var roomId int = 0
 	roomCmd := strings.ToLower(args[0])
@@ -157,7 +159,7 @@ func Room(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 			if sourceRoom := rooms.LoadRoom(sourceRoom); sourceRoom != nil {
 
 				room.SpawnInfo = sourceRoom.SpawnInfo
-				rooms.SaveRoom(*room)
+				rooms.SaveRoomTemplate(*room)
 
 				user.SendText("Spawn info copied/overwritten.")
 			}
@@ -169,7 +171,7 @@ func Room(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 			if sourceRoom := rooms.LoadRoom(sourceRoom); sourceRoom != nil {
 
 				room.IdleMessages = append(room.IdleMessages, sourceRoom.IdleMessages...)
-				rooms.SaveRoom(*room)
+				rooms.SaveRoomTemplate(*room)
 
 				user.SendText("IdleMessages copied/overwritten.")
 			}
@@ -181,7 +183,7 @@ func Room(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 			if sourceRoom := rooms.LoadRoom(sourceRoom); sourceRoom != nil {
 
 				room.Mutators = append(room.Mutators, sourceRoom.Mutators...)
-				rooms.SaveRoom(*room)
+				rooms.SaveRoomTemplate(*room)
 
 				user.SendText("Mutators copied/overwritten.")
 			}
@@ -280,12 +282,12 @@ func Room(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 			if exit.Secret {
 				exit.Secret = false
 				room.Exits[direction] = exit
-				rooms.SaveRoom(*room)
+				rooms.SaveRoomTemplate(*room)
 				user.SendText(fmt.Sprintf("Exit %s secrecy REMOVED.", direction))
 			} else {
 				exit.Secret = true
 				room.Exits[direction] = exit
-				rooms.SaveRoom(*room)
+				rooms.SaveRoomTemplate(*room)
 				user.SendText(fmt.Sprintf("Exit %s secrecy ADDED.", direction))
 			}
 		} else {
@@ -345,7 +347,7 @@ func Room(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		if propertyName == "spawninfo" {
 			if propertyValue == `clear` {
 				room.SpawnInfo = room.SpawnInfo[:0]
-				rooms.SaveRoom(*room)
+				rooms.SaveRoomTemplate(*room)
 			}
 
 		} else if propertyName == "title" {
@@ -353,14 +355,14 @@ func Room(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 				propertyValue = `[no title]`
 			}
 			room.Title = propertyValue
-			rooms.SaveRoom(*room)
+			rooms.SaveRoomTemplate(*room)
 		} else if propertyName == "description" {
 			if propertyValue == `` {
 				propertyValue = `[no description]`
 			}
 			propertyValue = strings.ReplaceAll(propertyValue, `\n`, "\n")
 			room.Description = propertyValue
-			rooms.SaveRoom(*room)
+			rooms.SaveRoomTemplate(*room)
 		} else if propertyName == "idlemessages" {
 			room.IdleMessages = []string{}
 			for _, idleMsg := range strings.Split(propertyValue, ";") {
@@ -370,13 +372,13 @@ func Room(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 				}
 				room.IdleMessages = append(room.IdleMessages, idleMsg)
 			}
-			rooms.SaveRoom(*room)
+			rooms.SaveRoomTemplate(*room)
 		} else if propertyName == "symbol" || propertyName == "mapsymbol" {
 			room.MapSymbol = propertyValue
-			rooms.SaveRoom(*room)
+			rooms.SaveRoomTemplate(*room)
 		} else if propertyName == "legend" || propertyName == "maplegend" {
 			room.MapLegend = propertyValue
-			rooms.SaveRoom(*room)
+			rooms.SaveRoomTemplate(*room)
 		} else if propertyName == "zone" {
 			// Try moving it to the new zone.
 			if err := rooms.MoveToZone(room.RoomId, propertyValue); err != nil {
@@ -491,7 +493,7 @@ func room_Edit_Containers(rest string, user *users.UserRecord, room *rooms.Room,
 		if question.Response == `yes` {
 
 			delete(room.Containers, currentlyEditing.Name)
-			rooms.SaveRoom(*room)
+			rooms.SaveRoomTemplate(*room)
 
 			user.SendText(``)
 			user.SendText(fmt.Sprintf(`<ansi fg="container">%s</ansi> deleted from the room.`, currentlyEditing.Name))
@@ -952,7 +954,7 @@ func room_Edit_Containers(rest string, user *users.UserRecord, room *rooms.Room,
 	}
 
 	room.Containers[currentlyEditing.NameNew] = currentlyEditing.Container
-	rooms.SaveRoom(*room)
+	rooms.SaveRoomTemplate(*room)
 
 	user.SendText(``)
 
@@ -1087,7 +1089,7 @@ func room_Edit_Exits(rest string, user *users.UserRecord, room *rooms.Room, flag
 		if question.Response == `yes` {
 
 			delete(room.Exits, currentlyEditing.Name)
-			rooms.SaveRoom(*room)
+			rooms.SaveRoomTemplate(*room)
 
 			user.SendText(``)
 			user.SendText(fmt.Sprintf(`<ansi fg="exit">%s</ansi> deleted from the room.`, currentlyEditing.Name))
@@ -1403,7 +1405,7 @@ func room_Edit_Exits(rest string, user *users.UserRecord, room *rooms.Room, flag
 	}
 
 	room.Exits[currentlyEditing.NameNew] = currentlyEditing.Exit
-	rooms.SaveRoom(*room)
+	rooms.SaveRoomTemplate(*room)
 
 	user.SendText(``)
 
@@ -1544,7 +1546,7 @@ func room_Edit_Mutators(rest string, user *users.UserRecord, room *rooms.Room, f
 	for _, mutId := range selectedMutatorList {
 		room.Mutators = append(room.Mutators, mutators.Mutator{MutatorId: mutId})
 	}
-	rooms.SaveRoom(*room)
+	rooms.SaveRoomTemplate(*room)
 
 	user.SendText(``)
 	user.SendText(`Changes saved.`)
