@@ -106,7 +106,7 @@ shell:
 validate: fmtcheck vet
 
 .PHONY: test
-test: 
+test: js-lint
 	@go test ./...
 
 .PHONY: coverage
