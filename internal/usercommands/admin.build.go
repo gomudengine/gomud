@@ -79,16 +79,16 @@ func Build(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 
 			if gotoRoomId == 0 {
 
-				if newRoom, err := rooms.BuildRoom(user.Character.RoomId, exitName, mapDirection); err != nil {
-					user.SendText(err.Error())
-				} else {
-					destinationRoom = newRoom
-				}
+				newRoom, err := rooms.BuildRoom(user.Character.RoomId, exitName, mapDirection)
 
-				if destinationRoom == nil {
+				// If there was a problem building the room, send the error to the user before returning
+				if err != nil {
+					user.SendText(err.Error())
 					user.SendText(fmt.Sprintf("Error building room %s.", exitName))
 					return false, nil
 				}
+
+				destinationRoom = newRoom
 
 			} else {
 				destinationRoom = rooms.LoadRoom(gotoRoomId)
@@ -110,10 +110,6 @@ func Build(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 
 				rooms.ConnectRoom(destinationRoom.RoomId, user.Character.RoomId, returnName, returnMapDirection)
 			}
-
-			// Force a refresh of map data
-			rootRoomId, _ := rooms.GetZoneRoot(room.Zone)
-			mapper.GetMapper(rootRoomId, true)
 
 			if err := rooms.MoveToRoom(user.UserId, destinationRoom.RoomId); err != nil {
 				user.SendText(err.Error())

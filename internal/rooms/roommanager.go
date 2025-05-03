@@ -769,9 +769,13 @@ func BuildRoom(fromRoomId int, exitName string, mapDirection ...string) (room *R
 		return nil, fmt.Errorf(`room %d not found`, fromRoomId)
 	}
 
+	if _, ok := fromRoom.Exits[exitName]; ok {
+		return nil, fmt.Errorf(`this room already has a %s exit`, exitName)
+	}
+
 	newRoom := NewRoom(fromRoom.Zone)
-	if newRoom != nil {
-		newRoom.Validate()
+	if err := newRoom.Validate(); err != nil {
+		return nil, fmt.Errorf("BuildRoom(%d, %s, %s): %w", fromRoomId, exitName, exitMapDirection, err)
 	}
 
 	newRoom.Title = fromRoom.Title
@@ -793,8 +797,11 @@ func BuildRoom(fromRoomId int, exitName string, mapDirection ...string) (room *R
 	}
 	fromRoom.Exits[exitName] = newExit
 
+	// Add the new room to memory.
 	addRoomToMemory(newRoom)
-	roomManager.rooms[fromRoom.RoomId] = fromRoom
+
+	// Update the memory for the source room
+	addRoomToMemory(fromRoom, true)
 
 	SaveRoomTemplate(*fromRoom)
 	SaveRoomTemplate(*newRoom)
