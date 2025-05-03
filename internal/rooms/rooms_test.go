@@ -108,6 +108,9 @@ func TestFindNoun(t *testing.T) {
 			"mystery":          "just a riddle",
 			"secret":           ":mystery",                   // chain alias -> :mystery
 			"projector screen": "a wide, matte-white screen", // multi-word matching
+			"island":           "a tropical paradise",
+			"rocks":            ":island",
+			"rocky island":     ":island",
 		},
 	}
 
@@ -208,6 +211,31 @@ func TestFindNoun(t *testing.T) {
 			inputNoun:     "foo bar",
 			wantFoundNoun: "",
 			wantDesc:      "",
+		},
+		{
+			name:          "Multi-word input, first word valid (island)",
+			inputNoun:     "island",
+			wantFoundNoun: "island",
+			wantDesc:      "a tropical paradise",
+		},
+		// Issue #356: Fix Noun aliases
+		{
+			name:          "Multi-word input, first word valid (rocks)",
+			inputNoun:     "rocks",
+			wantFoundNoun: "island",
+			wantDesc:      "a tropical paradise",
+		},
+		{
+			name:          "Multi-word input, first word valid (rocky island)",
+			inputNoun:     "rocky island",
+			wantFoundNoun: "island",
+			wantDesc:      "a tropical paradise",
+		},
+		{
+			name:          "Multi-word input, first word valid (rocky)",
+			inputNoun:     "rocky",
+			wantFoundNoun: "island",
+			wantDesc:      "a tropical paradise",
 		},
 	}
 

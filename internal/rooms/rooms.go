@@ -1576,151 +1576,86 @@ func (r *Room) FindContainerByName(containerNameSearch string) string {
 	return closeMatch
 }
 
+// FindNoun resolves a noun or alias within the room's noun map.
 func (r *Room) FindNoun(noun string) (foundNoun string, nounDescription string) {
-
 	if len(r.Nouns) == 0 {
 		return ``, ``
 	}
 
-	roomNouns := map[string]string{}
-
-	for originalNoun, originalDesc := range r.Nouns {
-		roomNouns[originalNoun] = originalDesc
-
-		if strings.Contains(originalNoun, ` `) {
-			for _, n := range strings.Split(originalNoun, ` `) {
-
-				if _, ok := r.Nouns[n]; ok {
-					continue
+	// Build flat map of noun -> desc, and add single-word aliases for multi-word nouns
+	roomNouns := make(map[string]string, len(r.Nouns))
+	for key, desc := range r.Nouns {
+		roomNouns[key] = desc
+		if strings.Contains(key, ` `) {
+			for word := range strings.SplitSeq(key, " ") {
+				if _, exists := r.Nouns[word]; !exists && roomNouns[word] == "" {
+					roomNouns[word] = `:` + key
 				}
-
-				if _, ok := roomNouns[n]; ok {
-					continue
-				}
-
-				roomNouns[n] = `:` + originalNoun
-
 			}
-		}
-
-	}
-
-	testNouns := util.SplitButRespectQuotes(noun)
-	ct := len(testNouns)
-	for i := 0; i < ct; i++ {
-
-		if splitCount := strings.Split(testNouns[i], ` `); len(splitCount) > 1 {
-
-			for _, n2 := range splitCount {
-
-				if len(n2) < 2 {
-					continue
-				}
-
-				testNouns = append(testNouns, n2)
-			}
-
 		}
 	}
 
-	// If it created more than one word, put the original back on as a full string to test
-	if len(testNouns) > 1 {
-		testNouns = append(testNouns, noun)
+	// Build candidate list: full noun first, then each word
+	candidates := []string{noun}
+	for _, part := range util.SplitButRespectQuotes(noun) {
+		if len(part) > 1 {
+			candidates = append(candidates, part)
+		}
 	}
 
-	for _, newNoun := range testNouns {
-
-		if desc, ok := roomNouns[newNoun]; ok {
-			if desc[0:1] == `:` {
-				return desc[1:], roomNouns[desc[1:]]
+	// Try direct matches and aliases
+	for _, cand := range candidates {
+		if desc, ok := roomNouns[cand]; ok {
+			key := cand
+			for strings.HasPrefix(desc, `:`) {
+				key = desc[1:]
+				desc = roomNouns[key]
 			}
-			return newNoun, desc
+			return key, desc
 		}
+	}
 
-		if len(newNoun) < 2 {
-			continue
-		}
-
-		// If ended in `s`, strip it and add a new word to the search list
-		if newNoun[len(newNoun)-1:] == `s` {
-
-			testNoun := newNoun[:len(newNoun)-1]
-			if desc, ok := roomNouns[testNoun]; ok {
-				if desc[0:1] == `:` {
-					return desc[1:], roomNouns[desc[1:]]
+	// Fallback pluralization/singularization
+	for _, cand := range candidates {
+		// Handle "ies" -> "y"
+		if strings.HasSuffix(cand, `ies`) {
+			singular := cand[:len(cand)-3] + `y`
+			if desc, ok := roomNouns[singular]; ok {
+				key := singular
+				for strings.HasPrefix(desc, `:`) {
+					key = desc[1:]
+					desc = roomNouns[key]
 				}
-				return testNoun, desc
+				return key, desc
 			}
+		}
 
-		} else {
-
-			testNoun := newNoun + `s`
-			if desc, ok := roomNouns[testNoun]; ok { // `s`` at end
-				if desc[0:1] == `:` {
-					return desc[1:], roomNouns[desc[1:]]
+		// Handle "es" -> remove
+		if strings.HasSuffix(cand, `es`) {
+			singular := cand[:len(cand)-2]
+			if desc, ok := roomNouns[singular]; ok {
+				key := singular
+				for strings.HasPrefix(desc, `:`) {
+					key = desc[1:]
+					desc = roomNouns[key]
 				}
-				return testNoun, desc
+				return key, desc
 			}
-
 		}
 
-		// Switch ending of `y` to `ies`
-		if newNoun[len(newNoun)-1:] == `y` {
-
-			testNoun := newNoun[:len(newNoun)-1] + `ies`
-			if desc, ok := roomNouns[testNoun]; ok { // `ies` instead of `y` at end
-				if desc[0:1] == `:` {
-					return desc[1:], roomNouns[desc[1:]]
+		// Handle trailing 's'
+		if strings.HasSuffix(cand, `s`) {
+			singular := cand[:len(cand)-1]
+			if desc, ok := roomNouns[singular]; ok {
+				key := singular
+				for strings.HasPrefix(desc, `:`) {
+					key = desc[1:]
+					desc = roomNouns[key]
 				}
-				return testNoun, desc
+				return key, desc
 			}
-
 		}
-
-		if len(newNoun) < 3 {
-			continue
-		}
-
-		// Strip 'es' such as 'torches'
-		if newNoun[len(newNoun)-2:] == `es` {
-
-			testNoun := newNoun[:len(newNoun)-2]
-			if desc, ok := roomNouns[testNoun]; ok {
-				if desc[0:1] == `:` {
-					return desc[1:], roomNouns[desc[1:]]
-				}
-				return testNoun, desc
-			}
-
-		} else {
-
-			testNoun := newNoun + `es`
-			if desc, ok := roomNouns[testNoun]; ok { // `es` at end
-				if desc[0:1] == `:` {
-					return desc[1:], roomNouns[desc[1:]]
-				}
-				return testNoun, desc
-			}
-
-		}
-
-		if len(newNoun) < 4 {
-			continue
-		}
-
-		// Strip 'es' such as 'torches'
-		if noun[len(newNoun)-3:] == `ies` {
-
-			testNoun := newNoun[:len(newNoun)-3] + `y`
-			if desc, ok := roomNouns[testNoun]; ok { // `y` instead of `ies` at end
-				if desc[0:1] == `:` {
-					return desc[1:], roomNouns[desc[1:]]
-				}
-				return testNoun, desc
-			}
-
-		}
-
+		// Default: no match
 	}
 
 	return ``, ``
