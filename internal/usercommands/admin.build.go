@@ -75,7 +75,9 @@ func Build(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 				return true, err
 			}
 
-			if gotoRoomId, _ := rMapper.FindAdjacentRoom(user.Character.RoomId, exitName, 1); gotoRoomId == 0 {
+			gotoRoomId, _ := rMapper.FindAdjacentRoom(user.Character.RoomId, exitName, 1)
+
+			if gotoRoomId == 0 {
 
 				if newRoom, err := rooms.BuildRoom(user.Character.RoomId, exitName, mapDirection); err != nil {
 					user.SendText(err.Error())
@@ -88,10 +90,16 @@ func Build(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 					return false, nil
 				}
 
+			} else {
+				destinationRoom = rooms.LoadRoom(gotoRoomId)
+				if _, ok := destinationRoom.Exits[exitName]; !ok {
+					rooms.ConnectRoom(user.Character.RoomId, destinationRoom.RoomId, exitName, mapDirection)
+				}
 			}
 
 			// Connect the exit back
 			if len(returnName) > 0 {
+
 				returnMapDirection := returnName
 				if strings.Contains(returnName, `-`) {
 					returnMapDirection = returnName
@@ -102,6 +110,10 @@ func Build(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 
 				rooms.ConnectRoom(destinationRoom.RoomId, user.Character.RoomId, returnName, returnMapDirection)
 			}
+
+			// Force a refresh of map data
+			rootRoomId, _ := rooms.GetZoneRoot(room.Zone)
+			mapper.GetMapper(rootRoomId, true)
 
 			if err := rooms.MoveToRoom(user.UserId, destinationRoom.RoomId); err != nil {
 				user.SendText(err.Error())

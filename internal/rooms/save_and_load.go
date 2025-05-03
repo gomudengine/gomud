@@ -1,15 +1,14 @@
 package rooms
 
 import (
-	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/fileloader"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
@@ -17,32 +16,64 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func LoadRoomTemplate(roomId int) *Room {
+// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// RULES FOR SAVING AND LOADING ROOMS
+// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// The following are rules for reading and writing room files.
+// This set of rules must be followed or behaviors will break.
+// DO NOT CHANGE CODE FOR THE PROCESS unless you understand the implications.
+//
+// NOTE: in-memory cache contains a RoomId => Room struct map. This Room struct is TEMPLATE data updated on load with INSTANCE data.
+// Once loaded into memory, the in-memory cache is the most recent source-of-truth for INSTANCE data.
+//
+// TEMPLATE data is stored in the /rooms/ folder
+// INSTANCE data is stored in the /rooms.instances/ folder (may only be created on running the MUD)
+//
+// INSTANCE data can be cleared out by deleting the /rooms.instances/ folder, or running the `make clean-instances` to do it.
+//
+// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// A. LOADING ROOMS BLINDLY                                                                                              AKA LoadRoom()
+// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// NOTE: This is the only way outside code should be loading rooms. The other functions are exported for very specialized purposes.
+//
+// 1. Look for in-memory Room cache record for RoomId. If found, return it.
+// 2. Do [B. LOADING ROOMS FROM FILES]
+// 3. Save result to in-memory Room cache.
+//
+// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// B. LOADING ROOMS FROM FILES                                                                                  AKA  LoadRoomInstance()
+// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//  1. Load the TEMPLATE data into a Room struct.
+//  2. Load the INSTANCE data into the same struct - the result is only the field present in the INSTANCE data will overwrite the
+//     TEMPLATE data.
+//
+// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// C. SAVING ROOM TEMPLATES                                                                                      AKA SaveRoomTemplate()
+// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//  1. Anytime a change is made to a TEMPLATE, first load the TEMPLATE ONLY, make any changes, then save the TEMPLATE ONLY.
+//  2. There may be data from the OLD in-memory Room struct that needs to be copied over to the new one. (items, users, mobs, etc).
+//     If so, do it.
+//  3. Update the in-memory Room struct for the RoomId to use the NEW TEMPLATE version.
+//  4. Rebuild maps for the Room's Zone.RoomId and then the room.RoomId, in that order. That ensures it's added to the zone map
+//     IF it should be, and if not, will generate its own map.
+//
+// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// D. SAVING ROOMS INSTANCES                                                                                     AKA SaveRoomInstance()
+// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//  1. Load the TEMPLATE data into a variable
+//  2. Use reflection to iterate through the structure.
+//  3. If field isn't readable (unexported/lowercase) or has the struct tag `instance:"skip"`, skip writing it.
+//  4. If the field value matches the TEMPLATE version of the field, skip writing it.
+//  5. If the final result of the data to write is empty ( "{}\n" ), delete and do not write the new save file.
+//
+// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	filename := ``
-
-	if cachedPath, ok := roomManager.roomIdToFileCache[roomId]; ok {
-		filename = cachedPath
-	} else {
-		filename = findRoomFile(roomId)
-	}
-
-	if len(filename) == 0 {
-		return nil
-	}
-
-	filepath := util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), `/`, `rooms`, `/`, filename)
-
-	retRoom, _ := loadRoomFromFile(filepath)
-
-	return retRoom
-}
-
-// Load room grabs the room from memory and returns a pointer to it.
-// If the room hasn't been loaded yet, it:
-// 1. loads it from the template file
-// 2. loads any instance data and overlays it
-// 3. adds it to memory
+// See: A. LOADING ROOMS BLINDLY
 func LoadRoom(roomId int) *Room {
 
 	// Room 0 aliases to start room
@@ -52,61 +83,102 @@ func LoadRoom(roomId int) *Room {
 		}
 	}
 
-	room, ok := roomManager.rooms[roomId]
-
-	if ok {
+	if room := getRoomFromMemory(roomId); room != nil {
 		return room
 	}
 
-	roomTpl := LoadRoomTemplate(roomId)
-
-	if roomTpl != nil {
-
-		filename := ``
-		if cachedPath, ok := roomManager.roomIdToFileCache[roomId]; ok {
-			filename = cachedPath
-		} else {
-			filename = findRoomFile(roomId)
-		}
-
-		filepath := util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), `/`, `rooms.instances`, `/`, filename)
-		if _, err := os.Stat(filepath); err == nil {
-			if bytes, err := os.ReadFile(filepath); err == nil {
-				yaml.Unmarshal(bytes, roomTpl)
-			}
-		}
-
-		addRoomToMemory(roomTpl)
+	if room := LoadRoomInstance(roomId); room != nil {
+		addRoomToMemory(room)
+		return room
 	}
 
-	return roomTpl
+	return nil
 }
 
-// Saves whatever room file is passed to it as the template.
-// Use with caution, accidentally passing an object that has items etc.
-// will mean this room's blank state will always have these items.
-func SaveRoomTemplate(r Room) error {
+// See: B. LOADING ROOMS FROM FILES
+func LoadRoomInstance(roomId int) *Room {
 
-	data, err := yaml.Marshal(&r)
+	room := LoadRoomTemplate(roomId)
+	if room == nil {
+		return nil
+	}
+
+	filename := roomManager.GetFilePath(roomId)
+
+	if len(filename) == 0 {
+		return nil
+	}
+
+	// Look for specially saved instance data
+	filepath := util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), `/rooms.instances/`, filename)
+
+	if bytes, err := os.ReadFile(filepath); err == nil {
+		// Unmarshal onto the default template data, overwriting any set fields in the instance save file
+		yaml.Unmarshal(bytes, room)
+	}
+
+	return room
+}
+
+// Only loads the template data, ignores instance data.
+func LoadRoomTemplate(roomId int) *Room {
+
+	filename := roomManager.GetFilePath(roomId)
+
+	if len(filename) == 0 {
+		return nil
+	}
+
+	filepath := util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), `/rooms/`, filename)
+
+	retRoom, _ := loadRoomFromFile(filepath)
+
+	return retRoom
+}
+
+// See C. UPDATING EXISTING ROOM TEMPLATES
+func SaveRoomTemplate(roomTpl Room) error {
+
+	// Do not accept a RoomId of zero.
+	if roomTpl.RoomId == 0 {
+		roomTpl.RoomId = GetNextRoomId()
+		SetNextRoomId(roomTpl.RoomId + 1)
+	}
+
+	//
+	// It is assumed that `roomTpl` contains empty room data
+	// That means no players/mobs/items/gold/etc that aren't intended to be included in the default/empty room template
+	//
+	data, err := yaml.Marshal(&roomTpl)
 	if err != nil {
 		return err
 	}
 
-	zone := ZoneToFolder(r.Zone)
+	zoneFolder := ZoneToFolder(roomTpl.Zone)
 
-	roomFilePath := util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), `/`, `rooms`, `/`, fmt.Sprintf("%s%d.yaml", zone, r.RoomId))
-
+	// First write the empty version to its template file
+	roomFilePath := util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), `/rooms/`, fmt.Sprintf("%s%d.yaml", zoneFolder, roomTpl.RoomId))
 	if err = os.WriteFile(roomFilePath, data, 0777); err != nil {
 		return err
 	}
 
-	copyFromRoom := roomManager.rooms[r.RoomId]
-	room := LoadRoomTemplate(r.RoomId)
+	// Get zone root
+	cfg := GetZoneConfig(roomTpl.Zone)
+
+	// Queue rebuild the zone map
+	events.AddToQueue(events.RebuildMap{MapRootRoomId: cfg.RoomId})
+	// Also queue rebuild the map based on the room, if it's not already present in a map (AKA, SkipIfExists)
+	events.AddToQueue(events.RebuildMap{MapRootRoomId: roomTpl.RoomId, SkipIfExists: true})
+
+	//
+	// Now we can make changes to the roomTpl as though it is the room (copy over stuff etc)
+	//
+	roomBeingReplaced := roomManager.rooms[roomTpl.RoomId]
 
 	// Copy container contents (if new vs. old room container names match)
-	for containerName, container := range copyFromRoom.Containers {
+	for containerName, container := range roomBeingReplaced.Containers {
 
-		if newContainer, ok := room.Containers[containerName]; ok {
+		if newContainer, ok := roomTpl.Containers[containerName]; ok {
 
 			if newContainer.Gold == 0 {
 				newContainer.Gold = container.Gold
@@ -117,47 +189,55 @@ func SaveRoomTemplate(r Room) error {
 				copy(newContainer.Items, container.Items)
 			}
 
-			room.Containers[containerName] = newContainer
+			roomTpl.Containers[containerName] = newContainer
 		}
-
 	}
 
 	// Copy items and stashed items
-	for _, itm := range copyFromRoom.GetAllFloorItems(true) {
+	for _, itm := range roomBeingReplaced.GetAllFloorItems(true) {
 		if itm.StashedBy > 0 {
-			room.AddItem(itm, true)
+			roomTpl.AddItem(itm, true)
 		} else {
-			room.AddItem(itm, false)
+			roomTpl.AddItem(itm, false)
 		}
 	}
 
-	// Copy gol don floor
-	room.Gold = copyFromRoom.Gold
+	// Copy gold on floor
+	roomTpl.Gold = roomBeingReplaced.Gold
 
 	// Copy signs
-	room.Signs = make([]Sign, len(copyFromRoom.Signs))
-	copy(room.Signs, copyFromRoom.Signs)
+	roomTpl.Signs = make([]Sign, len(roomBeingReplaced.Signs))
+	copy(roomTpl.Signs, roomBeingReplaced.Signs)
 
 	// Copy mobs in room
-	room.mobs = make([]int, len(copyFromRoom.mobs))
-	copy(room.mobs, copyFromRoom.mobs)
+	roomTpl.mobs = make([]int, len(roomBeingReplaced.mobs))
+	copy(roomTpl.mobs, roomBeingReplaced.mobs)
 
 	// Copy players in room
-	room.players = make([]int, len(copyFromRoom.players))
-	copy(room.players, copyFromRoom.players)
+	roomTpl.players = make([]int, len(roomBeingReplaced.players))
+	copy(roomTpl.players, roomBeingReplaced.players)
 
-	roomManager.rooms[room.RoomId] = room
+	// Add to memory with the force flag true
+	// This will clear out the old data and force write the new data.
+	addRoomToMemory(&roomTpl, true)
 
-	SaveRoom(*room)
+	// Save whatever is in this room as the instance data
+	SaveRoomInstance(roomTpl)
 
 	return nil
 }
 
-// SaveRoom loads the original template for the room
-// It then compares for changes and saves all elligible data
-func SaveRoom(r Room) error {
+type SaveEqualityChecker interface {
+	SkipInstanceSave(other any) bool // Should we skip due to everything looking the same?
+}
 
-	rTpl := LoadRoomTemplate(r.RoomId)
+// See: D. SAVING ROOMS INSTANCES
+func SaveRoomInstance(r Room) error {
+
+	rTpl := LoadRoomTemplate(r.RoomId) // This is also a Room{}
+	if rTpl == nil {
+		return fmt.Errorf(`could not load template for room %d`, r.RoomId)
+	}
 
 	rVal := reflect.ValueOf(r)
 	tplVal := reflect.ValueOf(*rTpl)
@@ -183,40 +263,38 @@ func SaveRoom(r Room) error {
 		rVal2 := rVal.Field(i)
 		tplVal2 := tplVal.Field(i)
 
-		// Compare using DeepEqual
-		if !reflect.DeepEqual(rVal2.Interface(), tplVal2.Interface()) {
-
-			marshal1, _ := yaml.Marshal(rVal2.Interface())
-			marshal2, _ := yaml.Marshal(tplVal2.Interface())
-
-			if string(marshal1) == string(marshal2) {
+		if iface, ok := rVal2.Interface().(SaveEqualityChecker); ok {
+			if iface.SkipInstanceSave(tplVal2.Interface()) {
 				continue
 			}
-
-			tagParts := strings.Split(yamlTag, ",")
-			fieldName := tagParts[0]
-			if fieldName == `` || fieldName == `omitempty` || fieldName == `flow` {
-				fieldName = field.Name
-			}
-
-			instanceSaveData[fieldName] = rVal2.Interface()
-
 		}
+
+		if reflect.DeepEqual(rVal2.Interface(), tplVal2.Interface()) {
+			continue
+		}
+
+		tagParts := strings.Split(yamlTag, ",")
+		fieldName := tagParts[0]
+		if fieldName == `` || fieldName == `omitempty` || fieldName == `flow` {
+			fieldName = field.Name
+		}
+
+		instanceSaveData[fieldName] = rVal2.Interface()
+
+	}
+
+	zone := ZoneToFolder(r.Zone)
+	folderPath := util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), `/rooms.instances/`, zone)
+	instanceFilePath := fmt.Sprintf("%s%d.yaml", folderPath, r.RoomId)
+
+	if len(instanceSaveData) == 0 {
+		os.Remove(instanceFilePath)
+		return nil
 	}
 
 	data, err := yaml.Marshal(instanceSaveData)
 	if err != nil {
 		return err
-	}
-
-	zone := ZoneToFolder(r.Zone)
-
-	folderPath := util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), `/`, `rooms.instances`, `/`, zone)
-	instanceFilePath := fmt.Sprintf("%s%d.yaml", folderPath, r.RoomId)
-
-	if string(data[0:2]) == `{}` {
-		os.Remove(instanceFilePath)
-		return nil
 	}
 
 	if err = os.WriteFile(instanceFilePath, data, 0777); err != nil {
@@ -226,30 +304,6 @@ func SaveRoom(r Room) error {
 	return nil
 }
 
-func findRoomFile(roomId int) string {
-
-	foundFilePath := ``
-	searchFileName := filepath.FromSlash(fmt.Sprintf(`/%d.yaml`, roomId))
-
-	walkPath := filepath.FromSlash(configs.GetFilePathsConfig().DataFiles.String() + `/rooms`)
-
-	filepath.Walk(walkPath, func(path string, info os.FileInfo, err error) error {
-
-		if err != nil {
-			return err
-		}
-
-		if strings.HasSuffix(path, searchFileName) {
-			foundFilePath = path
-			return errors.New(`found`)
-		}
-
-		return nil
-	})
-
-	return strings.TrimPrefix(foundFilePath, walkPath)
-}
-
 func loadRoomFromFile(roomFilePath string) (*Room, error) {
 
 	roomFilePath = util.FilePath(roomFilePath)
@@ -257,11 +311,7 @@ func loadRoomFromFile(roomFilePath string) (*Room, error) {
 	roomPtr, err := fileloader.LoadFlatFile[*Room](roomFilePath)
 	if err != nil {
 		mudlog.Error("loadRoomFromFile()", "error", err.Error())
-		return roomPtr, err
 	}
-
-	// Automatically set the last visitor to now (reset the timer)
-	roomPtr.lastVisited = util.GetRoundCount()
 
 	return roomPtr, err
 }
@@ -273,7 +323,7 @@ func SaveAllRooms() error {
 	errCt := 0
 	for _, r := range roomManager.rooms {
 
-		if SaveRoom(*r) != nil {
+		if SaveRoomInstance(*r) != nil {
 			errCt++
 			continue
 		}
@@ -349,7 +399,7 @@ func loadAllRoomZones() error {
 				RoomIds:    make(map[int]struct{}),
 			}
 
-			folderPath := util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), `/`, `rooms.instances`, `/`, ZoneNameSanitize(loadedRoom.Zone))
+			folderPath := util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), `/rooms.instances/`, ZoneNameSanitize(loadedRoom.Zone))
 			if _, err := os.Stat(folderPath); os.IsNotExist(err) {
 				os.MkdirAll(folderPath, 0755)
 			}

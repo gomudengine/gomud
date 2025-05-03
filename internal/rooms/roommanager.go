@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -30,6 +31,10 @@ var (
 	}
 )
 
+const (
+	StartRoomIdAlias = 0
+)
+
 type RoomManager struct {
 	rooms             map[int]*Room
 	zones             map[string]ZoneInfo // a map of zone name to room id
@@ -38,9 +43,74 @@ type RoomManager struct {
 	roomIdToFileCache map[int]string      // key is room id, value is the file path
 }
 
-const (
-	StartRoomIdAlias = 0
-)
+// Deletes any knowledge of a room in memory.
+// Loading this room after the fact will trigger full re-loading and caching of room data.
+func ClearRoomCache(roomId int) error {
+
+	room := roomManager.rooms[roomId]
+	if room == nil {
+		return fmt.Errorf(`room %d not found in cache`, roomId)
+	}
+
+	if zoneData, ok := roomManager.zones[room.Zone]; ok {
+
+		if zoneData.RootRoomId == roomId {
+			return fmt.Errorf(`room %d is the zone root`, roomId)
+		}
+
+		delete(zoneData.RoomIds, roomId)
+		roomManager.zones[room.Zone] = zoneData
+	}
+
+	delete(roomManager.rooms, roomId)
+	delete(roomManager.roomsWithUsers, roomId)
+	delete(roomManager.roomsWithMobs, roomId)
+	delete(roomManager.roomIdToFileCache, roomId)
+
+	return nil
+}
+
+func (r *RoomManager) GetFilePath(roomId int) string {
+
+	if cachedPath, ok := roomManager.roomIdToFileCache[roomId]; ok {
+		return cachedPath
+	}
+
+	filename := searchForRoomFile(roomId)
+
+	if filename == `` {
+		return filename
+	}
+
+	roomManager.roomIdToFileCache[roomId] = filename
+
+	return filename
+}
+
+// Find a file for a roomId and cache the file location.
+func searchForRoomFile(roomId int) string {
+
+	searchFileName := filepath.FromSlash(fmt.Sprintf(`/%d.yaml`, roomId))
+
+	walkPath := filepath.FromSlash(configs.GetFilePathsConfig().DataFiles.String() + `/rooms`)
+
+	foundFilePath := ``
+	filepath.Walk(walkPath, func(path string, info os.FileInfo, err error) error {
+
+		if err != nil {
+			return err
+		}
+
+		if strings.HasSuffix(path, searchFileName) {
+			foundFilePath = path
+			return errors.New(`found`)
+		}
+
+		return nil
+	})
+
+	return strings.TrimPrefix(foundFilePath, walkPath)
+}
 
 type ZoneInfo struct {
 	RootRoomId      int
@@ -450,45 +520,60 @@ func removeRoomFromMemory(r *Room) {
 		}
 	}
 
-	SaveRoom(*room)
+	SaveRoomInstance(*room)
 	delete(roomManager.rooms, r.RoomId)
 }
 
-// Loads a room from disk and stores in memory
-func addRoomToMemory(r *Room) {
+func getRoomFromMemory(roomId int) *Room {
+	return roomManager.rooms[roomId]
+}
 
-	if _, ok := roomManager.rooms[r.RoomId]; ok {
-		return
+// Loads a room from disk and stores in memory
+func addRoomToMemory(room *Room, forceOverWrite ...bool) error {
+
+	if len(forceOverWrite) > 0 && forceOverWrite[0] {
+		ClearRoomCache(room.RoomId)
 	}
 
-	roomManager.rooms[r.RoomId] = r
+	if _, ok := roomManager.rooms[room.RoomId]; ok {
+		return fmt.Errorf(`room %d is already stored in memory`, room.RoomId)
+	}
 
-	if _, ok := roomManager.roomIdToFileCache[r.RoomId]; !ok {
-		roomManager.roomIdToFileCache[r.RoomId] = r.Filepath()
+	// Automatically set the last visitor to now (reset the unload timer)
+	room.lastVisited = util.GetRoundCount()
+
+	// Save to room cache lookup
+	roomManager.rooms[room.RoomId] = room
+
+	// Save filepath to cache
+	if _, ok := roomManager.roomIdToFileCache[room.RoomId]; !ok {
+		roomManager.roomIdToFileCache[room.RoomId] = room.Filepath()
 	}
 
 	// Track whatever the last room id created is so we know what to number the next one.
-	if r.RoomId >= GetNextRoomId() {
-		SetNextRoomId(r.RoomId + 1)
+	if room.RoomId >= GetNextRoomId() {
+		SetNextRoomId(room.RoomId + 1)
 	}
 
-	if _, ok := roomManager.zones[r.Zone]; !ok {
-		roomManager.zones[r.Zone] = ZoneInfo{
+	//
+	zoneInfo, ok := roomManager.zones[room.Zone]
+	if !ok {
+		zoneInfo = ZoneInfo{
 			RootRoomId: 0,
 			RoomIds:    make(map[int]struct{}),
 		}
 	}
 
-	// Populate the zone info
-	zoneInfo := roomManager.zones[r.Zone]
-	zoneInfo.RoomIds[r.RoomId] = struct{}{}
+	// Populate the room present lookup in the zone info
+	zoneInfo.RoomIds[room.RoomId] = struct{}{}
 
-	if r.ZoneConfig.RoomId == r.RoomId {
-		zoneInfo.RootRoomId = r.RoomId
+	if room.ZoneConfig.RoomId == room.RoomId {
+		zoneInfo.RootRoomId = room.RoomId
 	}
 
-	roomManager.zones[r.Zone] = zoneInfo
+	roomManager.zones[room.Zone] = zoneInfo
 
+	return nil
 }
 
 func GetZoneRoot(zone string) (int, error) {
@@ -679,7 +764,7 @@ func BuildRoom(fromRoomId int, exitName string, mapDirection ...string) (room *R
 		exitMapDirection = mapDirection[0]
 	}
 
-	fromRoom := LoadRoom(fromRoomId)
+	fromRoom := LoadRoomTemplate(fromRoomId)
 	if fromRoom == nil {
 		return nil, fmt.Errorf(`room %d not found`, fromRoomId)
 	}
@@ -699,7 +784,7 @@ func BuildRoom(fromRoomId int, exitName string, mapDirection ...string) (room *R
 		//newRoom.IdleMessages = fromRoom.IdleMessages
 	}
 
-	mudlog.Info("Connection room", "fromRoom", fromRoom.RoomId, "newRoom", newRoom.RoomId, "exitName", exitName)
+	mudlog.Info("Connecting room", "fromRoom", fromRoom.RoomId, "newRoom", newRoom.RoomId, "exitName", exitName)
 
 	// connect the old room to the new room
 	newExit := exit.RoomExit{RoomId: newRoom.RoomId, Secret: false}
@@ -709,8 +794,9 @@ func BuildRoom(fromRoomId int, exitName string, mapDirection ...string) (room *R
 	fromRoom.Exits[exitName] = newExit
 
 	addRoomToMemory(newRoom)
+	roomManager.rooms[fromRoom.RoomId] = fromRoom
 
-	SaveRoom(*fromRoom)
+	SaveRoomTemplate(*fromRoom)
 	SaveRoomTemplate(*newRoom)
 
 	return newRoom, nil
@@ -729,12 +815,12 @@ func ConnectRoom(fromRoomId int, toRoomId int, exitName string, mapDirection ...
 		exitMapDirection = mapDirection[0]
 	}
 
-	fromRoom := LoadRoom(fromRoomId)
+	fromRoom := LoadRoomTemplate(fromRoomId)
 	if fromRoom == nil {
 		return fmt.Errorf(`room %d not found`, fromRoomId)
 	}
 
-	toRoom := LoadRoom(toRoomId)
+	toRoom := LoadRoomTemplate(toRoomId)
 	if toRoom == nil {
 		return fmt.Errorf(`room %d not found`, toRoomId)
 	}
@@ -746,7 +832,8 @@ func ConnectRoom(fromRoomId int, toRoomId int, exitName string, mapDirection ...
 	}
 	fromRoom.Exits[exitName] = newExit
 
-	SaveRoom(*fromRoom)
+	SaveRoomTemplate(*fromRoom)
+	roomManager.rooms[fromRoom.RoomId] = fromRoom
 
 	return nil
 }
