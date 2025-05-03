@@ -135,7 +135,8 @@ func main() {
 	mudlog.Info(`========================`)
 
 	// Older versions of GoMud may not have this folder present.
-	err := os.Mkdir(util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), `/`, `rooms.instances`), os.ModeDir|0755)
+	// Also deleting the folder is a quick way to reset instance state, so this corrects that if it happens.
+	os.Mkdir(util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), `/`, `rooms.instances`), os.ModeDir|0755)
 
 	// Register the plugin filesystem with the template system
 	templates.RegisterFS(plugins.GetPluginRegistry())
