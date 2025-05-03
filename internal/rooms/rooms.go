@@ -1588,8 +1588,10 @@ func (r *Room) FindNoun(noun string) (foundNoun string, nounDescription string) 
 		roomNouns[key] = desc
 		if strings.Contains(key, ` `) {
 			for word := range strings.SplitSeq(key, " ") {
-				if _, exists := r.Nouns[word]; !exists && roomNouns[word] == "" {
-					roomNouns[word] = `:` + key
+				if _, exists := roomNouns[word]; !exists {
+					if _, existsInNouns := r.Nouns[word]; !existsInNouns {
+						roomNouns[word] = `:` + key
+					}
 				}
 			}
 		}
