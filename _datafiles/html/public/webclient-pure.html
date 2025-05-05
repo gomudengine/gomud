@@ -197,6 +197,7 @@
     </div>
 
     <script>
+
         /////////////////////////////////////////////
         //
         // Music/Sound players:
@@ -240,6 +241,45 @@
         let historyPosition = 0;
         let commandHistoryMaxLength = 30;
 
+        /////////////////////////////////////////////
+        //
+        // GMCP
+        //
+        /////////////////////////////////////////////
+        let GMCPStructs = {};
+        let GMCPUpdateHandlers = {};
+        function handleGMCP(objNamespace, objBody) {
+
+
+            var nameParts = objNamespace.split(".");
+            var lastProperty = nameParts.pop();
+
+            var rootName = nameParts[0];
+            var cursor = GMCPStructs;
+
+            objectPosition = null;
+            for (let propertyName of nameParts) {
+
+                if ( !cursor[propertyName] ) {
+                    cursor[propertyName] = {};
+                }
+
+                cursor = cursor[propertyName];
+            }
+
+            cursor[lastProperty] = objBody;
+
+            nameParts = objNamespace.split(".");
+            for ( let i=nameParts.length-1; i>=0; i-- ) {
+                var path = nameParts.slice(0, i+1).join(".");
+                if ( GMCPUpdateHandlers[path] ) {
+                    GMCPUpdateHandlers[path](GMCPStructs[rootName]);
+                    return;
+                }
+            }
+
+            console.log("GMCP:", gmcpNamespace, gmcpObject);
+        }
         /////////////////////////////////////////////
         //
         // WebSocket
@@ -327,6 +367,28 @@
 
                 // MSP commands
                 if (event.data.length > 9 && event.data.slice(0, 2) === "!!") {
+
+                    // Handle incoming GMCP data
+                    if (event.data.slice(0, 7) === "!!GMCP(") {
+                        var gmcpPayload = event.data.trim().slice(7, event.data.length - 1).trim()
+                        var jsonIndex = 0;
+                        
+                        if ( gmcpPayload[gmcpPayload.length-1] == "}" ) jsonIndex = gmcpPayload.indexOf("{");
+                        else jsonIndex = gmcpPayload.indexOf("[");
+                        
+                        if ( jsonIndex == -1 ) {
+                            return;
+                        }
+                        gmcpNamespace = gmcpPayload.slice(0, jsonIndex).trim();
+                        //gmcpJSON = gmcpPayload.slice(jsonIndex, gmcpPayload.length).trim();
+                        gmcpObject = JSON.parse(gmcpPayload.slice(jsonIndex, gmcpPayload.length).trim());
+
+                        handleGMCP(gmcpNamespace, gmcpObject);
+                        
+                        return;
+                    } 
+
+                    // Handle music events
                     if (event.data.slice(0, 8) === "!!MUSIC(") {
                         const parts = event.data.slice(8, event.data.length - 1).split(" ");
                         let fileName = parts[0];
@@ -361,8 +423,12 @@
                                 MusicPlayer.play(baseMp3Url + fileName, loopMusic, soundLevel*(sliderValues["music"] / 100));
                             }
                         }
-                    }
-                    else if (event.data.slice(0, 8) === "!!SOUND(") {
+
+                        return;
+                    } 
+                    
+                    // Handle a playersound event
+                    if (event.data.slice(0, 8) === "!!SOUND(") {
                         const parts = event.data.slice(8, event.data.length - 1).split(" ");
                         let fileName = parts[0];
                         let obj = {};
@@ -396,8 +462,10 @@
                             const typeKey = (obj.T || "other").toLowerCase() + " sounds";
                             SoundPlayer.play(baseMp3Url + fileName, false, soundLevel*(sliderValues[typeKey] / 100));
                         }
+
+                        return;
                     }
-                    return;
+
                 }
 
                 // Otherwise, just write to terminal

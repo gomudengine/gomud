@@ -30,9 +30,9 @@ var (
 	GmcpAccept = term.TerminalCommand{Chars: []byte{term.TELNET_IAC, term.TELNET_DO, TELNET_GMCP}, EndChars: []byte{}}   // Indicates the client accepts GMCP sub-negotiations.
 	GmcpRefuse = term.TerminalCommand{Chars: []byte{term.TELNET_IAC, term.TELNET_DONT, TELNET_GMCP}, EndChars: []byte{}} // Indicates the client refuses GMCP sub-negotiations.
 
-	GmcpPayload = term.TerminalCommand{Chars: []byte{term.TELNET_IAC, term.TELNET_SB, TELNET_GMCP}, EndChars: []byte{term.TELNET_IAC, term.TELNET_SE}} // Wrapper for sending GMCP payloads
-
-	gmcpModule GMCPModule = GMCPModule{}
+	GmcpPayload               = term.TerminalCommand{Chars: []byte{term.TELNET_IAC, term.TELNET_SB, TELNET_GMCP}, EndChars: []byte{term.TELNET_IAC, term.TELNET_SE}} // Wrapper for sending GMCP payloads
+	GmcpWebPayload            = term.TerminalCommand{Chars: []byte("!!GMCP("), EndChars: []byte{')'}}                                                                // Wrapper for sending GMCP payloads
+	gmcpModule     GMCPModule = GMCPModule{}
 )
 
 // ////////////////////////////////////////////////////////////////////
@@ -69,7 +69,6 @@ func init() {
 func isGMCPEnabled(connectionId uint64) bool {
 
 	//return true
-
 	if gmcpData, ok := gmcpModule.cache.Get(connectionId); ok {
 		return gmcpData.GMCPAccepted
 	}
@@ -143,6 +142,7 @@ func (g *GMCPModule) onNetConnect(n plugins.NetConnection) {
 		setting := GMCPSettings{}
 		setting.Client.Name = `WebClient`
 		setting.Client.Version = `1.0.0`
+		setting.GMCPAccepted = true
 		g.cache.Add(n.ConnectionId(), setting)
 		return
 	}
@@ -375,10 +375,11 @@ func (g *GMCPModule) dispatchGMCP(e events.Event) events.ListenerReturn {
 		return events.Continue
 	}
 
+	var gmcpSettings GMCPSettings
+	var ok bool
 	if !isGMCPEnabled(connId) {
-		gmcpSettings, ok := g.cache.Get(connId)
+		gmcpSettings, ok = g.cache.Get(connId)
 		if !ok {
-
 			gmcpSettings = GMCPSettings{}
 			g.cache.Add(connId, gmcpSettings)
 
@@ -389,6 +390,11 @@ func (g *GMCPModule) dispatchGMCP(e events.Event) events.ListenerReturn {
 
 		// Get enabled modules... if none, skip out.
 		if !gmcpSettings.GMCPAccepted {
+			return events.Continue
+		}
+	} else {
+		gmcpSettings, ok = g.cache.Get(connId)
+		if !ok {
 			return events.Continue
 		}
 	}
@@ -410,7 +416,12 @@ func (g *GMCPModule) dispatchGMCP(e events.Event) events.ListenerReturn {
 			v = append([]byte(gmcp.Module+` `), v...)
 		}
 
-		connections.SendTo(GmcpPayload.BytesWithPayload(v), connId)
+		if gmcpSettings.Client.Name == `WebClient` {
+			connections.SendTo(GmcpWebPayload.BytesWithPayload(v), connId)
+		} else {
+			connections.SendTo(GmcpPayload.BytesWithPayload(v), connId)
+		}
+
 	case string:
 
 		// DEBUG ONLY
@@ -427,7 +438,12 @@ func (g *GMCPModule) dispatchGMCP(e events.Event) events.ListenerReturn {
 			v = gmcp.Module + ` ` + v
 		}
 
-		connections.SendTo(GmcpPayload.BytesWithPayload([]byte(v)), connId)
+		if gmcpSettings.Client.Name == `WebClient` {
+			connections.SendTo(GmcpWebPayload.BytesWithPayload([]byte(v)), connId)
+		} else {
+			connections.SendTo(GmcpPayload.BytesWithPayload([]byte(v)), connId)
+		}
+
 	default:
 		payload, err := json.Marshal(gmcp.Payload)
 		if err != nil {
@@ -449,7 +465,12 @@ func (g *GMCPModule) dispatchGMCP(e events.Event) events.ListenerReturn {
 			payload = append([]byte(gmcp.Module+` `), payload...)
 		}
 
-		connections.SendTo(GmcpPayload.BytesWithPayload(payload), connId)
+		if gmcpSettings.Client.Name == `WebClient` {
+			connections.SendTo(GmcpWebPayload.BytesWithPayload(payload), connId)
+		} else {
+			connections.SendTo(GmcpPayload.BytesWithPayload(payload), connId)
+		}
+
 	}
 
 	return events.Continue
