@@ -244,7 +244,7 @@ func Start(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		}
 	}
 
-	createdRoomIds, err := rooms.CreateEphemeralRooms(tutorialRoomIds...)
+	createdRoomIds, err := rooms.CreateEphemeralRoomIds(tutorialRoomIds...)
 	if err != nil {
 		user.SendText(`The Tutorial zone is fully occupied right now. Please try again in a few minutes`)
 		return true, nil

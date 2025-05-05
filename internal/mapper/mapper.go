@@ -877,7 +877,7 @@ func GetMapper(roomId int, forceRefresh ...bool) *mapper {
 	}
 	m.Start()
 
-	mudlog.Info("New Mapper", "zone", zoneName, "time taken", time.Since(tStart))
+	mudlog.Info("New Mapper", "zone", zoneName, "size", len(m.crawledRooms), "time taken", time.Since(tStart))
 
 	roomIdToMapperCache[roomId] = zoneName
 
@@ -902,4 +902,103 @@ func PreCacheMaps() {
 	for _, roomId := range rooms.GetAllRoomIds() {
 		GetMapper(roomId)
 	}
+}
+
+/////////////////////////////////////////////
+// EXPERIMENTAL
+/////////////////////////////////////////////
+
+/*
+roomsToCopy := []int{64, 65, 66} //, 67, 68, 69, 70, 71, 72, 73}
+replacements, _ := rooms.CreateEphemeralRoomIds(roomsToCopy...)
+
+m := mapper.GetMapper(64)
+
+mNew := m.GetCopy()
+mNew.OverrideRoomIds(replacements)
+mapper.AddMapper(mNew, replacements[64])
+*/
+
+func AddMapper(m *mapper, lookupRoomId int) {
+
+	if zoneName, ok := roomIdToMapperCache[lookupRoomId]; ok {
+		mapperZoneCache[zoneName] = m
+		return
+	}
+
+	room := rooms.LoadRoom(lookupRoomId)
+	zoneName := room.Zone + `-` + strconv.Itoa(lookupRoomId)
+
+	for _, crawledRoomId := range m.CrawledRoomIds() {
+		if _, ok := roomIdToMapperCache[crawledRoomId]; !ok {
+
+			roomIdToMapperCache[crawledRoomId] = zoneName
+		}
+	}
+
+	mapperZoneCache[zoneName] = m
+
+}
+
+func (m *mapper) GetCopy() *mapper {
+
+	mNew := &mapper{
+		rootRoomId:   m.rootRoomId,
+		crawledRooms: make(map[int]*mapNode, len(m.crawledRooms)),
+		roomGrid: RoomGrid{
+			rooms: [][][]*mapNode{},
+		},
+	}
+
+	mNew.roomGrid.size = m.roomGrid.size
+	mNew.roomGrid.roomOffset = m.roomGrid.roomOffset
+	mNew.roomGrid.rooms = make([][][]*mapNode, len(m.roomGrid.rooms))
+	for z := 0; z < len(m.roomGrid.rooms); z++ {
+		mNew.roomGrid.rooms[z] = make([][]*mapNode, len(m.roomGrid.rooms[z]))
+		for y := 0; y < len(m.roomGrid.rooms[z]); y++ {
+			mNew.roomGrid.rooms[z][y] = make([]*mapNode, len(m.roomGrid.rooms[z][y]))
+			for x := 0; x < len(m.roomGrid.rooms[z][y]); x++ {
+				if m.roomGrid.rooms[z][y][x] == nil {
+					continue
+				}
+				nodeCopy := *(m.roomGrid.rooms[z][y][x])
+				mNew.roomGrid.rooms[z][y][x] = &nodeCopy
+				mNew.crawledRooms[nodeCopy.RoomId] = &nodeCopy
+			}
+		}
+	}
+
+	return mNew
+}
+
+func (m *mapper) OverrideRoomIds(replacements map[int]int) {
+
+	for oldRoomId, newRoomId := range replacements {
+		if m.rootRoomId == oldRoomId {
+			m.rootRoomId = newRoomId
+		}
+
+		currentNode, ok := m.crawledRooms[oldRoomId]
+		if !ok {
+			continue
+		}
+
+		for _, node := range m.crawledRooms {
+
+			for exitName, exitInfo := range node.Exits {
+				if exitInfo.RoomId == oldRoomId {
+					exitInfo.RoomId = newRoomId
+					node.Exits[exitName] = exitInfo
+				}
+			}
+
+			if node.RoomId == oldRoomId {
+				node.RoomId = newRoomId
+			}
+		}
+
+		delete(m.crawledRooms, oldRoomId)
+		m.crawledRooms[newRoomId] = currentNode
+	}
+
 }

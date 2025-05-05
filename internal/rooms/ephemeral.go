@@ -41,7 +41,7 @@ func GetChunkCount() int {
 }
 
 // accepts RoomId's as arguments, and creates ephemeral copies of them, returning the new ID's of the copies.
-func CreateEphemeralRooms(roomIds ...int) (map[int]int, error) {
+func CreateEphemeralRoomIds(roomIds ...int) (map[int]int, error) {
 
 	ephemeralRooms := map[int]int{}
 
@@ -121,13 +121,27 @@ func CreateEphemeralRooms(roomIds ...int) (map[int]int, error) {
 
 	ephemeralRoomChunks[chunkId] = ephemeralRoomIds
 
-	mudlog.Info("CreateEphemeralRooms",
+	mudlog.Info("CreateEphemeral...()",
 		"created", len(ephemeralRoomIds),
 		"chunkId", chunkId,
 		"Ephemeral RoomIds", fmt.Sprintf("%d - %d", ephemeralRoomIds[0], ephemeralRoomIds[len(ephemeralRoomIds)-1]),
 		"Chunks Remaining", GetChunkCount())
 
 	return ephemeralRooms, nil
+}
+
+// accepts RoomId's as arguments, and creates ephemeral copies of them, returning the new ID's of the copies.
+func CreateEphemeralZone(zoneName string) (map[int]int, error) {
+
+	roomIds := make([]int, len(roomManager.zones[zoneName].RoomIds))
+
+	idx := 0
+	for roomId, _ := range roomManager.zones[zoneName].RoomIds {
+		roomIds[idx] = roomId
+		idx++
+	}
+
+	return CreateEphemeralRoomIds(roomIds...)
 }
 
 func IsEphemeralRoomId(roomId int) bool {
