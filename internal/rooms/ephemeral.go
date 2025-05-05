@@ -41,21 +41,23 @@ func GetChunkCount() int {
 }
 
 // accepts RoomId's as arguments, and creates ephemeral copies of them, returning the new ID's of the copies.
-func CreateEphemeralRooms(roomIds ...int) ([]int, error) {
+func CreateEphemeralRooms(roomIds ...int) (map[int]int, error) {
+
+	ephemeralRooms := map[int]int{}
 
 	if len(roomIds) == 0 {
-		return []int{}, errNoRoomIdsProvided
+		return ephemeralRooms, errNoRoomIdsProvided
 	}
 
 	if len(roomIds) > ephemeralChunkSize {
-		return []int{}, errEphemeralRoomLimit
+		return ephemeralRooms, errEphemeralRoomLimit
 	}
 
 	// Make sure that all values in the roomIds slice are unique.
 	roomIdReplacements := map[int]int{} // original=>ephemeral replacements
 	for _, roomId := range roomIds {
 		if _, ok := roomIdReplacements[roomId]; ok {
-			return []int{}, errNonUniqueRoomId
+			return ephemeralRooms, errNonUniqueRoomId
 		}
 		roomIdReplacements[roomId] = 0
 	}
@@ -97,6 +99,7 @@ func CreateEphemeralRooms(roomIds ...int) ([]int, error) {
 
 		addRoomToMemory(room)
 
+		ephemeralRooms[roomId] = room.RoomId
 		ephemeralRoomIds = append(ephemeralRoomIds, room.RoomId)
 	}
 
@@ -116,8 +119,7 @@ func CreateEphemeralRooms(roomIds ...int) ([]int, error) {
 
 	}
 
-	ephemeralRoomChunks[chunkId] = make([]int, len(ephemeralRoomIds))
-	copy(ephemeralRoomChunks[chunkId], ephemeralRoomIds)
+	ephemeralRoomChunks[chunkId] = ephemeralRoomIds
 
 	mudlog.Info("CreateEphemeralRooms",
 		"created", len(ephemeralRoomIds),
@@ -125,7 +127,7 @@ func CreateEphemeralRooms(roomIds ...int) ([]int, error) {
 		"Ephemeral RoomIds", fmt.Sprintf("%d - %d", ephemeralRoomIds[0], ephemeralRoomIds[len(ephemeralRoomIds)-1]),
 		"Chunks Remaining", GetChunkCount())
 
-	return ephemeralRoomIds, nil
+	return ephemeralRooms, nil
 }
 
 func IsEphemeralRoomId(roomId int) bool {

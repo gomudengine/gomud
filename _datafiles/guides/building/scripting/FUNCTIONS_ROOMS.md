@@ -1,6 +1,7 @@
 # Room Specific Functions
 
 - [Room Specific Functions](#room-specific-functions)
+  - [CreateRoomInstances(RoomIds \[int, int...\]) Object ](#createroominstancesroomids-int-int-object-)
   - [GetRoom(roomId int) RoomObject ](#getroomroomid-int-roomobject-)
   - [RoomObject.RoomId() int](#roomobjectroomid-int)
   - [RoomObject.SendText(msg string\[, excludeUserIds int\])](#roomobjectsendtextmsg-string-excludeuserids-int)
@@ -26,6 +27,14 @@
   - [RoomObject.RemoveMutator(mutName string)](#roomobjectremovemutatormutname-string)
   - [RoomObject.RepeatSpawnItem(itemId int, roundInterval int \[, containerName\]](#roomobjectrepeatspawnitemitemid-int-roundinterval-int--containername)
   - [RoomObject.SetLocked(exitName string, lockIt bool)](#roomobjectsetlockedexitname-string-lockit-bool)
+
+## [CreateRoomInstances(RoomIds [int, int...]) Object ](/internal/scripting/room_func.go)
+Returns an Object with key/value pairs of `ProvidedRoomId`=>`NewRoomId`
+Creates ephemeral instances of the RoomId's provided.
+
+|  Argument | Explanation |
+| --- | --- |
+| RoomIds | an array of integers containing RoomId's you want instanced |
 
 ## [GetRoom(roomId int) RoomObject ](/internal/scripting/room_func.go)
 Retrieves a RoomObject for a given roomId.

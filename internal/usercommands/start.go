@@ -234,9 +234,14 @@ func Start(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 	user.ClearPrompt()
 
 	tutorialRoomIds := []int{}
-	for _, roomIdStr := range configs.GetSpecialRoomsConfig().TutorialStartRooms {
+	startRoom := 0
+	for i, roomIdStr := range configs.GetSpecialRoomsConfig().TutorialStartRooms {
 		roomId, _ := strconv.ParseInt(roomIdStr, 10, 64)
 		tutorialRoomIds = append(tutorialRoomIds, int(roomId))
+
+		if i == 0 {
+			startRoom = int(roomId)
+		}
 	}
 
 	createdRoomIds, err := rooms.CreateEphemeralRooms(tutorialRoomIds...)
@@ -245,11 +250,12 @@ func Start(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		return true, nil
 	}
 
-	scripting.TryRoomScriptEvent(`onEnter`, user.UserId, createdRoomIds[0])
+	ephemeralStartRoomId := createdRoomIds[startRoom]
+	scripting.TryRoomScriptEvent(`onEnter`, user.UserId, ephemeralStartRoomId)
 
 	user.SendText(fmt.Sprintf(`<ansi fg="magenta">Suddenly, a vortex appears before you, drawing you in before you have any chance to react!</ansi>%s`, term.CRLFStr))
 
-	rooms.MoveToRoom(user.UserId, createdRoomIds[0])
+	rooms.MoveToRoom(user.UserId, ephemeralStartRoomId)
 
 	return true, nil
 }
