@@ -38,6 +38,7 @@ func Room(rest string, user *users.UserRecord, liveRoom *rooms.Room, flags event
 	// args should look like one of the following:
 	// info <optional room id>
 	// <move to room id>
+
 	args := util.SplitButRespectQuotes(rest)
 
 	if len(args) == 0 {
@@ -48,7 +49,18 @@ func Room(rest string, user *users.UserRecord, liveRoom *rooms.Room, flags event
 		return handled, nil
 	}
 
-	room := rooms.LoadRoomTemplate(liveRoom.RoomId)
+	var room *rooms.Room
+
+	if liveRoom.IsEphemeral() {
+		room = liveRoom
+	} else {
+		room = rooms.LoadRoomTemplate(liveRoom.RoomId)
+	}
+
+	if room == nil {
+		user.SendText(`Something went wrong for RoomId: ` + strconv.Itoa(liveRoom.RoomId))
+		return true, nil
+	}
 
 	var roomId int = 0
 	roomCmd := strings.ToLower(args[0])

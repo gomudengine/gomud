@@ -19,6 +19,7 @@ function onCommand(cmd, rest, user, room) {
 
     teacherMob = getTeacher(room);
 
+    var extraDelay = 0;
     // Make sure they are only doing stuff that's allowed.
 
     if ( cmd == "south" && !canGoSouth ) {
@@ -33,16 +34,19 @@ function onCommand(cmd, rest, user, room) {
 
     if ( teach_commands[commandNow] == fullCommand ) {
         
-        teacherMob.Command("say Good job!");
+        teacherMob.Command("say Good job!", 1.0);
+        extraDelay = 1.0;
 
         if ( cmd == "status" ) {
-            teacherMob.Command('say You can see how much gold you carry, your Level, and even attributes like Strength and Smarts.');
-            teacherMob.Command('say It\'s a lot of information, but you quickly learn to only pay attention to the important stuff.');
+            teacherMob.Command('say You can see how much gold you carry, your Level, and even attributes like Strength and Smarts.', 2.0);
+            teacherMob.Command('say It\'s a lot of information, but you quickly learn to only pay attention to the important stuff.', 3.0);
+            extraDelay = 3.0;
         }
 
         if ( cmd == "inventory" ) {
-            teacherMob.Command('say Hmm, it doesn\'t look like you\'re carrying much other than that sharp stick.');
-            teacherMob.Command('say Remember, you can <ansi fg="command">look</ansi> at stuff you\'re carrying any time you want.');
+            teacherMob.Command('say Hmm, it doesn\'t look like you\'re carrying much other than that sharp stick.', 2.0);
+            teacherMob.Command('say Remember, you can <ansi fg="command">look</ansi> at stuff you\'re carrying any time you want.', 3.0);
+            extraDelay = 3.0;
         }
 
         commandNow++;
@@ -63,24 +67,24 @@ function onCommand(cmd, rest, user, room) {
                 user.GiveItem(itm);
             }
             
-            teacherMob.Command('say To see all of your characters stats, type <ansi fg="command">status</ansi>.');
+            teacherMob.Command('say To see all of your characters stats, type <ansi fg="command">status</ansi>.', extraDelay+1.0);
             break;
         case 1:
-            teacherMob.Command('say To only peek at your inventory, type <ansi fg="command">inventory</ansi>.');
+            teacherMob.Command('say To only peek at your inventory, type <ansi fg="command">inventory</ansi>.', extraDelay+1.0);
             break;
         case 2:
-            teacherMob.Command('say As you solve quests and defeat enemies in combat, you\'ll gain experience points and your character will "Level up".');
-            teacherMob.Command('say For quick look at your progress, type <ansi fg="command">experience</ansi>.');
+            teacherMob.Command('say As you solve quests and defeat enemies in combat, you\'ll gain experience points and your character will "Level up".', extraDelay+1.0);
+            teacherMob.Command('say For quick look at your progress, type <ansi fg="command">experience</ansi>.', extraDelay+2.0);
             break;
         case 3:
             teacherMob.Command('emote touches you and you feel more focused.');
             user.GiveBuff(32, "training");
-            teacherMob.Command('say Sometimes you might become afflicted with a condition. Conditions can have good or bad effects.');
-            teacherMob.Command('say type <ansi fg="command">conditions</ansi> to see any statuses affecting you.');
+            teacherMob.Command('say Sometimes you might become afflicted with a condition. Conditions can have good or bad effects.',extraDelay+1.0);
+            teacherMob.Command('say type <ansi fg="command">conditions</ansi> to see any statuses affecting you.', extraDelay+2.0);
             break;
         case 4:
             user.GiveBuff(-32, "training");
-            teacherMob.Command('say head <ansi fg="command">south</ansi> for the next lesson.');
+            teacherMob.Command('say head <ansi fg="command">south</ansi> for the next lesson.', extraDelay+1.0);
             canGoSouth = true;
             room.SetLocked("south", false);
             break;
@@ -105,8 +109,8 @@ function onEnter(user, room) {
 
     teacherMob.Command('emote appears in a ' + UtilApplyColorPattern("flash of light!", "glowing"));
     
-    teacherMob.Command('say Hi! I\'m here to teach you about inspecting your characters information.');
-    teacherMob.Command('say To get a detailed view of a LOT of information all at once, type <ansi fg="command">status</ansi> and hit enter.');
+    teacherMob.Command('say Hi! I\'m here to teach you about inspecting your characters information.', 1.0);
+    teacherMob.Command('say To get a detailed view of a LOT of information all at once, type <ansi fg="command">status</ansi> and hit enter.', 2.0);
 }
 
 

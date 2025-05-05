@@ -1,6 +1,7 @@
 package rooms
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -123,6 +124,10 @@ func LoadRoomInstance(roomId int) *Room {
 // Only loads the template data, ignores instance data.
 func LoadRoomTemplate(roomId int) *Room {
 
+	if roomId >= ephemeralRoomIdMinimum {
+		return nil
+	}
+
 	filename := roomManager.GetFilePath(roomId)
 
 	if len(filename) == 0 {
@@ -138,6 +143,10 @@ func LoadRoomTemplate(roomId int) *Room {
 
 // See C. UPDATING EXISTING ROOM TEMPLATES
 func SaveRoomTemplate(roomTpl Room) error {
+
+	if roomTpl.IsEphemeral() {
+		return errors.New(`ephemeral rooms are not saved`)
+	}
 
 	// Do not accept a RoomId of zero.
 	if roomTpl.RoomId == 0 {
@@ -234,6 +243,10 @@ type SaveEqualityChecker interface {
 // See: D. SAVING ROOMS INSTANCES
 func SaveRoomInstance(r Room) error {
 
+	if r.IsEphemeral() {
+		return errors.New(`ephemeral rooms are not saved`)
+	}
+
 	rTpl := LoadRoomTemplate(r.RoomId) // This is also a Room{}
 	if rTpl == nil {
 		return fmt.Errorf(`could not load template for room %d`, r.RoomId)
@@ -322,6 +335,10 @@ func SaveAllRooms() error {
 	saveCt := 0
 	errCt := 0
 	for _, r := range roomManager.rooms {
+
+		if r.IsEphemeral() {
+			continue
+		}
 
 		if SaveRoomInstance(*r) != nil {
 			errCt++

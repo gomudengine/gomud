@@ -289,7 +289,7 @@ func main() {
 	// Final plugin save before shutting down
 	plugins.Save()
 
-	// Just an ephemeral goroutine that spins its wheels until the program shuts down")
+	// Just a goroutine that spins its wheels until the program shuts down")
 	go func() {
 		for {
 			mudlog.Warn("Waiting on workers")

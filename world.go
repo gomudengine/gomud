@@ -20,6 +20,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/prompt"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/scripting"
 	"github.com/GoMudEngine/GoMud/internal/templates"
 	"github.com/GoMudEngine/GoMud/internal/term"
 	"github.com/GoMudEngine/GoMud/internal/usercommands"
@@ -219,7 +220,21 @@ func (w *World) HandleSystemEvents(e events.Event) events.ListenerReturn {
 		}
 
 	} else if sys.Command == `logoff` {
-		w.logOff(sys.Data.(int))
+
+		if user := users.GetByUserId(sys.Data.(int)); user != nil {
+
+			user.EventLog.Add(`conn`, `Logged off`)
+
+			events.AddToQueue(events.PlayerDespawn{
+				UserId:        user.UserId,
+				RoomId:        user.Character.RoomId,
+				Username:      user.Username,
+				CharacterName: user.Character.Name,
+				TimeOnline:    user.GetOnlineInfo().OnlineTimeStr,
+			})
+
+		}
+
 	}
 
 	return events.Continue
@@ -751,7 +766,8 @@ loop:
 
 			// TODO: Move this to events
 			util.LockMud()
-			rooms.RoomMaintenance()
+			scripting.PruneRoomVMs(rooms.RoomMaintenance()...)
+			scripting.PruneRoomVMs(rooms.EphemeralRoomMaintenance()...)
 			util.UnlockMud()
 
 			roomUpdateTimer.Reset(roomMaintenancePeriod)
@@ -1058,26 +1074,6 @@ func (w *World) Kick(userId int, reason string) {
 	user.EventLog.Add(`conn`, fmt.Sprintf(`Kicked (%s)`, reason))
 
 	connections.Kick(user.ConnectionId(), reason)
-}
-
-func (w *World) logOff(userId int) {
-
-	if user := users.GetByUserId(userId); user != nil {
-
-		user.EventLog.Add(`conn`, `Logged off`)
-
-		users.SaveUser(*user)
-
-		events.AddToQueue(events.PlayerDespawn{
-			UserId:        user.UserId,
-			RoomId:        user.Character.RoomId,
-			Username:      user.Username,
-			CharacterName: user.Character.Name,
-			TimeOnline:    user.GetOnlineInfo().OnlineTimeStr,
-		})
-
-	}
-
 }
 
 // Handle dropped players

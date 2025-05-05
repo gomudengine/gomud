@@ -481,17 +481,6 @@ func SaveUser(u UserRecord, isAutoSave ...bool) error {
 		mudlog.Info("SaveUser()", "username", u.Username, "wrote-file", fileWritten, "tmp-file", tmpSaved, "tmp-copied", tmpCopied, "completed", completed)
 	}()
 
-	// Don't save if they haven't entered the real game world yet.
-	//if u.Character.RoomId < 0 {
-	//return errors.New("Has not started game.")
-	//}
-
-	if u.Character.RoomId >= 900 && u.Character.RoomId <= 999 {
-		if len(isAutoSave) == 0 || !isAutoSave[0] {
-			u.Character.RoomId = -1
-		}
-	}
-
 	data, err := yaml.Marshal(&u)
 	if err != nil {
 		return err

@@ -22,14 +22,25 @@ func ClearRoomVMs() {
 }
 
 func PruneRoomVMs(roomIds ...int) {
+	pruneCt := 0
+	defer func() {
+		if pruneCt > 0 {
+			mudlog.Info("PruneRoomVMs", "Removed VM Count", pruneCt)
+		}
+	}()
+
 	if len(roomIds) > 0 {
 		for _, roomId := range roomIds {
-			delete(roomVMCache, roomId)
+			if _, ok := roomVMCache[roomId]; ok {
+				pruneCt++
+				delete(roomVMCache, roomId)
+			}
 		}
 		return
 	}
 	for roomId, _ := range roomVMCache {
 		if !rooms.IsRoomLoaded(roomId) {
+			pruneCt++
 			delete(roomVMCache, roomId)
 		}
 	}

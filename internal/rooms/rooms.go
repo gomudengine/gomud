@@ -122,6 +122,10 @@ func NewRoom(zone string) *Room {
 	return r
 }
 
+func (r *Room) IsEphemeral() bool {
+	return r.RoomId >= ephemeralRoomIdMinimum
+}
+
 // 0 = none (darkness). 1 = can see this room. 2 = can see this room and all exits
 func (r *Room) GetVisibility() int {
 
@@ -388,7 +392,6 @@ func (r *Room) GetScript() string {
 }
 
 func (r *Room) GetScriptPath() string {
-
 	// Load any script for the room
 	return strings.Replace(configs.GetFilePathsConfig().DataFiles.String()+`/rooms/`+r.Filepath(), `.yaml`, `.js`, 1)
 }
@@ -2240,12 +2243,12 @@ func (r *Room) GetMapSymbol() string {
 }
 
 func (r *Room) Filename() string {
-	return fmt.Sprintf("%d.yaml", r.RoomId)
+	return fmt.Sprintf("%d.yaml", GetOriginalRoom(r.RoomId))
 }
 
 func (r *Room) Filepath() string {
 	zone := ZoneNameSanitize(r.Zone)
-	return util.FilePath(zone, `/`, fmt.Sprintf("%d.yaml", r.RoomId))
+	return util.FilePath(zone, `/`, r.Filename())
 }
 
 func (r *Room) GetBiome() BiomeInfo {

@@ -490,6 +490,13 @@ func lookRoom(user *users.UserRecord, roomId int, secretLook bool) {
 				tinyMap = append(tinyMap, `║`+string(mapLine)+`║`)
 			}
 			tinyMap = append(tinyMap, `╚═════╝`)
+			// This additional check is for ephemeral room copies,
+			// which can slightly mess with the map render of the @
+			if tinyMap[3][3] != '@' {
+				youLine := []rune(tinyMap[3])
+				youLine[3] = '@'
+				tinyMap[3] = string(youLine)
+			}
 
 			legend := output.GetLegend(keywords.GetAllLegendAliases(room.Zone))
 

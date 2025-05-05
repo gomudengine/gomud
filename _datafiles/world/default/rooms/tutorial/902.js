@@ -17,6 +17,7 @@ function onCommand(cmd, rest, user, room) {
 
     teacherMob = getTeacher(room);
 
+    var extraDelay = 0;
     // Make sure they are only doing stuff that's allowed.
 
     if ( cmd == "south" && !canGoSouth ) {
@@ -31,15 +32,19 @@ function onCommand(cmd, rest, user, room) {
 
     if ( teach_commands[commandNow] == fullCommand ) {
         
-        teacherMob.Command("say Good job!");
+        teacherMob.Command("say Good job!", 1.0);
+
+        extraDelay = 1.0;
 
         if ( cmd == "equip stick" ) {
-            teacherMob.Command('say Check it out! If you type <ansi fg="command">status</ansi> you\'ll see the stick is equipped!');
+            teacherMob.Command('say Check it out! If you type <ansi fg="command">status</ansi> you\'ll see the stick is equipped!', 2.0);
+            extraDelay = 2.0;
         }
 
         if ( cmd == "inventory" ) {
-            teacherMob.Command('say Hmm, it doesn\'t look like you\'re carrying much other than that sharp stick.');
-            teacherMob.Command('say Remember, you can <ansi fg="command">look</ansi> at stuff you\'re carrying any time you want.');
+            teacherMob.Command('say Hmm, it doesn\'t look like you\'re carrying much other than that sharp stick.', 2.0);
+            teacherMob.Command('say Remember, you can <ansi fg="command">look</ansi> at stuff you\'re carrying any time you want.', 3.0);
+            extraDelay = 3.0;
         }
 
         commandNow++;
@@ -65,14 +70,14 @@ function onCommand(cmd, rest, user, room) {
                 user.GiveItem(itm);
             }
             
-            teacherMob.Command('say Go ahead and equip that sharp stick you\'ve got. Type <ansi fg="command">equip stick</ansi>.');
+            teacherMob.Command('say Go ahead and equip that sharp stick you\'ve got. Type <ansi fg="command">equip stick</ansi>.', extraDelay+1.0);
             break;
         case 1:
 
             getDummy(room);
 
-            teacherMob.Command('say You may have noticed the <ansi fg="mobname">training dummy</ansi> here.');
-            teacherMob.Command('say Go ahead and engage in combat by typing <ansi fg="command">attack dummy</ansi>.');
+            teacherMob.Command('say You may have noticed the <ansi fg="mobname">training dummy</ansi> here.', extraDelay+1.0);
+            teacherMob.Command('say Go ahead and engage in combat by typing <ansi fg="command">attack dummy</ansi>.', extraDelay+2.0);
             break;
         case 2:
             // teacherMob.Command('say Head <ansi fg="exit">west</ansi> to complete your training.');
@@ -98,14 +103,14 @@ function onEnter(user, room) {
 
     teacherMob.Command('emote appears in a ' + UtilApplyColorPattern("flash of light!", "glowing"));
     
-    teacherMob.Command('say It looks like it\'s time for the most dangerous part of your lesson!');
+    teacherMob.Command('say It looks like it\'s time for the most dangerous part of your lesson!', 1.0);
 
     if ( !user.HasItemId(firstItemId) ) {
         itm = CreateItem(firstItemId);
         user.GiveItem(itm);
     }
 
-    teacherMob.Command('say Go ahead and equip that sharp stick you\'ve got. Type <ansi fg="command">equip stick</ansi>.');
+    teacherMob.Command('say Go ahead and equip that sharp stick you\'ve got. Type <ansi fg="command">equip stick</ansi>.', 2.0);
 }
 
 

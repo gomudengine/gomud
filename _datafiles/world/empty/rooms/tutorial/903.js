@@ -16,6 +16,8 @@ function onCommand(cmd, rest, user, room) {
 
     teacherMob = getTeacher(room);
 
+    var extraDelay = 0;
+
     fullCommand = cmd;
     if ( rest.length > 0 ) {
         fullCommand = cmd + ' ' + rest;
@@ -28,10 +30,12 @@ function onCommand(cmd, rest, user, room) {
     if ( teach_commands[commandNow] == fullCommand ) {
         
         if ( fullCommand == "equip cap" ) {
-            teacherMob.Command("say Good job!");
+            teacherMob.Command("say Good job!", 1.0);
         } else {
-            teacherMob.Command("say Good job! You earned it!");
+            teacherMob.Command("say Good job! You earned it!", 1.0);
         }
+
+        extraDelay = 1.0;
 
         commandNow++;
 
@@ -46,25 +50,24 @@ function onCommand(cmd, rest, user, room) {
 
     switch (commandNow) {
         case 0:
-            teacherMob.Command('emote gestures to the <ansi fg="item">graduation cap</ansi> on the ground.');
-            teacherMob.Command('say type <ansi fg="command">get cap</ansi> to pick up the <ansi fg="item">graduation cap</ansi>.');
+            teacherMob.Command('emote gestures to the <ansi fg="item">graduation cap</ansi> on the ground.', extraDelay+2.0);
+            teacherMob.Command('say type <ansi fg="command">get cap</ansi> to pick up the <ansi fg="item">graduation cap</ansi>.', extraDelay+3.0);
             break;
         case 1:
-
-            teacherMob.Command('say Go ahead and wear the <ansi fg="item">graduation cap</ansi> by typing <ansi fg="command">equip cap</ansi>.');
+            teacherMob.Command('say Go ahead and wear the <ansi fg="item">graduation cap</ansi> by typing <ansi fg="command">equip cap</ansi>.', extraDelay+2.0);
             break;
         case 2:
 
-            teacherMob.Command('say It\'s time to say goodbye');
-            teacherMob.Command('say I\ll summon a portal to send you to the heart of Frostfang city, where your adventure begins.');
+            teacherMob.Command('say It\'s time to say goodbye', extraDelay+1.0);
+            teacherMob.Command('say I\ll summon a portal to send you to where your adventure begins.', extraDelay+2.0);
 
             exits = room.GetExits();
             if ( !exits.portal ) {
-                teacherMob.Command('emote glows intensely, and a ' + UtilApplyColorPattern('swirling portal', 'pink') + ' appears!');
+                teacherMob.Command('emote glows intensely, and a ' + UtilApplyColorPattern('swirling portal', 'pink') + ' appears!', extraDelay+3.0);
                 room.AddTemporaryExit('swirling portal', ':pink', 0, 9000); // RoomId 0 is an alias for start room
             }
 
-            teacherMob.Command('say Enter the portal when you are ready.');
+            teacherMob.Command('say Enter the portal by typing <ansi fg="command">swirling portal</ansi> (or just <ansi fg="command">portal</ansi>) when you are ready.', extraDelay+4.0);
             
             break;
         default:
@@ -90,10 +93,10 @@ function onEnter(user, room) {
 
     teacherMob.Command('emote appears in a ' + UtilApplyColorPattern("flash of light!", "glowing"));
 
-    teacherMob.Command('say Congratulation on getting to the end of the training course!');
-    teacherMob.Command('drop cap');
-    teacherMob.Command('emote gestures to the <ansi fg="item">graduation cap</ansi> on the ground.', 15);
-    teacherMob.Command('say type <ansi fg="command">get cap</ansi> to pick up the <ansi fg="item">graduation cap</ansi>.', 15);
+    teacherMob.Command('say Congratulation on getting to the end of the training course!', 1.0);
+    teacherMob.Command('drop cap', 2.0);
+    teacherMob.Command('emote gestures to the <ansi fg="item">graduation cap</ansi> on the ground.', 3.0);
+    teacherMob.Command('say type <ansi fg="command">get cap</ansi> to pick up the <ansi fg="item">graduation cap</ansi>.', 4.0);
 
 }
 

@@ -65,5 +65,12 @@ func HandleLeave(e events.Event) events.ListenerReturn {
 	}
 	connections.Remove(connId)
 
+	testRoomId := rooms.GetOriginalRoom(user.Character.RoomId)
+	if testRoomId >= 900 && testRoomId <= 999 {
+		user.Character.RoomId = -1
+	}
+
+	users.SaveUser(*user)
+
 	return events.Continue
 }

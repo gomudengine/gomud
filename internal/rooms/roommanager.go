@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/buffs"
-	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/exit"
@@ -153,7 +152,7 @@ func GetZonesWithMutators() ([]string, []int) {
 	return zNames, rootRoomIds
 }
 
-func RoomMaintenance() bool {
+func RoomMaintenance() []int {
 	start := time.Now()
 	defer func() {
 		util.TrackTime(`RoomMaintenance()`, time.Since(start).Seconds())
@@ -171,16 +170,12 @@ func RoomMaintenance() bool {
 		allowedUnloadCt = 0
 	}
 
-	roomsUpdated := false
 	for _, room := range roomManager.rooms {
 
-		if visitorCt := room.PruneVisitors(); visitorCt > 0 {
-			roomsUpdated = true
-		}
+		room.PruneVisitors()
 
 		// Notify that room that something happened to the sign?
 		if prunedSigns := room.PruneSigns(); len(prunedSigns) > 0 {
-			roomsUpdated = true
 
 			if roomPlayers := room.GetPlayers(); len(roomPlayers) > 0 {
 				for _, userId := range roomPlayers {
@@ -201,7 +196,6 @@ func RoomMaintenance() bool {
 
 		// Notify the room that the temp exits disappeared?
 		if prunedExits := room.PruneTemporaryExits(); len(prunedExits) > 0 {
-			roomsUpdated = true
 
 			if roomPlayers := room.GetPlayers(); len(roomPlayers) > 0 {
 				for _, exit := range prunedExits {
@@ -215,7 +209,7 @@ func RoomMaintenance() bool {
 		}
 
 		// Consider unloading rooms from memory?
-		if allowedUnloadCt > 0 {
+		if allowedUnloadCt > 0 && !room.IsEphemeral() {
 			if room.lastVisited < unloadRoundThreshold {
 				unloadRooms = append(unloadRooms, room)
 				allowedUnloadCt--
@@ -224,14 +218,15 @@ func RoomMaintenance() bool {
 
 	}
 
+	removedRoomIds := make([]int, len(unloadRooms))
 	if len(unloadRooms) > 0 {
-		for _, room := range unloadRooms {
+		for i, room := range unloadRooms {
 			removeRoomFromMemory(room)
+			removedRoomIds[i] = room.RoomId
 		}
-		roomsUpdated = true
 	}
 
-	return roomsUpdated
+	return removedRoomIds
 }
 
 func GetAllZoneNames() []string {
@@ -330,62 +325,12 @@ func MoveToRoom(userId int, toRoomId int, isSpawn ...bool) error {
 	// Done adding mutator buffs
 	//
 
-	playerCt := newRoom.AddPlayer(userId)
-	roomManager.roomsWithUsers[newRoom.RoomId] = playerCt
-
-	formerRoomId := user.Character.RoomId
 	user.Character.RoomId = newRoom.RoomId
 	user.Character.Zone = newRoom.Zone
 	user.Character.RememberRoom(newRoom.RoomId) // Mark this room as remembered.
 
-	roundNow := util.GetRoundCount()
-
-	if user.Character.Level < 5 && toRoomId > -1 {
-
-		if formerRoomId > 0 && (formerRoomId < 900 || formerRoomId > 999) {
-
-			var lastGuideRound uint64 = 0
-			tmpLGR := user.GetTempData(`lastGuideRound`)
-			if tmpLGRUint, ok := tmpLGR.(uint64); ok {
-				lastGuideRound = tmpLGRUint
-			}
-
-			spawnGuide := false
-			if (roundNow - lastGuideRound) > uint64(configs.GetTimingConfig().SecondsToRounds(300)) {
-				spawnGuide = true
-			}
-
-			if spawnGuide {
-				for _, miid := range user.Character.GetCharmIds() {
-					if testMob := mobs.GetInstance(miid); testMob != nil && testMob.MobId == 38 {
-						spawnGuide = false
-						break
-					}
-				}
-			}
-
-			if spawnGuide {
-
-				room := LoadRoom(toRoomId)
-				guideMob := mobs.NewMobById(38, 1)
-				guideMob.Character.Name = fmt.Sprintf(`%s's Guide`, user.Character.Name)
-				room.AddMob(guideMob.InstanceId)
-				guideMob.Character.Charm(userId, characters.CharmPermanent, characters.CharmExpiredDespawn)
-				// Track it
-				user.Character.TrackCharmed(guideMob.InstanceId, true)
-
-				room.SendText(`<ansi fg="mobname">` + guideMob.Character.Name + `</ansi> appears in a shower of sparks!`)
-
-				guideMob.Command(`sayto ` + user.ShorthandId() + ` I'll be here to help protect you while you learn the ropes.`)
-				guideMob.Command(`sayto ` + user.ShorthandId() + ` I can create a portal to take us back to Town Square any time. Just <ansi fg="command">ask</ansi> me about it.`)
-
-				user.SendText(`Your guide will try and stick around until you reach level 5.`)
-
-				user.SetTempData(`lastGuideRound`, roundNow)
-
-			}
-		}
-	}
+	playerCt := newRoom.AddPlayer(userId)
+	roomManager.roomsWithUsers[newRoom.RoomId] = playerCt
 
 	events.AddToQueue(events.RoomChange{
 		UserId:     userId,
@@ -521,6 +466,7 @@ func removeRoomFromMemory(r *Room) {
 	}
 
 	SaveRoomInstance(*room)
+
 	delete(roomManager.rooms, r.RoomId)
 }
 
@@ -598,7 +544,6 @@ func GetZoneConfig(zone string) *ZoneConfig {
 }
 
 func IsRoomLoaded(roomId int) bool {
-
 	_, ok := roomManager.rooms[roomId]
 	return ok
 }

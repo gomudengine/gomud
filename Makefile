@@ -74,6 +74,9 @@ clean-instances: ### Deletes all room instance data. Starts the world fresh.
 run: generate  ### Build and run server.
 	@go run .
 
+.PHONY: run-new
+run-new: clean-instances generate run ### Deletes instance data and runs server
+
 .PHONY: run-docker
 run-docker: ### Build and run server in docker.
 	$(DOCKER_COMPOSE) up --build --remove-orphans server
