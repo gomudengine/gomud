@@ -12,10 +12,10 @@ import (
 )
 
 const (
-	ephemeralChunksLimit = 100 // The maximum number of ephemeral chunks that can be created
-	ephemeralChunkSize   = 250 // The maximum quantity of ephemeral room's that can be copied/created in a given chunk.
-	roomIdMin32          = 1000000000
-	roomIdMin64          = 1000000000000
+	ephemeralChunksLimit = 100           // The maximum number of ephemeral chunks that can be created
+	ephemeralChunkSize   = 250           // The maximum quantity of ephemeral room's that can be copied/created in a given chunk.
+	roomIdMin32          = 1000000000    // 1,000,000,000
+	roomIdMin64          = 1000000000000 // 1,000,000,000,000
 )
 
 var (

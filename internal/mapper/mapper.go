@@ -909,8 +909,7 @@ func PreCacheMaps() {
 /////////////////////////////////////////////
 
 /*
-roomsToCopy := []int{64, 65, 66} //, 67, 68, 69, 70, 71, 72, 73}
-replacements, _ := rooms.CreateEphemeralRoomIds(roomsToCopy...)
+replacements, _ := rooms.CreateEphemeralRoomIds(64, 65, 66)
 
 m := mapper.GetMapper(64)
 
