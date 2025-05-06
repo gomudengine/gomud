@@ -4,10 +4,12 @@ import (
 	"embed"
 	"strings"
 
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/plugins"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/usercommands"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"gopkg.in/yaml.v3"
 )
@@ -54,7 +56,7 @@ func init() {
 			MapperVersion: "1",                                                                                          // Default value
 			MapperURL:     "https://github.com/GoMudEngine/MudletMapper/releases/latest/download/GoMud-Mapper.mpackage", // Default value
 			UIVersion:     "1",                                                                                          // Default value
-			UIURL:         "https://thiswillbetheuiurl.com",                                                             // Default value
+			UIURL:         "https://github.com/GoMudEngine/MudletUI/releases/latest/download/GoMudUI.mpackage",          // Default value
 			MapVersion:    "1",                                                                                          // Default value
 			MapURL:        "https://github.com/GoMudEngine/MudletMapper/releases/latest/download/gomud.dat",             // Default value
 		},
@@ -64,7 +66,7 @@ func init() {
 	_ = g.plug.AttachFileSystem(files)
 
 	// Try to load config silently
-	configData, err := files.ReadFile("files/datafiles/mudlet-config.yaml")
+	configData, err := files.ReadFile("files/data-overlays/mudlet-config.yaml")
 	if err == nil {
 		// Only try to unmarshal if we successfully read the file
 		_ = yaml.Unmarshal(configData, &g.config)
@@ -76,7 +78,8 @@ func init() {
 
 	// Register the Mudlet-specific user commands - set as hidden (true for first bool)
 	g.plug.AddUserCommand("mudletmap", g.sendMapCommand, true, false)
-	g.plug.AddUserCommand("mudletui", g.sendUICommand, true, false)
+	g.plug.AddUserCommand("mudletui", g.sendUICommand, false, false)
+	g.plug.AddUserCommand("checkclient", g.checkClientCommand, true, false)
 }
 
 // sendUICommand is a user command that sends UI-related GMCP messages to Mudlet clients
@@ -91,27 +94,63 @@ func (g *GMCPMudletModule) sendUICommand(rest string, user *users.UserRecord, ro
 			case "install":
 				// Send UI install message
 				g.sendMudletUIInstall(user.UserId)
+				user.SendText("\n<ansi fg=\"green\">UI installation package sent to your Mudlet client.</ansi> If it doesn't install automatically, you may need to accept the installation prompt in Mudlet.\n")
+				// Set a flag to prevent the checkclient message from showing again
+				user.SetConfigOption("mudlet_ui_prompt_disabled", true)
 			case "remove":
 				// Send UI remove message
 				g.sendMudletUIRemove(user.UserId)
+				user.SendText("\n<ansi fg=\"yellow\">UI removal command sent to your Mudlet client.</ansi>\n")
 			case "update":
 				// Send UI update message
 				g.sendMudletUIUpdate(user.UserId)
+				user.SendText("\n<ansi fg=\"cyan\">Manual UI update check sent to your Mudlet client.</ansi>\n")
+			case "hide":
+				// Set a flag to prevent the checkclient message from showing again
+				user.SetConfigOption("mudlet_ui_prompt_disabled", true)
+				user.SendText("\n<ansi fg=\"green\">The Mudlet UI prompt has been hidden.</ansi> You won't see these messages again when logging in.\n")
+				user.SendText("You can use <ansi fg=\"command\">mudletui show</ansi> in the future if you want to see the prompts again.\n")
+			case "show":
+				// Remove the flag to allow the checkclient message to show again
+				user.SetConfigOption("mudlet_ui_prompt_disabled", false)
+				user.SendText("\n<ansi fg=\"green\">The Mudlet UI prompt has been re-enabled.</ansi> You'll see these messages again when logging in.\n")
+				user.SendText("You can use <ansi fg=\"command\">mudletui hide</ansi> in the future if you want to hide the prompts again.\n")
 			default:
 				// Unknown command
-				user.SendText("Usage: mudletui install|remove|update")
+				user.SendText("\nUsage: mudletui install|remove|update|hide|show\n\nType '<ansi fg=\"command\">help mudletui</ansi>' for more information.\n")
 			}
 		} else {
-			// No arguments provided
-			user.SendText("Usage: mudletui install|remove|update")
+			// No arguments provided - show status and available commands
+			mudName := configs.GetServerConfig().MudName.String()
+
+			// Check current status of prompt display
+			promptDisabled := user.GetConfigOption("mudlet_ui_prompt_disabled")
+			promptStatus := "<ansi fg=\"green\">ENABLED</ansi>"
+			if promptDisabled != nil && promptDisabled.(bool) {
+				promptStatus = "<ansi fg=\"red\">HIDDEN</ansi>"
+			}
+
+			user.SendText("\n<ansi fg=\"cyan-bold\">" + mudName + " Mudlet UI Management</ansi>\n")
+			user.SendText("<ansi fg=\"yellow-bold\">Status:</ansi>\n")
+			user.SendText("  Login message display: " + promptStatus + "\n")
+			user.SendText("<ansi fg=\"yellow-bold\">Available Commands:</ansi>\n")
+			user.SendText("  <ansi fg=\"command\">mudletui install</ansi> - Install the Mudlet UI package\n")
+			user.SendText("  <ansi fg=\"command\">mudletui remove</ansi>  - Remove the Mudlet UI package\n")
+			user.SendText("  <ansi fg=\"command\">mudletui update</ansi>  - Manually check for updates to the Mudlet UI package\n")
+			user.SendText("  <ansi fg=\"command\">mudletui hide</ansi>    - Hide login messages\n")
+			user.SendText("  <ansi fg=\"command\">mudletui show</ansi>    - Enable login messages\n\n")
+			user.SendText("For more information, type <ansi fg=\"command\">help mudletui</ansi>\n")
 		}
 
 		// Return true to indicate the command was handled
 		return true, nil
+	} else {
+		// Client is not Mudlet
+		user.SendText("\n<ansi fg=\"red\">This command is only available for Mudlet clients.</ansi> You are currently using: " + gmcpData.Client.Name + "\n")
 	}
 
-	// Return false to indicate the command wasn't handled (if not a Mudlet client)
-	return false, nil
+	// Command was handled
+	return true, nil
 }
 
 // sendMudletUIInstall sends the UI installation GMCP message
@@ -280,4 +319,31 @@ func (g *GMCPMudletModule) sendMudletConfig(userId int) {
 	})
 
 	mudlog.Debug("GMCP", "type", "Mudlet", "action", "Sent Mudlet package config", "userId", userId)
+}
+
+// checkClientCommand checks if the player is using Mudlet and shows information if they are
+func (g *GMCPMudletModule) checkClientCommand(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
+	// Get the connection ID and check if the client is Mudlet
+	connId := user.ConnectionId()
+	if gmcpData, ok := gmcpModule.cache.Get(connId); ok && gmcpData.Client.IsMudlet {
+		// Check if the user has disabled the prompt
+		promptDisabled := user.GetConfigOption("mudlet_ui_prompt_disabled")
+		if promptDisabled != nil && promptDisabled.(bool) {
+			// User has disabled the prompt, so don't show the message
+			return true, nil
+		}
+
+		// Show a brief intro message
+		user.SendText("\n\n<ansi fg=\"cyan-bold\">We have detected you are using Mudlet as a client.</ansi>\n")
+
+		// Use the standard help system to show the mudletui help
+		usercommands.Help("mudletui", user, room, flags)
+
+		// Command was handled
+		return true, nil
+	}
+
+	// Client is not Mudlet - return true but don't show any message
+	// (Return true anyway to avoid command showing up in help)
+	return true, nil
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -413,7 +414,7 @@ func (g *GMCPModule) dispatchGMCP(e events.Event) events.ListenerReturn {
 
 		// DEBUG ONLY
 		// TODO: REMOVE
-		if gmcp.UserId == 1 {
+		if gmcp.UserId == 1 && os.Getenv("CONSOLE_GMCP_OUTPUT") == "1" {
 			var prettyJSON bytes.Buffer
 			json.Indent(&prettyJSON, v, "", "\t")
 			fmt.Print(gmcp.Module + ` `)
@@ -430,7 +431,7 @@ func (g *GMCPModule) dispatchGMCP(e events.Event) events.ListenerReturn {
 
 		// DEBUG ONLY
 		// TODO: REMOVE
-		if gmcp.UserId == 1 {
+		if gmcp.UserId == 1 && os.Getenv("CONSOLE_GMCP_OUTPUT") == "1" {
 			var prettyJSON bytes.Buffer
 			json.Indent(&prettyJSON, []byte(v), "", "\t")
 			fmt.Print(gmcp.Module + ` `)
@@ -452,7 +453,7 @@ func (g *GMCPModule) dispatchGMCP(e events.Event) events.ListenerReturn {
 
 		// DEBUG ONLY
 		// TODO: REMOVE
-		if gmcp.UserId == 1 {
+		if gmcp.UserId == 1 && os.Getenv("CONSOLE_GMCP_OUTPUT") == "1" {
 			var prettyJSON bytes.Buffer
 			json.Indent(&prettyJSON, payload, "", "\t")
 			fmt.Print(gmcp.Module + ` `)

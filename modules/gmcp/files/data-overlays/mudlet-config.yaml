@@ -2,7 +2,7 @@
 
 # Mapper configuration
 mapper_version: "1"
-mapper_url: "https://github.com/GoMudEngine/MudletMapper/releases/latest/download/GoMud-Mapper.mpackage"
+mapper_url: "https://github.com/GoMudEngine/MudletMapper/releases/latest/download/GoMudMapper.mpackage"
 
 # UI configuration
 ui_version: "1"
