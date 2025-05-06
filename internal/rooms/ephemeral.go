@@ -5,21 +5,19 @@ import (
 	"fmt"
 	"math"
 	"time"
-	"unsafe"
 
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
 
 const (
-	ephemeralChunksLimit = 100           // The maximum number of ephemeral chunks that can be created
-	ephemeralChunkSize   = 250           // The maximum quantity of ephemeral room's that can be copied/created in a given chunk.
-	roomIdMin32          = 1000000000    // 1,000,000,000
-	roomIdMin64          = 1000000000000 // 1,000,000,000,000
+	ephemeralChunksLimit = 100        // The maximum number of ephemeral chunks that can be created
+	ephemeralChunkSize   = 250        // The maximum quantity of ephemeral room's that can be copied/created in a given chunk.
+	roomIdMin32Bit       = 1000000000 // 1,000,000,000
 )
 
 var (
-	ephemeralRoomIdMinimum = roomIdMin32                   // 1,000,000,000 is assuming 32 bit. the init() function may override this value.
+	ephemeralRoomIdMinimum = roomIdMin32Bit                // 1,000,000,000 is assuming 32 bit. the init() function may override this value.
 	ephemeralRoomChunks    = [ephemeralChunksLimit][]int{} // map of ranges to actual rooms. If empty, slot is available.
 	originalRoomIdLookups  = map[int]int{}                 // a map of ephemeralId's to their original RoomId's, for special purposes
 	// errors
@@ -224,9 +222,7 @@ func GetOriginalRoom(roomId int) int {
 }
 
 func init() {
-	if unsafe.Sizeof(int(0))*8 == 64 {
-		ephemeralRoomIdMinimum = roomIdMin64
-	} else {
-		ephemeralRoomIdMinimum = roomIdMin32
+	if math.MaxInt > ephemeralRoomIdMinimum*1000 {
+		ephemeralRoomIdMinimum = ephemeralRoomIdMinimum * 1000 // 1,000,000,000 => // 1,000,000,000,000
 	}
 }
