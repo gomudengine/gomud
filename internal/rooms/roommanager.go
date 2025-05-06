@@ -497,7 +497,7 @@ func addRoomToMemory(room *Room, forceOverWrite ...bool) error {
 	}
 
 	// Track whatever the last room id created is so we know what to number the next one.
-	if room.RoomId >= GetNextRoomId() {
+	if room.RoomId < ephemeralRoomIdMinimum && room.RoomId >= GetNextRoomId() {
 		SetNextRoomId(room.RoomId + 1)
 	}
 
