@@ -58,8 +58,9 @@ func Room(rest string, user *users.UserRecord, liveRoom *rooms.Room, flags event
 	}
 
 	if room == nil {
-		user.SendText(`Something went wrong for RoomId: ` + strconv.Itoa(liveRoom.RoomId))
-		return true, nil
+		err := fmt.Errorf(`Something went wrong for RoomId: %d`, liveRoom.RoomId)
+		user.SendText(err.Error())
+		return true, err
 	}
 
 	var roomId int = 0

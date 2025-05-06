@@ -235,7 +235,7 @@ func Start(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 
 	tutorialRoomIds := []int{}
 	startRoom := 0
-	for i, roomIdStr := range configs.GetSpecialRoomsConfig().TutorialStartRooms {
+	for i, roomIdStr := range configs.GetSpecialRoomsConfig().TutorialRooms {
 		roomId, _ := strconv.ParseInt(roomIdStr, 10, 64)
 		tutorialRoomIds = append(tutorialRoomIds, int(roomId))
 

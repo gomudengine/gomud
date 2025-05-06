@@ -455,12 +455,12 @@ SpecialRooms:
   #   This should have some way of healing them and (eventually)
   #   sending them back into the main world.
   DeathRecoveryRoom: 75
-  # - TutorialStartRooms -
+  # - TutorialRooms -
   #   This should be an array of all room id's for the pre-start tutorial.
   #   The first one on the list is the room they will be placed in when beginning
   #   Rooms 900-999 are a special range of RoomId's that tell GoMud the user is
   #   in a tutorial.
-  TutorialStartRooms: [900, 901, 902, 903]
+  TutorialRooms: [900, 901, 902, 903]
 
 ################################################################################
 #
