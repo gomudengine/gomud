@@ -1,5 +1,5 @@
 
-var PathTargets = [
+const PathTargets = [
     [1, 59, 263, 'home'],          // town square => east gate => east residential district => home
     [781, 35, 1, 'home'],          // west residential district => west gate => town square => home
     [166, 63, 76, 62, 61, 'home'], // bank => steelwhisper armory => Hacking Hut => Icy Emporium => Inn => home
@@ -37,4 +37,31 @@ function onIdle(mob, room) {
     }
 
     return false;
+}
+
+
+
+function onPath(mob, room, eventDetails) {
+
+    if ( eventDetails.status == "waypoint" ) {
+
+        if ( UtilDiceRoll(1, 5) == 1 ) {
+            
+
+            if ( modules.follow ) {
+            
+                followingActors = modules.follow.GetFollowers(mob);
+                
+                for( var i in followingActors ) {
+                    mob.Command("sayto "+followingActors[i].ShorthandId()+" Why are you following me? Leave me be.");
+                    mob.Command("follow lose");
+                    break;
+                }
+
+            }
+            
+
+        }
+    }
+
 }

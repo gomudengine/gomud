@@ -36,17 +36,14 @@ docker-%:
 .PHONY: build_rpi_zero2w
 build_rpi_zero2w: generate ### Build a binary for a raspberry pi zero 2w
 	env GOOS=linux GOARCH=arm64 go build -o $(BIN)-rpi
-	make ungenerate
 
 .PHONY: build_win64
 build_win64: generate ### Build a binary for 64bit windows
 	env GOOS=windows GOARCH=amd64 go build -o $(BIN)-win64.exe
-	make ungenerate
 
 .PHONY: build_linux64
 build_linux64: generate ### Build a binary for linux
 	env GOOS=linux GOARCH=amd64 go build -o $(BIN)-linux64
-	make ungenerate
 
 .PHONY: build
 build: validate build_local  ### Validate the code and build the binary.
@@ -54,11 +51,6 @@ build: validate build_local  ### Validate the code and build the binary.
 .PHONY: build_local
 build_local: generate
 	CGO_ENABLED=0 go build -trimpath -a -o $(BIN)
-	make ungenerate
-
-.PHONY: ungenerate
-ungenerate: ### Reverts to a clean version of modules/all-modules.go
-	@cp cmd/generate/_all-modules.go modules/all-modules.go
 
 .PHONY: generate
 generate: ### Generates include directives for modules
@@ -71,13 +63,16 @@ clean:
 	$(DOCKER_COMPOSE) down --volumes --remove-orphans
 	docker system prune -a
 
+.PHONY: clean-instances
+clean-instances: ### Deletes all room instance data. Starts the world fresh.
+	rm -Rf _datafiles/world/default/rooms.instances
+	rm -Rf _datafiles/world/empty/rooms.instances
+
 ## Run Targets
 
 .PHONY: run 
 run: generate  ### Build and run server.
-	go build -o tmp-gomud.exe
-	make ungenerate
-	./tmp-gomud.exe
+	@go run .
 
 .PHONY: run-docker
 run-docker: ### Build and run server in docker.
@@ -111,7 +106,7 @@ shell:
 validate: fmtcheck vet
 
 .PHONY: test
-test: 
+test: js-lint
 	@go test ./...
 
 .PHONY: coverage
@@ -120,6 +115,14 @@ coverage:
 	go test ./... -coverprofile=bin/covdatafiles/cover.out && \
 	go tool cover -html=bin/covdatafiles/cover.out && \
 	rm -rf bin
+
+.PHONY: js-lint
+js-lint:
+#   Grep filtering it to remove errors reported by docker image around npm packages
+#   if "### errors" is found in the output, exits with an error code of 1
+#   This should allow us to use it in CI/CD
+	@docker run --rm -v "$(PWD)":/app -w /app node:20 npx jshint . \
+	 2>&1 | grep -v "^npm " | tee /dev/stderr | grep -Eq "^[0-9]+ errors" && exit 1 || true
 
 #
 #

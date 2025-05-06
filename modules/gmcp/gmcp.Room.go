@@ -357,7 +357,7 @@ func (g *GMCPRoomModule) GetRoomNode(user *users.UserRecord, gmcpModule string) 
 
 		// Coordinates
 		payload.Coordinates = room.Zone
-		m := mapper.GetZoneMapper(room.Zone)
+		m := mapper.GetMapper(room.RoomId)
 		x, y, z, err := m.GetCoordinates(room.RoomId)
 		if err != nil {
 			payload.Coordinates += `, 999999999999999999, 999999999999999999, 999999999999999999`

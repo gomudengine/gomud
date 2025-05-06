@@ -38,14 +38,14 @@ function onGive(mob, room, eventDetails) {
     }
 
     if ( eventDetails.gold > 0 ) {
-        mob.Command("say I'll use this money to buy more books!")
+        mob.Command("say I'll use this money to buy more books!");
         return true;
     }
 
     if (eventDetails.item) {
         if (eventDetails.item.ItemId != 5) {
-            mob.Command("look !"+String(eventDetails.item.ItemId))
-            mob.Command("drop !"+String(eventDetails.item.ItemId), UtilGetSecondsToTurns(5))
+            mob.Command("look !"+String(eventDetails.item.ItemId));
+            mob.Command("drop !"+String(eventDetails.item.ItemId), UtilGetSecondsToTurns(5));
             return true;
         }
     }
@@ -55,12 +55,12 @@ function onGive(mob, room, eventDetails) {
     }
 
 
-    mob.Command("say Well done! A deal's a deal!")
-    mob.Command("say I'll teach you the <ansi fg=\"spell-helpful\">Charm Rat</ansi> spell.")
-    mob.Command("emote Shows you some useful gestures.")
-    mob.Command("say Check your <ansi fg=\"command\">spellbook</ansi>.")
+    mob.Command("say Well done! A deal's a deal!");
+    mob.Command("say I'll teach you the <ansi fg=\"spell-helpful\">Charm Rat</ansi> spell.");
+    mob.Command("emote Shows you some useful gestures.");
+    mob.Command("say Check your <ansi fg=\"command\">spellbook</ansi>.");
 
-    user.LearnSpell("charmrat")
+    user.LearnSpell("charmrat");
 
     return true;
 }

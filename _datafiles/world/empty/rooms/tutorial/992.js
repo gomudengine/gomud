@@ -132,7 +132,7 @@ function getTeacher(room) {
 
     mobIds = room.GetMobs();
     
-    for ( i in mobIds ) {
+    for ( var i in mobIds ) {
         mobActor = GetMob(mobIds[i]);
         if ( mobActor.MobTypeId() == teacherMobId ) {
             return mobActor;
@@ -151,7 +151,7 @@ function destroyTeacher(room) {
 
     mobIds = room.GetMobs();
     
-    for ( i in mobIds ) {
+    for ( var i in mobIds ) {
         mobActor = GetMob(mobIds[i]);
         if ( mobActor.MobTypeId() == teacherMobId ) {
             mobActor.Command(`suicide vanish`);
@@ -166,7 +166,7 @@ function getDummy(room) {
 
     mobIds = room.GetMobs();
     
-    for ( i in mobIds ) {
+    for ( var i in mobIds ) {
         mobActor = GetMob(mobIds[i]);
         if ( mobActor.MobTypeId() == dummyMobId ) {
             return mobActor;
@@ -182,7 +182,7 @@ function destroyDummy(room) {
 
     mobIds = room.GetMobs();
     
-    for ( i in mobIds ) {
+    for ( var i in mobIds ) {
         mobActor = GetMob(mobIds[i]);
         if ( mobActor.MobTypeId() == dummyMobId ) {
             mobActor.Command(`suicide vanish`);
@@ -199,7 +199,7 @@ function sendWorkingCommands(user) {
         ac.push(allowed_commands[i]);
     }
     
-    for (var i in unlockedCommands ) {
+    for ( i in unlockedCommands ) {
         ac.push(unlockedCommands[i]);
     }
     

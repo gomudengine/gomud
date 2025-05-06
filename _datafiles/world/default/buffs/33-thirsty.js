@@ -3,8 +3,8 @@
 function onStart(actor, triggersLeft) {
 
     if ( actor.HasBuffFlag("hydrated")  ) {
-        actor.RemoveBuff(33)
-        return
+        actor.RemoveBuff(33);
+        return;
     }
 
     SendUserMessage(actor.UserId(), 'You are feeling parched.');
@@ -14,9 +14,9 @@ function onStart(actor, triggersLeft) {
 function onTrigger(actor, triggersLeft) {
 
     if ( actor.HasBuffFlag("hydrated")  ) {
-        actor.RemoveBuff(33)
-        return
+        actor.RemoveBuff(33);
+        return;
     }
 
-    SendUserMessage(actor.UserId(), 'You feel very thirsty!')
+    SendUserMessage(actor.UserId(), 'You feel very thirsty!');
 }

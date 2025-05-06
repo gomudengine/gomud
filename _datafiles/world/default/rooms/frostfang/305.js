@@ -54,7 +54,7 @@ function onCommand(cmd, rest, user, room) {
     
     user.GiveItem(4);
 
-    crateAvailableRound = roundNow + UtilGetMinutesToRounds(15)
+    crateAvailableRound = roundNow + UtilGetMinutesToRounds(15);
 
     return true;
 }

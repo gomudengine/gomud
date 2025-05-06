@@ -3,8 +3,8 @@
 function onStart(actor, triggersLeft) {
 
     if ( actor.HasBuffFlag("warmed")  ) {
-        actor.RemoveBuff(31)
-        return
+        actor.RemoveBuff(31);
+        return;
     }
     harmAmt = actor.AddHealth(-1 * UtilDiceRoll(1, 2));
     if (harmAmt < 1 ) {

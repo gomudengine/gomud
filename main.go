@@ -75,6 +75,8 @@ var (
 
 func main() {
 
+	serverStartTime := time.Now()
+
 	// Capture panic and write msg/stack to logs
 	defer func() {
 		if r := recover(); r != nil {
@@ -131,6 +133,10 @@ func main() {
 	}
 	//
 	mudlog.Info(`========================`)
+
+	// Older versions of GoMud may not have this folder present.
+	// Also deleting the folder is a quick way to reset instance state, so this corrects that if it happens.
+	os.Mkdir(util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), `/`, `rooms.instances`), os.ModeDir|0755)
 
 	// Register the plugin filesystem with the template system
 	templates.RegisterFS(plugins.GetPluginRegistry())
@@ -243,8 +249,8 @@ func main() {
 
 	go worldManager.InputWorker(workerShutdownChan, &wg)
 	go worldManager.MainWorker(workerShutdownChan, &wg)
-	//go worldManager.MaintenanceWorker(workerShutdownChan, &wg)
-	//go worldManager.GameTickWorker(workerShutdownChan, &wg)
+
+	mudlog.Info("Server Ready", "Time Taken", time.Since(serverStartTime))
 
 	// block until a signal comes in
 	<-sigChan

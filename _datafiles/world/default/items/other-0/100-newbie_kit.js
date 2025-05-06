@@ -17,7 +17,7 @@ function onCommand_use(user, item, room) {
     
     
     SendUserMessage(user.UserId(), "You break open the <ansi fg=\"itemname\">"+item.Name()+"</ansi> and loot the contents.");
-    SendRoomMessage(room.RoomId(), user.GetCharacterName(true)+" breaks open their <ansi fg=\"itemname\">"+item.Name()+"</ansi>, looting the contents.", user.UserId())
+    SendRoomMessage(room.RoomId(), user.GetCharacterName(true)+" breaks open their <ansi fg=\"itemname\">"+item.Name()+"</ansi>, looting the contents.", user.UserId());
 
     for ( var i=0; i<ITEM_LIST.length; i++) {
         item_id = ITEM_LIST[i];

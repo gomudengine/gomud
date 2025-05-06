@@ -15,37 +15,102 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/exit"
-	"github.com/GoMudEngine/GoMud/internal/fileloader"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
-	"gopkg.in/yaml.v2"
 )
 
 var (
 	roomManager = &RoomManager{
-		rooms:                make(map[int]*Room),
-		zones:                make(map[string]ZoneInfo),
-		roomsWithUsers:       make(map[int]int),
-		roomsWithMobs:        make(map[int]int),
-		roomDescriptionCache: make(map[string]string),
-		roomIdToFileCache:    make(map[int]string),
+		rooms:             make(map[int]*Room),
+		zones:             make(map[string]ZoneInfo),
+		roomsWithUsers:    make(map[int]int),
+		roomsWithMobs:     make(map[int]int),
+		roomIdToFileCache: make(map[int]string),
 	}
 )
-
-type RoomManager struct {
-	rooms                map[int]*Room
-	zones                map[string]ZoneInfo // a map of zone name to room id
-	roomsWithUsers       map[int]int         // key is roomId to # players
-	roomsWithMobs        map[int]int         // key is roomId to # mobs
-	roomDescriptionCache map[string]string   // key is a hash, value is the description
-	roomIdToFileCache    map[int]string      // key is room id, value is the file path
-}
 
 const (
 	StartRoomIdAlias = 0
 )
+
+type RoomManager struct {
+	rooms             map[int]*Room
+	zones             map[string]ZoneInfo // a map of zone name to room id
+	roomsWithUsers    map[int]int         // key is roomId to # players
+	roomsWithMobs     map[int]int         // key is roomId to # mobs
+	roomIdToFileCache map[int]string      // key is room id, value is the file path
+}
+
+// Deletes any knowledge of a room in memory.
+// Loading this room after the fact will trigger full re-loading and caching of room data.
+func ClearRoomCache(roomId int) error {
+
+	room := roomManager.rooms[roomId]
+	if room == nil {
+		return fmt.Errorf(`room %d not found in cache`, roomId)
+	}
+
+	if zoneData, ok := roomManager.zones[room.Zone]; ok {
+
+		if zoneData.RootRoomId == roomId {
+			return fmt.Errorf(`room %d is the zone root`, roomId)
+		}
+
+		delete(zoneData.RoomIds, roomId)
+		roomManager.zones[room.Zone] = zoneData
+	}
+
+	delete(roomManager.rooms, roomId)
+	delete(roomManager.roomsWithUsers, roomId)
+	delete(roomManager.roomsWithMobs, roomId)
+	delete(roomManager.roomIdToFileCache, roomId)
+
+	return nil
+}
+
+func (r *RoomManager) GetFilePath(roomId int) string {
+
+	if cachedPath, ok := roomManager.roomIdToFileCache[roomId]; ok {
+		return cachedPath
+	}
+
+	filename := searchForRoomFile(roomId)
+
+	if filename == `` {
+		return filename
+	}
+
+	roomManager.roomIdToFileCache[roomId] = filename
+
+	return filename
+}
+
+// Find a file for a roomId and cache the file location.
+func searchForRoomFile(roomId int) string {
+
+	searchFileName := filepath.FromSlash(fmt.Sprintf(`/%d.yaml`, roomId))
+
+	walkPath := filepath.FromSlash(configs.GetFilePathsConfig().DataFiles.String() + `/rooms`)
+
+	foundFilePath := ``
+	filepath.Walk(walkPath, func(path string, info os.FileInfo, err error) error {
+
+		if err != nil {
+			return err
+		}
+
+		if strings.HasSuffix(path, searchFileName) {
+			foundFilePath = path
+			return errors.New(`found`)
+		}
+
+		return nil
+	})
+
+	return strings.TrimPrefix(foundFilePath, walkPath)
+}
 
 type ZoneInfo struct {
 	RootRoomId      int
@@ -179,6 +244,21 @@ func GetAllZoneNames() []string {
 	}
 
 	return zoneNames
+}
+
+func GetAllZoneRoomsIds(zoneName string) []int {
+
+	if zoneInfo, ok := roomManager.zones[zoneName]; ok {
+		result := make([]int, len(zoneInfo.RoomIds))
+		idx := 0
+		for roomId, _ := range zoneInfo.RoomIds {
+			result[idx] = roomId
+			idx++
+		}
+		return result
+	}
+
+	return []int{}
 }
 
 func MoveToRoom(userId int, toRoomId int, isSpawn ...bool) error {
@@ -411,119 +491,6 @@ func GetRoomsWithMobs() []int {
 	return roomsWithMobs
 }
 
-func SaveAllRooms() error {
-
-	// Unhash the descriptions before saving
-	for _, loadedRoom := range roomManager.rooms {
-
-		if strings.HasPrefix(loadedRoom.Description, `h:`) {
-			hash := strings.TrimPrefix(loadedRoom.Description, `h:`)
-			if description, ok := roomManager.roomDescriptionCache[hash]; ok {
-				loadedRoom.Description = description
-			}
-		}
-	}
-
-	start := time.Now()
-
-	saveModes := []fileloader.SaveOption{}
-
-	if configs.GetFilePathsConfig().CarefulSaveFiles {
-		saveModes = append(saveModes, fileloader.SaveCareful)
-	}
-
-	saveCt, err := fileloader.SaveAllFlatFiles[int, *Room](configs.GetFilePathsConfig().DataFiles.String()+`/rooms`, roomManager.rooms, saveModes...)
-
-	mudlog.Info("SaveAllRooms()", "savedCount", saveCt, "expectedCt", len(roomManager.rooms), "Time Taken", time.Since(start))
-
-	return err
-}
-
-// Goes through all of the rooms and caches key information
-func loadAllRoomZones() error {
-	start := time.Now()
-
-	nextRoomId := GetNextRoomId()
-	defer func() {
-		if nextRoomId != GetNextRoomId() {
-			SetNextRoomId(nextRoomId)
-		}
-	}()
-
-	loadedRooms, err := fileloader.LoadAllFlatFiles[int, *Room](configs.GetFilePathsConfig().DataFiles.String() + `/rooms`)
-	if err != nil {
-		return err
-	}
-
-	roomsWithoutEntrances := map[int]string{}
-
-	for _, loadedRoom := range loadedRooms {
-
-		// configs.GetConfig().DeathRecoveryRoom is the death/shadow realm and gets a pass
-		if loadedRoom.RoomId == int(configs.GetSpecialRoomsConfig().DeathRecoveryRoom) {
-			continue
-		}
-
-		// If it has never been set, set it to the filepath
-		if _, ok := roomsWithoutEntrances[loadedRoom.RoomId]; !ok {
-			roomsWithoutEntrances[loadedRoom.RoomId] = loadedRoom.Filepath()
-		}
-
-		for _, exit := range loadedRoom.Exits {
-			roomsWithoutEntrances[exit.RoomId] = ``
-		}
-
-	}
-
-	for roomId, filePath := range roomsWithoutEntrances {
-
-		if filePath == `` {
-			delete(roomsWithoutEntrances, roomId)
-			continue
-		}
-
-		mudlog.Warn("No Entrance", "roomId", roomId, "filePath", filePath)
-	}
-
-	for _, loadedRoom := range loadedRooms {
-		// Keep track of the highest roomId
-
-		if loadedRoom.RoomId >= nextRoomId {
-			nextRoomId = loadedRoom.RoomId + 1
-		}
-
-		// Cache the file path for every roomId
-		roomManager.roomIdToFileCache[loadedRoom.RoomId] = loadedRoom.Filepath()
-
-		// Update the zone info cache
-		if _, ok := roomManager.zones[loadedRoom.Zone]; !ok {
-			roomManager.zones[loadedRoom.Zone] = ZoneInfo{
-				RootRoomId: 0,
-				RoomIds:    make(map[int]struct{}),
-			}
-		}
-
-		// Update the zone info
-		zoneInfo := roomManager.zones[loadedRoom.Zone]
-		zoneInfo.RoomIds[loadedRoom.RoomId] = struct{}{}
-
-		if loadedRoom.ZoneConfig.RoomId == loadedRoom.RoomId {
-			zoneInfo.RootRoomId = loadedRoom.RoomId
-			zoneInfo.DefaultBiome = loadedRoom.Biome
-
-			if len(loadedRoom.ZoneConfig.Mutators) > 0 {
-				zoneInfo.HasZoneMutators = true
-			}
-		}
-
-		roomManager.zones[loadedRoom.Zone] = zoneInfo
-	}
-
-	mudlog.Info("rooms.loadAllRoomZones()", "loadedCount", len(loadedRooms), "Time Taken", time.Since(start))
-
-	return nil
-}
-
 // Saves a room to disk and unloads it from memory
 func removeRoomFromMemory(r *Room) {
 
@@ -553,99 +520,60 @@ func removeRoomFromMemory(r *Room) {
 		}
 	}
 
-	//beforeCt := len(roomManager.rooms)
-
-	SaveRoom(*room)
+	SaveRoomInstance(*room)
 	delete(roomManager.rooms, r.RoomId)
+}
 
-	//afterCt := len(roomManager.rooms)
-
-	//mudlog.Info("Removing from memory", "RoomId", r.RoomId, "Title", r.Title, "beforeCt", beforeCt, "afterCt", afterCt)
+func getRoomFromMemory(roomId int) *Room {
+	return roomManager.rooms[roomId]
 }
 
 // Loads a room from disk and stores in memory
-func addRoomToMemory(r *Room) {
+func addRoomToMemory(room *Room, forceOverWrite ...bool) error {
 
-	if _, ok := roomManager.rooms[r.RoomId]; ok {
-		return
+	if len(forceOverWrite) > 0 && forceOverWrite[0] {
+		ClearRoomCache(room.RoomId)
 	}
 
-	roomManager.rooms[r.RoomId] = r
-
-	if _, ok := roomManager.roomIdToFileCache[r.RoomId]; !ok {
-		roomManager.roomIdToFileCache[r.RoomId] = r.Filepath()
+	if _, ok := roomManager.rooms[room.RoomId]; ok {
+		return fmt.Errorf(`room %d is already stored in memory`, room.RoomId)
 	}
 
-	// Hash the descriptions and store centrally.
-	// This saves a lot of memory because many descriptions are duplicates
-	hash := util.Hash(r.Description)
-	if _, ok := roomManager.roomDescriptionCache[hash]; !ok {
-		roomManager.roomDescriptionCache[hash] = r.Description
+	// Automatically set the last visitor to now (reset the unload timer)
+	room.lastVisited = util.GetRoundCount()
+
+	// Save to room cache lookup
+	roomManager.rooms[room.RoomId] = room
+
+	// Save filepath to cache
+	if _, ok := roomManager.roomIdToFileCache[room.RoomId]; !ok {
+		roomManager.roomIdToFileCache[room.RoomId] = room.Filepath()
 	}
-	r.Description = fmt.Sprintf(`h:%s`, hash)
 
 	// Track whatever the last room id created is so we know what to number the next one.
-	if r.RoomId >= GetNextRoomId() {
-		SetNextRoomId(r.RoomId + 1)
+	if room.RoomId >= GetNextRoomId() {
+		SetNextRoomId(room.RoomId + 1)
 	}
 
-	if _, ok := roomManager.zones[r.Zone]; !ok {
-		roomManager.zones[r.Zone] = ZoneInfo{
+	//
+	zoneInfo, ok := roomManager.zones[room.Zone]
+	if !ok {
+		zoneInfo = ZoneInfo{
 			RootRoomId: 0,
 			RoomIds:    make(map[int]struct{}),
 		}
 	}
 
-	// Populate the zone info
-	zoneInfo := roomManager.zones[r.Zone]
-	zoneInfo.RoomIds[r.RoomId] = struct{}{}
+	// Populate the room present lookup in the zone info
+	zoneInfo.RoomIds[room.RoomId] = struct{}{}
 
-	if r.ZoneConfig.RoomId == r.RoomId {
-		zoneInfo.RootRoomId = r.RoomId
+	if room.ZoneConfig.RoomId == room.RoomId {
+		zoneInfo.RootRoomId = room.RoomId
 	}
 
-	roomManager.zones[r.Zone] = zoneInfo
+	roomManager.zones[room.Zone] = zoneInfo
 
-}
-
-func findRoomFile(roomId int) string {
-
-	foundFilePath := ``
-	searchFileName := filepath.FromSlash(fmt.Sprintf(`/%d.yaml`, roomId))
-
-	walkPath := filepath.FromSlash(configs.GetFilePathsConfig().DataFiles.String() + `/rooms`)
-
-	filepath.Walk(walkPath, func(path string, info os.FileInfo, err error) error {
-
-		if err != nil {
-			return err
-		}
-
-		if strings.HasSuffix(path, searchFileName) {
-			foundFilePath = path
-			return errors.New(`found`)
-		}
-
-		return nil
-	})
-
-	return strings.TrimPrefix(foundFilePath, walkPath)
-}
-
-func loadRoomFromFile(roomFilePath string) (*Room, error) {
-
-	roomFilePath = util.FilePath(roomFilePath)
-
-	roomPtr, err := fileloader.LoadFlatFile[*Room](roomFilePath)
-	if err != nil {
-		mudlog.Error("loadRoomFromFile()", "error", err.Error())
-		return roomPtr, err
-	}
-
-	// Automatically set the last visitor to now (reset the timer)
-	roomPtr.lastVisited = util.GetRoundCount()
-
-	return roomPtr, err
+	return nil
 }
 
 func GetZoneRoot(zone string) (int, error) {
@@ -673,62 +601,6 @@ func IsRoomLoaded(roomId int) bool {
 
 	_, ok := roomManager.rooms[roomId]
 	return ok
-}
-
-// Load room grabs the room from memory and returns a pointer to it.
-// If the room hasn't been loaded yet, it loads it into memory
-func LoadRoom(roomId int) *Room {
-
-	// Room 0 aliases to start room
-	if roomId == StartRoomIdAlias {
-		if roomId = int(configs.GetSpecialRoomsConfig().StartRoom); roomId == 0 {
-			roomId = 1
-		}
-	}
-
-	room, ok := roomManager.rooms[roomId]
-
-	if ok {
-		return room
-	}
-
-	filename := findRoomFile(roomId)
-	if len(filename) == 0 {
-		return nil
-	}
-
-	retRoom, _ := loadRoomFromFile(util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), `/`, `rooms`, `/`, filename))
-
-	addRoomToMemory(retRoom)
-
-	return retRoom
-}
-
-func SaveRoom(r Room) error {
-
-	if strings.HasPrefix(r.Description, `h:`) {
-		hash := strings.TrimPrefix(r.Description, `h:`)
-		if description, ok := roomManager.roomDescriptionCache[hash]; ok {
-			r.Description = description
-		}
-	}
-
-	data, err := yaml.Marshal(&r)
-	if err != nil {
-		return err
-	}
-
-	zone := ZoneToFolder(r.Zone)
-
-	roomFilePath := util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), `/`, `rooms`, `/`, fmt.Sprintf("%s%d.yaml", zone, r.RoomId))
-
-	if err = os.WriteFile(roomFilePath, data, 0777); err != nil {
-		return err
-	}
-
-	//mudlog.Info("Saved room", "room", r.RoomId)
-
-	return nil
 }
 
 func ZoneStats(zone string) (rootRoomId int, totalRooms int, err error) {
@@ -794,18 +666,19 @@ func GetZoneBiome(zone string) string {
 
 func MoveToZone(roomId int, newZoneName string) error {
 
-	room, ok := roomManager.rooms[roomId]
+	tplRoom := LoadRoomTemplate(roomId)
 
-	if !ok {
+	if tplRoom == nil {
 		return errors.New("room doesn't exist")
 	}
 
-	oldZoneName := room.Zone
+	oldZoneName := tplRoom.Zone
 	oldZoneInfo, ok := roomManager.zones[oldZoneName]
 	if !ok {
 		return errors.New("old zone doesn't exist")
 	}
-	oldFilePath := fmt.Sprintf("%s/rooms/%s", configs.GetFilePathsConfig().DataFiles.String(), room.Filepath())
+	oldFilePath := fmt.Sprintf("%s/rooms/%s", configs.GetFilePathsConfig().DataFiles.String(), tplRoom.Filepath())
+	oldInstanceFilePath := fmt.Sprintf("%s/rooms.instances/%s", configs.GetFilePathsConfig().DataFiles.String(), tplRoom.Filepath())
 
 	newZoneInfo, ok := roomManager.zones[newZoneName]
 	if !ok {
@@ -816,12 +689,15 @@ func MoveToZone(roomId int, newZoneName string) error {
 		return errors.New("can't move the root room of a zone")
 	}
 
-	room.Zone = newZoneName
-	newFilePath := fmt.Sprintf("%s/rooms/%s", configs.GetFilePathsConfig().DataFiles.String(), room.Filepath())
+	tplRoom.Zone = newZoneName
+	newFilePath := fmt.Sprintf("%s/rooms/%s", configs.GetFilePathsConfig().DataFiles.String(), tplRoom.Filepath())
+	newInstanceFilePath := fmt.Sprintf("%s/rooms.instances/%s", configs.GetFilePathsConfig().DataFiles.String(), tplRoom.Filepath())
 
 	if err := os.Rename(oldFilePath, newFilePath); err != nil {
 		return err
 	}
+
+	os.Rename(oldInstanceFilePath, newInstanceFilePath)
 
 	delete(oldZoneInfo.RoomIds, roomId)
 	roomManager.zones[oldZoneName] = oldZoneInfo
@@ -829,7 +705,7 @@ func MoveToZone(roomId int, newZoneName string) error {
 	newZoneInfo.RoomIds[roomId] = struct{}{}
 	roomManager.zones[newZoneName] = newZoneInfo
 
-	SaveRoom(*room)
+	SaveRoomTemplate(*tplRoom)
 
 	return nil
 }
@@ -854,6 +730,11 @@ func CreateZone(zoneName string) (roomId int, err error) {
 		return 0, err
 	}
 
+	instanceZoneFolder := util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), "/", "rooms.instances", "/", ZoneToFolder(zoneName))
+	if err := os.Mkdir(instanceZoneFolder, 0755); err != nil {
+		return 0, err
+	}
+
 	newRoom := NewRoom(zoneName)
 
 	newRoom.ZoneConfig = ZoneConfig{RoomId: newRoom.RoomId}
@@ -862,10 +743,10 @@ func CreateZone(zoneName string) (roomId int, err error) {
 		return 0, err
 	}
 
-	addRoomToMemory(newRoom)
-
 	// save to the flat file
-	SaveRoom(*newRoom)
+	SaveRoomTemplate(*newRoom)
+
+	addRoomToMemory(newRoom)
 
 	// write room to the folder under the new ID
 	return newRoom.RoomId, nil
@@ -883,27 +764,22 @@ func BuildRoom(fromRoomId int, exitName string, mapDirection ...string) (room *R
 		exitMapDirection = mapDirection[0]
 	}
 
-	fromRoom := LoadRoom(fromRoomId)
+	fromRoom := LoadRoomTemplate(fromRoomId)
 	if fromRoom == nil {
 		return nil, fmt.Errorf(`room %d not found`, fromRoomId)
 	}
 
+	if _, ok := fromRoom.Exits[exitName]; ok {
+		return nil, fmt.Errorf(`this room already has a %s exit`, exitName)
+	}
+
 	newRoom := NewRoom(fromRoom.Zone)
-	if newRoom != nil {
-		newRoom.Validate()
+	if err := newRoom.Validate(); err != nil {
+		return nil, fmt.Errorf("BuildRoom(%d, %s, %s): %w", fromRoomId, exitName, exitMapDirection, err)
 	}
 
 	newRoom.Title = fromRoom.Title
-
-	if strings.HasPrefix(fromRoom.Description, `h:`) {
-		hash := strings.TrimPrefix(fromRoom.Description, `h:`)
-		if description, ok := roomManager.roomDescriptionCache[hash]; ok {
-			newRoom.Description = description
-		}
-	} else {
-		newRoom.Description = fromRoom.Description
-	}
-
+	newRoom.Description = fromRoom.Description
 	newRoom.MapSymbol = fromRoom.MapSymbol
 	newRoom.MapLegend = fromRoom.MapLegend
 	newRoom.Biome = fromRoom.Biome
@@ -912,7 +788,7 @@ func BuildRoom(fromRoomId int, exitName string, mapDirection ...string) (room *R
 		//newRoom.IdleMessages = fromRoom.IdleMessages
 	}
 
-	mudlog.Info("Connection room", "fromRoom", fromRoom.RoomId, "newRoom", newRoom.RoomId, "exitName", exitName)
+	mudlog.Info("Connecting room", "fromRoom", fromRoom.RoomId, "newRoom", newRoom.RoomId, "exitName", exitName)
 
 	// connect the old room to the new room
 	newExit := exit.RoomExit{RoomId: newRoom.RoomId, Secret: false}
@@ -921,13 +797,14 @@ func BuildRoom(fromRoomId int, exitName string, mapDirection ...string) (room *R
 	}
 	fromRoom.Exits[exitName] = newExit
 
-	//if _, ok := roomManager.rooms[newRoom.RoomId]; !ok {
-	//	roomManager.rooms[newRoom.RoomId] = newRoom
-	//}
+	// Add the new room to memory.
 	addRoomToMemory(newRoom)
 
-	SaveRoom(*fromRoom)
-	SaveRoom(*newRoom)
+	// Update the memory for the source room
+	addRoomToMemory(fromRoom, true)
+
+	SaveRoomTemplate(*fromRoom)
+	SaveRoomTemplate(*newRoom)
 
 	return newRoom, nil
 }
@@ -945,12 +822,12 @@ func ConnectRoom(fromRoomId int, toRoomId int, exitName string, mapDirection ...
 		exitMapDirection = mapDirection[0]
 	}
 
-	fromRoom := LoadRoom(fromRoomId)
+	fromRoom := LoadRoomTemplate(fromRoomId)
 	if fromRoom == nil {
 		return fmt.Errorf(`room %d not found`, fromRoomId)
 	}
 
-	toRoom := LoadRoom(toRoomId)
+	toRoom := LoadRoomTemplate(toRoomId)
 	if toRoom == nil {
 		return fmt.Errorf(`room %d not found`, toRoomId)
 	}
@@ -962,7 +839,8 @@ func ConnectRoom(fromRoomId int, toRoomId int, exitName string, mapDirection ...
 	}
 	fromRoom.Exits[exitName] = newExit
 
-	SaveRoom(*fromRoom)
+	SaveRoomTemplate(*fromRoom)
+	roomManager.rooms[fromRoom.RoomId] = fromRoom
 
 	return nil
 }

@@ -38,9 +38,37 @@ func (tb TextBehavior) IsValid() bool {
 type MutatorList []Mutator
 
 type Mutator struct {
-	MutatorId      string // Short text that will uniquely identify this modifier ("dusty")
-	SpawnedRound   uint64 `yaml:"-"` // Tracks when this mutator was created (useful for decay)
-	DespawnedRound uint64 `yaml:"-"` // Track when it decayed to nothing.
+	MutatorId      string `yaml:"mutatorid,omitempty"`      // Short text that will uniquely identify this modifier ("dusty")
+	SpawnedRound   uint64 `yaml:"spawnedround,omitempty"`   // Tracks when this mutator was created (useful for decay)
+	DespawnedRound uint64 `yaml:"despawnedround,omitempty"` // Track when it decayed to nothing.
+}
+
+// This is a special function used for when room instance data is saved
+// It handles checking for special equality cases that the normal reflect.DeepEqual() doesn't handle the way we want.
+func (m MutatorList) SkipInstanceSave(other any) bool {
+	return false
+	m2, ok := other.(MutatorList)
+	if !ok {
+		return false
+	}
+
+	if len(m) != len(m2) { // length different?
+		return false
+	}
+
+	for i, _ := range m {
+
+		if m[i].MutatorId != m2[i].MutatorId {
+			return false
+		}
+
+		if m[i].Removable() != m2[i].Removable() {
+			return false
+		}
+
+	}
+
+	return true
 }
 
 type TextModifier struct {

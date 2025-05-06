@@ -15,6 +15,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/mobcommands"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
+	"github.com/GoMudEngine/GoMud/internal/scripting"
 	"github.com/GoMudEngine/GoMud/internal/usercommands"
 	"github.com/GoMudEngine/GoMud/internal/util"
 	"gopkg.in/yaml.v2"
@@ -67,6 +68,10 @@ type Plugin struct {
 
 func New(name string, version string) *Plugin {
 
+	// name can only contain alphanumeric or underscores.
+	reg, _ := regexp.Compile("[^a-zA-Z0-9_]+")
+	name = reg.ReplaceAllString(name, "_")
+
 	if !registrationOpen {
 		return nil
 	}
@@ -80,6 +85,15 @@ func New(name string, version string) *Plugin {
 		},
 		Callbacks: newPluginCallbacks(),
 		Web:       newWebConfig(),
+	}
+
+	// Prepopulate the script commands with a single `version()` function.
+	// The primary purpose of this is to force the module name to be
+	// registered in the modules namespace of scripts.
+	// For example, if the module is named "fishing", this will ensure
+	// `modules.fishing` is populated, because we've defined `modules.fishing.version()`
+	p.Callbacks.scriptCommands[p.name] = map[string]any{
+		`version`: func() string { return version },
 	}
 
 	registry = append(registry, p)
@@ -213,6 +227,9 @@ func (p pluginRegistry) Stat(name string) (fs.FileInfo, error) {
 }
 
 func (p *Plugin) Requires(modname string, modversion string) {
+	// modname can only contain alphanumeric or underscores.
+	reg, _ := regexp.Compile("[^a-zA-Z0-9_]+")
+	modname = reg.ReplaceAllString(modname, "_")
 	p.dependencies = append(p.dependencies, dependency{modname, modversion})
 }
 
@@ -226,6 +243,16 @@ func (p *Plugin) ExportFunction(stringId string, f any) {
 		p.exportedFunctions = map[string]any{}
 	}
 	p.exportedFunctions[stringId] = f
+}
+
+// Registers a UserCommand and callback
+func (p *Plugin) AddScriptingFunction(funcName string, scriptFunc any) {
+
+	if _, ok := p.Callbacks.scriptCommands[p.name]; !ok {
+		p.Callbacks.scriptCommands[p.name] = map[string]any{}
+	}
+
+	p.Callbacks.scriptCommands[p.name][funcName] = scriptFunc
 }
 
 // Registers a UserCommand and callback
@@ -419,6 +446,12 @@ func Load(dataFilesPath string) {
 
 		for cmd, info := range p.Callbacks.mobCommands {
 			mobcommands.RegisterCommand(cmd, info.Func, info.AllowedWhenDowned)
+		}
+
+		for nameSpace, funcMap := range p.Callbacks.scriptCommands {
+			for cmd, funcRef := range funcMap {
+				scripting.AddModlueFunction(nameSpace, cmd, funcRef)
+			}
 		}
 
 		// Check for config.yaml override and set missing values accordingly

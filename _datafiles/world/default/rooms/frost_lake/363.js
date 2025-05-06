@@ -1,5 +1,5 @@
 
-mapSignData = ""
+mapSignData = "";
 
 // Generic Command Handler
 function onCommand(cmd, rest, user, room) {

@@ -348,6 +348,18 @@ type Party struct {
 
 func (p Party) Type() string { return `Party` }
 
+// Rebuilds mapper for a given RoomId
+// NOTE: RoomId should USUALLY be the Room's Zone.RootRoomId
+type RebuildMap struct {
+	MapRootRoomId int
+	SkipIfExists  bool
+}
+
+func (r RebuildMap) Type() string { return `RebuildMap` }
+func (r RebuildMap) UniqueID() string {
+	return `RebuildMap-` + strconv.Itoa(r.MapRootRoomId) + `-` + strconv.FormatBool(r.SkipIfExists)
+}
+
 type RedrawPrompt struct {
 	UserId        int
 	OnlyIfChanged bool

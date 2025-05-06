@@ -4,8 +4,8 @@ _datafiles/**/users/*
 _datafiles/**/plugin-data/*
 **/config-overrides.yaml
 **/.roundcount
+**/rooms.instances
 vendor/
-modules/all-modules.go
 server.crt
 server.key
 tmp-gomud.exe

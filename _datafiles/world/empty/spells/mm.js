@@ -1,7 +1,7 @@
 
-HARM_DICE_QTY = 1
-HARM_DICE_SIDES = 6
-HARM_DICE_MOD = 2
+HARM_DICE_QTY = 1;
+HARM_DICE_SIDES = 6;
+HARM_DICE_MOD = 2;
 
 // Called when the casting is initialized (cast command)
 // Return false if the casting should be ignored/aborted
@@ -9,7 +9,7 @@ function onCast(sourceActor, targetActor) {
 
     SendUserMessage(sourceActor.UserId(), 'You begin to chant softly.');
     SendRoomMessage(sourceActor.GetRoomId(), sourceActor.GetCharacterName(true)+' begins to chant softly.', sourceActor.UserId());
-    return true
+    return true;
 }
 
 function onWait(sourceActor, targetActor) {

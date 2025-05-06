@@ -67,31 +67,39 @@ func Build(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 			var destinationRoom *rooms.Room = nil
 			// If it's a compass direction, reject it if a room already exists in that direction
 
-			zMapper := mapper.GetZoneMapper(room.Zone)
-			if zMapper == nil {
-				err := fmt.Errorf("Could not find mapper for zone: %s", room.Zone)
+			rMapper := mapper.GetMapper(room.RoomId)
+			if rMapper == nil {
+				err := fmt.Errorf("Could not find mapper for roomId: %d", room.RoomId)
 				mudlog.Error("Map", "error", err)
 				user.SendText(`No map found (or an error occured)"`)
 				return true, err
 			}
 
-			if gotoRoomId, _ := zMapper.FindAdjacentRoom(user.Character.RoomId, exitName, 1); gotoRoomId == 0 {
+			gotoRoomId, _ := rMapper.FindAdjacentRoom(user.Character.RoomId, exitName, 1)
 
-				if newRoom, err := rooms.BuildRoom(user.Character.RoomId, exitName, mapDirection); err != nil {
+			if gotoRoomId == 0 {
+
+				newRoom, err := rooms.BuildRoom(user.Character.RoomId, exitName, mapDirection)
+
+				// If there was a problem building the room, send the error to the user before returning
+				if err != nil {
 					user.SendText(err.Error())
-				} else {
-					destinationRoom = newRoom
-				}
-
-				if destinationRoom == nil {
 					user.SendText(fmt.Sprintf("Error building room %s.", exitName))
 					return false, nil
 				}
 
+				destinationRoom = newRoom
+
+			} else {
+				destinationRoom = rooms.LoadRoom(gotoRoomId)
+				if _, ok := destinationRoom.Exits[exitName]; !ok {
+					rooms.ConnectRoom(user.Character.RoomId, destinationRoom.RoomId, exitName, mapDirection)
+				}
 			}
 
 			// Connect the exit back
 			if len(returnName) > 0 {
+
 				returnMapDirection := returnName
 				if strings.Contains(returnName, `-`) {
 					returnMapDirection = returnName

@@ -17,8 +17,8 @@ function onCommand(cmd, rest, user, room) {
     SendUserMessage(user.UserId(), "You press the eyes of the raven, and follow a secret entrance to the west!");
     SendRoomMessage(room.RoomId(), user.GetCharacterName(true)+" presses in the eyes of the raven, and falls through into a room to the west!", user.UserId());
 
-    user.GiveQuest("2-investigate")
-    user.MoveRoom(31)
+    user.GiveQuest("2-investigate");
+    user.MoveRoom(31);
         
     return true;
 }

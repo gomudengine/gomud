@@ -73,6 +73,9 @@ function onCommand(cmd, rest, user, room) {
             break;
         case 4:
             canGoEast = true;
+            teacherMob.Command('say It\'s time to move on to the next thing you\'ll learn about.');
+            teacherMob.Command('say type <ansi fg="command">east</ansi> to travel through the <ansi fg="command">east</ansi> exit.');
+            break;
         default:
             teacherMob.Command('say It\'s time to move on to the next thing you\'ll learn about.');
             teacherMob.Command('say type <ansi fg="command">east</ansi> to travel through the <ansi fg="command">east</ansi> exit.');
@@ -122,7 +125,7 @@ function getTeacher(room) {
 
     mobIds = room.GetMobs();
     
-    for ( i in mobIds ) {
+    for ( var i in mobIds ) {
         mobActor = GetMob(mobIds[i]);
         if ( mobActor.MobTypeId() == teacherMobId ) {
             return mobActor;
@@ -141,7 +144,7 @@ function destroyTeacher(room) {
 
     mobIds = room.GetMobs();
     
-    for ( i in mobIds ) {
+    for ( var i in mobIds ) {
         mobActor = GetMob(mobIds[i]);
         if ( mobActor.MobTypeId() == teacherMobId ) {
             mobActor.Command(`suicide vanish`);
@@ -158,7 +161,7 @@ function sendWorkingCommands(user) {
         ac.push(allowed_commands[i]);
     }
     
-    for (var i in unlockedCommands ) {
+    for ( i in unlockedCommands ) {
         ac.push(unlockedCommands[i]);
     }
     

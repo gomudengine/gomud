@@ -1,5 +1,5 @@
 
-const nouns = ["train", "training", "forest", "mushroom", "mushrooms", "animals", "plants"]
+const nouns = ["train", "training", "forest", "mushroom", "mushrooms", "animals", "plants"];
 
 
 function onAsk(mob, room, eventDetails) {
@@ -11,9 +11,9 @@ function onAsk(mob, room, eventDetails) {
     match = UtilFindMatchIn(eventDetails.askText, nouns);
     if ( match.found ) {
 
-        mob.Command("emote sighs.")
-        mob.Command("say It's so sad, trying to restore the forest to its old self.")
-        mob.Command("say My beautiful mushrooms are slowly disappearing.")
+        mob.Command("emote sighs.");
+        mob.Command("say It's so sad, trying to restore the forest to its old self.");
+        mob.Command("say My beautiful mushrooms are slowly disappearing.");
 
         return true;
     }

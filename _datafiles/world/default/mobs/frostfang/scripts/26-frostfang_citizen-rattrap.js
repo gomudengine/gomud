@@ -1,11 +1,10 @@
 
 
-const trapNouns = ["trap", "rat trap", "rat", "rodric"]
+const trapNouns = ["trap", "rat trap", "rat", "rodric"];
 
 function onAsk(mob, room, eventDetails) {
 
     user = GetUser(eventDetails.sourceId);
-    
 
     if ( user.HasQuest("7-gettrap") && !user.HasQuest("7-tradetrap") ) {
 

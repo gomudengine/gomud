@@ -15,8 +15,8 @@ function getTeacher(room) {
     var mobActor = null;
 
     mobIds = room.GetMobs();
-    
-    for ( i in mobIds ) {
+        
+    for (var i in mobIds ) {
         mobActor = GetMob(mobIds[i]);
         if ( mobActor.MobTypeId() == teacherMobId ) {
             return mobActor;

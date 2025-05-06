@@ -46,14 +46,14 @@ function onAsk(mob, room, eventDetails) {
         tMatch = UtilFindMatchIn(eventDetails.askText, thievesNouns);
         if ( tMatch.found ) { 
 
-            askTimes = mob.GetTempData(`ask-`+String(user.UserId()));
+            askTimes = mob.GetTempData("ask-"+String(user.UserId()));
             if ( askTimes == null ) {
                 askTimes = 0;
                 
             }
             
             askTimes++;
-            mob.SetTempData(`ask-`+String(user.UserId()), askTimes);
+            mob.SetTempData("ask-"+String(user.UserId()), askTimes);
 
             if ( askTimes == 1 ) {
                 mob.Command("say I really shouldn't talk about the thieves guild. They like it secret for a reason, and it could mean my neck!");
@@ -92,8 +92,8 @@ function onGive(mob, room, eventDetails) {
 
     if (eventDetails.item) {
         if (eventDetails.item.ItemId != 11) {
-            mob.Command("look !"+String(eventDetails.item.ItemId))
-            mob.Command("drop !"+String(eventDetails.item.ItemId), UtilGetSecondsToTurns(5))
+            mob.Command("look !"+String(eventDetails.item.ItemId));
+            mob.Command("drop !"+String(eventDetails.item.ItemId), UtilGetSecondsToTurns(5));
             return true;
         }
 
@@ -120,7 +120,7 @@ function onPath(mob, room, eventDetails) {
 
 }
 
-const RANDOM_IDLE = [
+var RANDOM_IDLE = [
     "emote shakes his head in disbelief.",
     "emote attempts to fix a rat trap.",
     "say There's just too many rats. We'll never get rid of them all.",

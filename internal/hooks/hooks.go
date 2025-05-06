@@ -75,6 +75,8 @@ func RegisterListeners() {
 
 	events.RegisterListener(events.Broadcast{}, Broadcast_SendToAll)
 
+	events.RegisterListener(events.RebuildMap{}, HandleMapRebuild)
+
 	// Log tee to users
 	events.RegisterListener(events.Log{}, FollowLogs)
 

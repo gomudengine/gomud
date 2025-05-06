@@ -41,7 +41,7 @@ function onCommand(cmd, rest, user, room) {
         return false;
     }
 
-    crowbarAvailableRound = roundNow + UtilGetMinutesToRounds(15)
+    crowbarAvailableRound = roundNow + UtilGetMinutesToRounds(15);
 
     SendUserMessage(user.UserId(), "You take the <ansi fg=\"item\">crowbar</ansi>. They probably won't miss it.");
     SendRoomMessage(room.RoomId(), user.GetCharacterName(true)+" takes the <ansi fg=\"item\">crowbar</ansi> from beside the fireplace.", user.UserId());   

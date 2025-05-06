@@ -82,6 +82,8 @@ function onCommand(cmd, rest, user, room) {
             user.GiveBuff(-32, "training");
             teacherMob.Command('say head <ansi fg="command">south</ansi> for the next lesson.');
             canGoSouth = true;
+            room.SetLocked("south", false);
+            break;
         default:
             room.SetLocked("south", false);
             break;
@@ -130,7 +132,7 @@ function getTeacher(room) {
 
     mobIds = room.GetMobs();
     
-    for ( i in mobIds ) {
+    for ( var i in mobIds ) {
         mobActor = GetMob(mobIds[i]);
         if ( mobActor.MobTypeId() == teacherMobId ) {
             return mobActor;
@@ -148,7 +150,7 @@ function destroyTeacher(room) {
 
     mobIds = room.GetMobs();
     
-    for ( i in mobIds ) {
+    for ( var i in mobIds ) {
         mobActor = GetMob(mobIds[i]);
         if ( mobActor.MobTypeId() == teacherMobId ) {
             mobActor.Command(`suicide vanish`);
@@ -165,7 +167,7 @@ function sendWorkingCommands(user) {
         ac.push(allowed_commands[i]);
     }
     
-    for (var i in unlockedCommands ) {
+    for ( i in unlockedCommands ) {
         ac.push(unlockedCommands[i]);
     }
     
