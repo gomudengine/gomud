@@ -11,7 +11,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/usercommands"
 	"github.com/GoMudEngine/GoMud/internal/users"
-	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -53,23 +52,36 @@ func init() {
 	g := GMCPMudletModule{
 		plug: plugins.New(`gmcp.Mudlet`, `1.0`),
 		config: MudletConfig{
-			MapperVersion: "1",                                                                                          // Default value
-			MapperURL:     "https://github.com/GoMudEngine/MudletMapper/releases/latest/download/GoMud-Mapper.mpackage", // Default value
-			UIVersion:     "1",                                                                                          // Default value
-			UIURL:         "https://github.com/GoMudEngine/MudletUI/releases/latest/download/GoMudUI.mpackage",          // Default value
-			MapVersion:    "1",                                                                                          // Default value
-			MapURL:        "https://github.com/GoMudEngine/MudletMapper/releases/latest/download/gomud.dat",             // Default value
+			MapperVersion: "1",                                                                                         // Default value
+			MapperURL:     "https://github.com/GoMudEngine/MudletMapper/releases/latest/download/GoMudMapper.mpackage", // Default value
+			UIVersion:     "1",                                                                                         // Default value
+			UIURL:         "https://github.com/GoMudEngine/MudletUI/releases/latest/download/GoMudUI.mpackage",         // Default value
+			MapVersion:    "1",                                                                                         // Default value
+			MapURL:        "https://github.com/GoMudEngine/MudletMapper/releases/latest/download/gomud.dat",            // Default value
 		},
 	}
 
 	// Attach embedded filesystem without logging errors
 	_ = g.plug.AttachFileSystem(files)
 
-	// Try to load config silently
-	configData, err := files.ReadFile("files/data-overlays/mudlet-config.yaml")
-	if err == nil {
-		// Only try to unmarshal if we successfully read the file
-		_ = yaml.Unmarshal(configData, &g.config)
+	// Load config values from plugin config system
+	if mapperVersion, ok := g.plug.Config.Get(`MapperVersion`).(string); ok {
+		g.config.MapperVersion = mapperVersion
+	}
+	if mapperURL, ok := g.plug.Config.Get(`MapperURL`).(string); ok {
+		g.config.MapperURL = mapperURL
+	}
+	if uiVersion, ok := g.plug.Config.Get(`UIVersion`).(string); ok {
+		g.config.UIVersion = uiVersion
+	}
+	if uiURL, ok := g.plug.Config.Get(`UIURL`).(string); ok {
+		g.config.UIURL = uiURL
+	}
+	if mapVersion, ok := g.plug.Config.Get(`MapVersion`).(string); ok {
+		g.config.MapVersion = mapVersion
+	}
+	if mapURL, ok := g.plug.Config.Get(`MapURL`).(string); ok {
+		g.config.MapURL = mapURL
 	}
 
 	// Register event listeners
