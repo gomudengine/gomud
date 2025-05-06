@@ -166,6 +166,7 @@
     <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/xterm-addon-fit.js"></script>
     <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/mp3.js"></script>
     <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/winbox.bundle.min.js"></script>
+    <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/gmcp.js"></script>
 </head>
 <body onLoad="init(); return false;">
 
@@ -248,7 +249,67 @@
         //
         /////////////////////////////////////////////
         let GMCPStructs = {};
+        let gr = {};
+        let allRooms = {};
         let GMCPUpdateHandlers = {
+            "Room": function() {
+
+                var obj = GMCPStructs["Room"];
+                if ( !obj.Info ) {
+                    return;
+                }
+
+                if ( !GMCPWindows['Map'] && GMCPWindows['Map'] !== false ) {
+
+
+
+                    GMCPWindows['Map'] = new WinBox({ title: "Map",
+                                          mount: document.getElementById("map-render"),
+                                          background: "#1c6b60",
+                                          border: 1,
+                                          width:600,
+                                          height:20+600,
+                                          header: 20,
+                                          onclose: force => { GMCPWindows['Map'] = false; return false; },
+                                          oncreate: ops => {
+                                            gr = new GraphRenderer({
+                                                container: document.getElementById('map-render'),
+                                                onRoomClick: (graph, id) => {
+                                                    graph.centerOn(id);
+                                                }
+                                            });
+                                          },
+                                        });
+
+
+                }
+
+
+                if ( GMCPWindows['Map'] === false ) {
+                    return;
+                }
+
+                coords = obj.Info.coords.split(",");
+                var r = { RoomId: obj.Info.num, x: parseInt(coords[1]), y: parseInt(coords[2]), Exits: {} }
+                for (var p in obj.Info.exits ) {
+                    r.Exits[p] = { RoomId: obj.Info.exits[p].num };
+                }
+
+                if ( !allRooms[r.RoomId] ) {
+
+                    allRooms[r.RoomId] = r;
+                    var rArr = [];
+                    for( var o in allRooms ) {
+                        rArr.push(allRooms[o]);
+                    }
+                    gr.setRooms(rArr);
+
+                }
+            
+                // pan/zoom will feel smooth; to recenter on room 2:
+                gr.centerOn(r.RoomId);
+
+            },
             "Char":function() {
                 
                 var obj = GMCPStructs["Char"];
@@ -950,6 +1011,8 @@
                 <span class="mana-text">100%</span>
             </div>
         </div>
+
+        <div id="map-render" style="width:100%; height:100%;"></div>
     </div>
 </body>
 </html>
