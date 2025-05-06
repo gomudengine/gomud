@@ -165,6 +165,7 @@
     <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/xterm.4.19.0.js"></script>
     <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/xterm-addon-fit.js"></script>
     <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/mp3.js"></script>
+    <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/winbox.bundle.min.js"></script>
 </head>
 <body onLoad="init(); return false;">
 
@@ -247,7 +248,59 @@
         //
         /////////////////////////////////////////////
         let GMCPStructs = {};
-        let GMCPUpdateHandlers = {};
+        let GMCPUpdateHandlers = {
+            "Char":function() {
+                
+                var obj = GMCPStructs["Char"];
+
+                if ( obj.Vitals ) {
+                    GMCPUpdateHandlers['Char.Vitals']();
+                }
+            },
+            "Char.Vitals": function() {
+                
+                var obj = GMCPStructs["Char"];
+                if ( !obj.Vitals ) {
+                    return;
+                }
+                
+                if ( !GMCPWindows['Char.Vitals'] && GMCPWindows['Char.Vitals'] !== false ) {
+
+                    GMCPWindows['Char.Vitals'] = new WinBox({ title: "Vitals",
+                                                              mount: document.getElementById("vitals-bars"),
+                                                              background: "#1c6b60",
+                                                              border: 1,
+                                                              width:300,
+                                                              height:20+120,
+                                                              header: 20,
+                                                              onclose: force => { GMCPWindows['Char.Vitals'] = false; return false; },
+                                                              oncreate: opts => {
+                                                                            opts.width = document.getElementById('vitals-bars').style.width;
+                                                                            opts.height = "48px";
+                                                                        }
+
+                                                            });
+                }
+
+                if ( GMCPWindows['Char.Vitals'] === false ) {
+                    return;
+                }
+
+                var p    = Math.max(0, Math.min(100, Math.floor(obj.Vitals.hp/obj.Vitals.hp_max*100)));  // clamp 0–100
+                var fill = document.querySelector('#health-bar .health-fill');
+                var txt  = document.querySelector('#health-bar .health-text');
+                fill.style.width       = 100-p + '%';
+                txt.textContent       = obj.Vitals.hp + '/' + obj.Vitals.hp_max + ' hp'; 
+
+                p    = Math.max(0, Math.min(100, Math.floor(obj.Vitals.sp/obj.Vitals.sp_max*100)));  // clamp 0–100
+                fill = document.querySelector('#mana-bar .mana-fill');
+                txt  = document.querySelector('#mana-bar .mana-text');
+                fill.style.width       = 100-p + '%';
+                txt.textContent       = obj.Vitals.sp + '/' + obj.Vitals.sp_max + ' mp'; 
+                
+            },
+        };
+        let GMCPWindows = {};
         function handleGMCP(objNamespace, objBody) {
 
 
@@ -268,12 +321,11 @@
             }
 
             cursor[lastProperty] = objBody;
-
             nameParts = objNamespace.split(".");
             for ( let i=nameParts.length-1; i>=0; i-- ) {
                 var path = nameParts.slice(0, i+1).join(".");
                 if ( GMCPUpdateHandlers[path] ) {
-                    GMCPUpdateHandlers[path](GMCPStructs[rootName]);
+                    GMCPUpdateHandlers[path]();
                     return;
                 }
             }
@@ -803,5 +855,101 @@
             }
         }
     </script>
+
+    <style>
+        /* add these styles once (e.g. in your global <style> block) */
+
+        #health-bar {
+        position: relative;
+        width: 100%;         /* or fixed px width */
+        height: 50%;
+        background: linear-gradient(
+            to right,
+            #f44336 0%,   /* red */
+            #ffeb3b 50%,   /* yellow */
+            #4caf50 100%    /* green */
+        );
+        border-radius: 12px;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+        overflow: hidden;
+        margin: 0 2px;
+        }
+
+        #health-bar .health-fill {
+        height: 100%;
+        width: 0%;
+        background: #333;
+        float:right;
+        transition: width 0.4s ease-out;
+        }
+
+        #health-bar .health-text {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: monospace;
+        font-size: 0.85em;
+        color: white;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+        pointer-events: none;
+        }
+
+
+        #mana-bar {
+        position: relative;
+        width: 100%;         /* or fixed px width */
+        height: 50%;
+        background: linear-gradient(
+            to right,
+            #1e108b 0%,
+            #3a20fe 100%
+        );
+        border-radius: 12px;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+        overflow: hidden;
+        margin: 0;
+        }
+
+        #mana-bar .mana-fill {
+        height: 100%;
+        width: 0%;
+        background: #333;
+        float:right;
+        transition: width 0.4s ease-out;
+        }
+
+        #mana-bar .mana-text {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: monospace;
+        font-size: 0.85em;
+        color: white;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+        pointer-events: none;
+        }
+        #vitals-bars {
+            height:100%;
+        }
+        .wb-body {
+            background:#000;
+    }
+    </style>
+    <div style="display:none;">
+        <div id="vitals-bars">
+            <div id="health-bar">
+                <div class="health-fill" style="width: 100%;"></div>
+                <span class="health-text">100%</span>
+            </div>
+            <div id="mana-bar">
+                <div class="mana-fill" style="width: 100%;"></div>
+                <span class="mana-text">100%</span>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
