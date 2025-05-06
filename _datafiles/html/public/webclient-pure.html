@@ -250,7 +250,10 @@
         /////////////////////////////////////////////
         let GMCPStructs = {};
         let gr = {};
-        let allRooms = {};
+        let allRooms = {
+            currentZoneKey: "",
+            roomZones: {},
+        };
         let GMCPUpdateHandlers = {
             "Room": function() {
 
@@ -261,53 +264,110 @@
 
                 if ( !GMCPWindows['Map'] && GMCPWindows['Map'] !== false ) {
 
-
-
                     GMCPWindows['Map'] = new WinBox({ title: "Map",
-                                          mount: document.getElementById("map-render"),
-                                          background: "#1c6b60",
-                                          border: 1,
-                                          width:600,
-                                          height:20+600,
-                                          header: 20,
-                                          onclose: force => { GMCPWindows['Map'] = false; return false; },
-                                          oncreate: ops => {
-                                            gr = new GraphRenderer({
-                                                container: document.getElementById('map-render'),
-                                                onRoomClick: (graph, id) => {
-                                                    graph.centerOn(id);
-                                                }
-                                            });
-                                          },
+                                            mount: document.getElementById("map-render"),
+                                            background: "#1c6b60",
+                                            border: 1,
+                                            x: "right",
+                                            y: 0,
+                                            width:300,
+                                            height:20+300,
+                                            header: 20,
+                                            onclose: force => { GMCPWindows['Map'] = false; return false; },
+                                            oncreate: ops => {
+
+                                            var mapOptions = {  cellSize: 80,
+                                                                cellMargin: 80,
+                                                                initialZoom: 0.5 };
+                                            //mapOptions.onRoomClick = function(r) { alert(`Room ${r.RoomId} clicked`); }
+
+                                            gr = new RoomGridSVG('#map-render', mapOptions);
+
+
+                                            },
                                         });
 
 
                 }
 
-
                 if ( GMCPWindows['Map'] === false ) {
                     return;
                 }
 
-                coords = obj.Info.coords.split(",");
-                var r = { RoomId: obj.Info.num, x: parseInt(coords[1]), y: parseInt(coords[2]), Exits: {} }
-                for (var p in obj.Info.exits ) {
-                    r.Exits[p] = { RoomId: obj.Info.exits[p].num };
-                }
+                if ( obj.Info ) {
 
-                if ( !allRooms[r.RoomId] ) {
-
-                    allRooms[r.RoomId] = r;
-                    var rArr = [];
-                    for( var o in allRooms ) {
-                        rArr.push(allRooms[o]);
+                    GMCPWindows['Map'].setTitle('Map ('+obj.Info.area+')');
+                    var coords = obj.Info.coords.split(",");
+                    for( var i=0; i<coords.length; i++ ) {
+                        coords[i] = coords[i].trim();
                     }
-                    gr.setRooms(rArr);
+                    var zoneName = coords[0];
 
+                    var zoneKey = zoneName+"/z:"+coords[3];
+
+                    if ( allRooms.currentZoneKey != zoneKey ) {
+                        gr.reset();
+                        allRooms.currentZoneKey = zoneKey;
+                        if( !allRooms.roomZones[zoneKey] || !Array.isArray(allRooms.roomZones[zoneKey]) ) {
+                            allRooms.roomZones[zoneKey] = [];
+                        }
+                        gr.setRooms(allRooms.roomZones[zoneKey]);
+                    }
+
+                    var r = { 
+                        RoomId: obj.Info.num, 
+                        Text: "",
+                        x: parseInt(coords[1]), 
+                        y: parseInt(coords[2]), 
+                        z: parseInt(coords[3]), 
+                        Exits: [],
+                    }
+
+                    if ( obj.Info.Contents ) {
+
+                        if ( obj.Info.Contents.Npcs ) {
+                            for( var i in obj.Info.Contents.Npcs ) {
+                                if ( obj.Info.Contents.Npcs[i].adjectives.indexOf("shop") != -1 ) {
+                                    r.Color = "#AFE1AF"
+                                    r.Text = "💰";
+                                    break;
+                                }
+                            }
+                        }
+
+                    }
+                    
+                    if ( obj.Info.details ) {
+
+                        if ( obj.Info.details.indexOf("bank") != -1 ) {
+                            r.Color = "#56d44a"
+                            r.Text = "🏛️";
+                        } else if ( obj.Info.details.indexOf("trainer") != -1 ) {
+                            r.Color = "#fdd"
+                            r.Text = "🧠";
+                        } else if ( obj.Info.details.indexOf("storage") != -1 ) {
+                            r.Color = "#a88100"
+                            r.Text = "🗄️";
+                        } else if ( obj.Info.details.indexOf("character") != -1 ) {
+                            r.Color = "#757575"
+                            r.Text = "👤";
+                        }
+
+                    }
+
+
+                    for (var p in obj.Info.exitsv2 ) {
+                        var exitInfo = obj.Info.exitsv2[p];
+                        // Only add these rooms if there is no z delta, since it's a 2D rendering.
+                        if ( exitInfo.dz == 0 ) {
+                            r.Exits.push( { RoomId: exitInfo.num, x: exitInfo.dx+parseInt(coords[1]), y: exitInfo.dy+parseInt(coords[2]), Text: "" } );
+                        }
+                    }
+
+                    allRooms.roomZones[zoneKey].push(r);
+                    gr.addRoom(r);
+                    gr.centerOnRoom(r.RoomId);
                 }
-            
-                // pan/zoom will feel smooth; to recenter on room 2:
-                gr.centerOn(r.RoomId);
 
             },
             "Char":function() {
@@ -331,6 +391,8 @@
                                                               mount: document.getElementById("vitals-bars"),
                                                               background: "#1c6b60",
                                                               border: 1,
+                                                              x: "right",
+                                                              y: 320,
                                                               width:300,
                                                               height:20+120,
                                                               header: 20,
@@ -996,9 +1058,9 @@
         #vitals-bars {
             height:100%;
         }
-        .wb-body {
-            background:#000;
-    }
+        .wb-body { background:#000; }
+        .wb-max { display:none; }
+        .wb-full { display:none; }
     </style>
     <div style="display:none;">
         <div id="vitals-bars">
