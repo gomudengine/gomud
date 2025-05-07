@@ -223,11 +223,16 @@ func (r *mapper) Start() {
 
 	r.crawlQueue = make([]crawlRoom, 0, 100) // pre-allocate 100 capacity
 
+	lowestRoomId := 0
 	//var lastNode *mapNode = nil
 	r.crawlQueue = append(r.crawlQueue, crawlRoom{RoomId: r.rootRoomId, Pos: positionDelta{}})
 	for len(r.crawlQueue) > 0 {
 
 		roomNow := r.crawlQueue[0]
+
+		if lowestRoomId == 0 || roomNow.RoomId < lowestRoomId {
+			lowestRoomId = roomNow.RoomId
+		}
 
 		r.crawlQueue = r.crawlQueue[1:]
 
@@ -280,11 +285,21 @@ func (r *mapper) Start() {
 
 	r.crawlQueue = nil
 
+	var xOffset, yOffset, zOffset = 0, 0, 0
+	lowestRoom := r.crawledRooms[lowestRoomId]
+	if lowestRoom != nil {
+		xOffset, yOffset, zOffset = lowestRoom.Pos.x, lowestRoom.Pos.y, lowestRoom.Pos.z
+	}
+
 	// calculate the final array length.
+
+	minX, minY, minZ = minX-xOffset, minY-yOffset, minZ-zOffset
+	maxX, maxY, maxZ = maxX-xOffset, maxY-yOffset, maxZ-zOffset
 
 	r.roomGrid.initialize(minX, maxX, minY, maxY, minZ, maxZ)
 
 	for _, node := range r.crawledRooms {
+		node.Pos.x, node.Pos.y, node.Pos.z = node.Pos.x-xOffset, node.Pos.y-yOffset, node.Pos.z-zOffset
 		r.roomGrid.addNode(node)
 	}
 }

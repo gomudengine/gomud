@@ -439,6 +439,11 @@ func (g *GMCPRoomModule) GetRoomNode(user *users.UserRecord, gmcpModule string) 
 		if room.IsCharacterRoom {
 			payload.Details = append(payload.Details, `character`)
 		}
+
+		// Indicate if this is an ephemeral room
+		if rooms.IsEphemeralRoomId(room.RoomId) {
+			payload.Details = append(payload.Details, `ephemeral`)
+		}
 		// end room details
 
 	}
