@@ -4,8 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 	"unicode"
 
@@ -99,6 +101,15 @@ var (
 
 	mapperZoneCache     = map[string]*mapper{} // zonename-{"random" roomId} to mapper
 	roomIdToMapperCache = map[int]string{}     // roomId to mapperZoneCache key
+
+	// Global store for calculated world offsets for each zone
+	globalZoneOffsets      = make(map[string]positionDelta)
+	globalZoneOffsetsMutex = &sync.Mutex{}
+	// Tracks zones whose rooms have had their final world coordinates calculated (not strictly necessary with current GetCoordinates logic but good for potential future use)
+	// officialWorldCoordsCalculated = make(map[string]bool) // Optional: May not be needed now
+
+	// To prevent reprocessing zones in CalculateGlobalOffsets if they are already queued or processed
+	offsetsProcessedOrQueued = make(map[string]bool)
 )
 
 func GetDelta(exitName string) (x, y, z int) {
@@ -245,7 +256,15 @@ func (r *mapper) Start() {
 		r.crawledRooms[node.RoomId] = node
 
 		// Now process it
-		for _, exitInfo := range node.Exits {
+		// Collect exit names to sort them for deterministic processing
+		exitNames := make([]string, 0, len(node.Exits))
+		for name := range node.Exits {
+			exitNames = append(exitNames, name)
+		}
+		sort.Strings(exitNames) // Sort exit names
+
+		for _, exitName := range exitNames { // Iterate over sorted exit names
+			exitInfo := node.Exits[exitName] // Get exit info using the sorted name
 			if _, ok := r.crawledRooms[exitInfo.RoomId]; ok {
 				continue
 			}
@@ -335,7 +354,25 @@ func (r *mapper) GetCoordinates(roomId int) (x, y, z int, err error) {
 		return 0, 0, 0, ErrRoomNotFound
 	}
 
-	return node.Pos.x, node.Pos.y, node.Pos.z, nil
+	roomData := rooms.LoadRoom(roomId)
+	if roomData == nil {
+		return 0, 0, 0, fmt.Errorf("GetCoordinates: could not load room %d", roomId)
+	}
+
+	globalZoneOffsetsMutex.Lock()
+	zoneOffset, offsetExists := globalZoneOffsets[roomData.Zone]
+	globalZoneOffsetsMutex.Unlock()
+
+	if !offsetExists {
+		// This case implies that CalculateGlobalOffsets might not have run for this zone yet,
+		// or the zone is disconnected. For now, return local coordinates.
+		// mudlog.Warning("GetCoordinates: Zone offset not found, returning local coords", "zone", roomData.Zone, "roomId", roomId)
+		// In a fully operational system, we might want to trigger CalculateGlobalOffsets or queue it.
+	}
+
+	// node.Pos stores local coordinates relative to its zone's root.
+	// We add the zone's world offset to get true world coordinates.
+	return node.Pos.x + zoneOffset.x, node.Pos.y + zoneOffset.y, node.Pos.z + zoneOffset.z, nil
 }
 
 // Finds the first room in a given direction
@@ -834,74 +871,214 @@ func GetMapperIfExists(roomId int) *mapper {
 }
 
 // Get the mapper if it exists, otherwises generates a new map from the roomId
-func GetMapper(roomId int, forceRefresh ...bool) *mapper {
+func GetMapper(requestedRoomId int, forceRefresh ...bool) *mapper {
+	requestingRoom := rooms.LoadRoom(requestedRoomId)
+	if requestingRoom == nil {
+		mudlog.Error("GetMapper called with non-existent room", "requestedRoomId", requestedRoomId)
+		return nil
+	}
 
-	var cachedMap *mapper = nil
-	// Check the room-to-cache lookup
+	canonicalRootId, err := rooms.GetZoneRoot(requestingRoom.Zone)
+	if err != nil {
+		mudlog.Error("GetMapper could not get zone root", "zone", requestingRoom.Zone, "error", err)
+		return nil
+	}
+	if canonicalRootId == 0 { // Should be caught by GetZoneRoot err, but as safeguard
+		mudlog.Error("GetMapper received zero canonicalRootId", "zone", requestingRoom.Zone, "requestedRoomId", requestedRoomId)
+		return nil
+	}
 
-	if zoneName, ok := roomIdToMapperCache[roomId]; ok {
-		cachedMap = mapperZoneCache[zoneName]
-		if len(forceRefresh) == 0 || !forceRefresh[0] {
+	canonicalZoneCacheKey := requestingRoom.Zone + `-` + strconv.Itoa(canonicalRootId)
+	isForceRefresh := len(forceRefresh) > 0 && forceRefresh[0]
+
+	if isForceRefresh {
+		if oldCanonicalMap, ok := mapperZoneCache[canonicalZoneCacheKey]; ok {
+			// Clear out roomIdToMapperCache entries that point to this specific canonical map
+			for crawledRoomId := range oldCanonicalMap.crawledRooms {
+				if cacheKey, exists := roomIdToMapperCache[crawledRoomId]; exists && cacheKey == canonicalZoneCacheKey {
+					delete(roomIdToMapperCache, crawledRoomId)
+				}
+			}
+			delete(mapperZoneCache, canonicalZoneCacheKey)
+			// mudlog.Info("GetMapper: Forced refresh, cleared canonical map from cache", "canonicalZoneCacheKey", canonicalZoneCacheKey)
+		}
+	} else {
+		// Not forcing a refresh, try to return cached canonical map
+		if cachedMap, ok := mapperZoneCache[canonicalZoneCacheKey]; ok {
+			// Ensure the requesting room is actually pointing to the canonical map if it's in cache
+			// This is a safeguard, should be populated correctly when map is built.
+			if _, roomOk := roomIdToMapperCache[requestedRoomId]; !roomOk {
+				roomIdToMapperCache[requestedRoomId] = canonicalZoneCacheKey
+			}
 			return cachedMap
 		}
 	}
 
-	// We are force rebuilding (or building if not exists) at this point
+	// If we are here, we need to build (or rebuild if forced) the canonical map.
+	// mudlog.Info("GetMapper: Building/rebuilding canonical map", "canonicalZoneCacheKey", canonicalZoneCacheKey, "canonicalRootId", canonicalRootId)
 
-	// Since we will be regenerating the whole map,
-	// lets clear out any roomId's tracked for this room.
-	// That way if something has changed, such as a room moving to a different map,
-	// It won't point to here.
-	if cachedMap != nil {
-		for crawledRoomId, _ := range cachedMap.crawledRooms {
-			delete(roomIdToMapperCache, crawledRoomId)
-		}
-	}
-
-	room := rooms.LoadRoom(roomId)
-	if room == nil {
-		return nil
-	}
-
-	// Track the time it takes
 	tStart := time.Now()
-
-	// multiple maps MIGHT exist within a zone, so use the zone+maps root to track it uniquely.
-	// We could just use the roomId, but this makes debugging easier.
-	zoneName := room.Zone + `-` + strconv.Itoa(roomId)
-
-	m := NewMapper(roomId)
+	m := NewMapper(canonicalRootId) // Use canonicalRootId for new mapper
 	if m == nil {
-		mudlog.Error("GetMapper", "error", "Could not generate a mapper for RoomId", "RoomId", roomId)
+		mudlog.Error("GetMapper", "error", "Could not generate a NewMapper for canonical root", "canonicalRootId", canonicalRootId)
 		return nil
 	}
 	m.Start()
 
-	mudlog.Info("New Mapper", "zone", zoneName, "size", len(m.crawledRooms), "time taken", time.Since(tStart))
+	mudlog.Info("New Mapper (Canonical)", "zone", requestingRoom.Zone, "rootId", canonicalRootId, "key", canonicalZoneCacheKey, "size", len(m.crawledRooms), "time taken", time.Since(tStart))
 
-	roomIdToMapperCache[roomId] = zoneName
+	// Store the new canonical map
+	mapperZoneCache[canonicalZoneCacheKey] = m
 
+	// (Re)populate roomIdToMapperCache for all rooms in this canonical map,
+	// overwriting any previous incorrect entries.
 	for _, crawledRoomId := range m.CrawledRoomIds() {
-		if _, ok := roomIdToMapperCache[crawledRoomId]; !ok {
-			roomIdToMapperCache[crawledRoomId] = zoneName
-		}
+		roomIdToMapperCache[crawledRoomId] = canonicalZoneCacheKey
 	}
 
-	mapperZoneCache[zoneName] = m
-
 	return m
+}
+
+// CalculateGlobalOffsets traverses zones to determine their world offsets.
+// It should be called after individual zone maps are locally processed.
+func CalculateGlobalOffsets(startZoneName string) {
+	mudlog.Info("CalculateGlobalOffsets started", "startZoneName", startZoneName)
+	globalZoneOffsetsMutex.Lock()
+	// Reset for a fresh calculation if called multiple times (e.g., world reload)
+	globalZoneOffsets = make(map[string]positionDelta)
+	offsetsProcessedOrQueued = make(map[string]bool)
+
+	startZoneRootRoomId, err := rooms.GetZoneRoot(startZoneName)
+	if err != nil || startZoneRootRoomId == 0 {
+		mudlog.Error("CalculateGlobalOffsets: Could not get root room for start zone or root is 0.", "zone", startZoneName, "error", err)
+		globalZoneOffsetsMutex.Unlock()
+		return
+	}
+
+	globalZoneOffsets[startZoneName] = positionDelta{x: 0, y: 0, z: 0} // Start zone is at world origin
+	offsetsProcessedOrQueued[startZoneName] = true
+	globalZoneOffsetsMutex.Unlock()
+
+	queue := []string{startZoneName}
+
+	for len(queue) > 0 {
+		currentZoneName := queue[0]
+		queue = queue[1:]
+
+		// mudlog.Debug("CalculateGlobalOffsets: Processing zone from queue", "zone", currentZoneName)
+
+		currentZoneRootRoomId, _ := rooms.GetZoneRoot(currentZoneName) // Error already checked for startZone
+		currentMapper := GetMapper(currentZoneRootRoomId)              // Ensures local map is built
+		if currentMapper == nil {
+			mudlog.Error("CalculateGlobalOffsets: Mapper not found for current zone", "zone", currentZoneName)
+			continue
+		}
+		// currentMapper.Start() // GetMapper should ensure this, but double-check if issues arise
+
+		globalZoneOffsetsMutex.Lock()
+		currentZoneOffset, offsetExists := globalZoneOffsets[currentZoneName]
+		globalZoneOffsetsMutex.Unlock()
+
+		if !offsetExists {
+			mudlog.Error("CalculateGlobalOffsets: Offset inexplicably missing for current zone in processing queue.", "zone", currentZoneName)
+			continue // Should not happen if queued correctly
+		}
+
+		for _, crawledRoomNode := range currentMapper.crawledRooms { // These nodes have LOCAL .Pos
+			sourceRoomLocalPos := crawledRoomNode.Pos
+			sourceRoomWorldPos := positionDelta{
+				x: sourceRoomLocalPos.x + currentZoneOffset.x,
+				y: sourceRoomLocalPos.y + currentZoneOffset.y,
+				z: sourceRoomLocalPos.z + currentZoneOffset.z,
+			}
+
+			// Sort exits for determinism, consistent with mapper.Start()
+			exitNames := make([]string, 0, len(crawledRoomNode.Exits))
+			for name := range crawledRoomNode.Exits {
+				exitNames = append(exitNames, name)
+			}
+			sort.Strings(exitNames)
+
+			for _, exitName := range exitNames {
+				exitInfo := crawledRoomNode.Exits[exitName]
+				targetRoomData := rooms.LoadRoom(exitInfo.RoomId)
+				if targetRoomData == nil {
+					mudlog.Error("CalculateGlobalOffsets: Target room data not found for exit.", "sourceRoomId", crawledRoomNode.RoomId, "targetRoomId", exitInfo.RoomId)
+					continue
+				}
+
+				if targetRoomData.Zone == currentZoneName {
+					continue // Intra-zone exit, already handled by local mapper
+				}
+
+				globalZoneOffsetsMutex.Lock()
+				if _, processed := globalZoneOffsets[targetRoomData.Zone]; processed {
+					globalZoneOffsetsMutex.Unlock()
+					continue // Target zone's offset already calculated
+				}
+				globalZoneOffsets[targetRoomData.Zone] = positionDelta{
+					x: sourceRoomWorldPos.x - crawledRoomNode.Pos.x,
+					y: sourceRoomWorldPos.y - crawledRoomNode.Pos.y,
+					z: sourceRoomWorldPos.z - crawledRoomNode.Pos.z,
+				}
+				globalZoneOffsetsMutex.Unlock()
+
+				// mudlog.Debug("CalculateGlobalOffsets: Found inter-zone link", "fromZone", currentZoneName, "toZone", targetRoomData.Zone, "viaRoom", crawledRoomNode.RoomId, "toRoom", targetRoomData.RoomId)
+
+				targetMapper := GetMapper(targetRoomData.RoomId) // Ensures local map for target zone is built
+				if targetMapper == nil {
+					mudlog.Error("CalculateGlobalOffsets: Mapper not found for target zone.", "zone", targetRoomData.Zone)
+					continue
+				}
+				// targetMapper.Start() // Again, GetMapper should handle this
+
+				targetRoomNode, ok := targetMapper.crawledRooms[targetRoomData.RoomId]
+				if !ok {
+					mudlog.Error("CalculateGlobalOffsets: Target room node not found in its own mapper.", "zone", targetRoomData.Zone, "roomId", targetRoomData.RoomId)
+					continue
+				}
+				targetRoomLocalPos := targetRoomNode.Pos
+				exitDelta := exitInfo.Direction // This is positionDelta for the exit itself
+
+				calculatedTargetZoneOffset := positionDelta{
+					x: sourceRoomWorldPos.x + exitDelta.x - targetRoomLocalPos.x,
+					y: sourceRoomWorldPos.y + exitDelta.y - targetRoomLocalPos.y,
+					z: sourceRoomWorldPos.z + exitDelta.z - targetRoomLocalPos.z,
+				}
+
+				globalZoneOffsetsMutex.Lock()
+				globalZoneOffsets[targetRoomData.Zone] = calculatedTargetZoneOffset
+				globalZoneOffsetsMutex.Unlock()
+
+				// mudlog.Info("CalculateGlobalOffsets: Calculated offset for zone", "zone", targetRoomData.Zone, "offsetX", calculatedTargetZoneOffset.x, "offsetY", calculatedTargetZoneOffset.y, "offsetZ", calculatedTargetZoneOffset.z)
+				queue = append(queue, targetRoomData.Zone)
+			}
+		}
+	}
+	mudlog.Info("CalculateGlobalOffsets finished.")
 }
 
 func PreCacheMaps() {
 
 	for _, name := range rooms.GetAllZoneNames() {
 		rootRoomId, _ := rooms.GetZoneRoot(name)
-		GetMapper(rootRoomId)
+		if rootRoomId > 0 { // Ensure there's a root room
+			GetMapper(rootRoomId) // This builds local maps
+		}
 	}
 
+	// It seems redundant to call GetMapper for all room IDs if zones are handled by root.
+	// Keeping it for now as it might serve other pre-caching purposes, but review if it affects perf.
 	for _, roomId := range rooms.GetAllRoomIds() {
-		GetMapper(roomId)
+		GetMapper(roomId) // Ensures all mappers are touched, potentially populating roomIdToMapperCache correctly
 	}
+
+	// After all local zone maps are potentially built, calculate global offsets.
+	// DESIGNATE THE PRIMARY STARTING ZONE HERE. For example, "Frostfang".
+	// This primary zone's root will be the world origin (0,0,0).
+	// Ensure this zone name matches exactly what rooms.GetZoneRoot() expects and what's in room files.
+	startZoneForWorldOrigin := "Frostfang"
+	CalculateGlobalOffsets(startZoneForWorldOrigin)
 }
 
 /////////////////////////////////////////////
