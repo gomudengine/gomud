@@ -51,6 +51,12 @@ func (g *GMCPCommModule) onComm(e events.Event) events.ListenerReturn {
 		Text:    ansitags.Parse(evt.Message, ansitags.StripTags),
 	}
 
+	if evt.SourceUserId > 0 {
+		payload.Source = `player`
+	} else if evt.SourceMobInstanceId > 0 {
+		payload.Source = `mob`
+	}
+
 	// Sent to everyone.
 	// say, party, broadcast, whisper
 
@@ -119,5 +125,6 @@ func (g *GMCPCommModule) onComm(e events.Event) events.ListenerReturn {
 type GMCPCommModule_Payload struct {
 	Channel string `json:"channel"`
 	Sender  string `json:"sender"`
+	Source  string `json:"source"`
 	Text    string `json:"text"`
 }

@@ -121,6 +121,7 @@ function onPath(mob, room, eventDetails) {
 }
 
 var RANDOM_IDLE = [
+    "pathto "+String(INN_ROOM_ID),
     "emote shakes his head in disbelief.",
     "emote attempts to fix a rat trap.",
     "say There's just too many rats. We'll never get rid of them all.",
@@ -128,7 +129,6 @@ var RANDOM_IDLE = [
     "say I'm running out of traps. I need to find more.",
     "say I'm worried about the rats in the slums. They're everywhere!",
     "say I'm running out of traps and don't seem to be making a dent in the rat numbers.",
-    "pathto "+String(INN_ROOM_ID),
 ];
 
 // Invoked once every round if mob is idle
@@ -144,6 +144,9 @@ function onIdle(mob, room) {
     }
 
     randNum = UtilDiceRoll(1, 12)-1;
+    if ( randNum == 0) { // double zero needed for the pathto event
+        randNum = UtilDiceRoll(1, 12)-1;
+    }
     if ( randNum < RANDOM_IDLE.length ) {
         mob.Command(RANDOM_IDLE[randNum]);
         return true;

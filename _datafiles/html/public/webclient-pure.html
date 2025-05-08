@@ -255,6 +255,69 @@
             roomZones: {},
         };
         let GMCPUpdateHandlers = {
+            "Comm": function() {
+
+                var obj = GMCPStructs["Comm"];
+                if ( !obj.Channel ) {
+                    return;
+                }
+
+                if ( !GMCPWindows['Comm'] && GMCPWindows['Comm'] !== false ) {
+
+                    GMCPWindows['Comm'] = new WinBox({ title: "Communications",
+                                            mount: document.getElementById("comm-output"),
+                                            background: "#1c6b60", border: 1,
+                                            x: "right", y: 450,
+                                            width:363,  height:20+290,
+                                            header: 20,
+                                            bottom: 60, // Limit how far down it can go. This affects docking the minimized window.
+                                            // end limit position range
+                                            onclose: force => { GMCPWindows['Comm'] = false; return false; },
+                                        });
+                    
+                    GMCPWindows['Comm'].Message = function(channelName, fromName, fromSource, message) {
+
+                        // add new text output                
+                        var tab = document.getElementById("comm-tab-"+channelName);
+                        var panel = document.getElementById("comm-"+channelName);
+
+                        if ( tab.classList.contains('active') ) {
+                            tab.dataset.unread = 0;
+                            tab.innerText = tab.dataset.label;
+                        } else {
+                            tab.dataset.unread = parseInt(tab.dataset.unread)+1;
+                            tab.innerText = tab.dataset.label + "(" + String(tab.dataset.unread) + ")";
+                        }                 
+
+                        var p = document.createElement('p');
+                        p.innerHTML =   '<span class="text-name '+fromSource+'">' + 
+                                            fromName + 
+                                        '</span>: ' + 
+                                        '<span class="text-body '+fromSource+'">' + 
+                                            message + 
+                                        '</span>';
+                        panel.appendChild(p);
+        
+                        // clean up overflow
+                        panelContainer = GMCPWindows['Comm'].window;
+                        while (panel.scrollHeight > panelContainer.clientHeight-58) {
+                            if ( panel.childElementCount < 1) {
+                                break;
+                            }
+                            panel.removeChild(panel.firstElementChild);
+                        }
+                        
+                    };
+
+                }
+
+                if ( GMCPWindows['Comm'] === false ) {
+                    return;
+                }
+
+                GMCPWindows['Comm'].Message(obj.Channel.channel, obj.Channel.sender, obj.Channel.source, obj.Channel.text);
+
+            },
             "Room": function() {
 
                 var obj = GMCPStructs["Room"];
@@ -269,10 +332,12 @@
                                             background: "#1c6b60",
                                             border: 1,
                                             x: "right",
-                                            y: 0,
-                                            width:300,
-                                            height:20+300,
+                                            y: 66,
+                                            width:363,
+                                            height:20+363,
                                             header: 20,
+                                            bottom: 60, // Limit how far down it can go. This affects docking the minimized window.
+                                            // end limit position range
                                             onclose: force => { GMCPWindows['Map'] = false; return false; },
                                             oncreate: ops => {
 
@@ -391,17 +456,13 @@
                                                               mount: document.getElementById("vitals-bars"),
                                                               background: "#1c6b60",
                                                               border: 1,
-                                                              x: "right",
-                                                              y: 320,
+                                                              x: window.innerWidth-300-63,//"right",
+                                                              y: 0,
                                                               width:300,
-                                                              height:20+120,
+                                                              height:20+40,
                                                               header: 20,
+                                                              bottom: 60, // Limit how far down it can go. This affects docking the minimized window.
                                                               onclose: force => { GMCPWindows['Char.Vitals'] = false; return false; },
-                                                              oncreate: opts => {
-                                                                            opts.width = document.getElementById('vitals-bars').style.width;
-                                                                            opts.height = "48px";
-                                                                        }
-
                                                             });
                 }
 
@@ -983,86 +1044,181 @@
         /* add these styles once (e.g. in your global <style> block) */
 
         #health-bar {
-        position: relative;
-        width: 100%;         /* or fixed px width */
-        height: 50%;
-        background: linear-gradient(
-            to right,
-            #f44336 0%,   /* red */
-            #ffeb3b 50%,   /* yellow */
-            #4caf50 100%    /* green */
-        );
-        border-radius: 12px;
-        box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
-        overflow: hidden;
-        margin: 0 2px;
+            position: relative;
+            width: 100%;         /* or fixed px width */
+            height: 50%;
+            background: linear-gradient(
+                to right,
+                #f44336 0%,   /* red */
+                #ffeb3b 50%,   /* yellow */
+                #4caf50 100%    /* green */
+            );
+            border-radius: 12px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+            overflow: hidden;
+            margin: 0 2px;
         }
 
         #health-bar .health-fill {
-        height: 100%;
-        width: 0%;
-        background: #333;
-        float:right;
-        transition: width 0.4s ease-out;
+            height: 100%;
+            width: 0%;
+            background: #333;
+            float:right;
+            transition: width 0.4s ease-out;
         }
 
         #health-bar .health-text {
-        position: absolute;
-        top: 0; left: 0; right: 0; bottom: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-family: monospace;
-        font-size: 0.85em;
-        color: white;
-        text-shadow: 0 1px 2px rgba(0,0,0,0.8);
-        pointer-events: none;
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: monospace;
+            font-size: 0.85em;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+            pointer-events: none;
         }
 
 
         #mana-bar {
-        position: relative;
-        width: 100%;         /* or fixed px width */
-        height: 50%;
-        background: linear-gradient(
-            to right,
-            #1e108b 0%,
-            #3a20fe 100%
-        );
-        border-radius: 12px;
-        box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
-        overflow: hidden;
-        margin: 0;
+            position: relative;
+            width: 100%;         /* or fixed px width */
+            height: 50%;
+            background: linear-gradient(
+                to right,
+                #1e108b 0%,
+                #3a20fe 100%
+            );
+            border-radius: 12px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+            overflow: hidden;
+            margin: 0;
         }
 
         #mana-bar .mana-fill {
-        height: 100%;
-        width: 0%;
-        background: #333;
-        float:right;
-        transition: width 0.4s ease-out;
+            height: 100%;
+            width: 0%;
+            background: #333;
+            float:right;
+            transition: width 0.4s ease-out;
         }
 
         #mana-bar .mana-text {
-        position: absolute;
-        top: 0; left: 0; right: 0; bottom: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-family: monospace;
-        font-size: 0.85em;
-        color: white;
-        text-shadow: 0 1px 2px rgba(0,0,0,0.8);
-        pointer-events: none;
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: monospace;
+            font-size: 0.85em;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+            pointer-events: none;
         }
         #vitals-bars {
             height:100%;
         }
-        .wb-body { background:#000; }
+        .wb-body { background:#000; overflow:hidden; }
         .wb-max { display:none; }
         .wb-full { display:none; }
+
+        .tabs {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            height: 100%; /* if you want full‐height panels */
+        }
+
+        .tab-buttons {
+            display: flex;
+            border-bottom: 1px solid #0f3333;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 0.75em;
+            background: #279888;
+            border: none;
+            cursor: pointer;
+            font: inherit;
+            font-size: small;
+            transition: background 0.2s;
+        }
+
+        .tab-button:not(.active):hover {
+            background: #0f3333;
+            color:#dffbd1;
+        }
+
+        .tab-button.active {
+            background: #dffbd1;
+            border-bottom: 2px solid #0f3333;
+        }
+
+        .tab-contents {
+            flex: 1;
+            padding: 0.25em;
+            background: #000;
+        }
+
+        .tab-content {
+            display: none;
+            height: 100%;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .text-name.mob {
+            color: #00ffff;
+        }
+        .text-name.player {
+            color: #fce94f;
+        }
+        .chat-window {
+            overflow:scroll;
+            background-color:#000;
+            color:#fff;
+        }
+        .chat-window.broadcast {
+            color: #d700d7;
+        }
+        .chat-window.whisper {
+            color: #737670;
+        }
     </style>
+
+
+
+    <script>
+        // on DOM ready
+        document.addEventListener('DOMContentLoaded', () => {
+            const buttons = document.querySelectorAll('.tab-button');
+            const panels  = document.querySelectorAll('.tab-content');
+            
+            buttons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                const target = btn.dataset.tab;
+
+                // deactivate all
+                buttons.forEach(b => b.classList.remove('active'));
+                panels.forEach(p => p.classList.remove('active'));
+            
+                // activate the clicked one and its panel
+                btn.classList.add('active');
+                btn.dataset.unread = 0;
+                btn.innerText = btn.dataset.label;
+                document.getElementById(target).classList.add('active');
+                });
+            });
+        });
+    </script>
+    
     <div style="display:none;">
+
+        <!-- VITALS window -->
         <div id="vitals-bars">
             <div id="health-bar">
                 <div class="health-fill" style="width: 100%;"></div>
@@ -1074,7 +1230,26 @@
             </div>
         </div>
 
+        <!-- MAP window -->
         <div id="map-render" style="width:100%; height:100%;"></div>
+    
+        <!-- COMM window -->
+        <div id="comm-output" class="tabs">
+            <div class="tab-buttons">
+                <button id="comm-tab-say" class="tab-button active" data-tab="comm-say" data-label="Say" data-unread="0">Say</button>
+                <button id="comm-tab-whisper" class="tab-button" data-tab="comm-whisper" data-label="Whisper" data-unread="0">Whisper</button>
+                <button id="comm-tab-party" class="tab-button" data-tab="comm-party" data-label="Party" data-unread="0">Party</button>
+                <button id="comm-tab-broadcast" class="tab-button" data-tab="comm-broadcast" data-label="Broadcasts" data-unread="0">Broadcasts</button>
+            </div>
+            <div class="tab-contents">
+                <div id="comm-say" class="chat-window say tab-content active"></div>
+                <div id="comm-whisper" class="chat-window whisper tab-content"></div>
+                <div id="comm-party" class="chat-window party tab-content"></div>
+                <div id="comm-broadcast" class="chat-window broadcast tab-content"></div>
+            </div>
+        </div>
+
     </div>
+
 </body>
 </html>
