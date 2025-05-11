@@ -267,6 +267,15 @@ func MoveToRoom(userId int, toRoomId int, isSpawn ...bool) error {
 
 	cfg := configs.GetSpecialRoomsConfig()
 
+	// If they are being moved to the death recovery room
+	// Put them in their own instance of it.
+	deathRecoveryRoomId := int(cfg.DeathRecoveryRoom)
+	if toRoomId == deathRecoveryRoomId {
+		if newRooms, err := CreateEphemeralRoomIds(deathRecoveryRoomId); err == nil {
+			toRoomId = newRooms[deathRecoveryRoomId]
+		}
+	}
+
 	if toRoomId == StartRoomIdAlias {
 
 		// If "StartRoom" is set for MiscData on the char, use that.
