@@ -100,8 +100,6 @@ function onEnter(user, room) {
 
 }
 
-
-
 function onExit(user , room) {
     // Destroy the guide (cleanup)
     destroyTeacher(room);
@@ -110,47 +108,23 @@ function onExit(user , room) {
     commandNow = 0;
 }
 
-
-
 function onLoad(room) {
     canGoSouth = false;
     commandNow = 0;
 }
 
-
 function getTeacher(room) {
-
-    var mobActor = null;
-
-    mobIds = room.GetMobs();
-    
-    for ( var i in mobIds ) {
-        mobActor = GetMob(mobIds[i]);
-        if ( mobActor.MobTypeId() == teacherMobId ) {
-            return mobActor;
-        }
-    }
-
-    mobActor = room.SpawnMob(teacherMobId);
+    var mobActor = room.GetMob(teacherMobId, true);
     mobActor.SetCharacterName(teacherName);
-
     return mobActor;
 }
 
 function destroyTeacher(room) {
-
-    var mobActor = null;
-
-    mobIds = room.GetMobs();
-    
-    for ( var i in mobIds ) {
-        mobActor = GetMob(mobIds[i]);
-        if ( mobActor.MobTypeId() == teacherMobId ) {
-            mobActor.Command(`suicide vanish`);
-        }
-    }
+    var mobActor = room.GetMob(teacherMobId);
+    if ( mobActor != null ) {
+        mobActor.Command(`suicide vanish`);
+    } 
 }
-
 
 function sendWorkingCommands(user) {
 

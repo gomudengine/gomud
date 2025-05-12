@@ -129,37 +129,17 @@ function onLoad(room) {
     commandNow = 0;
 }
 
-
 function getTeacher(room) {
-
-    var mobActor = null;
-
-    mobIds = room.GetMobs();
-    
-    for ( var i in mobIds ) {
-        mobActor = GetMob(mobIds[i]);
-        if ( mobActor.MobTypeId() == teacherMobId ) {
-            return mobActor;
-        }
-    }
-
-    mobActor = room.SpawnMob(teacherMobId);
+    var mobActor = room.GetMob(teacherMobId, true);
     mobActor.SetCharacterName(teacherName);
-
     return mobActor;
 }
+
 function destroyTeacher(room) {
-
-    var mobActor = null;
-
-    mobIds = room.GetMobs();
-    
-    for ( var i in mobIds ) {
-        mobActor = GetMob(mobIds[i]);
-        if ( mobActor.MobTypeId() == teacherMobId ) {
-            mobActor.Command(`suicide vanish`);
-        }
-    }
+    var mobActor = room.GetMob(teacherMobId);
+    if ( mobActor != null ) {
+        mobActor.Command(`suicide vanish`);
+    } 
 }
 
 function sendWorkingCommands(user) {

@@ -5,7 +5,7 @@ hostile: false
 groups: 
   - frostfang-npc
 idlecommands:
-  - 'say type `list` to see what magical objects I have for sale'
+  - 'say type <ansi fg="command">list</ansi> to see what magical objects I have for sale'
 activitylevel: 10
 character:
   name: moilyn the wizard

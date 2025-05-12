@@ -5,7 +5,7 @@ ActorObjects are the basic object that represents Users and NPCs
 - [ActorObject](#actorobject)
   - [ActorNames(actors \[\]ActorObject) string ](#actornamesactors-actorobject-string-)
   - [GetUser(userId int) ActorObject ](#getuseruserid-int-actorobject-)
-  - [GetMob(mobInstanceId int) ActorObject ](#getmobmobinstanceid-int-actorobject-)
+  - [GetMob(mobInstanceId int \[,createIfMissing bool\]) ActorObject ](#getmobmobinstanceid-int-createifmissing-bool-actorobject-)
   - [ActorObject.UserId() int](#actorobjectuserid-int)
   - [ActorObject.InstanceId() int](#actorobjectinstanceid-int)
   - [ActorObject.MobTypeId() int](#actorobjectmobtypeid-int)
@@ -104,12 +104,13 @@ Retrieves a ActorObject for a given userId.
 | --- | --- |
 | userId | The target user id to get. |
 
-## [GetMob(mobInstanceId int) ActorObject ](/internal/scripting/actor_func.go)
+## [GetMob(mobInstanceId int [,createIfMissing bool]) ActorObject ](/internal/scripting/actor_func.go)
 Retrieves a ActorObject for a given mobInstanceId.
 
 |  Argument | Explanation |
 | --- | --- |
 | mobInstanceId | The target mobInstanceId to get. |
+| createIfMissing | If true and mob isn't found, the mob will be created and returned. |
 
 ## [ActorObject.UserId() int](/internal/scripting/actor_func.go)
 Returns the userId of the ActorObject.˚

@@ -73,12 +73,69 @@ func (r ScriptRoom) SpawnItem(itemId int, inStash bool) {
 	}
 }
 
-func (r ScriptRoom) GetMobs() []int {
-	return r.roomRecord.GetMobs()
+// Optionally can provide a MobId to look for
+func (r ScriptRoom) GetMobs(mobId ...int) []*ScriptActor {
+	actorList := []*ScriptActor{}
+
+	targetMobId := 0
+	if len(mobId) > 0 {
+		targetMobId = mobId[0]
+	}
+
+	for _, mobInstanceId := range r.roomRecord.GetMobs() {
+		a := GetActor(0, mobInstanceId)
+		if a == nil {
+			continue
+		}
+		if targetMobId == 0 || a.MobTypeId() == targetMobId {
+			actorList = append(actorList, a)
+		}
+	}
+	return actorList
 }
 
-func (r ScriptRoom) GetPlayers() []int {
-	return r.roomRecord.GetPlayers()
+// Get the first mob of the MobId type provided.
+func (r ScriptRoom) GetMob(mobId int, createIfMissing ...bool) *ScriptActor {
+
+	for _, mobInstanceId := range r.roomRecord.GetMobs() {
+		a := GetActor(0, mobInstanceId)
+		if a == nil {
+			continue
+		}
+
+		if a.MobTypeId() == mobId {
+			return a
+		}
+	}
+
+	if len(createIfMissing) > 0 && createIfMissing[0] {
+		return r.SpawnMob(mobId)
+	}
+
+	return nil
+}
+
+func (r ScriptRoom) GetPlayers() []*ScriptActor {
+	actorList := []*ScriptActor{}
+	for _, userId := range r.roomRecord.GetPlayers() {
+		a := GetActor(userId, 0)
+		if a == nil {
+			continue
+		}
+		actorList = append(actorList, a)
+	}
+	return actorList
+}
+
+func (r ScriptRoom) GetAllActors() []*ScriptActor {
+	actorList := []*ScriptActor{}
+	for _, mobInstanceId := range r.roomRecord.GetMobs() {
+		actorList = append(actorList, GetActor(0, mobInstanceId))
+	}
+	for _, userId := range r.roomRecord.GetPlayers() {
+		actorList = append(actorList, GetActor(userId, 0))
+	}
+	return actorList
 }
 
 func (r ScriptRoom) GetContainers() []string {
