@@ -6,7 +6,8 @@ function onDie(mob, room, eventDetails) {
 
     teacherMob = getTeacher(room);
 
-    teacherMob.Command('say You did it! Head <ansi fg="exit">west</ansi> to complete your training.');
+    teacherMob.Command('say You did it! As you can see you gain <ansi fg="experience">experience points</ansi> for combat victories.');
+    teacherMob.Command('say Now head <ansi fg="exit">west</ansi> to complete your training.', 2.0);
 }
 
 

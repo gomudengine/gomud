@@ -77,6 +77,7 @@ type Mob struct {
 	tempDataStore   map[string]any
 	conversationId  int       // Identifier of conversation currently involved in.
 	Path            PathQueue `yaml:"-"` // a pre-calculated path the mob is following.
+	lastCommandTurn uint64    // The last turn a command was scheduled for
 }
 
 func MobInstanceExists(instanceId int) bool {
@@ -324,17 +325,32 @@ func (m *Mob) Sleep(seconds int) {
 func (m *Mob) Command(inputTxt string, waitSeconds ...float64) {
 
 	readyTurn := util.GetTurnCount()
-	if len(waitSeconds) > 0 {
-		readyTurn += uint64(float64(configs.GetTimingConfig().SecondsToTurns(1)) * waitSeconds[0])
+	turnDelay := uint64(0)
+
+	// m.lastCommandTurn is used so that subsequent calls to Command()
+	// are scheduled from this period forward.
+	// If it's been long enough that the current turn has surpassed the lastCommandTurn, we failover to that.
+	if readyTurn > m.lastCommandTurn {
+		m.lastCommandTurn = readyTurn
+	} else {
+		readyTurn = m.lastCommandTurn
 	}
 
-	for _, cmd := range strings.Split(inputTxt, `;`) {
+	if len(waitSeconds) > 0 {
+		turnDelay = uint64(float64(configs.GetTimingConfig().SecondsToTurns(1)) * waitSeconds[0])
+	}
+
+	for i, cmd := range strings.Split(inputTxt, `;`) {
+
+		// Update lastCommandTurn to whenever this command is scheduled for
+		m.lastCommandTurn = readyTurn + turnDelay + uint64(i)
+
 		events.AddToQueue(events.Input{
 			MobInstanceId: m.InstanceId,
 			InputText:     cmd,
-			ReadyTurn:     readyTurn,
+			ReadyTurn:     m.lastCommandTurn,
 		})
-		readyTurn++
+
 	}
 
 }
