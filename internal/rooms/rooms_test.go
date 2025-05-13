@@ -111,6 +111,8 @@ func TestFindNoun(t *testing.T) {
 			"island":           "a tropical paradise",
 			"rocks":            ":island",
 			"rocky island":     ":island",
+			"feet":             ":hands",
+			"hands":            ":feet",
 		},
 	}
 
@@ -236,6 +238,18 @@ func TestFindNoun(t *testing.T) {
 			inputNoun:     "rocky",
 			wantFoundNoun: "island",
 			wantDesc:      "a tropical paradise",
+		},
+		{
+			name:          "circular references (hands)",
+			inputNoun:     "hands",
+			wantFoundNoun: "",
+			wantDesc:      "",
+		},
+		{
+			name:          "circular references (feet)",
+			inputNoun:     "feet",
+			wantFoundNoun: "",
+			wantDesc:      "",
 		},
 	}
 

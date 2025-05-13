@@ -1576,91 +1576,139 @@ func (r *Room) FindContainerByName(containerNameSearch string) string {
 	return closeMatch
 }
 
-// FindNoun resolves a noun or alias within the room's noun map.
 func (r *Room) FindNoun(noun string) (foundNoun string, nounDescription string) {
 	if len(r.Nouns) == 0 {
-		return ``, ``
+		return "", ""
 	}
 
-	// Build flat map of noun -> desc, and add single-word aliases for multi-word nouns
-	roomNouns := make(map[string]string, len(r.Nouns))
-	for key, desc := range r.Nouns {
-		roomNouns[key] = desc
-		if strings.Contains(key, ` `) {
-			for word := range strings.SplitSeq(key, " ") {
-				if _, exists := roomNouns[word]; !exists {
-					if _, existsInNouns := r.Nouns[word]; !existsInNouns {
-						roomNouns[word] = `:` + key
+	// Flatten the room nouns and create single-word aliases for multi-word nouns
+	roomNouns := map[string]string{}
+	for originalNoun, originalDesc := range r.Nouns {
+		roomNouns[originalNoun] = originalDesc
+		if strings.Contains(originalNoun, " ") {
+			for _, part := range strings.Split(originalNoun, " ") {
+				if _, exists := r.Nouns[part]; exists {
+					continue
+				}
+				if _, exists := roomNouns[part]; exists {
+					continue
+				}
+				roomNouns[part] = ":" + originalNoun
+			}
+		}
+	}
+
+	// Build candidate noun list
+	testNouns := util.SplitButRespectQuotes(noun)
+	for i := 0; i < len(testNouns); i++ {
+		if strings.Contains(testNouns[i], " ") {
+			for _, part := range strings.Split(testNouns[i], " ") {
+				testNouns = append(testNouns, strings.ToLower(strings.TrimSpace(part)))
+			}
+		}
+	}
+	if len(testNouns) > 1 {
+		testNouns = append(testNouns, strings.ToLower(strings.TrimSpace(noun)))
+	}
+
+	// Try each candidate: exact, singular/plural, alias-aware
+	for _, cand := range testNouns {
+		newNoun := strings.ToLower(strings.TrimSpace(cand))
+
+		// Direct match or single-level alias
+		if desc, ok := roomNouns[newNoun]; ok {
+			if strings.HasPrefix(desc, ":") {
+				target := desc[1:]
+				if targetDesc, ok2 := roomNouns[target]; ok2 && !strings.HasPrefix(targetDesc, ":") {
+					return target, targetDesc
+				}
+				// alias->alias or missing target => ignore
+			} else {
+				return newNoun, desc
+			}
+		}
+
+		// Strip "es"
+		if strings.HasSuffix(newNoun, "es") {
+			tn := strings.TrimSuffix(newNoun, "es")
+			if desc, ok := roomNouns[tn]; ok {
+				if strings.HasPrefix(desc, ":") {
+					target := desc[1:]
+					if targetDesc, ok2 := roomNouns[target]; ok2 && !strings.HasPrefix(targetDesc, ":") {
+						return target, targetDesc
+					}
+				} else {
+					return tn, desc
+				}
+			}
+		} else {
+			// Add "es"
+			tn := newNoun + "es"
+			if desc, ok := roomNouns[tn]; ok {
+				if strings.HasPrefix(desc, ":") {
+					target := desc[1:]
+					if targetDesc, ok2 := roomNouns[target]; ok2 && !strings.HasPrefix(targetDesc, ":") {
+						return target, targetDesc
+					}
+				} else {
+					return tn, desc
+				}
+			}
+		}
+
+		// "ies" -> "y"
+		if strings.HasSuffix(newNoun, "ies") {
+			tn := strings.TrimSuffix(newNoun, "ies") + "y"
+			if desc, ok := roomNouns[tn]; ok {
+				if strings.HasPrefix(desc, ":") {
+					target := desc[1:]
+					if targetDesc, ok2 := roomNouns[target]; ok2 && !strings.HasPrefix(targetDesc, ":") {
+						return target, targetDesc
+					}
+				} else {
+					return tn, desc
+				}
+			}
+		}
+	}
+
+	// Multi-word noun match
+	for full, desc := range roomNouns {
+		if strings.Contains(full, " ") {
+			for _, part := range testNouns {
+				if strings.Contains(full, part) {
+					if strings.HasPrefix(desc, ":") {
+						target := desc[1:]
+						if td, ok := roomNouns[target]; ok && !strings.HasPrefix(td, ":") {
+							return target, td
+						}
+					} else {
+						return full, desc
 					}
 				}
 			}
 		}
 	}
 
-	// Build candidate list: full noun first, then each word
-	candidates := []string{noun}
-	for _, part := range util.SplitButRespectQuotes(noun) {
-		if len(part) > 1 {
-			candidates = append(candidates, part)
+	// Single-word match for multi-word nouns
+	for full, desc := range roomNouns {
+		if !strings.Contains(full, " ") {
+			for _, part := range testNouns {
+				if part == full {
+					if strings.HasPrefix(desc, ":") {
+						target := desc[1:]
+						if td, ok := roomNouns[target]; ok && !strings.HasPrefix(td, ":") {
+							return target, td
+						}
+					} else {
+						return full, desc
+					}
+				}
+			}
 		}
 	}
 
-	// Try direct matches and aliases
-	for _, cand := range candidates {
-		if desc, ok := roomNouns[cand]; ok {
-			key := cand
-			for strings.HasPrefix(desc, `:`) {
-				key = desc[1:]
-				desc = roomNouns[key]
-			}
-			return key, desc
-		}
-	}
-
-	// Fallback pluralization/singularization
-	for _, cand := range candidates {
-		// Handle "ies" -> "y"
-		if strings.HasSuffix(cand, `ies`) {
-			singular := cand[:len(cand)-3] + `y`
-			if desc, ok := roomNouns[singular]; ok {
-				key := singular
-				for strings.HasPrefix(desc, `:`) {
-					key = desc[1:]
-					desc = roomNouns[key]
-				}
-				return key, desc
-			}
-		}
-
-		// Handle "es" -> remove
-		if strings.HasSuffix(cand, `es`) {
-			singular := cand[:len(cand)-2]
-			if desc, ok := roomNouns[singular]; ok {
-				key := singular
-				for strings.HasPrefix(desc, `:`) {
-					key = desc[1:]
-					desc = roomNouns[key]
-				}
-				return key, desc
-			}
-		}
-
-		// Handle trailing 's'
-		if strings.HasSuffix(cand, `s`) {
-			singular := cand[:len(cand)-1]
-			if desc, ok := roomNouns[singular]; ok {
-				key := singular
-				for strings.HasPrefix(desc, `:`) {
-					key = desc[1:]
-					desc = roomNouns[key]
-				}
-				return key, desc
-			}
-		}
-		// Default: no match
-	}
-
-	return ``, ``
+	return "", ""
 }
 
 func (r *Room) FindExitByName(exitNameSearch string) (exitName string, exitRoomId int) {
