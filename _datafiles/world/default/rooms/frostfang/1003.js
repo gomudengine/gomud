@@ -1,5 +1,5 @@
 
-const JAIL_TIME = "5 hour";
+const JAIL_TIME = "1 hour";
 
 function onEnter(user, room) {
 
