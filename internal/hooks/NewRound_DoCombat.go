@@ -159,9 +159,9 @@ func handlePlayerCombat(evt events.NewRound) (affectedPlayerIds []int, affectedM
 
 				newRoom := rooms.LoadRoom(exitRoomId)
 
-				usercommands.Look(``, user, newRoom, events.CmdSecretly)
-
-				scripting.TryRoomScriptEvent(`onEnter`, user.UserId, exitRoomId)
+				if doLook, err := scripting.TryRoomScriptEvent(`onEnter`, user.UserId, exitRoomId); err != nil || doLook {
+					usercommands.Look(``, user, newRoom, events.CmdSecretly)
+				}
 
 			}
 

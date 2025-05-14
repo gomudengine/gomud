@@ -98,6 +98,7 @@ function onEnter(user, room) {
     teacherMob.Command('emote gestures to the <ansi fg="item">graduation cap</ansi> on the ground.', 3.0);
     teacherMob.Command('say type <ansi fg="command">get cap</ansi> to pick up the <ansi fg="item">graduation cap</ansi>.', 4.0);
 
+    return true;
 }
 
 function onExit(user , room) {

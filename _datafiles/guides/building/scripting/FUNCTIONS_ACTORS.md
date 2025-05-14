@@ -84,6 +84,9 @@ ActorObjects are the basic object that represents Users and NPCs
   - [ActorObject.IsHome() bool](#actorobjectishome-bool)
   - [ActorObject.Pathing() bool](#actorobjectpathing-bool)
   - [ActorObject.PathingAtWaypoint() bool](#actorobjectpathingatwaypoint-bool)
+  - [ActorObject.TimerSet(name string, period string)](#actorobjecttimersetname-string-period-string)
+  - [ActorObject.TimerExpired(name string) bool](#actorobjecttimerexpiredname-string-bool)
+  - [ActorObject.TimerExists(name string) bool](#actorobjecttimerexistsname-string-bool)
 
 
 
@@ -566,3 +569,20 @@ returns the total specific statmod from worn items and buffs
 
 ## [ActorObject.PathingAtWaypoint() bool](/internal/scripting/actor_func.go)
 (mobs only) Returns true if actor is pathing and at a waypoint.
+
+
+## [ActorObject.TimerSet(name string, period string)](/internal/scripting/actor_func.go)
+Starts a new Round timer
+
+|  Argument | Explanation |
+| --- | --- |
+| name | A string identifier. Reusing names will overwrite previously assigned names. |
+| period | How long until the timer expires. `1 real hour`, `1 hour`, etc. |
+
+## [ActorObject.TimerExpired(name string) bool](/internal/scripting/actor_func.go)
+Returns true if the specified timer has expired or doesn't exist.
+
+## [ActorObject.TimerExists(name string) bool](/internal/scripting/actor_func.go)
+Returns true if the specified timer exists. 
+Set timers always exist until they are checked for expiration with `TimerExpired(name string)`
+

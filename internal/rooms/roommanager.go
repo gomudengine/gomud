@@ -261,9 +261,6 @@ func MoveToRoom(userId int, toRoomId int, isSpawn ...bool) error {
 	user := users.GetByUserId(userId)
 
 	currentRoom := LoadRoom(user.Character.RoomId)
-	if currentRoom == nil {
-		return fmt.Errorf(`room %d not found`, user.Character.RoomId)
-	}
 
 	cfg := configs.GetSpecialRoomsConfig()
 
@@ -306,10 +303,12 @@ func MoveToRoom(userId int, toRoomId int, isSpawn ...bool) error {
 		newRoom.Prepare(true)
 	}
 
-	currentRoom.MarkVisited(userId, VisitorUser, 1)
-
-	if len, _ := currentRoom.RemovePlayer(userId); len < 1 {
-		delete(roomManager.roomsWithUsers, currentRoom.RoomId)
+	fromRoomId := user.Character.RoomId
+	if currentRoom != nil {
+		currentRoom.MarkVisited(userId, VisitorUser, 1)
+		if len, _ := currentRoom.RemovePlayer(userId); len < 1 {
+			delete(roomManager.roomsWithUsers, currentRoom.RoomId)
+		}
 	}
 
 	newRoom.MarkVisited(userId, VisitorUser)
@@ -343,7 +342,7 @@ func MoveToRoom(userId int, toRoomId int, isSpawn ...bool) error {
 
 	events.AddToQueue(events.RoomChange{
 		UserId:     userId,
-		FromRoomId: currentRoom.RoomId,
+		FromRoomId: fromRoomId,
 		ToRoomId:   newRoom.RoomId,
 		Unseen:     user.Character.HasBuffFlag(buffs.Hidden),
 	})

@@ -1,7 +1,6 @@
 package mobcommands
 
 import (
-	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -22,7 +21,6 @@ func Pathto(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 			// This helps to clean up mobs that get stuck in a weird location, which can
 			// happen for any number of reasons, like players dragging them through portals
 			mob.Character.Health -= int(math.Ceil(float64(mob.Character.HealthMax.Value) / 10))
-			fmt.Println(mob.Character.Health)
 			return true, nil
 		}
 	}

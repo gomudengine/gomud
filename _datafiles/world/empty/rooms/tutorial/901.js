@@ -111,6 +111,8 @@ function onEnter(user, room) {
     
     teacherMob.Command('say Hi! I\'m here to teach you about inspecting your characters information.', 1.0);
     teacherMob.Command('say To get a detailed view of a LOT of information all at once, type <ansi fg="command">status</ansi> and hit enter.', 2.0);
+
+    return true;
 }
 
 

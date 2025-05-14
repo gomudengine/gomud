@@ -101,6 +101,22 @@ var (
 	roomIdToMapperCache = map[int]string{}     // roomId to mapperZoneCache key
 )
 
+// This is a useful function to help enforce map coherence when building
+func GetReciprocalExit(exitDirection string) string {
+	// first validate the exitName
+	if deltas, ok := posDeltas[exitDirection]; ok {
+
+		// Assign values to search for
+		x, y, z := deltas.x*-1, deltas.y*-1, deltas.z*-1
+		for name, d := range posDeltas {
+			if d.x == x && d.y == y && d.z == z {
+				return name
+			}
+		}
+	}
+	return ""
+}
+
 func GetDelta(exitName string) (x, y, z int) {
 	if delta, ok := posDeltas[exitName]; ok {
 		return delta.x, delta.y, delta.z
@@ -108,6 +124,13 @@ func GetDelta(exitName string) (x, y, z int) {
 	return 0, 0, 0
 }
 
+// Returns true if exitName resolves to any position delta
+func IsValidExitDirection(exitName string) bool {
+	_, ok := posDeltas[exitName]
+	return ok
+}
+
+// Returns true if exitName is a compass direction (north, south, east, west, northwest)
 func IsCompassDirection(exitName string) bool {
 	_, ok := compassDirections[exitName]
 	return ok
@@ -362,9 +385,8 @@ func (r *mapper) FindAdjacentRoom(centerRoomId int, direction string, limitDista
 		return 0, 0
 	}
 
-	// Make sure there isn't just an exit there already.
+	// Exact exit name exists?
 	if exitNode, ok := startNode.Exits[direction]; ok {
-
 		if exitNode.Direction.x != 0 {
 			return exitNode.RoomId, int(math.Abs(float64(exitNode.Direction.x)))
 		} else if exitNode.Direction.y != 0 {
@@ -372,8 +394,11 @@ func (r *mapper) FindAdjacentRoom(centerRoomId int, direction string, limitDista
 		} else if exitNode.Direction.z != 0 {
 			return exitNode.RoomId, int(math.Abs(float64(exitNode.Direction.z)))
 		}
+	}
 
-		return exitNode.RoomId, 0
+	var err error
+	if _, direction, err = AdjustExitName(direction); err != nil {
+		return 0, 0
 	}
 
 	dirParts := strings.FieldsFunc(direction, func(r rune) bool {
@@ -917,6 +942,53 @@ func PreCacheMaps() {
 	for _, roomId := range rooms.GetAllRoomIds() {
 		GetMapper(roomId)
 	}
+}
+
+// AdjustExitName splits an exit identifier into a base name and an optional direction.
+// Supported formats:
+//
+//	"east"           → ("east", "east", nil)
+//	"east-x2"        → ("east", "east-x2", nil)
+//	"cave"           → ("cave", "",      nil)
+//	"cave:south"     → ("cave", "south", nil)
+//	"cave:south-x2"  → ("cave", "south-x2", nil)
+func AdjustExitName(exitName string) (newExitName, newExitDirection string, err error) {
+	// Start with the raw name and no direction.
+	newExitName = exitName
+	newExitDirection = ""
+
+	// 1) "exitName:exitDirection" syntax
+	if i := strings.Index(exitName, ":"); i >= 0 {
+
+		if strings.Contains(exitName[:i], `-`) {
+			return exitName, "", fmt.Errorf("mixed `-` syntax with `:` in exit name: %s. `-` should only be in direction modifier or stand alone exit name.", exitName)
+		}
+
+		newExitName = exitName[:i]
+
+		// pure compass directions
+		if IsValidExitDirection(exitName[i+1:]) {
+			newExitDirection = exitName[i+1:]
+		}
+
+	} else if IsValidExitDirection(exitName) {
+		newExitDirection = exitName
+	}
+
+	// 2) special directions without colon (“north-x2”)
+	if strings.Contains(newExitName, `-`) {
+
+		if !IsValidExitDirection(newExitName) {
+			return exitName, "", fmt.Errorf(`invalid "special" exit name: %s`, newExitName)
+		}
+
+		newExitDirection = newExitName
+
+		parts := strings.SplitN(exitName, `-`, 2)
+		newExitName = parts[0]
+	}
+
+	return newExitName, newExitDirection, nil
 }
 
 /////////////////////////////////////////////

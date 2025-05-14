@@ -380,6 +380,10 @@ func (a ScriptActor) MoveRoom(destRoomId int, leaveCharmedMobs ...bool) {
 					rmNext.AddMob(mobInstId)
 				}
 			}
+
+			if doLook, err := TryRoomScriptEvent(`onEnter`, a.userRecord.UserId, destRoomId); err != nil || doLook {
+				a.userRecord.CommandFlagged(`look`, events.CmdSecretly) // Do a secret look.
+			}
 		}
 
 	} else if a.mobRecord != nil {
@@ -666,6 +670,18 @@ func (a ScriptActor) GrantXP(xpAmt int, reason string) {
 		return
 	}
 	a.userRecord.GrantXP(xpAmt, reason)
+}
+
+func (a ScriptActor) TimerSet(name string, period string) {
+	a.characterRecord.TimerSet(name, period)
+}
+
+func (a ScriptActor) TimerExpired(name string) bool {
+	return a.characterRecord.TimerExpired(name)
+}
+
+func (a ScriptActor) TimerExists(name string) bool {
+	return a.characterRecord.TimerExists(name)
 }
 
 // ////////////////////////////////////////////////////////

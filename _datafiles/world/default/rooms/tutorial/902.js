@@ -106,6 +106,8 @@ function onEnter(user, room) {
     }
 
     teacherMob.Command('say Go ahead and equip that sharp stick you\'ve got. Type <ansi fg="command">equip stick</ansi>.', 1.0);
+
+    return true;
 }
 
 function onExit(user , room) {

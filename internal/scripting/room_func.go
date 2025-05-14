@@ -38,6 +38,10 @@ func (r ScriptRoom) RoomId() int {
 	return r.roomId
 }
 
+func (r ScriptRoom) RoomIdSource() int {
+	return rooms.GetOriginalRoom(r.roomId)
+}
+
 func (r ScriptRoom) SetTempData(key string, value any) {
 	r.roomRecord.SetTempData(key, value)
 }
@@ -187,6 +191,18 @@ func (r ScriptRoom) GetExits() []map[string]any {
 	}
 
 	return exits
+}
+
+func (r ScriptRoom) IsLocked(exitName string) bool {
+
+	if exitInfo, ok := r.roomRecord.GetExitInfo(exitName); ok {
+		if !exitInfo.HasLock() {
+			return false
+		}
+		return exitInfo.Lock.IsLocked()
+	}
+
+	return false
 }
 
 func (r ScriptRoom) SetLocked(exitName string, lockIt bool) {
@@ -359,6 +375,10 @@ func (r ScriptRoom) RemoveMutator(mutName string) {
 	if zoneConfig := rooms.GetZoneConfig(r.roomRecord.Zone); zoneConfig != nil {
 		zoneConfig.Mutators.Remove(mutName)
 	}
+}
+
+func (r ScriptRoom) IsEphemeral() bool {
+	return rooms.IsEphemeralRoomId(r.roomRecord.RoomId)
 }
 
 // ////////////////////////////////////////////////////////

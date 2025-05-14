@@ -28,8 +28,11 @@
   - [RoomObject.HasMutator(mutName string) bool](#roomobjecthasmutatormutname-string-bool)
   - [RoomObject.AddMutator(mutName string)](#roomobjectaddmutatormutname-string)
   - [RoomObject.RemoveMutator(mutName string)](#roomobjectremovemutatormutname-string)
+  - [RoomObject.IsEphemeral() bool](#roomobjectisephemeral-bool)
+  - [RoomObject.RoomIdSource() int](#roomobjectroomidsource-int)
   - [RoomObject.RepeatSpawnItem(itemId int, roundInterval int \[, containerName\]](#roomobjectrepeatspawnitemitemid-int-roundinterval-int--containername)
   - [RoomObject.SetLocked(exitName string, lockIt bool)](#roomobjectsetlockedexitname-string-lockit-bool)
+  - [RoomObject.IsLocked() bool](#roomobjectislocked-bool)
 
 ## [CreateInstancesFromRoomIds(RoomIds [int, int...]) Object ](/internal/scripting/room_func.go)
 Returns an Object with key/value pairs of `ProvidedRoomId`=>`NewRoomId`
@@ -244,6 +247,18 @@ _Note: This only expires it. It may be a mutator that respawns, in which case th
 | --- | --- |
 | mutName | the MutatorId of the mutator. |
 
+## [RoomObject.IsEphemeral() bool](/internal/scripting/room_func.go)
+Returns true if the room is an Ephemeral Copy of a room.
+
+_Note: This only expires it. It may be a mutator that respawns, in which case this doens't really completely remove it._
+
+|  Argument | Explanation |
+| --- | --- |
+| mutName | the MutatorId of the mutator. |
+
+## [RoomObject.RoomIdSource() int](/internal/scripting/room_func.go)
+Returns the source RoomId if this room is an ephemeral copy, otherwise just the normal RoomId
+
 
 ## [RoomObject.RepeatSpawnItem(itemId int, roundInterval int [, containerName]](/internal/scripting/room_func.go)
 Removes a temporary exit
@@ -264,3 +279,5 @@ Sets an exit to locked or not (If it has a lock)
 | exitName | The exitname to lock/unlock |
 | lockIt | if true, sets it to locked. Otherwise, unlocks it. |
 
+## [RoomObject.IsLocked() bool](/internal/scripting/room_func.go)
+Returns true if locked, false if unlocked or has no lock.

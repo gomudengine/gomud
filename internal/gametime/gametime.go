@@ -17,6 +17,22 @@ var (
 	roundDateCache = map[uint64]GameDate{}
 )
 
+type RoundTimer struct {
+	RoundStart uint64 `yaml:"roundstart,omitempty"`
+	Period     string `yaml:"period,omitempty"`
+	gd         GameDate
+}
+
+func (r RoundTimer) Expired() bool {
+	if r.Period == `` || r.RoundStart == 0 {
+		return true
+	}
+	if r.gd.RoundNumber == 0 {
+		r.gd = GetDate(r.RoundStart)
+	}
+	return r.gd.AddPeriod(r.Period) < util.GetRoundCount()
+}
+
 type GameDate struct {
 	// The round number this GameDate represents
 	RoundNumber      uint64
