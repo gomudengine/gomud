@@ -14,6 +14,10 @@ import (
 // Format should be:
 // callforhelp blows his horn
 // "blows his horn" will be emoted to the room
+// Other valid formats:
+// callforhelp 5:blows a horn, calling for help
+// callforhelp 5:guard:blows a horn, calling for help
+// callforhelp guard:blows a horn, calling for help
 func CallForHelp(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 	calledForHelp := false
@@ -33,6 +37,19 @@ func CallForHelp(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		}
 	}
 
+	mobNameSearch := ``
+	// "callforhelp 5:guard:blows a horn, calling for help"
+	// "callforhelp guard:blows a horn, calling for help"
+	if i := strings.Index(rest, ":"); i >= 0 {
+		mobNameSearch = strings.ToLower(strings.TrimSpace(rest[:i]))
+
+		if i < len(rest)-1 {
+			rest = strings.TrimSpace(rest[i+1:])
+		} else {
+			rest = ``
+		}
+	}
+
 	m := mapper.GetMapper(room.RoomId)
 	roomList := m.FindRoomsInDistance(room.RoomId, maxRange, 0)
 
@@ -46,8 +63,14 @@ func CallForHelp(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 			if mobInfo := mobs.GetInstance(nearbyMobInstanceId); mobInfo != nil {
 
-				if !mobInfo.IsAlly(mob) { // Only help allies
-					continue
+				if mobNameSearch == `` {
+					if !mobInfo.ConsidersAnAlly(mob) { // Only help allies
+						continue
+					}
+				} else {
+					if mobNameSearch != strings.ToLower(mobInfo.Character.Name) {
+						continue
+					}
 				}
 
 				if !calledForHelp {

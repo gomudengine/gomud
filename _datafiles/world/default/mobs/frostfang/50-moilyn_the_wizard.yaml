@@ -4,6 +4,8 @@ itemdropchance: 2
 hostile: false
 groups: 
   - frostfang-npc
+combatcommands:
+  - 'callforhelp 7:guard:calls for the guards.'
 idlecommands:
   - 'say type <ansi fg="command">list</ansi> to see what magical objects I have for sale'
 activitylevel: 10

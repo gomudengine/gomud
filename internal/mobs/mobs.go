@@ -587,7 +587,7 @@ func (m *Mob) GetIdleCommand() string {
 	return ``
 }
 
-func (r *Mob) IsAlly(m *Mob) bool {
+func (r *Mob) ConsidersAnAlly(m *Mob) bool {
 
 	if m.MobId == r.MobId {
 		return true // Auto ally with own kind
@@ -598,10 +598,12 @@ func (r *Mob) IsAlly(m *Mob) bool {
 	}
 
 	// If they both belong to factions/groups, check for matches
-	if len(m.Groups) > 0 && len(r.Groups) > 0 {
+	// Could conver tthis to a look up map.
+	// Only a couple entries likely, so maybe not worth it.
+	if len(r.Groups) > 0 {
 		// Look for a group match
-		for _, testGroup := range m.Groups {
-			for _, targetGroup := range r.Groups {
+		for _, targetGroup := range r.Groups {
+			for _, testGroup := range m.Groups {
 				if testGroup == targetGroup {
 					return true
 				}
@@ -625,6 +627,7 @@ func (r *Mob) Validate() error {
 	}
 
 	r.Character.Validate()
+
 	return nil
 }
 
