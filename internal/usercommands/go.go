@@ -67,7 +67,6 @@ func Go(rest string, user *users.UserRecord, room *rooms.Room, flags events.Even
 
 		exitInfo, _ := room.GetExitInfo(exitName)
 
-		fmt.Println(exitInfo.Lock.IsLocked())
 		if exitInfo.Lock.IsLocked() {
 
 			lockId := fmt.Sprintf(`%d-%s`, room.RoomId, exitName)

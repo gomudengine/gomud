@@ -402,6 +402,12 @@ func (a ScriptActor) UpdateItem(itm ScriptItem) {
 	a.userRecord.Character.UpdateItem(itm.originalItem, *itm.itemRecord)
 }
 
+func (a ScriptActor) AddEventLog(category string, message string) {
+	if a.userRecord != nil {
+		a.userRecord.EventLog.Add(category, message)
+	}
+}
+
 func (a ScriptActor) GiveItem(itm any) {
 
 	var sItem *ScriptItem
