@@ -579,6 +579,13 @@ func (a ScriptActor) GetRaceKills(race string) int {
 	return raceKills[race]
 }
 
+func (a ScriptActor) SetHealth(amt int) {
+	a.characterRecord.Health = amt
+	if a.characterRecord.Health > a.characterRecord.HealthMax.Value {
+		a.characterRecord.Health = a.characterRecord.HealthMax.Value
+	}
+}
+
 func (a ScriptActor) GetHealth() int {
 	return a.characterRecord.Health
 }

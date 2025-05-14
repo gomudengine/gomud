@@ -3,6 +3,8 @@ const JAIL_TIME = "1 hour";
 
 function onEnter(user, room) {
 
+    user.SetHealth(1);
+    
     if ( !room.IsEphemeral() ) {
 
         var newRoomIds = CreateInstancesFromRoomIds( [room.RoomId()] );

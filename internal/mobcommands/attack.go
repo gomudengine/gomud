@@ -110,6 +110,9 @@ func Attack(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 		if u != nil {
 
+			// Track that they've attacked this player
+			mob.PlayerAttacked(attackPlayerId)
+
 			mob.Character.SetAggro(attackPlayerId, 0, characters.DefaultAttack)
 
 			if !isSneaking {

@@ -1242,7 +1242,12 @@ func (c *Character) ApplyHealthChange(healthChange int) int {
 	newHealth := c.Health + healthChange
 	if newHealth < 0 {
 		c.CancelBuffsWithFlag(buffs.CancelIfCombat)
-		if newHealth < -10 {
+
+		// If they haven't dropped yet, require a drop before going straight to death.
+		// Don't allow players to drop under -5 in a single hit.
+		if newHealth < -5 && oldHealth > 0 {
+			newHealth = -5
+		} else if newHealth <= -10 {
 			newHealth = -10
 		}
 	} else if newHealth > c.HealthMax.Value {

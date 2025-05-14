@@ -75,9 +75,10 @@ type Mob struct {
 	QuestFlags      []string `yaml:"questflags,omitempty,flow"` // What quest flags are set on this mob?
 	BuffIds         []int    `yaml:"buffids,omitempty"`         // Buff Id's this mob always has upon spawn
 	tempDataStore   map[string]any
-	conversationId  int       // Identifier of conversation currently involved in.
-	Path            PathQueue `yaml:"-"` // a pre-calculated path the mob is following.
-	lastCommandTurn uint64    // The last turn a command was scheduled for
+	conversationId  int              // Identifier of conversation currently involved in.
+	Path            PathQueue        `yaml:"-"` // a pre-calculated path the mob is following.
+	lastCommandTurn uint64           // The last turn a command was scheduled for
+	playersAttacked map[int]struct{} // all players this mob has attacked at some point
 }
 
 func MobInstanceExists(instanceId int) bool {
@@ -102,6 +103,7 @@ func GetAllMobNames() []string {
 func TrackRecentDeath(instanceId int) {
 	recentlyDied[instanceId] = int(util.GetRoundCount())
 }
+
 func RecentlyDied(instanceId int) bool {
 
 	if len(recentlyDied) > 30 {
@@ -256,6 +258,21 @@ func (m *Mob) AddBuff(buffId int, source string) {
 		Source:        source,
 	})
 
+}
+
+func (m *Mob) PlayerAttacked(userId int) {
+	if m.playersAttacked == nil {
+		m.playersAttacked = map[int]struct{}{}
+	}
+	m.playersAttacked[userId] = struct{}{}
+}
+
+func (m *Mob) HasAttackedPlayer(userId int) bool {
+	if m.playersAttacked == nil {
+		return false
+	}
+	_, ok := m.playersAttacked[userId]
+	return ok
 }
 
 func (m *Mob) InConversation() bool {
