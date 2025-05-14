@@ -32,7 +32,7 @@
   - [RoomObject.RoomIdSource() int](#roomobjectroomidsource-int)
   - [RoomObject.RepeatSpawnItem(itemId int, roundInterval int \[, containerName\]](#roomobjectrepeatspawnitemitemid-int-roundinterval-int--containername)
   - [RoomObject.SetLocked(exitName string, lockIt bool)](#roomobjectsetlockedexitname-string-lockit-bool)
-  - [RoomObject.IsLocked() bool](#roomobjectislocked-bool)
+  - [RoomObject.IsLocked(exitName string) bool](#roomobjectislockedexitname-string-bool)
 
 ## [CreateInstancesFromRoomIds(RoomIds [int, int...]) Object ](/internal/scripting/room_func.go)
 Returns an Object with key/value pairs of `ProvidedRoomId`=>`NewRoomId`
@@ -279,5 +279,5 @@ Sets an exit to locked or not (If it has a lock)
 | exitName | The exitname to lock/unlock |
 | lockIt | if true, sets it to locked. Otherwise, unlocks it. |
 
-## [RoomObject.IsLocked() bool](/internal/scripting/room_func.go)
-Returns true if locked, false if unlocked or has no lock.
+## [RoomObject.IsLocked(exitName string) bool](/internal/scripting/room_func.go)
+Returns true if exit is locked, false if unlocked or has no lock.
