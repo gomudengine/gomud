@@ -125,8 +125,6 @@ function onLoad(room) {
 }
 
 function getTeacher(room) {
-    var mobActor = null;
-
     var mobActor = room.GetMob(teacherMobId, true);
     mobActor.SetCharacterName(teacherName);
 

@@ -14,7 +14,7 @@ function onEnter(user, room) {
 
     }
     
-    user.TimerSet("jail", JAIL_TIME)
+    user.TimerSet("jail", JAIL_TIME);
 
     room.SendText("");
     room.SendText("<ansi fg=\"red-bold\">********************************************************************************</ansi>");
