@@ -11,7 +11,7 @@ require (
 )
 
 require (
-	github.com/GoMudEngine/ansitags v1.0.0
+	github.com/GoMudEngine/ansitags v1.1.0
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dlclark/regexp2 v1.7.0 // indirect
 	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
@@ -29,3 +29,4 @@ require (
 	github.com/pkg/errors v0.9.1
 	gopkg.in/yaml.v2 v2.4.0
 )
+

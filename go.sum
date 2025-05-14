@@ -1,7 +1,7 @@
 github.com/BurntSushi/toml v1.5.0 h1:W5quZX/G/csjUnuI8SUYlsHs9M38FC7znL0lIO+DvMg=
 github.com/BurntSushi/toml v1.5.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2lLoLwho=
-github.com/GoMudEngine/ansitags v1.0.0 h1:YvZpmQUAvWtKV4TK60LVknqZGM0I9S6ClTjpg6dBoVU=
-github.com/GoMudEngine/ansitags v1.0.0/go.mod h1:McpBTRYx4TE/+aVbK4veo7z6mDNrpi3Lka88FenWa3A=
+github.com/GoMudEngine/ansitags v1.1.0 h1:hnRaeXp2EbJAVwTDtjXQ/mtZWJ35cOjQ1laLdko+bo4=
+github.com/GoMudEngine/ansitags v1.1.0/go.mod h1:McpBTRYx4TE/+aVbK4veo7z6mDNrpi3Lka88FenWa3A=
 github.com/chzyer/logex v1.2.0/go.mod h1:9+9sk7u7pGNWYMkh0hdiL++6OeibzJccyQU4p4MedaY=
 github.com/chzyer/readline v1.5.0/go.mod h1:x22KAscuvRqlLoK9CsoYsmxoXZMMFVyOl86cAH8qUic=
 github.com/chzyer/test v0.0.0-20210722231415-061457976a23/go.mod h1:Q3SI9o4m/ZMnBNeIyt5eFwwo7qiLfzFZmjNmxjkiQlU=
