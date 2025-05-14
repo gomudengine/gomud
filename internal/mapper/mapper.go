@@ -376,6 +376,54 @@ func (r *mapper) GetCoordinates(roomId int) (x, y, z int, err error) {
 	return node.Pos.x, node.Pos.y, node.Pos.z, nil
 }
 
+// Returns all rooms of the map within a certain manhattan distance
+func (r *mapper) FindRoomsInDistance(centerRoomId int, xyRadius int, zRadiusOpt ...int) []int {
+	foundRooms := []int{}
+
+	startNode := r.crawledRooms[centerRoomId]
+	if startNode == nil {
+		return foundRooms
+	}
+
+	xyRadius = int(math.Abs(float64(xyRadius)))
+	zRadius := 0
+	if len(zRadiusOpt) == 0 {
+		zRadius = int(math.Abs(float64(zRadiusOpt[0])))
+	}
+
+	minX, maxX := startNode.Pos.x-xyRadius, startNode.Pos.x+xyRadius
+	minY, maxY := startNode.Pos.y-xyRadius, startNode.Pos.y+xyRadius
+	minZ, maxZ := startNode.Pos.z-zRadius, startNode.Pos.z+zRadius
+
+	maxXYDist := float64(xyRadius)
+	maxZDist := float64(zRadius)
+
+	for z := minZ; z <= maxZ; z++ {
+		for y := minY; y <= maxY; y++ {
+			for x := minX; x <= maxX; x++ {
+
+				if math.Abs(float64((startNode.Pos.x-x)+(startNode.Pos.y-y))) > maxXYDist {
+					continue
+				}
+
+				if math.Abs(float64(startNode.Pos.z-z)) > maxZDist {
+					continue
+				}
+
+				// fmt.Println(x, y, z, `=`, ((startNode.Pos.x - x) + (startNode.Pos.y - y)))
+				if roomId, _ := r.GetRoomId(x, y, z); roomId != 0 {
+					if roomId == centerRoomId {
+						continue
+					}
+					foundRooms = append(foundRooms, roomId)
+				}
+			}
+		}
+	}
+
+	return foundRooms
+}
+
 // Finds the first room in a given direction
 // Allowed directions:
 func (r *mapper) FindAdjacentRoom(centerRoomId int, direction string, limitDistance ...int) (roomId int, distance int) {
