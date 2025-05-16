@@ -42,7 +42,6 @@ Some more text
         That ~is~ all.
 `
 
-	src = "- one\n- two\n- three"
 	parser := NewParser(src)
 	ast := parser.Parse()
 
