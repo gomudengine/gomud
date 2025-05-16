@@ -159,9 +159,6 @@ colors:
   md-h2: yellow-bold
   md-li: white-bold
   md-sp1: command
-  md-sp2: username
-  md-sp3: mobname
-  md-sp4: itemname
   md-bold: 9
   md-em: 208
   md-hr1: 4

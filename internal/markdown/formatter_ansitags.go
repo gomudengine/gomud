@@ -73,18 +73,3 @@ func (ANSITags) Emphasis(contents string, depth int) string {
 func (ANSITags) Special(contents string, depth int) string {
 	return "<ansi fg=\"md-sp" + strconv.Itoa(depth) + "\" bg=\"md-sp" + strconv.Itoa(depth) + "-bg\">" + contents + "</ansi>"
 }
-func (ANSITags) Table(contents string, _ int) string {
-	return "\n<ansi fg=\"md-tbl\" bg=\"md-tbl-bg\">" + contents + "</ansi>"
-}
-func (ANSITags) TableHeader(contents string, cellCount int) string {
-	// we already want a leading pipe on each cell, so:
-	return "\n<ansi fg=\"md-tbl-hdr\" bg=\"md-tbl-hdr-bg\">" + contents + "</ansi> |"
-}
-
-func (ANSITags) TableRow(contents string, cellCount int) string {
-	return "\n<ansi fg=\"md-tbl-row\" bg=\"md-tbl-row-bg\">" + contents + "</ansi> |"
-}
-
-func (ANSITags) TableCell(contents string, _ int) string {
-	return " | <ansi fg=\"md-tbl-cell\" bg=\"md-tbl-cell-bg\">" + contents + "</ansi>"
-}

@@ -10,11 +10,11 @@ import (
 
 // This test should be ran just as a way to verify content visually.
 // Prefixed with "x" when not being used.
-func Test_Printing(t *testing.T) {
+func xTest_Printing(t *testing.T) {
 	src := `# This is a **HEADING**
 
 
-This is a **NEW PARAGRAPH**.
+This is a *NEW PARAGRAPH*.
 Paragraph a preceded by two new lines.  
 This is a **line break**.  
 Line breaks happen when the previous line ended.  
@@ -22,17 +22,16 @@ with two spaces: "  ".
 They are preceded by only a single new line.
 
 This is another paragraph.
-
-  
+ 
 - item one
   - item one >> sub one
   - item one >> sub two
     - item one >> sub two >> sub one
 - **bold** item two
 
-## This is a $$SUB HEADING$$
+## This is a ~~SUB HEADING~~
 
-        That $is$ all.
+        That ~is~ all.
 
 Some text
 ---
@@ -40,17 +39,10 @@ Some text
 :::
 Some more text
 
-
-| Item              | In Stock | Price |
-| :---------------- | :------: | ----: |
-| Python Hat        |   True   | 23.99 |
-| SQL Hat           |   True   | 23.99 |
-| Codecademy Tee    |  False   | 19.99 |
-| Codecademy Hoodie |  False   | 42.99 |
-
-        That $is$ all.
+        That ~is~ all.
 `
 
+	src = "- one\n- two\n- three"
 	parser := NewParser(src)
 	ast := parser.Parse()
 

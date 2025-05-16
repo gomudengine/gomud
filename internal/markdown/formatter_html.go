@@ -32,17 +32,5 @@ func (HTML) Text(contents string, depth int) string {
 func (HTML) Strong(contents string, depth int) string   { return "<strong>" + contents + "</strong>" }
 func (HTML) Emphasis(contents string, depth int) string { return "<em>" + contents + "</em>" }
 func (HTML) Special(contents string, depth int) string {
-	return "<special" + strconv.Itoa(depth) + ">" + contents + "</special" + strconv.Itoa(depth) + ">"
-}
-func (HTML) Table(contents string, _ int) string {
-	return "\n<table>\n" + contents + "\n</table>\n"
-}
-func (HTML) TableHeader(contents string, _ int) string {
-	return "<thead>\n<tr>" + contents + "</tr>\n</thead>\n"
-}
-func (HTML) TableRow(contents string, _ int) string {
-	return "<tr>" + contents + "</tr>\n"
-}
-func (HTML) TableCell(contents string, _ int) string {
-	return "<td>" + contents + "</td>"
+	return "<span data-special=\"" + strconv.Itoa(depth) + "\">" + contents + "</span>"
 }

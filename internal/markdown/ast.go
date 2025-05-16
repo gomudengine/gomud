@@ -19,10 +19,6 @@ const (
 	StrongNode         NodeType = "Strong"
 	EmphasisNode       NodeType = "Emphasis"
 	SpecialNode        NodeType = "Special"
-	TableNode          NodeType = "Table"
-	TableHeaderNode    NodeType = "TableHeader"
-	TableRowNode       NodeType = "TableRow"
-	TableCellNode      NodeType = "TableCell"
 )
 
 var (
@@ -53,7 +49,12 @@ func (n *baseNode) Children() []Node { return n.nodeChildren }
 func (n *baseNode) String(depth int) string {
 	ret := ``
 	for _, c := range n.Children() {
-		ret += c.String(depth + 1)
+		if n.Type() == ListNode {
+			ret += c.String(depth - 1)
+		} else {
+			ret += c.String(depth + 1)
+		}
+
 	}
 
 	switch n.Type() {
@@ -79,15 +80,7 @@ func (n *baseNode) String(depth int) string {
 		return activeFormatter.Emphasis(ret, depth)
 	case SpecialNode:
 		return activeFormatter.Special(ret, n.level)
-	case TableNode:
-		return activeFormatter.Table(ret, depth)
-	case TableHeaderNode:
-		return activeFormatter.TableHeader(ret, len(n.Children()))
-	case TableRowNode:
-		return activeFormatter.TableRow(ret, len(n.Children()))
-	case TableCellNode:
-		return activeFormatter.TableCell(ret, depth)
 	default:
-		return fmt.Sprintf(`[INVALID Node: type=%s depth=%d text=%s]`, n.Type(), depth, ret)
+		return fmt.Sprintf(`[INVALID Node: type=%s depth=%d text=%s]`, n.Type(), depth, n.content+"/"+ret)
 	}
 }

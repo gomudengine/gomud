@@ -27,14 +27,6 @@ func (p *Parser) Parse() Node {
 	for p.pos < len(p.lines) {
 		line := p.lines[p.pos]
 
-		// detect “header” + “separator” pattern
-		if p.pos+1 < len(p.lines) &&
-			strings.Contains(line, "|") &&
-			tableSep.MatchString(p.lines[p.pos+1]) {
-			doc.nodeChildren = append(doc.nodeChildren, p.parseTable())
-			continue
-		}
-
 		switch {
 		case strings.HasPrefix(line, "---"), strings.HasPrefix(line, "==="), strings.HasPrefix(line, ":::"):
 			doc.nodeChildren = append(doc.nodeChildren, p.parseHorizontalLine())
@@ -54,42 +46,6 @@ func (p *Parser) Parse() Node {
 		}
 	}
 	return doc
-}
-
-func (p *Parser) parseTable() *baseNode {
-	table := &baseNode{nodeType: TableNode}
-
-	// 1) header + separator
-	headerLine := p.lines[p.pos]
-	p.pos += 2 // skip header + sep
-
-	// build the header row
-	headerRow := &baseNode{nodeType: TableHeaderNode}
-	for _, cell := range strings.Split(strings.Trim(headerLine, "|"), "|") {
-		headerRow.nodeChildren = append(headerRow.nodeChildren,
-			&baseNode{
-				nodeType:     TableCellNode,
-				nodeChildren: p.parseInline(cell),
-			})
-	}
-	table.nodeChildren = append(table.nodeChildren, headerRow)
-
-	// 2) body rows
-	for p.pos < len(p.lines) && strings.Contains(p.lines[p.pos], "|") {
-		rowLine := p.lines[p.pos]
-		p.pos++
-		row := &baseNode{nodeType: TableRowNode}
-		for _, cell := range strings.Split(strings.Trim(rowLine, "|"), "|") {
-			row.nodeChildren = append(row.nodeChildren,
-				&baseNode{
-					nodeType:     TableCellNode,
-					nodeChildren: p.parseInline(cell),
-				})
-		}
-		table.nodeChildren = append(table.nodeChildren, row)
-	}
-
-	return table
 }
 
 func (p *Parser) parseHorizontalLine() *baseNode {
@@ -221,14 +177,14 @@ func (p *Parser) parseParagraphNodes() []Node {
 func (p *Parser) parseInline(text string) []Node {
 	var nodes []Node
 	for i := 0; i < len(text); {
-		// —— special: $…$
-		if text[i] == '$' {
+		// —— special: ~…~
+		if text[i] == '~' {
 			start := i
-			for i < len(text) && text[i] == '$' {
+			for i < len(text) && text[i] == '~' {
 				i++
 			}
 			count := i - start
-			delim := strings.Repeat("$", count)
+			delim := strings.Repeat("~", count)
 
 			if j := strings.Index(text[i:], delim); j >= 0 {
 				inner := text[i : i+j]
@@ -277,11 +233,11 @@ func (p *Parser) parseInline(text string) []Node {
 
 		// —— plain text fallback
 		j := i
-		for j < len(text) && text[j] != '*' && text[j] != '$' {
+		for j < len(text) && text[j] != '*' && text[j] != '~' {
 			j++
 		}
 		if j == i {
-			// unmatched '*' or '$', consume one char
+			// unmatched '*' or '~', consume one char
 			nodes = append(nodes, &baseNode{
 				nodeType: TextNode,
 				content:  text[i : i+1],
