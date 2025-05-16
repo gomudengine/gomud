@@ -36,6 +36,8 @@ func (p *Parser) Parse() Node {
 		}
 
 		switch {
+		case strings.HasPrefix(line, "---"), strings.HasPrefix(line, "==="), strings.HasPrefix(line, ":::"):
+			doc.nodeChildren = append(doc.nodeChildren, p.parseHorizontalLine())
 		case strings.HasPrefix(line, "#"):
 			doc.nodeChildren = append(doc.nodeChildren, p.parseHeading())
 		case strings.HasPrefix(strings.TrimSpace(line), "- "):
@@ -90,8 +92,28 @@ func (p *Parser) parseTable() *baseNode {
 	return table
 }
 
-func splitRow(line string) []string {
-	return strings.Split(strings.Trim(line, "|"), "|")
+func (p *Parser) parseHorizontalLine() *baseNode {
+	line := p.lines[p.pos]
+	level := 0
+
+	lineType := line[level]
+	for level < len(line) && line[level] == lineType {
+		level++
+	}
+	// skip "# " prefix
+	content := ""
+	if len(line) > level+1 {
+		content = line[level+1:]
+	}
+	p.pos++
+
+	h := &baseNode{
+		nodeType:     HorizontalLineNode,
+		nodeChildren: p.parseInline(content),
+		level:        level,
+		content:      strings.Repeat(string(lineType), 3),
+	}
+	return h
 }
 
 func (p *Parser) parseHeading() *baseNode {
@@ -154,7 +176,7 @@ func (p *Parser) parseList(baseIndent int) *baseNode {
 func (p *Parser) parseParagraphNodes() []Node {
 	// 1) collect until blank line
 	var lines []string
-	for p.pos < len(p.lines) && strings.TrimSpace(p.lines[p.pos]) != "" {
+	for p.pos < len(p.lines) && strings.TrimSpace(p.lines[p.pos]) != "" && !strings.HasPrefix(strings.TrimSpace(p.lines[p.pos]), `---`) {
 		lines = append(lines, p.lines[p.pos])
 		p.pos++
 	}

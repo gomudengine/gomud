@@ -8,20 +8,21 @@ import (
 type NodeType string
 
 const (
-	DocumentNode    NodeType = "Document"
-	HeadingNode     NodeType = "Heading"
-	ParagraphNode   NodeType = "Paragraph"
-	HardBreakNode   NodeType = "HardBreak"
-	ListNode        NodeType = "List"
-	ListItemNode    NodeType = "ListItem"
-	TextNode        NodeType = "Text"
-	StrongNode      NodeType = "Strong"
-	EmphasisNode    NodeType = "Emphasis"
-	SpecialNode     NodeType = "Special"
-	TableNode       NodeType = "Table"
-	TableHeaderNode NodeType = "TableHeader"
-	TableRowNode    NodeType = "TableRow"
-	TableCellNode   NodeType = "TableCell"
+	DocumentNode       NodeType = "Document"
+	HeadingNode        NodeType = "Heading"
+	ParagraphNode      NodeType = "Paragraph"
+	HorizontalLineNode NodeType = "HorizontalLine"
+	HardBreakNode      NodeType = "HardBreak"
+	ListNode           NodeType = "List"
+	ListItemNode       NodeType = "ListItem"
+	TextNode           NodeType = "Text"
+	StrongNode         NodeType = "Strong"
+	EmphasisNode       NodeType = "Emphasis"
+	SpecialNode        NodeType = "Special"
+	TableNode          NodeType = "Table"
+	TableHeaderNode    NodeType = "TableHeader"
+	TableRowNode       NodeType = "TableRow"
+	TableCellNode      NodeType = "TableCell"
 )
 
 var (
@@ -62,6 +63,8 @@ func (n *baseNode) String(depth int) string {
 		return activeFormatter.Heading(ret, n.level)
 	case ParagraphNode:
 		return activeFormatter.Paragraph(ret, depth)
+	case HorizontalLineNode:
+		return activeFormatter.HorizontalLine(n.content, depth)
 	case HardBreakNode:
 		return activeFormatter.HardBreak(ret, depth)
 	case ListNode:

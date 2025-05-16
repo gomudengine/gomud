@@ -34,6 +34,12 @@ This is another paragraph.
 
         That $is$ all.
 
+Some text
+---
+===
+:::
+Some more text
+
 
 | Item              | In Stock | Price |
 | :---------------- | :------: | ----: |
