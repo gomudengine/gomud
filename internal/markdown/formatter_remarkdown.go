@@ -34,3 +34,18 @@ func (r ReMarkdown) Emphasis(contents string, depth int) string { return "*" + c
 func (r ReMarkdown) Special(contents string, depth int) string {
 	return strings.Repeat(`$`, depth) + contents + strings.Repeat(`$`, depth)
 }
+func (ReMarkdown) Table(contents string, _ int) string {
+	return "\n" + contents
+}
+func (ReMarkdown) TableHeader(contents string, cellCount int) string {
+	// we already want a leading pipe on each cell, so:
+	return "\n" + contents + " |"
+}
+
+func (ReMarkdown) TableRow(contents string, cellCount int) string {
+	return "\n" + contents + " |"
+}
+
+func (ReMarkdown) TableCell(contents string, _ int) string {
+	return " | " + contents
+}

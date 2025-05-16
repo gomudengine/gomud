@@ -10,7 +10,7 @@ import (
 
 // This test should be ran just as a way to verify content visually.
 // Prefixed with "x" when not being used.
-func xTest_Printing(t *testing.T) {
+func Test_Printing(t *testing.T) {
 	src := `# This is a **HEADING**
 
 
@@ -32,7 +32,18 @@ This is another paragraph.
 
 ## This is a $$SUB HEADING$$
 
-        That $is$ all.`
+        That $is$ all.
+
+
+| Item              | In Stock | Price |
+| :---------------- | :------: | ----: |
+| Python Hat        |   True   | 23.99 |
+| SQL Hat           |   True   | 23.99 |
+| Codecademy Tee    |  False   | 19.99 |
+| Codecademy Hoodie |  False   | 42.99 |
+
+        That $is$ all.
+`
 
 	parser := NewParser(src)
 	ast := parser.Parse()
@@ -45,6 +56,7 @@ This is another paragraph.
 	fmt.Println()
 	fmt.Println(ast.String(0))
 	fmt.Println()
+
 	fmt.Println("------------------- HTML -------------------")
 	fmt.Println()
 	SetFormatter(HTML{})
@@ -55,6 +67,7 @@ This is another paragraph.
 	SetFormatter(ANSITags{})
 	fmt.Println(ast.String(0))
 	fmt.Println()
+
 	fmt.Println("------------------- DONE -------------------")
 }
 

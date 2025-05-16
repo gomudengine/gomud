@@ -11,4 +11,8 @@ type Formatter interface {
 	Strong(string, int) string
 	Emphasis(string, int) string
 	Special(string, int) string
+	Table(string, int) string
+	TableHeader(string, int) string
+	TableRow(string, int) string
+	TableCell(string, int) string
 }

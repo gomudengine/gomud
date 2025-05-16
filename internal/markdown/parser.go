@@ -1,12 +1,15 @@
 package markdown
 
 import (
+	"regexp"
 	"strings"
 )
 
 const (
 	lineBreakString = "  "
 )
+
+var tableSep = regexp.MustCompile(`^\s*\|?[-: ]+\|?([-: ]*\|?)*\s*$`)
 
 type Parser struct {
 	lines []string
@@ -23,6 +26,15 @@ func (p *Parser) Parse() Node {
 	doc := &baseNode{nodeType: DocumentNode}
 	for p.pos < len(p.lines) {
 		line := p.lines[p.pos]
+
+		// detect “header” + “separator” pattern
+		if p.pos+1 < len(p.lines) &&
+			strings.Contains(line, "|") &&
+			tableSep.MatchString(p.lines[p.pos+1]) {
+			doc.nodeChildren = append(doc.nodeChildren, p.parseTable())
+			continue
+		}
+
 		switch {
 		case strings.HasPrefix(line, "#"):
 			doc.nodeChildren = append(doc.nodeChildren, p.parseHeading())
@@ -40,6 +52,46 @@ func (p *Parser) Parse() Node {
 		}
 	}
 	return doc
+}
+
+func (p *Parser) parseTable() *baseNode {
+	table := &baseNode{nodeType: TableNode}
+
+	// 1) header + separator
+	headerLine := p.lines[p.pos]
+	p.pos += 2 // skip header + sep
+
+	// build the header row
+	headerRow := &baseNode{nodeType: TableHeaderNode}
+	for _, cell := range strings.Split(strings.Trim(headerLine, "|"), "|") {
+		headerRow.nodeChildren = append(headerRow.nodeChildren,
+			&baseNode{
+				nodeType:     TableCellNode,
+				nodeChildren: p.parseInline(cell),
+			})
+	}
+	table.nodeChildren = append(table.nodeChildren, headerRow)
+
+	// 2) body rows
+	for p.pos < len(p.lines) && strings.Contains(p.lines[p.pos], "|") {
+		rowLine := p.lines[p.pos]
+		p.pos++
+		row := &baseNode{nodeType: TableRowNode}
+		for _, cell := range strings.Split(strings.Trim(rowLine, "|"), "|") {
+			row.nodeChildren = append(row.nodeChildren,
+				&baseNode{
+					nodeType:     TableCellNode,
+					nodeChildren: p.parseInline(cell),
+				})
+		}
+		table.nodeChildren = append(table.nodeChildren, row)
+	}
+
+	return table
+}
+
+func splitRow(line string) []string {
+	return strings.Split(strings.Trim(line, "|"), "|")
 }
 
 func (p *Parser) parseHeading() *baseNode {

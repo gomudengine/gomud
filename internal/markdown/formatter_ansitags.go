@@ -9,21 +9,19 @@ import (
 //
 // Expected ansitags color aliases:
 // md
-// md-bg
 // md-p
-// md-p-bg
 // md-h1-prefix
-// md-h1-prefix-bg
 // md-h1, md-h2, md-h3 etc.
-// md-h1-bg, md-h2-bg, md-h3-bg etc.
 // md-li
-// md-li-bg
 // md-bold
-// md-bold-bg
 // md-em
-// md-em-bg
 // md-sp1, md-sp2, md-sp3, etc.
-// md-sp1-bg, md-sp2-bg, md-sp3-bg, etc.
+// md-tbl-hdr
+// md-tbl-row
+// md-tbl-cell
+//
+// All have bg classes named the same with "-bg" at the end.
+// Example: md-li-bg
 type ANSITags struct{}
 
 func (r ANSITags) Document(contents string, depth int) string {
@@ -60,4 +58,19 @@ func (r ANSITags) Emphasis(contents string, depth int) string {
 }
 func (r ANSITags) Special(contents string, depth int) string {
 	return "<ansi fg=\"md-sp" + strconv.Itoa(depth) + "\" bg=\"md-sp" + strconv.Itoa(depth) + "-bg\">" + contents + "</ansi>"
+}
+func (ANSITags) Table(contents string, _ int) string {
+	return "\n<ansi fg=\"md-tbl\" bg=\"md-tbl-bg\">" + contents + "</ansi>"
+}
+func (ANSITags) TableHeader(contents string, cellCount int) string {
+	// we already want a leading pipe on each cell, so:
+	return "\n<ansi fg=\"md-tbl-hdr\" bg=\"md-tbl-hdr-bg\">" + contents + "</ansi> |"
+}
+
+func (ANSITags) TableRow(contents string, cellCount int) string {
+	return "\n<ansi fg=\"md-tbl-row\" bg=\"md-tbl-row-bg\">" + contents + "</ansi> |"
+}
+
+func (ANSITags) TableCell(contents string, _ int) string {
+	return " | <ansi fg=\"md-tbl-cell\" bg=\"md-tbl-cell-bg\">" + contents + "</ansi>"
 }

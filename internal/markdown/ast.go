@@ -8,16 +8,20 @@ import (
 type NodeType string
 
 const (
-	DocumentNode  NodeType = "Document"
-	HeadingNode   NodeType = "Heading"
-	ParagraphNode NodeType = "Paragraph"
-	HardBreakNode NodeType = "HardBreak"
-	ListNode      NodeType = "List"
-	ListItemNode  NodeType = "ListItem"
-	TextNode      NodeType = "Text"
-	StrongNode    NodeType = "Strong"
-	EmphasisNode  NodeType = "Emphasis"
-	SpecialNode   NodeType = "Special"
+	DocumentNode    NodeType = "Document"
+	HeadingNode     NodeType = "Heading"
+	ParagraphNode   NodeType = "Paragraph"
+	HardBreakNode   NodeType = "HardBreak"
+	ListNode        NodeType = "List"
+	ListItemNode    NodeType = "ListItem"
+	TextNode        NodeType = "Text"
+	StrongNode      NodeType = "Strong"
+	EmphasisNode    NodeType = "Emphasis"
+	SpecialNode     NodeType = "Special"
+	TableNode       NodeType = "Table"
+	TableHeaderNode NodeType = "TableHeader"
+	TableRowNode    NodeType = "TableRow"
+	TableCellNode   NodeType = "TableCell"
 )
 
 var (
@@ -72,6 +76,14 @@ func (n *baseNode) String(depth int) string {
 		return activeFormatter.Emphasis(ret, depth)
 	case SpecialNode:
 		return activeFormatter.Special(ret, n.level)
+	case TableNode:
+		return activeFormatter.Table(ret, depth)
+	case TableHeaderNode:
+		return activeFormatter.TableHeader(ret, len(n.Children()))
+	case TableRowNode:
+		return activeFormatter.TableRow(ret, len(n.Children()))
+	case TableCellNode:
+		return activeFormatter.TableCell(ret, depth)
 	default:
 		return fmt.Sprintf(`[INVALID Node: type=%s depth=%d text=%s]`, n.Type(), depth, ret)
 	}
