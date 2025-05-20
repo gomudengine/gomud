@@ -14,7 +14,6 @@ map_url: "https://github.com/GoMudEngine/MudletMapper/releases/latest/download/g
 
 # Discord Rich Presence configuration
 discord_application_id: "1298377884154724412" # Default GoMud Discord Server
-# Should the invite possible be in the normal config.yaml?
 discord_invite_url: "https://discord.gg/FaauSYej3n" # Default GoMud Discord Server
 discord_details: "Using GoMudEngine"
 discord_state: "Exploring the world"

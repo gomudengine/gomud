@@ -362,6 +362,37 @@ func (g *GMCPModule) HandleIAC(connectionId uint64, iacCmd []byte) bool {
 			if err := json.Unmarshal(payload, &decoded); err == nil {
 				mudlog.Debug("GMCP LOGIN", "username", decoded.Name, "password", strings.Repeat(`*`, len(decoded.Password)))
 			}
+
+		// Handle Discord-related messages
+		default:
+			// Check if it's a Discord message
+			if strings.HasPrefix(command, "External.Discord") {
+				// Try to find the user ID associated with this connection
+				userId := 0
+				for _, user := range users.GetAllActiveUsers() {
+					if user.ConnectionId() == connectionId {
+						userId = user.UserId
+						break
+					}
+				}
+
+				if userId > 0 {
+					// Extract the Discord command (Hello, Get, Status)
+					discordCommand := ""
+					if parts := strings.Split(command, "."); len(parts) >= 3 {
+						discordCommand = parts[2] // External.Discord.Hello -> Hello
+					}
+
+					// Dispatch a GMCPDiscordMessage event
+					events.AddToQueue(GMCPDiscordMessage{
+						ConnectionId: connectionId,
+						Command:      discordCommand,
+						Payload:      payload,
+					})
+
+					mudlog.Debug("GMCP", "type", "Discord", "command", discordCommand, "userId", userId)
+				}
+			}
 		}
 
 		return true
@@ -424,7 +455,7 @@ func (g *GMCPModule) dispatchGMCP(e events.Event) events.ListenerReturn {
 			var prettyJSON bytes.Buffer
 			json.Indent(&prettyJSON, v, "", "\t")
 			fmt.Print(gmcp.Module + ` `)
-			fmt.Println(string(prettyJSON.Bytes()))
+			fmt.Println(prettyJSON.String())
 		}
 
 		// Regular code follows...
@@ -446,7 +477,7 @@ func (g *GMCPModule) dispatchGMCP(e events.Event) events.ListenerReturn {
 			var prettyJSON bytes.Buffer
 			json.Indent(&prettyJSON, []byte(v), "", "\t")
 			fmt.Print(gmcp.Module + ` `)
-			fmt.Println(string(prettyJSON.Bytes()))
+			fmt.Println(prettyJSON.String())
 		}
 
 		// Regular code follows...
@@ -473,7 +504,7 @@ func (g *GMCPModule) dispatchGMCP(e events.Event) events.ListenerReturn {
 			var prettyJSON bytes.Buffer
 			json.Indent(&prettyJSON, payload, "", "\t")
 			fmt.Print(gmcp.Module + ` `)
-			fmt.Println(string(prettyJSON.Bytes()))
+			fmt.Println(prettyJSON.String())
 		}
 
 		// Regular code follows...
