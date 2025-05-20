@@ -147,7 +147,7 @@ func GetAllBuffIds() []int {
 	return results
 }
 
-// Searches for buffs whos name contain text and returns their Ids
+// Searches for buffs whose name contains text and returns their Ids
 func SearchBuffs(searchTerm string) []int {
 
 	searchTerm = strings.TrimSpace(strings.ToLower(searchTerm))
