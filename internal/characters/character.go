@@ -505,6 +505,9 @@ func (c *Character) IsCharmed(userId ...int) bool {
 		return c.Charmed != nil
 	}
 
+	if c.Charmed == nil {
+		return false
+	}
 	return slices.Contains(userId, c.Charmed.UserId)
 }
 
