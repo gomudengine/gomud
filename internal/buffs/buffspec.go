@@ -96,10 +96,7 @@ func (b *BuffSpec) GetValue() int {
 		val += int(math.Abs(float64(v)))
 	}
 
-	freqVal := 5 - b.RoundInterval
-	if freqVal < 0 {
-		freqVal = 0
-	}
+	freqVal := max(5-b.RoundInterval, 0)
 	val += freqVal
 	val += len(b.Flags) * 5
 
@@ -150,7 +147,7 @@ func GetAllBuffIds() []int {
 	return results
 }
 
-// Searches for buffs whos name contain text and returns thehr Ids
+// Searches for buffs whos name contain text and returns their Ids
 func SearchBuffs(searchTerm string) []int {
 
 	searchTerm = strings.TrimSpace(strings.ToLower(searchTerm))
