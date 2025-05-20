@@ -1,3 +1,23 @@
+################################################################################
+# If modified, these settings will be copied into your config overrides 
+# folder under `Modules.gmcp`:
+#
+# Modules:
+#   gmcp:
+#     mapper_version: "1"
+#     mapper_url: "https://github.com/GoMudEngine/MudletMapper/releases/latest/download/GoMudMapper.mpackage"
+#     ui_version: "1"
+#     ui_url: "https://github.com/GoMudEngine/MudletUI/releases/latest/download/GoMudUI.mpackage"
+#     map_version: "1"
+#     map_url: "https://github.com/GoMudEngine/MudletMapper/releases/latest/download/gomud.dat"
+#     discord_application_id: "1298377884154724412"
+#     discord_invite_url: "https://discord.gg/FaauSYej3n"
+#     discord_details: "Using GoMudEngine"
+#     discord_state: "Exploring the world"
+#     discord_large_image_key: "server-icon"
+#     discord_small_image_key: "character-icon"
+################################################################################
+
 # Mudlet client configuration
 
 # Mapper configuration
