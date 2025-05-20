@@ -21,7 +21,10 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/statmods"
 	"github.com/GoMudEngine/GoMud/internal/stats"
 	"github.com/GoMudEngine/GoMud/internal/util"
+
 	//
+	"maps"
+	"slices"
 )
 
 var (
@@ -219,7 +222,7 @@ func (c *Character) GetBaseCastSuccessChance(spellId string) int {
 }
 
 func (c *Character) CarryCapacity() int {
-	return 5 + int(math.Floor(float64(c.Stats.Strength.ValueAdj/3)))
+	return 5 + c.Stats.Strength.ValueAdj/3
 }
 
 func (c *Character) DeductActionPoints(amount int) bool {
@@ -271,7 +274,7 @@ func (c *Character) GetMiscDataKeys(prefixMatch ...string) []string {
 	}
 
 	allKeys := []string{}
-	for key, _ := range c.MiscData {
+	for key := range c.MiscData {
 		allKeys = append(allKeys, key)
 	}
 
@@ -380,9 +383,7 @@ func (c *Character) GetDefaultDiceRoll() (attacks int, dCount int, dSides int, b
 
 func (c *Character) GetSpells() map[string]int {
 	ret := make(map[string]int)
-	for sName, sCasts := range c.SpellBook {
-		ret[sName] = sCasts
-	}
+	maps.Copy(ret, c.SpellBook)
 	return ret
 }
 
@@ -444,10 +445,7 @@ func (c *Character) GrantXP(xp int) (actualXP int, xpScale int) {
 		actualXP = xp
 	} else {
 
-		scaleFloat := float64(xpScale) / 100
-		if scaleFloat < 1 {
-			scaleFloat = 1
-		}
+		scaleFloat := max(float64(xpScale)/100, 1)
 
 		actualXP = int(float64(xp) * scaleFloat)
 	}
@@ -463,7 +461,7 @@ func (c *Character) TrackCharmed(mobId int, add bool) {
 	for pos, mobInstanceId := range c.CharmedMobs {
 		if mobInstanceId == mobId {
 			if !add {
-				c.CharmedMobs = append(c.CharmedMobs[:pos], c.CharmedMobs[pos+1:]...)
+				c.CharmedMobs = slices.Delete(c.CharmedMobs, pos, pos+1)
 			}
 			return
 		}
@@ -507,13 +505,7 @@ func (c *Character) IsCharmed(userId ...int) bool {
 		return c.Charmed != nil
 	}
 
-	for _, uId := range userId {
-		if c.Charmed.UserId == uId {
-			return true
-		}
-	}
-
-	return false
+	return slices.Contains(userId, c.Charmed.UserId)
 }
 
 // Returns userId of whoever had charmed them
@@ -561,9 +553,7 @@ func (c *Character) GetHealthAppearance() string {
 
 func (c *Character) GetAllSkillRanks() map[string]int {
 	retMap := make(map[string]int)
-	for skillName, skillLevel := range c.Skills {
-		retMap[skillName] = skillLevel
-	}
+	maps.Copy(retMap, c.Skills)
 	return retMap
 }
 
@@ -606,12 +596,7 @@ func (c *Character) GetPlayerName(viewingUserId int, renderFlags ...NameRenderFl
 }
 
 func (c *Character) HasAdjective(adj string) bool {
-	for _, a := range c.Adjectives {
-		if a == adj {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(c.Adjectives, adj)
 }
 
 func (c *Character) SetAdjective(adj string, addToList bool) {
@@ -623,7 +608,7 @@ func (c *Character) SetAdjective(adj string, addToList bool) {
 			if addToList {
 				return
 			} else {
-				c.Adjectives = append(c.Adjectives[:i], c.Adjectives[i+1:]...)
+				c.Adjectives = slices.Delete(c.Adjectives, i, i+1)
 				return
 			}
 		}
@@ -708,7 +693,6 @@ func (c *Character) PruneCooldowns() {
 	}
 
 	c.Cooldowns.Prune()
-
 }
 
 func (c *Character) GetCooldown(trackingTag string) int {
@@ -726,9 +710,7 @@ func (c *Character) GetAllCooldowns() map[string]int {
 		return ret
 	}
 
-	for trackingTag, rounds := range c.Cooldowns {
-		ret[trackingTag] = rounds
-	}
+	maps.Copy(ret, c.Cooldowns)
 
 	return ret
 }
@@ -1513,11 +1495,7 @@ func (c *Character) AutoTrain() {
 }
 
 func (c *Character) CanDualWield() bool {
-
-	if c.GetSkillLevel(skills.DualWield) > 0 {
-		return true
-	}
-	return false
+	return c.GetSkillLevel(skills.DualWield) > 0
 }
 
 // Returns whether a correction was in order

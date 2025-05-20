@@ -7,7 +7,7 @@ import (
 type Cooldowns map[string]int
 
 func (cd Cooldowns) RoundTick() {
-	for trackingTag, _ := range cd {
+	for trackingTag := range cd {
 		cd[trackingTag] = cd[trackingTag] - 1
 	}
 }

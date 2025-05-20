@@ -1,6 +1,8 @@
 package characters
 
 import (
+	"slices"
+
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/gametime"
 	"github.com/GoMudEngine/GoMud/internal/util"
@@ -166,7 +168,7 @@ func (s *Shop) Destock(si ShopItem) bool {
 		(*s)[i].Quantity -= 1
 
 		if (*s)[i].Quantity == 0 && (*s)[i].QuantityMax == StockTemporary {
-			(*s) = append((*s)[:i], (*s)[i+1:]...)
+			(*s) = slices.Delete((*s), i, i+1)
 		}
 
 		return true
