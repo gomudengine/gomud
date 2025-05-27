@@ -54,18 +54,13 @@ func init() {
 
 	//
 	// Register any scripting functions
+	// None at this time
 	//
-	// Will be available in scripts as:
-	// module.follow.GetFollowers()
-	// f.plug.AddScriptingFunction("GetFollowers", f.Scripting_GetFollowers)
 
-	// events.RegisterListener(events.RoomChange{}, f.roomChangeHandler)
-	// events.RegisterListener(events.PlayerDespawn{}, f.playerDespawnHandler)
-	// events.RegisterListener(events.MobDeath{}, f.onMobDeath)
-	// events.RegisterListener(events.PlayerDeath{}, f.onPlayerDeath)
-	// events.RegisterListener(events.MobIdle{}, f.idleMobHandler, events.First)
-	// events.RegisterListener(events.PartyUpdated{}, f.onPartyChange)
-	// events.RegisterListener(events.NewRound{}, f.onNewRound)
+	//
+	// Register any event listeners
+	// None at this time
+	//
 }
 
 // Using a struct gives a way to store longer term data.
