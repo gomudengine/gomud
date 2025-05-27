@@ -29,7 +29,6 @@ var (
 		"befriend":       {Befriend, false},
 		"break":          {Break, false},
 		"broadcast":      {Broadcast, false},
-		`bury`:           {Bury, false},
 		"cast":           {Cast, false},
 		"converse":       {Converse, false},
 		"callforhelp":    {CallForHelp, false},
@@ -63,7 +62,6 @@ var (
 		"suicide":        {Suicide, true},
 		//		"stash":  {Stash, false},
 		"throw":  {Throw, false},
-		"trash":  {Trash, false},
 		"wander": {Wander, false},
 	}
 )

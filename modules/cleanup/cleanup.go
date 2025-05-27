@@ -7,6 +7,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/events"
+	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/plugins"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/users"
@@ -52,15 +53,8 @@ func init() {
 	c.plug.AddUserCommand(`trash`, c.trashCommand, false, false)
 	c.plug.AddUserCommand(`bury`, c.buryCommand, false, false)
 
-	//
-	// Register any scripting functions
-	// None at this time
-	//
-
-	//
-	// Register any event listeners
-	// None at this time
-	//
+	c.plug.AddMobCommand(`trash`, c.mobTrash, false)
+	c.plug.AddMobCommand(`bury`, c.mobBury, false)
 }
 
 // Using a struct gives a way to store longer term data.
@@ -110,6 +104,25 @@ func (c *CleanupModule) trashCommand(rest string, user *users.UserRecord, room *
 	return true, nil
 }
 
+func (c *CleanupModule) mobTrash(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
+
+	// Check whether the user has an item in their inventory that matches
+	matchItem, found := mob.Character.FindInBackpack(rest)
+
+	if found {
+		mob.Character.RemoveItem(matchItem)
+
+		events.AddToQueue(events.ItemOwnership{
+			MobInstanceId: mob.InstanceId,
+			Item:          matchItem,
+			Gained:        false,
+		})
+
+	}
+
+	return true, nil
+}
+
 func (c *CleanupModule) buryCommand(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
 	args := util.SplitButRespectQuotes(strings.ToLower(rest))
@@ -138,6 +151,34 @@ func (c *CleanupModule) buryCommand(rest string, user *users.UserRecord, room *r
 	}
 
 	user.SendText(fmt.Sprintf("You don't see a %s around for burying.", rest))
+
+	return true, nil
+}
+
+func (c *CleanupModule) mobBury(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
+
+	args := util.SplitButRespectQuotes(strings.ToLower(rest))
+
+	if len(args) == 0 {
+		return true, nil
+	}
+
+	if corpse, corpseFound := room.FindCorpse(rest); corpseFound {
+
+		if room.RemoveCorpse(corpse) {
+
+			corpseColor := `mob-corpse`
+			if corpse.UserId > 0 {
+				corpseColor = `user-corpse`
+			}
+
+			room.SendText(fmt.Sprintf(`<ansi fg="mobname">%s</ansi> buries the <ansi fg="%s">%s corpse</ansi>.`, mob.Character.Name, corpseColor, corpse.Character.Name))
+			return true, nil
+
+		}
+
+		return true, nil
+	}
 
 	return true, nil
 }
