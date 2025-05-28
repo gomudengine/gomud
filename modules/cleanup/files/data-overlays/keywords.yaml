@@ -1,8 +1,5 @@
 help:
   command:
     information:
-      - cleanup
-help-aliases:
-  cleanup:
-    - trash
-    - bury
+      - bury
+      - trash
