@@ -47,20 +47,40 @@ func init() {
 	if err := c.plug.AttachFileSystem(files); err != nil {
 		panic(err)
 	}
+
 	//
 	// Register any user/mob commands
 	//
-	c.plug.AddUserCommand(`trash`, c.trashCommand, false, false)
-	c.plug.AddUserCommand(`bury`, c.buryCommand, false, false)
+	c.plug.AddUserCommand("trash", c.trashCommand, false, false)
+	c.plug.AddUserCommand("bury", c.buryCommand, false, false)
 
-	c.plug.AddMobCommand(`trash`, c.mobTrash, false)
-	c.plug.AddMobCommand(`bury`, c.mobBury, false)
+	c.plug.AddMobCommand("trash", c.mobTrash, false)
+	c.plug.AddMobCommand("bury", c.mobBury, false)
+
 }
 
 // Using a struct gives a way to store longer term data.
 type CleanupModule struct {
 	// Keep a reference to the plugin when we create it so that we can call ReadBytes() and WriteBytes() on it.
 	plug *plugins.Plugin
+
+	TrashExperienceEnabled      bool
+	DefaultTrashExperienceValue int
+}
+
+func (c *CleanupModule) loadConfig() {
+
+	if trashExperienceEnabled, ok := c.plug.Config.Get("TrashExperienceEnabled").(bool); ok {
+		c.TrashExperienceEnabled = trashExperienceEnabled
+	}
+
+	if trashExperienceValue, ok := c.plug.Config.Get("TrashDefaultExperienceValue").(int); ok {
+		if trashExperienceValue < 1 {
+			trashExperienceValue = 1
+		}
+		c.DefaultTrashExperienceValue = trashExperienceValue
+	}
+
 }
 
 func (c *CleanupModule) trashCommand(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
@@ -71,6 +91,8 @@ func (c *CleanupModule) trashCommand(rest string, user *users.UserRecord, room *
 	if !found {
 		user.SendText(fmt.Sprintf(`You don't have a "%s" to trash.`, rest))
 	} else {
+
+		c.loadConfig()
 
 		isSneaking := user.Character.HasBuffFlag(buffs.Hidden)
 
@@ -91,13 +113,18 @@ func (c *CleanupModule) trashCommand(rest string, user *users.UserRecord, room *
 				user.UserId)
 		}
 
-		iSpec := matchItem.GetSpec()
+		if c.TrashExperienceEnabled {
 
-		xpGrant := int(float64(iSpec.Value) / 10)
-		if xpGrant < 1 {
-			xpGrant = 1
+			// Grant experience equal to a tenth of the item value
+			iSpec := matchItem.GetSpec()
+
+			xpGrant := int(float64(iSpec.Value) / 10)
+			if xpGrant < 1 {
+				xpGrant = c.DefaultTrashExperienceValue
+			}
+			user.GrantXP(xpGrant, `trash cleanup`)
+
 		}
-		user.GrantXP(xpGrant, `trash cleanup`)
 
 	}
 
