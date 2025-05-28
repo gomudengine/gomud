@@ -51,11 +51,11 @@ func init() {
 	//
 	// Register any user/mob commands
 	//
-	c.plug.AddUserCommand("trash", c.trashCommand, false, false)
-	c.plug.AddUserCommand("bury", c.buryCommand, false, false)
+	c.plug.AddUserCommand("trash", c.userTrashCommand, false, false)
+	c.plug.AddUserCommand("bury", c.userBuryCommand, false, false)
 
-	c.plug.AddMobCommand("trash", c.mobTrash, false)
-	c.plug.AddMobCommand("bury", c.mobBury, false)
+	c.plug.AddMobCommand("trash", c.mobTrashCommand, false)
+	c.plug.AddMobCommand("bury", c.mobBuryCommand, false)
 
 }
 
@@ -83,7 +83,7 @@ func (c *CleanupModule) loadConfig() {
 
 }
 
-func (c *CleanupModule) trashCommand(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
+func (c *CleanupModule) userTrashCommand(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
 	// Check whether the user has an item in their inventory that matches
 	matchItem, found := user.Character.FindInBackpack(rest)
@@ -119,7 +119,7 @@ func (c *CleanupModule) trashCommand(rest string, user *users.UserRecord, room *
 			iSpec := matchItem.GetSpec()
 
 			xpGrant := int(float64(iSpec.Value) / 10)
-			if xpGrant < 1 {
+			if xpGrant < c.DefaultTrashExperienceValue {
 				xpGrant = c.DefaultTrashExperienceValue
 			}
 			user.GrantXP(xpGrant, `trash cleanup`)
@@ -131,7 +131,7 @@ func (c *CleanupModule) trashCommand(rest string, user *users.UserRecord, room *
 	return true, nil
 }
 
-func (c *CleanupModule) mobTrash(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
+func (c *CleanupModule) mobTrashCommand(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 	// Check whether the user has an item in their inventory that matches
 	matchItem, found := mob.Character.FindInBackpack(rest)
@@ -150,7 +150,7 @@ func (c *CleanupModule) mobTrash(rest string, mob *mobs.Mob, room *rooms.Room) (
 	return true, nil
 }
 
-func (c *CleanupModule) buryCommand(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
+func (c *CleanupModule) userBuryCommand(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
 	args := util.SplitButRespectQuotes(strings.ToLower(rest))
 
@@ -182,7 +182,7 @@ func (c *CleanupModule) buryCommand(rest string, user *users.UserRecord, room *r
 	return true, nil
 }
 
-func (c *CleanupModule) mobBury(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
+func (c *CleanupModule) mobBuryCommand(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 	args := util.SplitButRespectQuotes(strings.ToLower(rest))
 
