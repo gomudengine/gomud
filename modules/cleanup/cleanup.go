@@ -74,11 +74,11 @@ func (c *CleanupModule) loadConfig() {
 		c.TrashExperienceEnabled = trashExperienceEnabled
 	}
 
-	if trashExperienceValue, ok := c.plug.Config.Get("TrashDefaultExperienceValue").(int); ok {
-		if trashExperienceValue < 1 {
-			trashExperienceValue = 1
+	if experienceValue, ok := c.plug.Config.Get("ExperienceValue").(int); ok {
+		if experienceValue < 1 {
+			experienceValue = 1
 		}
-		c.DefaultTrashExperienceValue = trashExperienceValue
+		c.DefaultTrashExperienceValue = experienceValue
 	}
 
 }

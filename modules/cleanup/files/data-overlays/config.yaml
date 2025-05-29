@@ -5,8 +5,8 @@
 # Modules:
 #   cleanup:
 #     TrashExperienceEnabled: true
-#     TrashDefaultExperienceValue: 5
+#     ExperienceValue: 5
 ################################################################################
 # Experience values, set enabled with a value of 1 to ensure a non-breaking change
 TrashExperienceEnabled: true
-TrashDefaultExperienceValue: 5
+ExperienceValue: 1
