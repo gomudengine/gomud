@@ -14,6 +14,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/colorpatterns"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/fileloader"
+	"github.com/GoMudEngine/GoMud/internal/markdown"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/ansitags"
@@ -33,6 +34,10 @@ const (
 	AnsiTagsNone    = AnsiTagsDefault        // alias to default
 
 	ForceScreenReaderUserId = -1
+
+	divider = "\n<ansi fg=\"6\">  .--.      .-'.      .--.      .--.      .--.      .--.      .`-.      .--.\n" +
+		"<ansi fg=\"187\">:::::.</ansi>\\<ansi fg=\"187\">::::::::.</ansi>\\<ansi fg=\"187\">::::::::.</ansi>\\<ansi fg=\"187\">::::::::.</ansi>\\<ansi fg=\"187\">::::::::.</ansi>\\<ansi fg=\"187\">::::::::.</ansi>\\<ansi fg=\"187\">::::::::.</ansi>\\<ansi fg=\"187\">::::::::.</ansi>\\<ansi fg=\"187\"></ansi>\n" +
+		"'      `--'      `.-'      `--'      `--'      `--'      `-.'      `--'      `</ansi>\n"
 )
 
 type cacheEntry struct {
@@ -100,12 +105,19 @@ type templateConfig struct {
 }
 
 type templateDetails struct {
-	name string
-	path string
+	name       string
+	path       string
+	preProcess func(string) string
 }
 
 func ClearTemplateConfigCache(userId int) {
 	delete(templateConfigCache, userId)
+}
+
+func processMarkdown(in string) string {
+	markdown.SetFormatter(markdown.ANSITags{})
+	p := markdown.NewParser(in)
+	return "\n" + divider + "\n" + p.Parse().String(0) + "\n"
 }
 
 func Process(fname string, data any, receivingUserId ...int) (string, error) {
@@ -159,6 +171,14 @@ func Process(fname string, data any, receivingUserId ...int) (string, error) {
 
 	filesToAttempt = append(filesToAttempt,
 		templateDetails{
+			name:       fname,
+			path:       util.FilePath(`templates/`, fname+`.md`), // All templates must end with .template
+			preProcess: processMarkdown,
+		},
+	)
+
+	filesToAttempt = append(filesToAttempt,
+		templateDetails{
 			name: fname,
 			path: util.FilePath(`templates/`, fname+`.template`), // All templates must end with .template
 		},
@@ -182,6 +202,10 @@ func Process(fname string, data any, receivingUserId ...int) (string, error) {
 			// return the final data as a string, parse ansi tags if needed (No need to parse if it was preparsed)
 			if parseAnsiTags {
 				return ansitags.Parse(buf.String(), ansitagsParseBehavior...), nil
+			}
+
+			if tplInfo.preProcess != nil {
+				return tplInfo.preProcess(buf.String()), nil
 			}
 			return buf.String(), nil
 		}
@@ -225,6 +249,10 @@ func Process(fname string, data any, receivingUserId ...int) (string, error) {
 		// return the final data as a string, parse ansi tags if needed (No need to parse if it was preparsed)
 		if parseAnsiTags {
 			return ansitags.Parse(buf.String(), ansitagsParseBehavior...), nil
+		}
+
+		if tplInfo.preProcess != nil {
+			return tplInfo.preProcess(buf.String()), nil
 		}
 		return buf.String(), nil
 	}

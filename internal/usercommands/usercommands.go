@@ -52,7 +52,6 @@ var (
 		`badcommands`: {BadCommands, true, true}, // Admin only
 		`biome`:       {Biome, true, false},
 		`broadcast`:   {Broadcast, true, false},
-		`bury`:        {Bury, false, false},
 		`character`:   {Character, true, false},
 		`tackle`:      {Tackle, false, false},
 		`bank`:        {Bank, false, false},
@@ -156,7 +155,6 @@ var (
 		`teleport`:    {Teleport, true, true}, // Admin only
 		`throw`:       {Throw, false, false},
 		`track`:       {Track, false, false},
-		`trash`:       {Trash, false, false},
 		`train`:       {Train, false, false},
 		`unenchant`:   {Unenchant, false, false},
 		`uncurse`:     {Uncurse, false, false},
