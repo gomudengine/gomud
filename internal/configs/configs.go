@@ -317,7 +317,12 @@ func SetVal(propertyPath string, newVal string) error {
 		return err
 	}
 
-	return configData.OverlayOverrides(overrides)
+	if err = configData.OverlayOverrides(overrides); err != nil {
+		return err
+	}
+
+	configData.Validate()
+	return nil
 }
 
 func GetConfig() Config {

@@ -77,13 +77,11 @@ Server:
   #   It is a good idea to lock configs related to folder/file paths to prevent
   #   accidental changes that could break the game.
   Locked:
-  - DataFiles
-  - PublicHtml
-  - AdminHtml
-  - NextRoomId
-  - Seed
-  - OnLoginCommands
-  - BannedNames
+  - FilePaths
+  - Server.NextRoomId
+  - Server.Seed
+  - Server.OnLoginCommands
+  - Server.BannedNames
 
 ################################################################################
 #
