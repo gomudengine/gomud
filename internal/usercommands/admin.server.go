@@ -345,7 +345,7 @@ func server_Config(_ string, user *users.UserRecord, room *rooms.Room, flags eve
 		}
 	}
 
-	question := cmdPrompt.Ask(`Choose a config option, or "quit"`, []string{``}, ``)
+	question := cmdPrompt.Ask(`Choose a config option, or "quit":`, []string{``}, ``)
 	if !question.Done {
 		return true, nil
 	}
