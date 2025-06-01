@@ -22,6 +22,10 @@ var (
 	errValueLocked    = errors.New("This config value is locked. You must edit the config file directly.")
 )
 
+const (
+	newValuePrompt = `New value for <ansi fg="6">%s</ansi>`
+)
+
 /*
 * Role Permissions:
 * server 				(All)
@@ -321,7 +325,7 @@ func server_Config(_ string, user *users.UserRecord, room *rooms.Room, flags eve
 				return true, nil
 			}
 
-			question := cmdPrompt.Ask(`New Value for `+configPrefix, []string{fmt.Sprintf("%v", configVal)}, fmt.Sprintf("%v", configVal))
+			question := cmdPrompt.Ask(fmt.Sprintf(newValuePrompt, configPrefix), []string{fmt.Sprintf("%v", configVal)}, fmt.Sprintf("%v", configVal))
 			if !question.Done {
 				return true, nil
 			}
@@ -330,7 +334,10 @@ func server_Config(_ string, user *users.UserRecord, room *rooms.Room, flags eve
 
 			err := configs.SetVal(configPrefix, question.Response)
 			if err == nil {
-				user.SendText(configPrefix + " has been set to: " + question.Response)
+				allConfigData := configs.GetConfig().AllConfigData()
+				user.SendText(``)
+				user.SendText(fmt.Sprintf(`<ansi fg="6">%s</ansi> has been set to: <ansi fg="9">%s<ansi>`, configPrefix, allConfigData[configPrefix]))
+				user.SendText(``)
 				return true, nil
 			}
 			user.SendText(err.Error())
@@ -365,6 +372,7 @@ func server_Config(_ string, user *users.UserRecord, room *rooms.Room, flags eve
 	if !ok {
 		question.RejectResponse()
 		menuOptions, _ = getConfigOptions("")
+		fullPath = strings.ToLower(configPrefix)
 	} else {
 
 		if len(menuOptions) == 1 {
@@ -380,12 +388,18 @@ func server_Config(_ string, user *users.UserRecord, room *rooms.Room, flags eve
 
 			allConfigData := configs.GetConfig().AllConfigData()
 			if configVal, ok := allConfigData[fullPath]; ok {
-				cmdPrompt.Ask(`New Value for `+fullPath, []string{fmt.Sprintf("%v", configVal)}, fmt.Sprintf("%v", configVal))
+
+				cmdPrompt.Ask(fmt.Sprintf(newValuePrompt, fullPath), []string{fmt.Sprintf("%v", configVal)}, fmt.Sprintf("%v", configVal))
 				return true, nil
 			}
 		}
 
 		cmdPrompt.Store("config-selected", fullPath)
+	}
+
+	if fullPath != "" {
+		user.SendText(``)
+		user.SendText(`   [<ansi fg="6">` + fullPath + `</ansi>]`)
 	}
 
 	tplTxt, _ := templates.Process("tables/numbered-list", menuOptions, user.UserId)
