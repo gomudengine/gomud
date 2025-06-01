@@ -1,7 +1,6 @@
 package fileloader
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/fs"
@@ -38,10 +37,6 @@ type Loadable[K comparable] interface {
 }
 
 const (
-	// File types to load
-	FileTypeYaml FileType = iota
-	FileTypeJson
-
 	// Save options
 	SaveCareful SaveOption = iota // Save a backup and rename vs. just overwriting
 )
@@ -61,35 +56,19 @@ func LoadFlatFile[T LoadableSimple](path string) (T, error) {
 		return loaded, errors.New(`filepath: ` + path + ` is a directory`)
 	}
 
-	fpathLower := strings.ToLower(path[len(path)-5:]) // Only need to compare the last 5 characters
-
-	if fpathLower == `.yaml` {
-
-		bytes, err := os.ReadFile(path)
-		if err != nil {
-			return loaded, errors.Wrap(err, `filepath: `+path)
-		}
-
-		err = yaml.Unmarshal(bytes, &loaded)
-		if err != nil {
-			return loaded, errors.Wrap(err, `filepath: `+path)
-		}
-
-	} else if fpathLower == `.json` {
-
-		bytes, err := os.ReadFile(path)
-		if err != nil {
-			return loaded, errors.Wrap(err, `filepath: `+path)
-		}
-
-		err = json.Unmarshal(bytes, &loaded)
-		if err != nil {
-			return loaded, errors.Wrap(err, `filepath: `+path)
-		}
-
-	} else {
-		// Skip the file altogether
+	fExt := filepath.Ext(path)
+	if fExt != `.yaml` {
 		return loaded, errors.New(`invalid file type: ` + path)
+	}
+
+	bytes, err := os.ReadFile(path)
+	if err != nil {
+		return loaded, errors.Wrap(err, `filepath: `+path)
+	}
+
+	err = yaml.Unmarshal(bytes, &loaded)
+	if err != nil {
+		return loaded, errors.Wrap(err, `filepath: `+path)
 	}
 
 	// Make sure the Filepath it claims is correct in case we need to save it later
@@ -106,40 +85,35 @@ func LoadFlatFile[T LoadableSimple](path string) (T, error) {
 }
 
 // LoadAllFlatFilesSimple doesn't require a unique Id() for each item
-func LoadAllFlatFilesSimple[T LoadableSimple](basePath string, fileTypes ...FileType) ([]T, error) {
+func LoadAllFlatFilesSimple[T LoadableSimple](basePath string, filePattern ...string) ([]T, error) {
 
 	loadedData := make([]T, 0, 128)
 
-	includeYaml := true
-	includeJson := true
-
-	if len(fileTypes) > 0 {
-		includeYaml = false
-		includeJson = false
-
-		for _, fType := range fileTypes {
-			if fType == FileTypeYaml {
-				includeYaml = true
-			} else if fType == FileTypeJson {
-				includeJson = true
-			}
-		}
-	}
+	fileSuffix := `.yaml` // Only support yaml
+	suffixLen := len(fileSuffix)
 
 	err := filepath.Walk(basePath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
-		// only lower the last 5 characters of the path string
-		fpathLower := strings.ToLower(path[len(path)-5:])
-
-		if !includeYaml && fpathLower == `.yaml` {
-			return errors.New(`invalid file type (yaml): ` + path)
+		if info.IsDir() {
+			return nil
 		}
 
-		if !includeJson && fpathLower == `.json` {
-			return errors.New(`invalid file type (json): ` + path)
+		if len(path) < suffixLen {
+			return nil
+		}
+
+		if path[len(path)-suffixLen:] != fileSuffix {
+			return nil
+		}
+
+		if len(filePattern) > 0 {
+			fileName := filepath.Base(path)
+			if ok, _ := filepath.Match(filePattern[0], fileName); !ok {
+				return nil
+			}
 		}
 
 		loaded, err := LoadFlatFile[T](path)
@@ -157,27 +131,14 @@ func LoadAllFlatFilesSimple[T LoadableSimple](basePath string, fileTypes ...File
 }
 
 // Will check the ID() of each item to make sure it's unique
-func LoadAllFlatFiles[K comparable, T Loadable[K]](basePath string, fileTypes ...FileType) (map[K]T, error) {
+func LoadAllFlatFiles[K comparable, T Loadable[K]](basePath string, filePattern ...string) (map[K]T, error) {
 
 	basePath = filepath.FromSlash(basePath)
 
 	loadedData := make(map[K]T)
 
-	includeYaml := true
-	includeJson := true
-
-	if len(fileTypes) > 0 {
-		includeYaml = false
-		includeJson = false
-
-		for _, fType := range fileTypes {
-			if fType == FileTypeYaml {
-				includeYaml = true
-			} else if fType == FileTypeJson {
-				includeJson = true
-			}
-		}
-	}
+	fileSuffix := `.yaml` // Only support yaml
+	suffixLen := len(fileSuffix)
 
 	err := filepath.Walk(basePath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -188,36 +149,31 @@ func LoadAllFlatFiles[K comparable, T Loadable[K]](basePath string, fileTypes ..
 			return nil
 		}
 
+		if len(path) < suffixLen {
+			return nil
+		}
+
+		if path[len(path)-suffixLen:] != fileSuffix {
+			return nil
+		}
+
+		if len(filePattern) > 0 {
+			fileName := filepath.Base(path)
+			if ok, _ := filepath.Match(filePattern[0], fileName); !ok {
+				return nil
+			}
+		}
+
+		bytes, err := os.ReadFile(path)
+		if err != nil {
+			return errors.Wrap(err, `filepath: `+path)
+		}
+
 		var loaded T
 
-		fpathLower := path[len(path)-5:] // Only need to compare the last 5 characters
-		if includeYaml && fpathLower == `.yaml` {
-
-			bytes, err := os.ReadFile(path)
-			if err != nil {
-				return errors.Wrap(err, `filepath: `+path)
-			}
-
-			err = yaml.Unmarshal(bytes, &loaded)
-			if err != nil {
-				return errors.Wrap(err, `filepath: `+path)
-			}
-
-		} else if includeJson && fpathLower == `.json` {
-
-			bytes, err := os.ReadFile(path)
-			if err != nil {
-				return errors.Wrap(err, `filepath: `+path)
-			}
-
-			err = json.Unmarshal(bytes, &loaded)
-			if err != nil {
-				return errors.Wrap(err, `filepath: `+path)
-			}
-
-		} else {
-			// Skip the file altogether
-			return nil
+		err = yaml.Unmarshal(bytes, &loaded)
+		if err != nil {
+			return errors.Wrap(err, `filepath: `+path)
 		}
 
 		if !strings.HasSuffix(path, filepath.FromSlash(loaded.Filepath())) {
@@ -257,23 +213,16 @@ func SaveFlatFile[T LoadableSimple](basePath string, dataUnit T, saveOptions ...
 
 	// Get filepath from interface
 	path := filepath.Join(basePath, dataUnit.Filepath())
-
-	os.MkdirAll(filepath.Dir(path), os.ModePerm)
-
-	var bytes []byte
-	var err error
-
-	fpathLower := path[len(path)-5:] // Only need to compare the last 5 characters
+	fExt := filepath.Ext(path)
 
 	// Use filepath to determine file marshal type
-	if fpathLower == `.yaml` {
-		bytes, err = yaml.Marshal(dataUnit)
-	} else if fpathLower == `.json` {
-		bytes, err = json.Marshal(dataUnit)
-	} else {
+	if fExt != `.yaml` {
 		return errors.New(fmt.Sprint(`SaveFlatFile`, `basePath`, basePath, `type`, fmt.Sprintf(`%T`, *new(T)), `path`, path, `err`, `unsupported file type`))
 	}
 
+	os.MkdirAll(filepath.Dir(path), os.ModePerm)
+
+	bytes, err := yaml.Marshal(dataUnit)
 	if err != nil {
 		return errors.New(fmt.Sprint(`SaveFlatFile`, `basePath`, basePath, `type`, fmt.Sprintf(`%T`, *new(T)), `path`, path, `err`, err))
 	}
@@ -340,17 +289,14 @@ func SaveAllFlatFiles[K comparable, T Loadable[K]](basePath string, data map[K]T
 
 				// Get filepath from interface
 				path := filepath.Join(basePath, dataUnit.Filepath())
-				fpathLower := path[len(path)-5:] // Only need to compare the last 5 characters
+				fExt := filepath.Ext(path)
 
 				// Use filepath to determine file marshal type
-				if fpathLower == `.yaml` {
-					bytes, err = yaml.Marshal(dataUnit)
-				} else if fpathLower == `.json` {
-					bytes, err = json.Marshal(dataUnit)
-				} else {
+				if fExt != `.yaml` {
 					panic(fmt.Sprint(`SaveAllFlatFiles`, `basePath`, basePath, `type`, fmt.Sprintf(`%T`, *new(T)), `path`, path, `err`, `unsupported file type`))
 				}
 
+				bytes, err = yaml.Marshal(dataUnit)
 				if err != nil {
 					panic(fmt.Sprint(`SaveAllFlatFiles`, `basePath`, basePath, `type`, fmt.Sprintf(`%T`, *new(T)), `path`, path, `err`, err))
 				}

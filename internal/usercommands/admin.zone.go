@@ -281,17 +281,7 @@ func zone_Edit(rest string, user *users.UserRecord, room *rooms.Room, flags even
 		editZoneConfig.Mutators = append(editZoneConfig.Mutators, mutators.Mutator{MutatorId: mutId})
 	}
 
-	// Make sure the edited zone config's roomId gets the changes.
-	if r := rooms.LoadRoom(editZoneConfig.RoomId); r != nil {
-		r.ZoneConfig = editZoneConfig
-	}
-
-	// If the root zone room has been changed, clear the original rooms zone config.
-	if originalZoneConfig.RoomId != editZoneConfig.RoomId {
-		if r := rooms.LoadRoom(originalZoneConfig.RoomId); r != nil {
-			room.ZoneConfig = rooms.ZoneConfig{}
-		}
-	}
+	rooms.SaveZoneConfig(&editZoneConfig)
 
 	user.SendText(``)
 	user.SendText(`Changes saved.`)

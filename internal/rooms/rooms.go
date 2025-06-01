@@ -65,7 +65,7 @@ type Room struct {
 	//mutex
 	RoomId            int                               `yaml:"roomid"`                               // a unique numeric index of the room. Also the filename.
 	Zone              string                            `yaml:"zone"`                                 // zone is a way to partition rooms into groups. Also into folders.
-	ZoneConfig        ZoneConfig                        `yaml:"zoneconfig,omitempty" instance:"skip"` // If non-null is a root room.
+	ZoneConfig        *ZoneConfig                       `yaml:"zoneconfig,omitempty" instance:"skip"` // If non-null is a root room.
 	MusicFile         string                            `yaml:"musicfile,omitempty"`                  // background music to play when in this room
 	IsBank            bool                              `yaml:"isbank,omitempty"`                     // Is this a bank room? If so, players can deposit/withdraw gold here.
 	IsStorage         bool                              `yaml:"isstorage,omitempty"`                  // Is this a storage room? If so, players can add/remove objects here.
@@ -2207,14 +2207,6 @@ func (r *Room) Validate() error {
 			c.Items[i].Validate()
 		}
 		r.Containers[cName] = c
-	}
-
-	if r.ZoneConfig.RoomId != r.RoomId {
-		r.ZoneConfig = ZoneConfig{}
-	} else {
-
-		r.ZoneConfig.Validate()
-
 	}
 
 	return nil

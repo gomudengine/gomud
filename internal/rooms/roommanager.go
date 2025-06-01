@@ -14,6 +14,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/exit"
+	"github.com/GoMudEngine/GoMud/internal/fileloader"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/users"
@@ -23,7 +24,7 @@ import (
 var (
 	roomManager = &RoomManager{
 		rooms:             make(map[int]*Room),
-		zones:             make(map[string]ZoneInfo),
+		zones:             make(map[string]*ZoneConfig),
 		roomsWithUsers:    make(map[int]int),
 		roomsWithMobs:     make(map[int]int),
 		roomIdToFileCache: make(map[int]string),
@@ -36,10 +37,10 @@ const (
 
 type RoomManager struct {
 	rooms             map[int]*Room
-	zones             map[string]ZoneInfo // a map of zone name to room id
-	roomsWithUsers    map[int]int         // key is roomId to # players
-	roomsWithMobs     map[int]int         // key is roomId to # mobs
-	roomIdToFileCache map[int]string      // key is room id, value is the file path
+	zones             map[string]*ZoneConfig // a map of zone name to room id
+	roomsWithUsers    map[int]int            // key is roomId to # players
+	roomsWithMobs     map[int]int            // key is roomId to # mobs
+	roomIdToFileCache map[int]string         // key is room id, value is the file path
 }
 
 // Deletes any knowledge of a room in memory.
@@ -52,11 +53,6 @@ func ClearRoomCache(roomId int) error {
 	}
 
 	if zoneData, ok := roomManager.zones[room.Zone]; ok {
-
-		if zoneData.RootRoomId == roomId {
-			return fmt.Errorf(`room %d is the zone root`, roomId)
-		}
-
 		delete(zoneData.RoomIds, roomId)
 		roomManager.zones[room.Zone] = zoneData
 	}
@@ -144,9 +140,9 @@ func GetZonesWithMutators() ([]string, []int) {
 	rootRoomIds := []int{}
 
 	for zName, zInfo := range roomManager.zones {
-		if zInfo.HasZoneMutators {
+		if len(zInfo.Mutators) > 0 {
 			zNames = append(zNames, zName)
-			rootRoomIds = append(rootRoomIds, zInfo.RootRoomId)
+			rootRoomIds = append(rootRoomIds, zInfo.RoomId)
 		}
 	}
 	return zNames, rootRoomIds
@@ -512,18 +508,15 @@ func addRoomToMemory(room *Room, forceOverWrite ...bool) error {
 	//
 	zoneInfo, ok := roomManager.zones[room.Zone]
 	if !ok {
-		zoneInfo = ZoneInfo{
-			RootRoomId: 0,
-			RoomIds:    make(map[int]struct{}),
+		zoneInfo = &ZoneConfig{
+			Name:    room.Zone,
+			RoomId:  room.RoomId,
+			RoomIds: make(map[int]struct{}),
 		}
 	}
 
 	// Populate the room present lookup in the zone info
 	zoneInfo.RoomIds[room.RoomId] = struct{}{}
-
-	if room.ZoneConfig.RoomId == room.RoomId {
-		zoneInfo.RootRoomId = room.RoomId
-	}
 
 	roomManager.zones[room.Zone] = zoneInfo
 
@@ -533,22 +526,14 @@ func addRoomToMemory(room *Room, forceOverWrite ...bool) error {
 func GetZoneRoot(zone string) (int, error) {
 
 	if zoneInfo, ok := roomManager.zones[zone]; ok {
-		return zoneInfo.RootRoomId, nil
+		return zoneInfo.RoomId, nil
 	}
 
 	return 0, fmt.Errorf("zone %s does not exist.", zone)
 }
 
 func GetZoneConfig(zone string) *ZoneConfig {
-
-	zoneInfo, ok := roomManager.zones[zone]
-
-	if ok {
-		if r := LoadRoom(zoneInfo.RootRoomId); r != nil {
-			return &r.ZoneConfig
-		}
-	}
-	return nil
+	return roomManager.zones[zone]
 }
 
 func IsRoomLoaded(roomId int) bool {
@@ -559,7 +544,7 @@ func IsRoomLoaded(roomId int) bool {
 func ZoneStats(zone string) (rootRoomId int, totalRooms int, err error) {
 
 	if zoneInfo, ok := roomManager.zones[zone]; ok {
-		return zoneInfo.RootRoomId, len(zoneInfo.RoomIds), nil
+		return zoneInfo.RoomId, len(zoneInfo.RoomIds), nil
 	}
 
 	return 0, 0, fmt.Errorf("zone %s does not exist.", zone)
@@ -638,7 +623,7 @@ func MoveToZone(roomId int, newZoneName string) error {
 		return errors.New("new zone doesn't exist")
 	}
 
-	if oldZoneInfo.RootRoomId == roomId {
+	if oldZoneInfo.RoomId == roomId {
 		return errors.New("can't move the root room of a zone")
 	}
 
@@ -674,14 +659,21 @@ func CreateZone(zoneName string) (roomId int, err error) {
 	}
 
 	if zoneInfo, ok := roomManager.zones[zoneName]; ok {
-
-		return zoneInfo.RootRoomId, errors.New("zone already exists")
+		return zoneInfo.RoomId, errors.New("zone already exists")
 	}
+
+	zoneInfo := NewZoneConfig(zoneName)
 
 	zoneFolder := util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), "/", "rooms", "/", ZoneToFolder(zoneName))
 	if err := os.Mkdir(zoneFolder, 0755); err != nil {
 		return 0, err
 	}
+
+	if err := fileloader.SaveFlatFile[*ZoneConfig](zoneFolder, zoneInfo); err != nil {
+		return 0, err
+	}
+
+	roomManager.zones[zoneName] = zoneInfo
 
 	instanceZoneFolder := util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), "/", "rooms.instances", "/", ZoneToFolder(zoneName))
 	if err := os.Mkdir(instanceZoneFolder, 0755); err != nil {
@@ -689,8 +681,6 @@ func CreateZone(zoneName string) (roomId int, err error) {
 	}
 
 	newRoom := NewRoom(zoneName)
-
-	newRoom.ZoneConfig = ZoneConfig{RoomId: newRoom.RoomId}
 
 	if err := newRoom.Validate(); err != nil {
 		return 0, err

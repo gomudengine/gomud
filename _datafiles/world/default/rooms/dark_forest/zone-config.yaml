@@ -1,0 +1,5 @@
+name: Dark Forest
+roomid: 300
+mutators:
+- mutatorid: forest-mist
+musicfile: static/audio/music/dark-forest.mp3

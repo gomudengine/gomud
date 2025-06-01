@@ -96,11 +96,6 @@ func CreateEphemeralRoomIds(roomIds ...int) (map[int]int, error) {
 			continue
 		}
 
-		// Don't allow an ephemeral copy to identify as a zone root.
-		if room.ZoneConfig.RoomId == room.RoomId {
-			room.ZoneConfig = ZoneConfig{}
-		}
-
 		room.RoomId = ephemeralRoomIdMinimum + (chunkId * ephemeralChunkSize) + idx
 
 		// Save the original room ID in case we need it at some point
