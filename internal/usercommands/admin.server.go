@@ -1,6 +1,7 @@
 package usercommands
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 	"sort"
@@ -18,6 +19,11 @@ import (
 
 var (
 	memoryReportCache = map[string]util.MemoryResult{}
+	errValueLocked    = errors.New("This config value is locked. You must edit the config file directly.")
+)
+
+const (
+	newValuePrompt = `New value for <ansi fg="6">%s</ansi>`
 )
 
 /*
@@ -33,6 +39,10 @@ func Server(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 	}
 
 	args := util.SplitButRespectQuotes(rest)
+	if args[0] == "config" {
+		return server_Config(strings.TrimSpace(rest[1:]), user, room, flags)
+	}
+
 	if args[0] == "set" {
 
 		args = args[1:]
@@ -286,4 +296,229 @@ func Server(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 	}
 
 	return true, nil
+}
+
+func server_Config(_ string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
+
+	// Get if already exists, otherwise create new
+	cmdPrompt, isNew := user.StartPrompt(`server config`, "")
+
+	if isNew {
+		user.SendText(``)
+		menuOptions, _ := getConfigOptions("")
+		tplTxt, _ := templates.Process("tables/numbered-list", menuOptions, user.UserId)
+		user.SendText(tplTxt)
+	}
+
+	configPrefix := ""
+	if selection, ok := cmdPrompt.Recall("config-selected"); ok {
+		configPrefix = selection.(string)
+	}
+
+	if configPrefix != "" {
+		allConfigData := configs.GetConfig().AllConfigData()
+		if configVal, ok := allConfigData[configPrefix]; ok {
+
+			if !isEditAllowed(configPrefix) {
+				user.SendText(errValueLocked.Error())
+				user.ClearPrompt()
+				return true, nil
+			}
+
+			question := cmdPrompt.Ask(fmt.Sprintf(newValuePrompt, configPrefix), []string{fmt.Sprintf("%v", configVal)}, fmt.Sprintf("%v", configVal))
+			if !question.Done {
+				return true, nil
+			}
+
+			user.ClearPrompt()
+
+			err := configs.SetVal(configPrefix, question.Response)
+			if err == nil {
+				allConfigData := configs.GetConfig().AllConfigData()
+				user.SendText(``)
+				user.SendText(fmt.Sprintf(`<ansi fg="6">%s</ansi> has been set to: <ansi fg="9">%s<ansi>`, configPrefix, allConfigData[configPrefix]))
+				user.SendText(``)
+				return true, nil
+			}
+			user.SendText(err.Error())
+			return true, nil
+		}
+	}
+
+	question := cmdPrompt.Ask(`Choose a config option, or "quit":`, []string{``}, ``)
+	if !question.Done {
+		return true, nil
+	}
+
+	if question.Response == "quit" {
+		user.SendText("Quitting...")
+		user.ClearPrompt()
+		return true, nil
+	}
+
+	fullPath := strings.ToLower(configPrefix)
+	if fullPath != `` {
+		fullPath += "."
+	}
+	fullPath += question.Response
+
+	if !isEditAllowed(fullPath) {
+		user.SendText(errValueLocked.Error())
+		question.RejectResponse()
+		return true, nil
+	}
+
+	menuOptions, ok := getConfigOptions(fullPath)
+	if !ok {
+		question.RejectResponse()
+		menuOptions, _ = getConfigOptions("")
+		fullPath = strings.ToLower(configPrefix)
+	} else {
+
+		if len(menuOptions) == 1 {
+			fullPath = menuOptions[0].Id.(string)
+
+			cmdPrompt.Store("config-selected", fullPath)
+
+			if !isEditAllowed(fullPath) {
+				user.SendText(errValueLocked.Error())
+				user.ClearPrompt()
+				return true, nil
+			}
+
+			allConfigData := configs.GetConfig().AllConfigData()
+			if configVal, ok := allConfigData[fullPath]; ok {
+
+				cmdPrompt.Ask(fmt.Sprintf(newValuePrompt, fullPath), []string{fmt.Sprintf("%v", configVal)}, fmt.Sprintf("%v", configVal))
+				return true, nil
+			}
+		}
+
+		cmdPrompt.Store("config-selected", fullPath)
+	}
+
+	if fullPath != "" {
+		user.SendText(``)
+		user.SendText(`   [<ansi fg="6">` + fullPath + `</ansi>]`)
+	}
+
+	tplTxt, _ := templates.Process("tables/numbered-list", menuOptions, user.UserId)
+	user.SendText(tplTxt)
+
+	question.RejectResponse()
+
+	return true, nil
+}
+
+func isEditAllowed(configPath string) bool {
+
+	configPath = strings.ToLower(configPath)
+
+	if strings.HasSuffix(configPath, "locked") {
+		return false
+	}
+
+	sc := configs.GetServerConfig()
+	for _, v := range sc.Locked {
+		if strings.HasPrefix(configPath, strings.ToLower(v)) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func getConfigOptions(input string) ([]templates.NameDescription, bool) {
+
+	input = strings.ToLower(input)
+
+	configOptions := []templates.NameDescription{}
+
+	allConfigData := configs.GetConfig().AllConfigData()
+	pathLookup := map[string]string{}
+	for name, _ := range allConfigData {
+
+		lowerName := strings.ToLower(name)
+		pathLookup[lowerName] = name
+
+		builtPath := ""
+		for _, namePart := range strings.Split(name, ".") {
+			builtPath += namePart
+			if _, ok := pathLookup[builtPath]; !ok {
+				pathLookup[strings.ToLower(builtPath)] = builtPath
+			}
+			builtPath += "."
+		}
+	}
+
+	inputProperCase := input
+	if caseCheck, ok := pathLookup[input]; ok {
+
+		inputProperCase = caseCheck
+
+		// Is this a full config path?
+		if configVal, ok := allConfigData[inputProperCase]; ok {
+
+			configOptions = append(configOptions, templates.NameDescription{
+				Id:          inputProperCase,
+				Name:        inputProperCase,
+				Description: fmt.Sprintf("%v", configVal),
+			})
+
+			return configOptions, true
+
+		}
+
+	} else if input != "" {
+		return configOptions, false
+	}
+
+	// Find which partial path we are on and populate options
+	usedNames := map[string]struct{}{}
+	for fullConfigPath, configVal := range allConfigData {
+
+		if input != "" {
+			if len(fullConfigPath) <= len(input) || fullConfigPath[0:len(inputProperCase)] != inputProperCase {
+				continue
+			}
+		}
+
+		nextConfigPathSection := fullConfigPath
+		if len(inputProperCase) > 0 {
+			nextConfigPathSection = nextConfigPathSection[len(inputProperCase)+1:]
+		}
+
+		desc := "..."
+		if dotIdx := strings.Index(nextConfigPathSection, "."); dotIdx != -1 {
+			nextConfigPathSection = nextConfigPathSection[:dotIdx]
+		} else {
+			desc = fmt.Sprintf("%v", configVal)
+		}
+
+		if _, ok := usedNames[nextConfigPathSection]; ok {
+			continue
+		}
+
+		usedNames[nextConfigPathSection] = struct{}{}
+
+		pathWithSection := nextConfigPathSection
+		if len(inputProperCase) > 0 {
+			pathWithSection = inputProperCase + "." + pathWithSection
+		}
+
+		configOptions = append(configOptions, templates.NameDescription{
+			Id:          pathWithSection,
+			Name:        nextConfigPathSection,
+			Description: desc,
+		})
+
+	}
+
+	if len(configOptions) > 0 {
+		sort.Slice(configOptions, func(i, j int) bool {
+			return configOptions[i].Name < configOptions[j].Name
+		})
+	}
+
+	return configOptions, true
 }

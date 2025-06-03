@@ -114,7 +114,7 @@ func (c *Config) DotPaths() map[string]any {
 
 func (c *Config) buildDotPaths(v reflect.Value, prefix string, result map[string]any) {
 	// If the value is a pointer, dereference it.
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Interface || v.Kind() == reflect.Ptr {
 		if v.IsNil() {
 			return
 		}
@@ -317,7 +317,12 @@ func SetVal(propertyPath string, newVal string) error {
 		return err
 	}
 
-	return configData.OverlayOverrides(overrides)
+	if err = configData.OverlayOverrides(overrides); err != nil {
+		return err
+	}
+
+	configData.Validate()
+	return nil
 }
 
 func GetConfig() Config {
