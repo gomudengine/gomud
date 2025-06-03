@@ -58,11 +58,9 @@ func roomsIndex(w http.ResponseWriter, r *http.Request) {
 
 				autoScale := ``
 
-				if rootRoomId, err := rooms.GetZoneRoot(room.Zone); err == nil {
-					if rootRoom := rooms.LoadRoom(rootRoomId); rootRoom != nil {
-						if rootRoom.ZoneConfig.MobAutoScale.Minimum > 0 || rootRoom.ZoneConfig.MobAutoScale.Maximum > 0 {
-							autoScale = fmt.Sprintf(`%d to %d`, rootRoom.ZoneConfig.MobAutoScale.Minimum, rootRoom.ZoneConfig.MobAutoScale.Maximum)
-						}
+				if zoneConfig := rooms.GetZoneConfig(room.Zone); zoneConfig != nil {
+					if zoneConfig.MobAutoScale.Minimum > 0 || zoneConfig.MobAutoScale.Maximum > 0 {
+						autoScale = fmt.Sprintf(`%d to %d`, zoneConfig.MobAutoScale.Minimum, zoneConfig.MobAutoScale.Maximum)
 					}
 				}
 
@@ -88,10 +86,15 @@ func roomsIndex(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 
+			rootRoomId := 0
+			if zCfg := rooms.GetZoneConfig(room.Zone); zCfg != nil {
+				rootRoomId = zCfg.RoomId
+			}
+
 			allRooms = append(allRooms, shortRoomInfo{
 				RoomId:          room.RoomId,
 				RoomZone:        room.Zone,
-				ZoneRoot:        room.ZoneConfig.RoomId == room.RoomId,
+				ZoneRoot:        rootRoomId == room.RoomId,
 				RoomTitle:       room.Title,
 				IsBank:          room.IsBank,
 				IsStorage:       room.IsStorage,

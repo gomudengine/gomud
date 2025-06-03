@@ -6,3 +6,4 @@ autoscale:
 idlemessages:
 - A cold wind blows through the city.
 musicfile: static/audio/music/frostfang.mp3
+defaultbiome: city

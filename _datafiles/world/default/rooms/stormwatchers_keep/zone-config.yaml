@@ -4,3 +4,4 @@ autoscale:
   minimum: 15
   maximum: 25
 musicfile: static/audio/music/whispering-wastes.mp3
+defaultbiome: city

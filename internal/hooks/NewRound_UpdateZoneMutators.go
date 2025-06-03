@@ -13,10 +13,10 @@ func UpdateZoneMutators(e events.Event) events.ListenerReturn {
 	evt := e.(events.NewRound)
 
 	// Update all zone based mutators once a round
-	_, mutZoneRoomIds := rooms.GetZonesWithMutators()
-	for _, rid := range mutZoneRoomIds {
-		if r := rooms.LoadRoom(rid); r != nil {
-			r.ZoneConfig.Mutators.Update(evt.RoundNumber)
+	zoneNames, _ := rooms.GetZonesWithMutators()
+	for _, zoneName := range zoneNames {
+		if zoneInfo := rooms.GetZoneConfig(zoneName); zoneInfo != nil {
+			zoneInfo.Mutators.Update(evt.RoundNumber)
 		}
 	}
 

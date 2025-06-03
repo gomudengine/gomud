@@ -4,3 +4,4 @@ autoscale:
   minimum: 10
   maximum: 13
 musicfile: static/audio/music/frost-lake.mp3
+defaultbiome: shore

@@ -1,3 +1,4 @@
 name: Mystarion
 roomid: 612
 musicfile: static/audio/music/mystarion.mp3
+defaultbiome: city

@@ -356,12 +356,8 @@ func SaveAllRooms() error {
 // Overwrite file and memory for zoneconfig
 func SaveZoneConfig(zoneConfig *ZoneConfig) error {
 
-	zoneFolder := util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), "/", "rooms", "/", ZoneToFolder(zoneConfig.Name))
-	if err := os.Mkdir(zoneFolder, 0755); err != nil {
-		return err
-	}
-
-	if err := fileloader.SaveFlatFile[*ZoneConfig](zoneFolder, zoneConfig); err != nil {
+	zoneFolder := util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), "/", "rooms")
+	if err := fileloader.SaveFlatFile(zoneFolder, zoneConfig); err != nil {
 		return err
 	}
 
@@ -403,6 +399,28 @@ func loadAllRoomZones() error {
 	roomsWithoutEntrances := map[int]string{}
 
 	for _, loadedRoom := range loadedRooms {
+
+		//
+		// This code migrates old format data to the new format (separate zone file)
+		//
+		if loadedRoom.ZoneConfig != nil {
+			fmt.Println(loadedRoom.ZoneConfig)
+			if loadedRoom.ZoneConfig.RoomId == loadedRoom.RoomId {
+				if _, ok := roomManager.zones[loadedRoom.Zone]; !ok {
+					newZone := NewZoneConfig(loadedRoom.Zone)
+					newZone.DefaultBiome = loadedRoom.Biome
+					newZone.IdleMessages = loadedRoom.ZoneConfig.IdleMessages
+					newZone.MusicFile = loadedRoom.ZoneConfig.MusicFile
+					newZone.MobAutoScale = loadedRoom.ZoneConfig.MobAutoScale
+					newZone.Mutators = loadedRoom.ZoneConfig.Mutators
+					newZone.RoomId = loadedRoom.ZoneConfig.RoomId
+					if err := SaveZoneConfig(newZone); err != nil {
+						return err
+					}
+					loadedRoom.ZoneConfig = nil
+				}
+			}
+		}
 
 		// configs.GetConfig().DeathRecoveryRoom is the death/shadow realm and gets a pass
 		if loadedRoom.RoomId == int(configs.GetSpecialRoomsConfig().DeathRecoveryRoom) {

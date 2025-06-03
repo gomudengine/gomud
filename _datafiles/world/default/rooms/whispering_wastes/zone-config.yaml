@@ -6,3 +6,4 @@ autoscale:
 mutators:
 - mutatorid: freezing-cold
 musicfile: static/audio/music/whispering-wastes.mp3
+defaultbiome: snow

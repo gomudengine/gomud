@@ -51,11 +51,23 @@ func (bi BiomeInfo) Burns() bool {
 
 var (
 	AllBiomes = map[string]BiomeInfo{
+		`land`: { // default biome to fall back on if no biome is supplied.
+			name:        `Land`,
+			symbol:      '•',
+			litArea:     true,
+			description: `The world is made of land.`,
+		},
 		`city`: {
 			name:        `City`,
 			symbol:      '•',
 			litArea:     true,
 			description: `Cities are generally well protected, with well built roads. Usually they will have shops, inns, and law enforcement. Fighting and Killing in cities can lead to a lasting bad reputation.`,
+		},
+		`dungeon`: {
+			name:        `Dungeon`,
+			symbol:      '•',
+			darkArea:    true,
+			description: `These are cave-like underground areas built with a purpose.`,
 		},
 		`fort`: {
 			name:        `Fort`,
@@ -140,6 +152,9 @@ var (
 )
 
 func GetBiome(name string) (BiomeInfo, bool) {
+	if name == `` {
+		name = `land`
+	}
 	b, ok := AllBiomes[strings.ToLower(name)]
 	return b, ok
 }
