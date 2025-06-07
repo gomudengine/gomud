@@ -56,11 +56,6 @@ import (
 	textLang "golang.org/x/text/language"
 )
 
-const (
-	// Version is the current version of the server
-	Version = `1.0.0`
-)
-
 var (
 	sigChan            = make(chan os.Signal, 1)
 	workerShutdownChan = make(chan bool, 1)

@@ -111,7 +111,7 @@ func (w *WebHelpModule) getHelpCommand(r *http.Request) map[string]any {
 	data[`error`] = ``
 	data[`topic`] = searchTerm
 
-	if searchTerm == `` {
+	if searchTerm == `` || searchTerm == `help` { // skip empty searches and circular help searches
 		data[`error`] = `"` + searchTerm + `" Not Found`
 	} else {
 		contents, err := usercommands.GetHelpContents(searchTerm)
