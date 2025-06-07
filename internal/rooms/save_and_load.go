@@ -404,7 +404,6 @@ func loadAllRoomZones() error {
 		// This code migrates old format data to the new format (separate zone file)
 		//
 		if loadedRoom.ZoneConfig != nil {
-			fmt.Println(loadedRoom.ZoneConfig)
 			if loadedRoom.ZoneConfig.RoomId == loadedRoom.RoomId {
 				if _, ok := roomManager.zones[loadedRoom.Zone]; !ok {
 					newZone := NewZoneConfig(loadedRoom.Zone)
@@ -417,7 +416,8 @@ func loadAllRoomZones() error {
 					if err := SaveZoneConfig(newZone); err != nil {
 						return err
 					}
-					loadedRoom.ZoneConfig = nil
+					loadedRoom.ZoneConfig = nil // if successfully saved, blank out the ZoneConfig for the room
+					SaveRoomTemplate(*loadedRoom)
 				}
 			}
 		}
