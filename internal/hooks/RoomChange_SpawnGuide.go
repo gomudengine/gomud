@@ -38,12 +38,12 @@ func SpawnGuide(e events.Event) events.ListenerReturn {
 	}
 
 	fromRoomOriginal := rooms.GetOriginalRoom(evt.FromRoomId)
-	if fromRoomOriginal >= 900 || fromRoomOriginal <= 999 {
+	if fromRoomOriginal >= 900 && fromRoomOriginal <= 999 {
 		return events.Continue
 	}
 
-	toRoomOriginal := rooms.GetOriginalRoom(evt.FromRoomId)
-	if toRoomOriginal >= 900 || toRoomOriginal <= 999 {
+	toRoomOriginal := rooms.GetOriginalRoom(evt.ToRoomId)
+	if toRoomOriginal >= 900 && toRoomOriginal <= 999 {
 		return events.Continue
 	}
 

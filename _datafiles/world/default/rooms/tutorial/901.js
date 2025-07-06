@@ -57,12 +57,7 @@ function onCommand(cmd, rest, user, room) {
 
     switch (commandNow) {
         case 0:
-
-            if ( !user.HasItemId(firstItemId) ) {
-                itm = CreateItem(firstItemId);
-                user.GiveItem(itm);
-            }
-            
+           
             teacherMob.Command('say To see all of your characters stats, type <ansi fg="command">status</ansi>.', 1.0);
             break;
         case 1:
@@ -100,6 +95,12 @@ function onCommand(cmd, rest, user, room) {
 // If there is no book here, add the book item
 function onEnter(user, room) {
     room.SetLocked("west", true);
+    
+
+    if ( !user.HasItemId(firstItemId) ) {
+        itm = CreateItem(firstItemId);
+        user.GiveItem(itm);
+    }
     
     sendWorkingCommands(user);
     
