@@ -95,6 +95,9 @@ func Portal(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 			return true, errors.New(`you're doing that too often`)
 		}
 
+		// Fire an event that a skill has been used
+		events.AddToQueue(events.SkillUsed{user.UserId, skills.Portal, ``})
+
 		// move to portalTargetRoomId
 		if err := rooms.MoveToRoom(user.UserId, portalTargetRoomId); err == nil {
 			user.SendText("You draw a quick symbol in the air with your finger, and the world warps around you. You seem to have moved.")
@@ -116,6 +119,10 @@ func Portal(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 	if skillLevel >= 3 {
 
 		if rest == "set" {
+
+			// Fire an event that a skill has been used
+			events.AddToQueue(events.SkillUsed{user.UserId, skills.Portal, `set`})
+
 			user.Character.SetSetting("portal", strconv.Itoa(user.Character.RoomId))
 
 			user.SendText("You enscribe a glowing pentagram on the ground with your finger, which then fades away. Your portals now lead to this area.")
@@ -126,6 +133,10 @@ func Portal(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 		}
 
 		if rest == "unset" || rest == "clear" {
+
+			// Fire an event that a skill has been used
+			events.AddToQueue(events.SkillUsed{user.UserId, skills.Portal, `unset`})
+
 			user.Character.SetSetting("portal", "")
 
 			user.SendText("You draw an arcane symbol in the air with your finger. Your portals now lead to their default location.")
@@ -239,6 +250,9 @@ func Portal(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 			targetRoom.SendText(
 				fmt.Sprintf("A %s suddenly appears!", glowingPortalColorized),
 			)
+
+			// Fire an event that a skill has been used
+			events.AddToQueue(events.SkillUsed{user.UserId, skills.Portal, `open`})
 
 			user.Character.SetSetting("portal:open", fmt.Sprintf("%d:%d", user.Character.RoomId, portalTargetRoomId))
 		}

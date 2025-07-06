@@ -34,6 +34,9 @@ func Tackle(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 		return true, nil
 	}
 
+	// Fire an event that a skill has been used
+	events.AddToQueue(events.SkillUsed{user.UserId, skills.Brawling, `tackle`})
+
 	attackMobInstanceId := user.Character.Aggro.MobInstanceId
 	attackPlayerId := user.Character.Aggro.UserId
 

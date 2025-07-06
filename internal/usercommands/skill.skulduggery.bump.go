@@ -55,6 +55,9 @@ func Bump(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		user.Character.CancelBuffsWithFlag(buffs.Hidden)
 	}
 
+	// Fire an event that a skill has been used
+	events.AddToQueue(events.SkillUsed{user.UserId, skills.Skulduggery, `bump`})
+
 	goldDropped := 0
 
 	if pickMobInstanceId > 0 {

@@ -37,6 +37,9 @@ func Rank(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		party.SetRank(user.UserId, `middle`)
 	}
 
+	// Fire an event that a skill has been used
+	events.AddToQueue(events.SkillUsed{user.UserId, skills.Protection, `rank`})
+
 	user.SendText(fmt.Sprintf(`You are now fighting from the <ansi fg="magenta">%s</ansi> rank.`, party.GetRank(user.UserId)))
 	room.SendText(fmt.Sprintf(`<ansi fg="username">%s</ansi> is now fighting from the <ansi fg="magenta">%s</ansi> rank.`, user.Character.Name, party.GetRank(user.UserId)), user.UserId)
 

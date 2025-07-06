@@ -51,6 +51,9 @@ func Map(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 		return true, errors.New(`you're doing that too often`)
 	}
 
+	// Fire an event that a skill has been used
+	events.AddToQueue(events.SkillUsed{user.UserId, skills.Map, ``})
+
 	// replace any non alpha/numeric characters in "rest"
 	zone := rest
 	roomId := 0

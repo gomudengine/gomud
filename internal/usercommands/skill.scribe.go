@@ -43,6 +43,9 @@ func Scribe(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 	scribeType := args[0]
 	rest = strings.Join(args[1:], " ")
 
+	// Fire an event that a skill has been used
+	events.AddToQueue(events.SkillUsed{user.UserId, skills.Scribe, ``})
+
 	if scribeType == "note" {
 		// Create a note item
 		noteItem := items.New(1)

@@ -54,6 +54,9 @@ func Track(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 			return true, errors.New(`you're doing that too often`)
 		}
 
+		// Fire an event that a skill has been used
+		events.AddToQueue(events.SkillUsed{user.UserId, skills.Track, ``})
+
 		visitorData := make([]trackingInfo, 0)
 
 		for mId, timeLeft := range room.Visitors(rooms.VisitorMob) {
@@ -178,6 +181,9 @@ func Track(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		return true, errors.New(`you're doing that too often`)
 
 	}
+
+	// Fire an event that a skill has been used
+	events.AddToQueue(events.SkillUsed{user.UserId, skills.Track, ``})
 
 	//
 	// At skill level 3, search the room and adjacent rooms for quarry

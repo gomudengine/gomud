@@ -45,7 +45,7 @@ func Appraise(rest string, user *users.UserRecord, room *rooms.Room, flags event
 		}
 
 		details := inspectDetails{
-			InspectLevel: 2,
+			InspectLevel: 3,
 			Item:         &item,
 			ItemSpec:     &itemSpec,
 		}
