@@ -11,8 +11,17 @@
         // For some reason safari acts weird if we don't reset this first.
         wcIframe.width = "0px"; 
         wcIframe.height = "0px";
-        // Set proper height/width - use clientWidth/clientHeight to get inner dimensions
-        wcIframe.width = contentContainer.clientWidth;
+        
+        // Calculate scrollbar width
+        const outer = document.createElement('div');
+        outer.style.cssText = 'visibility:hidden;overflow:scroll';
+        document.body.appendChild(outer);
+        outer.appendChild(document.createElement('div'));
+        const scrollbarWidth = outer.offsetWidth - outer.firstChild.offsetWidth;
+        document.body.removeChild(outer);
+        
+        // Set proper height/width - subtract scrollbar width to prevent cropping
+        wcIframe.width = contentContainer.clientWidth - scrollbarWidth;
         wcIframe.height = contentContainer.clientHeight;
         
     }
