@@ -231,6 +231,8 @@ func SplitString(input string, lineWidth int) []string {
 
 		if currentLine != "" {
 			result = append(result, currentLine)
+			currentLine = ""
+			currentLen = 0
 		}
 	}
 

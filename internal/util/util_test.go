@@ -273,6 +273,23 @@ func TestSplitString(t *testing.T) {
 			},
 		},
 		{
+			"SplitString long text with line breaks",
+			args{
+				"You are now on the lawn.\nYou can smell the freshly cut grass in the " +
+					"dwindling heat of the autumn afternoon sun.\nYou can see a frisbee flying in the " +
+					"air, frozen mid-flight in this very sentence. Nearby, a group of picnickers pretends " +
+					"to study.",
+				79,
+			},
+			[]string{
+				"You are now on the lawn.",
+				"You can smell the freshly cut grass in the dwindling heat of the autumn",
+				"afternoon sun.",
+				"You can see a frisbee flying in the air, frozen mid-flight in this very",
+				"sentence. Nearby, a group of picnickers pretends to study.",
+			},
+		},
+		{
 			"SplitString wide charactors",
 			args{
 				`当你的感官与周围的静谧相适应时，你发现自己被吞噬在一个无法穿透的虚空中，一个黑` +
