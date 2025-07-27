@@ -11,9 +11,9 @@
         // For some reason safari acts weird if we don't reset this first.
         wcIframe.width = "0px"; 
         wcIframe.height = "0px";
-        // Set proper height/width
-        wcIframe.width = contentContainer.offsetWidth;
-        wcIframe.height = contentContainer.offsetHeight;
+        // Set proper height/width - use clientWidth/clientHeight to get inner dimensions
+        wcIframe.width = contentContainer.clientWidth;
+        wcIframe.height = contentContainer.clientHeight;
         
     }
     window.addEventListener("load", resizeClientIFrame);
