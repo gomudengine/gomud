@@ -20,33 +20,9 @@ var (
 	files embed.FS
 )
 
-// MudletConfig holds the configuration for Mudlet clients
-type MudletConfig struct {
-	// Mapper configuration
-	MapperVersion string `json:"mapper_version" yaml:"mapper_version"`
-	MapperURL     string `json:"mapper_url" yaml:"mapper_url"`
-
-	// UI configuration
-	UIVersion string `json:"ui_version" yaml:"ui_version"`
-	UIURL     string `json:"ui_url" yaml:"ui_url"`
-
-	// Map data configuration
-	MapVersion string `json:"map_version" yaml:"map_version"`
-	MapURL     string `json:"map_url" yaml:"map_url"`
-
-	// Discord Rich Presence configuration
-	DiscordApplicationID string `json:"discord_application_id" yaml:"discord_application_id"`
-	DiscordInviteURL     string `json:"discord_invite_url" yaml:"discord_invite_url"`
-	DiscordLargeImageKey string `json:"discord_large_image_key" yaml:"discord_large_image_key"`
-	DiscordDetails       string `json:"discord_details" yaml:"discord_details"`
-	DiscordState         string `json:"discord_state" yaml:"discord_state"`
-	DiscordSmallImageKey string `json:"discord_small_image_key" yaml:"discord_small_image_key"`
-}
-
 // GMCPMudletModule handles Mudlet-specific GMCP functionality
 type GMCPMudletModule struct {
 	plug        *plugins.Plugin
-	config      MudletConfig
 	mudletUsers map[int]bool // Track which users are using Mudlet clients
 }
 
@@ -85,10 +61,6 @@ func init() {
 	if err := g.plug.AttachFileSystem(files); err != nil {
 		panic(err)
 	}
-
-	// Register callbacks for load/save
-	g.plug.Callbacks.SetOnLoad(g.load)
-	g.plug.Callbacks.SetOnSave(g.save)
 
 	// Register event listeners
 	events.RegisterListener(events.PlayerSpawn{}, g.playerSpawnHandler)
@@ -139,28 +111,6 @@ func loadConfigString(p *plugins.Plugin, key string) string {
 	}
 
 	return ""
-}
-
-// load handles loading configuration from the plugin's storage
-func (g *GMCPMudletModule) load() {
-	// Load config values directly from embedded config or overrides
-	g.config.MapperVersion = loadConfigString(g.plug, "mapper_version")
-	g.config.MapperURL = loadConfigString(g.plug, "mapper_url")
-	g.config.UIVersion = loadConfigString(g.plug, "ui_version")
-	g.config.UIURL = loadConfigString(g.plug, "ui_url")
-	g.config.MapVersion = loadConfigString(g.plug, "map_version")
-	g.config.MapURL = loadConfigString(g.plug, "map_url")
-	g.config.DiscordApplicationID = loadConfigString(g.plug, "discord_application_id")
-	g.config.DiscordInviteURL = loadConfigString(g.plug, "discord_invite_url")
-	g.config.DiscordLargeImageKey = loadConfigString(g.plug, "discord_large_image_key")
-	g.config.DiscordDetails = loadConfigString(g.plug, "discord_details")
-	g.config.DiscordState = loadConfigString(g.plug, "discord_state")
-	g.config.DiscordSmallImageKey = loadConfigString(g.plug, "discord_small_image_key")
-}
-
-// save handles saving configuration to the plugin's storage
-func (g *GMCPMudletModule) save() {
-	g.plug.WriteStruct(`mudlet_config`, g.config)
 }
 
 // Helper function to check if a user is using a Mudlet client
@@ -236,8 +186,8 @@ func (g *GMCPMudletModule) sendDiscordInfo(userId int) {
 		ApplicationID string `json:"applicationid"`
 		InviteURL     string `json:"inviteurl"`
 	}{
-		ApplicationID: g.config.DiscordApplicationID,
-		InviteURL:     g.config.DiscordInviteURL,
+		ApplicationID: loadConfigString(g.plug, "discord_application_id"),
+		InviteURL:     loadConfigString(g.plug, "discord_invite_url"),
 	}
 
 	sendGMCP(userId, "External.Discord.Info", payload)
@@ -277,7 +227,10 @@ func (g *GMCPMudletModule) sendDiscordStatus(userId int) {
 	showLevel := getUserBoolOption(user, "discord_show_level", true)
 
 	// Build the details string based on preferences
-	detailsStr := g.config.DiscordDetails
+	detailsStr := loadConfigString(g.plug, "discord_details")
+	if detailsStr == "" {
+		detailsStr = "Using GoMudEngine"
+	}
 	if showName || showLevel {
 		detailsStr = ""
 		if showName {
@@ -307,10 +260,10 @@ func (g *GMCPMudletModule) sendDiscordStatus(userId int) {
 		PartyMax      int    `json:"partymax,omitempty"`
 	}{
 		Details:       detailsStr,
-		State:         g.config.DiscordState,
+		State:         loadConfigString(g.plug, "discord_state"),
 		Game:          configs.GetServerConfig().MudName.String(),
-		LargeImageKey: g.config.DiscordLargeImageKey,
-		SmallImageKey: g.config.DiscordSmallImageKey,
+		LargeImageKey: loadConfigString(g.plug, "discord_large_image_key"),
+		SmallImageKey: loadConfigString(g.plug, "discord_small_image_key"),
 		StartTime:     user.GetConnectTime().Unix(),
 	}
 
@@ -361,7 +314,7 @@ func (g *GMCPMudletModule) sendMudletMapConfig(userId int) {
 	}
 
 	mapConfig := map[string]string{
-		"url": g.config.MapURL,
+		"url": loadConfigString(g.plug, "map_url"),
 	}
 
 	sendGMCP(userId, "Client.Map", mapConfig)
@@ -378,8 +331,8 @@ func (g *GMCPMudletModule) sendMudletUIInstall(userId int) {
 		Version string `json:"version"`
 		URL     string `json:"url"`
 	}{
-		Version: g.config.UIVersion,
-		URL:     g.config.UIURL,
+		Version: loadConfigString(g.plug, "ui_version"),
+		URL:     loadConfigString(g.plug, "ui_url"),
 	}
 
 	sendGMCP(userId, "Client.GUI", payload)
@@ -429,8 +382,8 @@ func (g *GMCPMudletModule) sendMudletConfig(userId int) {
 		Version string `json:"version"`
 		URL     string `json:"url"`
 	}{
-		Version: g.config.MapperVersion,
-		URL:     g.config.MapperURL,
+		Version: loadConfigString(g.plug, "mapper_version"),
+		URL:     loadConfigString(g.plug, "mapper_url"),
 	}
 	sendGMCP(userId, "Client.GUI", payload)
 
