@@ -108,9 +108,25 @@ func init() {
 
 // Helper function to load a config string from the plugin's configuration
 func loadConfigString(p *plugins.Plugin, key string) string {
-	if val, ok := p.Config.Get(key).(string); ok {
-		return val
+	// The GMCP config is loaded under the main "gmcp" namespace, not "gmcp.Mudlet"
+	// All GMCP sub-modules share the same configuration namespace
+	cfg := configs.GetConfig()
+	allConfig := cfg.AllConfigData()
+
+	fullKey := fmt.Sprintf("Modules.gmcp.%s", key)
+	if val, exists := allConfig[fullKey]; exists {
+		// Handle both string and numeric values
+		switch v := val.(type) {
+		case string:
+			if v != "" {
+				return v
+			}
+		case int, int64, float64:
+			// Convert numbers to string
+			return fmt.Sprintf("%v", v)
+		}
 	}
+
 	return ""
 }
 

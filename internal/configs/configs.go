@@ -11,6 +11,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/util"
 	"gopkg.in/yaml.v2"
+	yamlv3 "gopkg.in/yaml.v3"
 )
 
 const (
@@ -287,6 +288,143 @@ func (c Config) AllConfigData(excludeStrings ...string) map[string]any {
 	return finalOutput
 }
 
+// marshalConfigWithOrder preserves the original file structure when updating config values
+func marshalConfigWithOrder(config map[string]any) ([]byte, error) {
+	// For backward compatibility, if there's no existing file to preserve structure from,
+	// just use the standard marshal
+	overridePath := overridePath()
+	existingBytes, err := os.ReadFile(util.FilePath(overridePath))
+	if err != nil {
+		// File doesn't exist yet, use standard marshal
+		return yaml.Marshal(config)
+	}
+
+	// Parse the existing file to preserve its structure
+	var rootNode yamlv3.Node
+	if err := yamlv3.Unmarshal(existingBytes, &rootNode); err != nil {
+		// If we can't parse it with v3, fall back to standard marshal
+		return yaml.Marshal(config)
+	}
+
+	// Update the node tree with new values from config map
+	updateNodeFromMap(&rootNode, config)
+
+	// Marshal back with preserved structure
+	return yamlv3.Marshal(&rootNode)
+}
+
+// updateNodeFromMap recursively updates a yaml.Node tree with values from a map
+// while preserving the node structure, comments, and order
+func updateNodeFromMap(node *yamlv3.Node, updates map[string]any) {
+	if node.Kind != yamlv3.DocumentNode {
+		return
+	}
+
+	// Process the document content
+	if len(node.Content) > 0 {
+		updateNodeContent(node.Content[0], updates)
+	}
+}
+
+// updateNodeContent handles updating the content of a node
+func updateNodeContent(node *yamlv3.Node, updates map[string]any) {
+	if node.Kind != yamlv3.MappingNode {
+		return
+	}
+
+	// Track which keys we've seen in the existing structure
+	seenKeys := make(map[string]bool)
+	newContent := make([]*yamlv3.Node, 0, len(node.Content))
+
+	// Update existing keys while preserving order
+	for i := 0; i < len(node.Content); i += 2 {
+		keyNode := node.Content[i]
+		valueNode := node.Content[i+1]
+
+		if keyNode.Kind == yamlv3.ScalarNode {
+			key := keyNode.Value
+
+			// Check if this key should still exist
+			if newValue, exists := updates[key]; exists {
+				seenKeys[key] = true
+				updateValueNode(valueNode, newValue)
+				newContent = append(newContent, keyNode, valueNode)
+			}
+			// If key doesn't exist in updates, it gets removed by not adding to newContent
+		}
+	}
+
+	// Add new keys that weren't in the original structure
+	for key, value := range updates {
+		if !seenKeys[key] {
+			// Add new key-value pair at the end
+			keyNode := &yamlv3.Node{
+				Kind:  yamlv3.ScalarNode,
+				Value: key,
+			}
+			valueNode := &yamlv3.Node{}
+			setNodeValue(valueNode, value)
+
+			newContent = append(newContent, keyNode, valueNode)
+		}
+	}
+
+	node.Content = newContent
+}
+
+// updateValueNode updates a value node with new data
+func updateValueNode(node *yamlv3.Node, value any) {
+	switch v := value.(type) {
+	case map[string]any:
+		if node.Kind == yamlv3.MappingNode {
+			// Recursively update map nodes
+			updateNodeContent(node, v)
+		} else {
+			// Type changed, replace the node
+			setNodeValue(node, value)
+		}
+	case []any:
+		// Replace array values entirely (for simplicity)
+		setNodeValue(node, value)
+	default:
+		// Update scalar value
+		if node.Kind == yamlv3.ScalarNode {
+			node.Value = fmt.Sprintf("%v", value)
+		} else {
+			setNodeValue(node, value)
+		}
+	}
+}
+
+// setNodeValue sets a node to represent a value
+func setNodeValue(node *yamlv3.Node, value any) {
+	switch v := value.(type) {
+	case map[string]any:
+		node.Kind = yamlv3.MappingNode
+		node.Content = make([]*yamlv3.Node, 0, len(v)*2)
+		for k, val := range v {
+			keyNode := &yamlv3.Node{
+				Kind:  yamlv3.ScalarNode,
+				Value: k,
+			}
+			valueNode := &yamlv3.Node{}
+			setNodeValue(valueNode, val)
+			node.Content = append(node.Content, keyNode, valueNode)
+		}
+	case []any:
+		node.Kind = yamlv3.SequenceNode
+		node.Content = make([]*yamlv3.Node, 0, len(v))
+		for _, item := range v {
+			itemNode := &yamlv3.Node{}
+			setNodeValue(itemNode, item)
+			node.Content = append(node.Content, itemNode)
+		}
+	default:
+		node.Kind = yamlv3.ScalarNode
+		node.Value = fmt.Sprintf("%v", value)
+	}
+}
+
 func SetVal(propertyPath string, newVal string) error {
 
 	propertyPath, propertyType := FindFullPath(propertyPath)
@@ -306,8 +444,8 @@ func SetVal(propertyPath string, newVal string) error {
 
 	overrides = unflattenMap(flatOverrides)
 
-	// save the new config.
-	writeBytes, err := yaml.Marshal(overrides)
+	// save the new config with better ordering
+	writeBytes, err := marshalConfigWithOrder(overrides)
 	if err != nil {
 		return err
 	}
