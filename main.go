@@ -194,7 +194,7 @@ func main() {
 		mudlog.Warn("Discord", "info", "integration is disabled")
 	}
 
-	mudlog.Error(
+	mudlog.Info(
 		"Starting server",
 		"name", string(c.Server.MudName),
 	)
@@ -294,7 +294,7 @@ func main() {
 
 	// some last minute stats reporting
 	totalConnections, totalDisconnections := connections.Stats()
-	mudlog.Error(
+	mudlog.Info(
 		"Stopping server",
 		"LifetimeConnections", totalConnections,
 		"LifetimeDisconnects", totalDisconnections,
