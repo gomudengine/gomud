@@ -11,13 +11,13 @@ import (
 )
 
 const (
-	ephemeralChunksLimit = 100        // The maximum number of ephemeral chunks that can be created
-	ephemeralChunkSize   = 250        // The maximum quantity of ephemeral room's that can be copied/created in a given chunk.
-	roomIdMin32Bit       = 1000000000 // 1,000,000,000
+	ephemeralChunksLimit = 100     // The maximum number of ephemeral chunks that can be created
+	ephemeralChunkSize   = 250     // The maximum quantity of ephemeral room's that can be copied/created in a given chunk.
+	roomIdMin32Bit       = 1000000 // 1,000,000 - Safe for 32-bit systems (was 1,000,000,000 which overflows when multiplied by 1000)
 )
 
 var (
-	ephemeralRoomIdMinimum = roomIdMin32Bit                // 1,000,000,000 is assuming 32 bit. the init() function may override this value.
+	ephemeralRoomIdMinimum = roomIdMin32Bit                // 1,000,000 is assuming 32 bit. the init() function may override this value to 1,000,000,000 on 64-bit systems.
 	ephemeralRoomChunks    = [ephemeralChunksLimit][]int{} // map of ranges to actual rooms. If empty, slot is available.
 	originalRoomIdLookups  = map[int]int{}                 // a map of ephemeralId's to their original RoomId's, for special purposes
 	// errors
@@ -232,6 +232,6 @@ func GetOriginalRoom(roomId int) int {
 
 func init() {
 	if math.MaxInt > ephemeralRoomIdMinimum*1000 {
-		ephemeralRoomIdMinimum = ephemeralRoomIdMinimum * 1000 // 1,000,000,000 => // 1,000,000,000,000
+		ephemeralRoomIdMinimum = ephemeralRoomIdMinimum * 1000 // 1,000,000 => 1,000,000,000 on 64-bit systems
 	}
 }
