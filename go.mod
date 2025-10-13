@@ -1,13 +1,13 @@
 module github.com/GoMudEngine/GoMud
 
-go 1.24
+go 1.24.0
 
 require (
 	github.com/dop251/goja v0.0.0-20231027120936-b396bb4c349d
 	github.com/gorilla/websocket v1.5.3
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/stretchr/testify v1.10.0
-	golang.org/x/text v0.28.0
+	golang.org/x/text v0.30.0
 )
 
 require (
