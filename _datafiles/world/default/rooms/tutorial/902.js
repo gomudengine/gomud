@@ -24,7 +24,7 @@ function onCommand(cmd, rest, user, room) {
         ignoreCommand = true;
     }
 
-    fullCommand = cmd;
+    fullCommand = ExpandCommand(cmd);
     if ( rest.length > 0 ) {
         fullCommand = cmd + ' ' + rest;
     }

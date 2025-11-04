@@ -16,7 +16,7 @@ function onCommand(cmd, rest, user, room) {
 
     teacherMob = getTeacher(room);
 
-    fullCommand = cmd;
+    fullCommand = ExpandCommand(cmd);
     if ( rest.length > 0 ) {
         fullCommand = cmd + ' ' + rest;
     }
