@@ -301,7 +301,11 @@ func CreatePromptHandler(steps []*PromptStep, onComplete CompletionFunc) connect
 
 		state.Results[currentStep.ID] = validatedValue
 
-		mudlog.Debug("Prompt Step Success", "step", currentStep.ID, "value", validatedValue, "connectionId", clientInput.ConnectionId)
+		if currentStep.MaskInput {
+			mudlog.Debug("Prompt Step Success", "step", currentStep.ID, "value", "***REDACTED***", "connectionId", clientInput.ConnectionId)
+		} else {
+			mudlog.Debug("Prompt Step Success", "step", currentStep.ID, "value", validatedValue, "connectionId", clientInput.ConnectionId)
+		}
 
 		// Advance to Next Step or Complete
 		if advanceAndSendPrompt(state, clientInput) {
