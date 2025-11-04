@@ -21,11 +21,9 @@ function onCommand(cmd, rest, user, room) {
 
 
     players = room.GetPlayers();
-    for (var i = 0; i < players.length; i++) {
-        if ( (user = GetUser(players[i])) !== null ) {
-            SendRoomMessage(138, user.GetCharacterName(true)+" falls into the room from above.", user.UserId());
-            user.MoveRoom(138);
-        }
+    for( var i in players ) {
+        SendRoomMessage(138, players[i].GetCharacterName(true)+" falls into the room from above.", players[i].UserId());
+        players[i].MoveRoom(138);
     }
     
     return true;

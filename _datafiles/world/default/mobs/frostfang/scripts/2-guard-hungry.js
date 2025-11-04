@@ -86,38 +86,34 @@ function onIdle(mob, room) {
     round = UtilGetRoundNumber();
 
     grumbled = false;
-    userIds = room.GetPlayers();
+    allPlayers = room.GetPlayers();
 
     playersTold = mob.GetTempData('playersTold');
     if ( playersTold === null ) {
         playersTold = {};
     }
 
-    if ( userIds.length > 0 ) {
+    if ( allPlayers.length > 0 ) {
         
-        for (var i = 0; i < userIds.length; i++) {
+        for( var i in allPlayers ) {
 
-            if ( userIds[i] in playersTold ) {
-                if ( round < playersTold[userIds[i]] ) {
+            if ( allPlayers[i].UserId() in playersTold ) {
+                if ( round < playersTold[allPlayers[i].UserId()] ) {
                     continue;
                 }
             }
-
-            if ( (user = GetUser(userIds[i])) == null ) {
-                continue;
-            }
-
-            if ( !user.HasQuest("4-start") ) {
+            
+            if ( !allPlayers[i].HasQuest("4-start") ) {
                 if ( !grumbled ) {
                     mob.Command("emote pats his belly as it grumbles.");
                     grumbled = true;
                 }
-                mob.Command("sayto @" + String(userIds[i]) + " I'm so hungry.");
+                mob.Command("sayto @" + String(allPlayers[i].UserId()) + " I'm so hungry.");
             } else {
-                playersTold[userIds[i]] = round + 500;
+                playersTold[allPlayers[i].UserId()] = round + 500;
             }
 
-            playersTold[userIds[i]] = round + 5;
+            playersTold[allPlayers[i].UserId()] = round + 5;
             // Don't need to repeat to every player.
             break;
         }
