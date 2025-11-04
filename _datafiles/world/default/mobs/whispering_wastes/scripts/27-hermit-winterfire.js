@@ -49,7 +49,7 @@ function onGive(mob, room, eventDetails) {
     if (eventDetails.item) {
         if (eventDetails.item.ItemId != 4) {
             mob.Command("say Finally! My winterfire crystal! Thank you so much!");
-            user.GiveQuest("4-end");
+            user.GiveQuest("5-end");
             return true;
         }
     }

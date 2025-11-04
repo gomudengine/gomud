@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/mail"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/connections"
@@ -201,8 +202,15 @@ func CreatePromptHandler(steps []*PromptStep, onComplete CompletionFunc) connect
 
 			if clientInput.BSPressed && len(clientInput.Buffer) > 0 {
 
-				// Handle Backspace
-				clientInput.Buffer = clientInput.Buffer[:len(clientInput.Buffer)-1]
+				// Handle Backspace - properly handle UTF-8 multi-byte characters
+				bufferStr := string(clientInput.Buffer)
+				if len(bufferStr) > 0 {
+					// Find the start of the last rune
+					_, size := utf8.DecodeLastRune(clientInput.Buffer)
+					if size > 0 {
+						clientInput.Buffer = clientInput.Buffer[:len(clientInput.Buffer)-size]
+					}
+				}
 				//connections.SendTo([]byte{term.ASCII_BACKSPACE, term.ASCII_SPACE, term.ASCII_BACKSPACE}, clientInput.ConnectionId)
 
 			} else if !clientInput.BSPressed && len(clientInput.DataIn) > 0 && clientInput.DataIn[0] >= 32 {
@@ -293,7 +301,11 @@ func CreatePromptHandler(steps []*PromptStep, onComplete CompletionFunc) connect
 
 		state.Results[currentStep.ID] = validatedValue
 
-		mudlog.Debug("Prompt Step Success", "step", currentStep.ID, "value", validatedValue, "connectionId", clientInput.ConnectionId)
+		if currentStep.MaskInput {
+			mudlog.Debug("Prompt Step Success", "step", currentStep.ID, "value", "***REDACTED***", "connectionId", clientInput.ConnectionId)
+		} else {
+			mudlog.Debug("Prompt Step Success", "step", currentStep.ID, "value", validatedValue, "connectionId", clientInput.ConnectionId)
+		}
 
 		// Advance to Next Step or Complete
 		if advanceAndSendPrompt(state, clientInput) {

@@ -7,6 +7,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/gametime"
+	"github.com/GoMudEngine/GoMud/internal/keywords"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 	"github.com/dop251/goja"
@@ -45,6 +46,7 @@ func setUtilFunctions(vm *goja.Runtime) {
 	vm.Set(`ColorWrap`, ColorWrap)
 	vm.Set(`EventFlags`, EventFlags)
 	vm.Set(`RaiseEvent`, RaiseEvent)
+	vm.Set(`ExpandCommand`, ExpandCommand)
 
 }
 
@@ -180,4 +182,33 @@ func ColorWrap(txt string, colorClass ...string) string {
 
 func RaiseEvent(name string, data map[string]any) {
 	events.AddToQueue(events.ScriptedEvent{Name: name, Data: data})
+}
+
+func ExpandCommand(cmd string, limit ...int) string {
+
+	parts := util.SplitButRespectQuotes(cmd)
+
+	expansionsLeft := -1
+	if len(limit) > 0 {
+		expansionsLeft = limit[0]
+		if expansionsLeft < -1 {
+			expansionsLeft = -1
+		}
+	}
+
+	result := ""
+	for _, abbr := range parts {
+		if expansionsLeft != 0 {
+			alias := keywords.TryCommandAlias(abbr)
+			result += alias
+			expansionsLeft--
+		} else {
+			result += abbr
+		}
+		result += " "
+	}
+
+	result = strings.Trim(result, " ")
+
+	return result
 }

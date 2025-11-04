@@ -3,6 +3,7 @@ package inputhandlers
 import (
 	"strings"
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/GoMudEngine/GoMud/internal/connections"
 	"github.com/GoMudEngine/GoMud/internal/term"
@@ -28,7 +29,16 @@ func CleanserInputHandler(clientInput *connections.ClientInput, sharedState map[
 		// send backspace, space, backspace
 		if len(clientInput.Buffer) > 0 {
 			connections.SendTo([]byte{term.ASCII_BACKSPACE, term.ASCII_SPACE, term.ASCII_BACKSPACE}, clientInput.ConnectionId)
-			clientInput.Buffer = clientInput.Buffer[:len(clientInput.Buffer)-1]
+			
+			// Handle UTF-8 properly by removing the last complete character (rune)
+			bufferStr := string(clientInput.Buffer)
+			if len(bufferStr) > 0 {
+				// Find the start of the last rune
+				_, size := utf8.DecodeLastRune(clientInput.Buffer)
+				if size > 0 {
+					clientInput.Buffer = clientInput.Buffer[:len(clientInput.Buffer)-size]
+				}
+			}
 		}
 		clientInput.DataIn = clientInput.DataIn[:len(clientInput.DataIn)-1]
 		return true
