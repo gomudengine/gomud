@@ -75,13 +75,12 @@ function onCommand(cmd, rest, user, room) {
 
     if ( climbDown ) {
 
-        partyMembers = user.GetPartyMembers();
-
+        partyMembers = user.GetPartyPresent().GetMembers();
         for( i = 0; i < partyMembers.length; i++ ) {
             
             a = partyMembers[i];
 
-            if (  a.UserId() == user.UserId() ) {
+            if ( a.UserId() == user.UserId() ) {
                 continue;
             }
 

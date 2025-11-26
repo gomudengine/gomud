@@ -122,6 +122,19 @@ func NewRoom(zone string) *Room {
 	return r
 }
 
+func NewEmptyRoom() *Room {
+	r := &Room{
+		Title:         "An empty room.",
+		Description:   "This is an empty room that was never given a description.",
+		MapSymbol:     ``,
+		Exits:         make(map[string]exit.RoomExit),
+		players:       []int{},
+		visitors:      make(map[VisitorType]map[int]uint64),
+		tempDataStore: make(map[string]any),
+	}
+	return r
+}
+
 func (r *Room) IsEphemeral() bool {
 	return r.RoomId >= ephemeralRoomIdMinimum
 }
@@ -2197,7 +2210,6 @@ func (r *Room) Validate() error {
 
 		}
 	}
-
 
 	// Make sure all items are validated (and have uids)
 	for i := range r.Items {

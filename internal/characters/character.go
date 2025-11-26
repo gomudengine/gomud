@@ -50,6 +50,7 @@ type Character struct {
 	Description      string                         // A description of the character.
 	Adjectives       []string                       `yaml:"adjectives,omitempty"` // Decorative text for the name of the character (e.g. "sleeping", "dead", "wounded")
 	RoomId           int                            // The room id the character is in.
+	RoomIdOnReset    int                            // The room they are sent to if their RoomId isn't found.
 	Zone             string                         // The zone the character is in. The folder the room can be located in too.
 	RaceId           int                            // Character race
 	Stats            stats.Statistics               // Character stats

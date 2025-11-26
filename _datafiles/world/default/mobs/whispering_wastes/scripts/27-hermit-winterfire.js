@@ -14,7 +14,7 @@ function onAsk(mob, room, eventDetails) {
         mob.Command("say I've been waiting for a shipment of winterfire crystals. They should have been here months ago.");
         mob.Command("say I'll never abandon my post! Can you find out what happened to my crystals?");
         
-        user.GiveQuest("5-start");
+        user.GetParty().GiveQuest("5-start");
 
         return true;
     }
@@ -23,7 +23,7 @@ function onAsk(mob, room, eventDetails) {
     if ( match.found ) {
 
         mob.Command("say The shipment was supposed to come from the far east city of Mystarion. I'm not sure what happened to it.");
-        user.GiveQuest("5-lookeast");
+        user.GetParty().GiveQuest("5-lookeast");
 
         return true;
     }
@@ -49,7 +49,7 @@ function onGive(mob, room, eventDetails) {
     if (eventDetails.item) {
         if (eventDetails.item.ItemId != 4) {
             mob.Command("say Finally! My winterfire crystal! Thank you so much!");
-            user.GiveQuest("5-end");
+            user.GetParty().GiveQuest("5-end");
             return true;
         }
     }

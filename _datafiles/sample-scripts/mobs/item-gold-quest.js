@@ -55,7 +55,7 @@ function onAsk(mob, room, eventDetails) {
             //
             // Give them the start quest id
             //
-            user.GiveQuest(QUEST_START_ID);
+            user.GetParty().GiveQuest(QUEST_START_ID);
 
         }
 
@@ -129,7 +129,7 @@ function onGive(mob, room, eventDetails) {
         //
         // Give them the next step of the quest
         //
-        user.GiveQuest(QUEST_NEXT_STEP_ID);
+        user.GetParty().GiveQuest(QUEST_NEXT_STEP_ID);
 
         return true;
     }
@@ -179,7 +179,7 @@ function onGive(mob, room, eventDetails) {
             //
             // They have now completed the entire quest, all steps are complete.
             //
-            user.GiveQuest(QUEST_END_ID);
+            user.GetParty().GiveQuest(QUEST_END_ID);
 
             return true;
         }

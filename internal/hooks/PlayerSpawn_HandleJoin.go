@@ -34,15 +34,34 @@ func HandleJoin(e events.Event) events.ListenerReturn {
 	users.RemoveZombieUser(evt.UserId)
 
 	room := rooms.LoadRoom(user.Character.RoomId)
-	if room == nil {
+	sendResetMessage := false
 
+	// If an onreset room is set, send to it, then clear it.
+	// This way, if they were in an ephemeral chunk and it has been cleared, we
+	// handle sending them to whatever "reset" room was defined (if any)
+	if room == nil && user.Character.RoomIdOnReset != 0 {
+		mudlog.Warn("HandleJoin", "msg", fmt.Sprintf("room %d not found, trying RoomIdOnReset %d", user.Character.RoomId, user.Character.RoomIdOnReset))
+		room = rooms.LoadRoom(user.Character.RoomIdOnReset)
+
+		if room != nil {
+			sendResetMessage = true
+			user.Character.RoomId = user.Character.RoomIdOnReset
+		}
+
+		user.Character.RoomIdOnReset = 0
+	}
+
+	// If still no room was found, send to the zero room (default world start room)
+	if room == nil {
 		mudlog.Error("EnterWorld", "error", fmt.Sprintf(`room %d not found`, user.Character.RoomId))
 
 		if err := rooms.MoveToRoom(user.UserId, 0); err != nil {
 			mudlog.Error("EnterWorld", "msg", "could not move to room 0", "error", err)
 		}
 
+		// Load whatever default room they have been assigned
 		room = rooms.LoadRoom(user.Character.RoomId)
+		sendResetMessage = true
 	}
 
 	// TODO HERE
@@ -62,6 +81,11 @@ func HandleJoin(e events.Event) events.ListenerReturn {
 	}
 
 	if room != nil {
+
+		if sendResetMessage {
+			user.SendText("A portal opens before you and you feel an intense pulling... you can't escape it... You are transported elsewhere!")
+		}
+
 		if doLook, err := scripting.TryRoomScriptEvent(`onEnter`, user.UserId, user.Character.RoomId); err != nil || doLook {
 			user.CommandFlagged(`look`, events.CmdSecretly) // Do a secret look.
 		}

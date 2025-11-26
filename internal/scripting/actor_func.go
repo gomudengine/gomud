@@ -9,7 +9,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
-	"github.com/GoMudEngine/GoMud/internal/parties"
 	"github.com/GoMudEngine/GoMud/internal/pets"
 	"github.com/GoMudEngine/GoMud/internal/races"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -102,6 +101,13 @@ func (a ScriptActor) GetStat(statName string) int {
 	}
 
 	return 0
+}
+
+func (a ScriptActor) SetResetRoomId(roomId int) {
+	if a.userRecord == nil {
+		return
+	}
+	a.userRecord.Character.RoomIdOnReset = roomId
 }
 
 func (a ScriptActor) SetTempData(key string, value any) {
@@ -203,72 +209,41 @@ func (a ScriptActor) HasQuest(questId string) bool {
 
 func (a ScriptActor) GiveQuest(questId string) {
 
-	if a.userRecord != nil {
-		// If in a party, give to all party members.
-		if party := parties.Get(a.userId); party != nil {
-			for _, userId := range party.GetMembers() {
-
-				events.AddToQueue(events.Quest{
-					UserId:     userId,
-					QuestToken: questId,
-				})
-
-			}
-			return
-		} else {
-
-			events.AddToQueue(events.Quest{
-				UserId:     a.userId,
-				QuestToken: questId,
-			})
-
-		}
-	}
-	//a.characterRecord.GiveQuestToken(questId)
+	events.AddToQueue(events.Quest{
+		UserId:     a.UserId(),
+		QuestToken: questId,
+	})
 
 }
 
-func (a ScriptActor) GetPartyMembers() []ScriptActor {
-
-	partyMembers := []ScriptActor{}
-	partyUserId := 0
-
-	if a.userRecord == nil {
-		if a.mobRecord.Character.Charmed == nil {
-			return partyMembers
-		}
-
-		partyUserId = a.mobRecord.Character.Charmed.UserId
-	} else {
-		partyUserId = a.userId
+// Gets a party object that indexes ALL members of the party
+func (a ScriptActor) GetParty(excludeSelf ...bool) ScriptParty {
+	return ScriptParty{
+		actor:          &a,
+		includePresent: true,
+		includeMissing: true,
+		includeSelf:    len(excludeSelf) == 0 || !excludeSelf[0],
 	}
+}
 
-	if partyUserId < 1 {
-		return partyMembers
+// Gets a party object that indexes only party members in the same room
+func (a ScriptActor) GetPartyPresent(excludeSelf ...bool) ScriptParty {
+	return ScriptParty{
+		actor:          &a,
+		includePresent: true,
+		includeMissing: false,
+		includeSelf:    len(excludeSelf) == 0 || !excludeSelf[0],
 	}
+}
 
-	// If in a party, give to all party members.
-	if party := parties.Get(partyUserId); party != nil {
-		for _, userId := range party.GetMembers() {
-
-			if a := GetActor(userId, 0); a != nil {
-				partyMembers = append(partyMembers, *a)
-			}
-
-		}
+// Gets a party object that indexes only members NOT in the same room.
+func (a ScriptActor) GetPartyMissing() ScriptParty {
+	return ScriptParty{
+		actor:          &a,
+		includePresent: false,
+		includeMissing: true,
+		includeSelf:    false,
 	}
-
-	mobPartyMembers := []ScriptActor{}
-
-	for _, char := range partyMembers {
-		for _, mobInstId := range char.characterRecord.GetCharmIds() {
-			if a := GetActor(0, mobInstId); a != nil {
-				mobPartyMembers = append(mobPartyMembers, *a)
-			}
-		}
-	}
-
-	return append(partyMembers, mobPartyMembers...)
 }
 
 func (a ScriptActor) AddGold(amt int, bankAmt ...int) {
@@ -364,7 +339,7 @@ func (a ScriptActor) GetSkillLevel(skillName string) int {
 	return a.characterRecord.GetSkillLevel(skills.SkillTag(skillName))
 }
 
-func (a ScriptActor) MoveRoom(destRoomId int, leaveCharmedMobs ...bool) {
+func (a ScriptActor) MoveRoom(destRoomId int) {
 
 	if a.userRecord != nil {
 
@@ -374,11 +349,9 @@ func (a ScriptActor) MoveRoom(destRoomId int, leaveCharmedMobs ...bool) {
 
 			rooms.MoveToRoom(a.userId, destRoomId)
 
-			if len(leaveCharmedMobs) < 1 || !leaveCharmedMobs[0] {
-				for _, mobInstId := range a.characterRecord.GetCharmIds() {
-					rmNow.RemoveMob(mobInstId)
-					rmNext.AddMob(mobInstId)
-				}
+			for _, mobInstId := range a.characterRecord.GetCharmIds() {
+				rmNow.RemoveMob(mobInstId)
+				rmNext.AddMob(mobInstId)
 			}
 
 			if doLook, err := TryRoomScriptEvent(`onEnter`, a.userRecord.UserId, destRoomId); err != nil || doLook {

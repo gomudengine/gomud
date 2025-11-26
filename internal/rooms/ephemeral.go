@@ -12,7 +12,7 @@ import (
 
 const (
 	ephemeralChunksLimit = 100     // The maximum number of ephemeral chunks that can be created
-	ephemeralChunkSize   = 250     // The maximum quantity of ephemeral room's that can be copied/created in a given chunk.
+	ephemeralChunkSize   = 1000    // The maximum quantity of ephemeral room's that can be copied/created in a given chunk.
 	roomIdMin32Bit       = 1000000 // 1,000,000 - Safe for 32-bit systems (was 1,000,000,000 which overflows when multiplied by 1000)
 )
 
@@ -22,7 +22,9 @@ var (
 	originalRoomIdLookups  = map[int]int{}                 // a map of ephemeralId's to their original RoomId's, for special purposes
 	// errors
 	errNoRoomIdsProvided   = errors.New(`no RoomId's were provided`)
+	errInvalidRoomQuantity = errors.New(`one or more empty rooms must be requested.`)
 	errRoomNotFound        = errors.New(`the requested RoomId wasn't found`)
+	errZoneNotFound        = errors.New(`the requested zone wasn't found`)
 	errEphemeralChunkLimit = fmt.Errorf(`the ephemeral chunk limit of %d has been reached.`, ephemeralChunksLimit)
 	errEphemeralRoomLimit  = fmt.Errorf(`the ephemeral room request limit of %d is exceeded.`, ephemeralChunkSize)
 	errNonUniqueRoomId     = errors.New(`a RoomId has been provided more than once. they must all be unique`)
@@ -36,6 +38,16 @@ func GetChunkCount() int {
 		}
 	}
 	return result
+}
+
+// Looks at chunk array and returns the first unused/empty index, or error if none found.
+func getNextAvailableChunk() (int, error) {
+	for i := 0; i < ephemeralChunksLimit; i++ {
+		if len(ephemeralRoomChunks[i]) == 0 {
+			return i, nil
+		}
+	}
+	return -1, errEphemeralChunkLimit
 }
 
 // Looks for any ephemeralRoomId's that exits for the given roomId.
@@ -52,18 +64,63 @@ func FindEphemeralRoomIds(roomId int) []int {
 	return allEphemeralRoomIds
 }
 
+// Accepts a quantity and returns roomId's for a chunk of empty rooms
+// This is a special use function for dynamically building ephemeral rooms in code
+func CreateEmptyEphemeralRooms(qty int) ([]int, error) {
+
+	if qty > ephemeralChunkSize {
+		return []int{}, errEphemeralRoomLimit
+	}
+
+	if qty < 1 {
+		return []int{}, errInvalidRoomQuantity
+	}
+
+	ephemeralRoomIds := make([]int, 0, qty)
+
+	// First find a chunk ID
+	chunkId, err := getNextAvailableChunk()
+	if err != nil {
+		return []int{}, err
+	}
+
+	for i := 0; i < qty; i++ {
+		room := NewEmptyRoom()
+		room.RoomId = ephemeralRoomIdMinimum + (chunkId * ephemeralChunkSize) + i
+
+		// Save the original room ID in case we need it at some point
+		originalRoomIdLookups[room.RoomId] = 0
+
+		addRoomToMemory(room)
+
+		ephemeralRoomIds = append(ephemeralRoomIds, room.RoomId)
+	}
+
+	trackedRoomIds := make([]int, len(ephemeralRoomIds))
+	copy(trackedRoomIds, ephemeralRoomIds)
+
+	ephemeralRoomChunks[chunkId] = trackedRoomIds
+
+	mudlog.Info("CreateEmptyEphemeral...()",
+		"created", len(trackedRoomIds),
+		"chunkId", chunkId,
+		"Ephemeral RoomIds", fmt.Sprintf("%d - %d", ephemeralRoomIds[0], ephemeralRoomIds[len(ephemeralRoomIds)-1]),
+		"Chunks Remaining", ephemeralChunksLimit-GetChunkCount())
+
+	return ephemeralRoomIds, nil
+}
+
 // accepts RoomId's as arguments, and creates ephemeral copies of them, returning the new ID's of the copies.
 func CreateEphemeralRoomIds(roomIds ...int) (map[int]int, error) {
-
-	ephemeralRooms := map[int]int{}
-
 	if len(roomIds) == 0 {
-		return ephemeralRooms, errNoRoomIdsProvided
+		return map[int]int{}, errNoRoomIdsProvided
 	}
 
 	if len(roomIds) > ephemeralChunkSize {
-		return ephemeralRooms, errEphemeralRoomLimit
+		return map[int]int{}, errEphemeralRoomLimit
 	}
+
+	ephemeralRooms := make(map[int]int, len(roomIds))
 
 	// Make sure that all values in the roomIds slice are unique.
 	roomIdReplacements := map[int]int{} // original=>ephemeral replacements
@@ -74,17 +131,14 @@ func CreateEphemeralRoomIds(roomIds ...int) (map[int]int, error) {
 		roomIdReplacements[roomId] = 0
 	}
 
-	// First reserve the chunk
-	chunkId := -1
-	for i := 0; i < ephemeralChunksLimit; i++ {
-		if len(ephemeralRoomChunks[i]) == 0 {
-			chunkId = i
-			break
-		}
+	// First find a chunk ID
+	chunkId, err := getNextAvailableChunk()
+	if err != nil {
+		return map[int]int{}, err
 	}
 
 	ephemeralRoomIds := []int{}
-	for idx, roomId := range roomIds {
+	for i, roomId := range roomIds {
 		// Load only data from the template
 
 		if roomId == 0 {
@@ -96,7 +150,7 @@ func CreateEphemeralRoomIds(roomIds ...int) (map[int]int, error) {
 			continue
 		}
 
-		room.RoomId = ephemeralRoomIdMinimum + (chunkId * ephemeralChunkSize) + idx
+		room.RoomId = ephemeralRoomIdMinimum + (chunkId * ephemeralChunkSize) + i
 
 		// Save the original room ID in case we need it at some point
 		originalRoomIdLookups[room.RoomId] = roomId
@@ -132,13 +186,17 @@ func CreateEphemeralRoomIds(roomIds ...int) (map[int]int, error) {
 		"created", len(ephemeralRoomIds),
 		"chunkId", chunkId,
 		"Ephemeral RoomIds", fmt.Sprintf("%d - %d", ephemeralRoomIds[0], ephemeralRoomIds[len(ephemeralRoomIds)-1]),
-		"Chunks Remaining", GetChunkCount())
+		"Chunks Remaining", ephemeralChunksLimit-GetChunkCount())
 
 	return ephemeralRooms, nil
 }
 
 // accepts RoomId's as arguments, and creates ephemeral copies of them, returning the new ID's of the copies.
 func CreateEphemeralZone(zoneName string) (map[int]int, error) {
+
+	if _, exists := roomManager.zones[zoneName]; !exists {
+		return nil, errZoneNotFound
+	}
 
 	roomIds := make([]int, len(roomManager.zones[zoneName].RoomIds))
 

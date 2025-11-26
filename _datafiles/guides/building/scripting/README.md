@@ -21,6 +21,8 @@ See [Spell Scripting](SCRIPTING_SPELLS.md)
 
 [ActorObject Functions](FUNCTIONS_ACTORS.md) - Functions that query or alter user/mob data.
 
+[ActorObject Functions](FUNCTIONS_PARTY.md) - Functions that operate on the whole party.
+
 [RoomObject Functions](FUNCTIONS_ROOMS.md) - Functions that query or alter room data.
 
 [ItemObject Functions](FUNCTIONS_ITEMS.md) - Functions that query or alter item data.

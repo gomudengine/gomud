@@ -19,7 +19,7 @@ function onAsk(mob, room, eventDetails) {
                 mob.Command("say I'm running out of traps and don't seem to be making a dent in the rat numbers.");
                 mob.Command("say If you can kill 25 of them, come back and see me. I'll pay you for your trouble.");
 
-                user.GiveQuest("7-start");
+                user.GetParty().GiveQuest("7-start");
                 return true;
         }
         return false;
@@ -33,7 +33,7 @@ function onAsk(mob, room, eventDetails) {
             mob.Command("say Thank you for killing those rats! I can finally get a little rest.");
             mob.Command("say While you're feeling helpful, if you could recover a rat trap from a frostfang citizen I was working for, I would be very grateful.");
             
-            user.GiveQuest("7-gettrap");
+            user.GetParty().GiveQuest("7-gettrap");
             return true;
         }
 
@@ -104,7 +104,7 @@ function onGive(mob, room, eventDetails) {
         mob.Command("say Thank you so much! I can finally get back to catching some rats, and maybe earn a little coin.");
         mob.Command("say The thieves guild used to employ me to eliminate rats around their hideout, but for some reason they don't seem to need my help anymore, and didn't pay me for my last job I did for them.");
         
-        user.GiveQuest("7-end");
+        user.GetParty().GiveQuest("7-end");
 
     }
 

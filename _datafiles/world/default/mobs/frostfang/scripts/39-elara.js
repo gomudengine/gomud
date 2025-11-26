@@ -19,7 +19,7 @@ function onAsk(mob, room, eventDetails) {
         mob.Command("say I took a book called The History of Frostfang out with me weeks ago and can't remember where I left it.");
         mob.Command("say If you can find it for me, I'll teach you a useful spell.");
 
-        user.GiveQuest("6-start");
+        user.GetParty().GiveQuest("6-start");
 
         return true;
     }
@@ -61,18 +61,14 @@ function onGive(mob, room, eventDetails) {
 
     if ( user.HasQuest("6-start") ) {
 
-        user.GiveQuest("6-end");
+        user.GetParty().GiveQuest("6-end");
 
         mob.Command("say Thank you! It is such an interesting history. For example, Frostfang used to be called DragonsFang!");
         mob.Command("say I'll teach you the <ansi fg=\"spell-helpful\">Illuminate</ansi> spell. It's useful in dark places.");
         mob.Command("emote Shows you some useful gestures.");
         mob.Command("say Check your <ansi fg=\"command\">spellbook</ansi>.");
 
-        partyMembers = user.GetPartyMembers();
-        for( i = 0; i < partyMembers.length; i++ ) {    
-            a = partyMembers[i];
-            a.LearnSpell("illum");
-        }
+        party = user.GetParty().LearnSpell("illum");
         
         return true;
     }

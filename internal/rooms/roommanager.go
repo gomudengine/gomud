@@ -264,6 +264,8 @@ func MoveToRoom(userId int, toRoomId int, isSpawn ...bool) error {
 	// Put them in their own instance of it.
 	deathRecoveryRoomId := int(cfg.DeathRecoveryRoom)
 	if toRoomId == deathRecoveryRoomId {
+		// Set their reset room id to death recovery.
+		user.Character.RoomIdOnReset = deathRecoveryRoomId
 		if newRooms, err := CreateEphemeralRoomIds(deathRecoveryRoomId); err == nil {
 			toRoomId = newRooms[deathRecoveryRoomId]
 		}
@@ -325,6 +327,32 @@ func MoveToRoom(userId int, toRoomId int, isSpawn ...bool) error {
 			}
 		}
 	}
+
+	//
+	// If they are moving into an ephemeral room
+	//
+	if IsEphemeralRoomId(newRoom.RoomId) {
+
+		if user.Character.RoomIdOnReset == 0 {
+			//
+			// If their previous room was non ephemeral, set it to their reset room by default
+			// This can be overridden manually by scripts/coding if/when needed.
+			//
+			if !IsEphemeralRoomId(user.Character.RoomId) {
+				user.Character.RoomIdOnReset = user.Character.RoomId
+			}
+		}
+
+	} else {
+		//
+		// If their RoomIdOnReset is non zero and they are moving to a non ephemeral room
+		// Clear their RoomIdOnReset.
+		//
+		if user.Character.RoomIdOnReset != 0 {
+			user.Character.RoomIdOnReset = 0
+		}
+	}
+
 	//
 	// Done adding mutator buffs
 	//

@@ -57,7 +57,7 @@ function onCommand(cmd, rest, user, room) {
     SendRoomMessage(room.RoomId(), user.GetCharacterName(true)+" takes a <ansi fg=\"itemname\">golden locket</ansi> from the pile of leaves.", user.UserId());
     
     user.GiveItem(20025);
-    user.GiveQuest("1-return");
+    user.GetParty().GiveQuest("1-return");
 
     locketAvailableRound = roundNow + UtilGetMinutesToRounds(15);
 

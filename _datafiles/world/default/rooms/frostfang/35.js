@@ -49,7 +49,7 @@ function onCommand_say(rest, user, room) {
         return true;
     }
 
-    user.GiveQuest("3-end");
+    user.GetParty().GiveQuest("3-end");
 
     user.GiveBuff(3, "enchantment");
 

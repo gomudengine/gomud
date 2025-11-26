@@ -30,7 +30,7 @@ function onAsk(mob, room, eventDetails) {
             mob.Command("emote sighs deeply.");
             mob.Command("say I lost my locket. I think it was when I was gardening.");
 
-            user.GiveQuest("1-start");
+            user.GetParty().GiveQuest("1-start");
 
             return true;
         }
@@ -78,7 +78,7 @@ function onGive(mob, room, eventDetails) {
                 mob.Command("give !20033 @" + String(eventDetails.sourceId)); // Give it to the player using shorthand
             }
             
-            user.GiveQuest("1-end");
+            user.GetParty().GiveQuest("1-end");
 
             return true;
 

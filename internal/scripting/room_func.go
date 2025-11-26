@@ -25,6 +25,7 @@ import (
 func setRoomFunctions(vm *goja.Runtime) {
 	vm.Set(`GetRoom`, GetRoom)
 	vm.Set(`GetMap`, GetMap)
+	vm.Set(`CreateEmptyRoomInstances`, CreateEmptyRoomInstances)
 	vm.Set(`CreateInstancesFromRoomIds`, CreateInstancesFromRoomIds)
 	vm.Set(`CreateInstancesFromZone`, CreateInstancesFromZone)
 }
@@ -386,7 +387,12 @@ func (r ScriptRoom) IsEphemeral() bool {
 // # These functions get exported to the scripting engine
 //
 // ////////////////////////////////////////////////////////
-func CreateInstancesFromRoomIds(roomList []int) map[int]int {
+func CreateEmptyRoomInstances(quantity int) []int {
+	ret, _ := rooms.CreateEmptyEphemeralRooms(quantity)
+	return ret
+}
+
+func CreateInstancesFromRoomIds(roomList ...int) map[int]int {
 	ret, _ := rooms.CreateEphemeralRoomIds(roomList...)
 	return ret
 }

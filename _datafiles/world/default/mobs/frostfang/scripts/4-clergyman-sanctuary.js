@@ -15,7 +15,7 @@ function onAsk(mob, room, eventDetails) {
     mob.Command("say I often see some priests snooping around in the alley behind the Sanctuary.");
     mob.Command("say I used to think they were just taking care of the rat problem, but now I'm not so sure.");
 
-    user.GiveQuest("2-catacombs");
+    user.GetParty().GiveQuest("2-catacombs");
 
     return true;
 }

@@ -16,6 +16,7 @@ ActorObjects are the basic object that represents Users and NPCs
   - [ActorObject.GetLevel() int](#actorobjectgetlevel-int)
   - [ActorObject.GetStat(statName string) int](#actorobjectgetstatstatname-string-int)
   - [ActorObject.SetTempData(key string, value any)](#actorobjectsettempdatakey-string-value-any)
+  - [ActorObject.SetResetRoomId(roomId int)](#actorobjectsetresetroomidroomid-int)
   - [ActorObject.GetTempData(key string) any](#actorobjectgettempdatakey-string-any)
   - [ActorObject.SetMiscCharacterData(key string, value any)](#actorobjectsetmisccharacterdatakey-string-value-any)
   - [ActorObject.GetMiscCharacterData(key string) any](#actorobjectgetmisccharacterdatakey-string-any)
@@ -25,16 +26,19 @@ ActorObjects are the basic object that represents Users and NPCs
   - [ActorObject.GetRoomId() int](#actorobjectgetroomid-int)
   - [ActorObject.HasQuest(questId string) bool](#actorobjecthasquestquestid-string-bool)
   - [ActorObject.GiveQuest(questId string)](#actorobjectgivequestquestid-string)
-  - [ActorObject.GetPartyMembers() \[\]Actor](#actorobjectgetpartymembers-actor)
+  - [ActorObject.GetParty(\[excludeSelf bool\])](#actorobjectgetpartyexcludeself-bool)
+  - [ActorObject.GetPartyPresent(\[excludeSelf bool\])](#actorobjectgetpartypresentexcludeself-bool)
+  - [ActorObject.GetPartyMissing()](#actorobjectgetpartymissing)
   - [ActorObject.AddGold(amt int \[, bankAmt int\])](#actorobjectaddgoldamt-int--bankamt-int)
   - [ActorObject.AddHealth(amt int) int](#actorobjectaddhealthamt-int-int)
+  - [ActorObject.AddMana(amt int) int](#actorobjectaddmanaamt-int-int)
   - [ActorObject.Sleep(seconds int)](#actorobjectsleepseconds-int)
   - [ActorObject.Command(cmd string \[, waitTurns int\])](#actorobjectcommandcmd-string--waitturns-int)
   - [ActorObject.CommandFlagged(cmd string, flag int \[, waitTurns int\])](#actorobjectcommandflaggedcmd-string-flag-int--waitturns-int)
   - [ActorObject.IsTameable() bool](#actorobjectistameable-bool)
   - [ActorObject.TrainSkill(skillName string, skillLevel int)](#actorobjecttrainskillskillname-string-skilllevel-int)
   - [ActorObject.GetSkillLevel(skillName string)](#actorobjectgetskilllevelskillname-string)
-  - [ActorObject.MoveRoom(destRoomId int \[, leaveCharmedMobsBehind bool\] )](#actorobjectmoveroomdestroomid-int--leavecharmedmobsbehind-bool-)
+  - [ActorObject.MoveRoom(destRoomId int )](#actorobjectmoveroomdestroomid-int-)
   - [ActorObject.UpdateItem(itemId ItemObject)](#actorobjectupdateitemitemid-itemobject)
   - [ActorObject.GiveItem(itemId ItemObject)](#actorobjectgiveitemitemid-itemobject)
   - [ActorObject.TakeItem(itemId ItemObject)](#actorobjecttakeitemitemid-itemobject)
@@ -118,7 +122,7 @@ Retrieves a ActorObject for a given mobInstanceId.
 | createIfMissing | If true and mob isn't found, the mob will be created and returned. |
 
 ## [ActorObject.UserId() int](/internal/scripting/actor_func.go)
-Returns the userId of the ActorObject.˚
+Returns the userId of the ActorObject.
 
 _Note: Only useful for User ActorObjects - Returns zero otherwise._
 
@@ -172,6 +176,16 @@ _Note: This is useful for saving/retrieving data that an ActorObject can carry a
 | --- | --- |
 | key | A unique identifier for the data. |
 | value | What you will be saving. If null, frees from memory. |
+
+## [ActorObject.SetResetRoomId(roomId int)](/internal/scripting/actor_func.go)
+Sets the "Reset Room Id" a player will be sent to if they log out.
+
+_Note: This is only useful if the player is being sent to an ephemeral chunk._
+
+|  Argument | Explanation |
+| --- | --- |
+| roomId | The RoomId the player should be sent to. |
+
 
 ## [ActorObject.GetTempData(key string) any](/internal/scripting/actor_func.go)
 Gets temporary data for the ActorObject.
@@ -235,14 +249,28 @@ Get whether a ActorObject has a quest/progress.
 | questId | The quest identifier string to check, such as `3-start`. |
 
 ## [ActorObject.GiveQuest(questId string)](/internal/scripting/actor_func.go)
-Grants a quest or progress on a quest to a ActorObject. If they are in a party, grants to the party members as well.
+Grants a quest or progress on a quest to a ActorObject. 
 
 |  Argument | Explanation |
 | --- | --- |
 | questId | The quest identifier string to give, such as `3-start`. |
 
-## [ActorObject.GetPartyMembers() []Actor](/internal/scripting/actor_func.go)
-Returns a list of actors in the party, both players and mobs.
+## [ActorObject.GetParty([excludeSelf bool])](/internal/scripting/actor_func.go)
+Returns a Party object that operates on the entire party and charmed mobs.
+
+|  Argument | Explanation |
+| --- | --- |
+| excludeSelf | If true, excludes the actor from the operating list. |
+
+## [ActorObject.GetPartyPresent([excludeSelf bool])](/internal/scripting/actor_func.go)
+Returns a Party object that operates on the party members and charmed mobs in the same room.
+
+|  Argument | Explanation |
+| --- | --- |
+| excludeSelf | If true, excludes the actor from the operating list. |
+
+## [ActorObject.GetPartyMissing()](/internal/scripting/actor_func.go)
+Returns a Party object that operates on the party members and charmed mobs missing from the room.
 
 ## [ActorObject.AddGold(amt int [, bankAmt int])](/internal/scripting/actor_func.go)
 Update how much gold an ActorObject has
@@ -258,6 +286,13 @@ Update how much health an ActorObject has, and returns the actual amount their h
 |  Argument | Explanation |
 | --- | --- |
 | amt | A positive or negative amount of health to alter the actors health by. |
+
+## [ActorObject.AddMana(amt int) int](/internal/scripting/actor_func.go)
+Update how much mana an ActorObject has, and returns the actual amount their mana changed.
+
+|  Argument | Explanation |
+| --- | --- |
+| amt | A positive or negative amount of mana to alter the actors mana by. |
 
 
 ## [ActorObject.Sleep(seconds int)](/internal/scripting/actor_func.go)
@@ -309,13 +344,14 @@ Returns the current skil level for the skillName, or zero if none.
 | skillName | The name of the skill to train, such as `map` or `backstab`. |
 
 
-## [ActorObject.MoveRoom(destRoomId int [, leaveCharmedMobsBehind bool] )](/internal/scripting/actor_func.go)
+## [ActorObject.MoveRoom(destRoomId int )](/internal/scripting/actor_func.go)
 Quietly moves an ActorObject to a new room
 
 |  Argument | Explanation |
 | --- | --- |
 | destRoomId | The room id to move them to. |
-| leaveCharmedMobsBehind | If true, does not also move charmed mobs with the user. |
+
+
 
 ## [ActorObject.UpdateItem(itemId ItemObject)](/internal/scripting/actor_func.go)
 Accepts an ItemObject to update in the players backpack. If the item does not already exist in the players backpack, it is ignored.
