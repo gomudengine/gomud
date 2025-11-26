@@ -16,6 +16,7 @@ ActorObjects are the basic object that represents Users and NPCs
   - [ItemObject.SetTempData(key string, value any)](#itemobjectsettempdatakey-string-value-any)
   - [ItemObject.GetTempData(key string) any](#itemobjectgettempdatakey-string-any)
   - [ItemObject.Rename(newName string \[, displayNameOrStyle string\])](#itemobjectrenamenewname-string--displaynameorstyle-string)
+  - [ItemObject.ShorthandId() string](#itemobjectshorthandid-string)
   - [ItemObject.Redescribe(newDescription string)](#itemobjectredescribenewdescription-string)
 
 ## [CreateItem(itemId int) ItemObject ](/internal/scripting/item_func.go)
@@ -74,10 +75,10 @@ Sets temporary data of any sort on the item. This data is not saved/loaded when 
 |  Argument | Explanation |
 | --- | --- |
 | key | The name to store the data under. Also used to retrieve the data later. |
-| vaue | The data to store. |
+| value | The data to store. |
 
 ## [ItemObject.GetTempData(key string) any](/internal/scripting/item_func.go)
-Sets temporary data of any sort on the item. This data is not saved/loaded when despawning.
+Gets temporary data of any sort on the item. This data is not saved/loaded when despawning.
 
 |  Argument | Explanation |
 | --- | --- |
@@ -91,6 +92,9 @@ Renames the item, also optionally provide a fancy name or colorpattern
 | --- | --- |
 | newName | The plaintext name. |
 | displayNameOrStyle | A fancy name in ansi tags, color short tags, or a pattern like :flame |
+
+## [ItemObject.ShorthandId() string](/internal/scripting/item_func.go)
+Returns the shorthand identifier for the item.
 
 ## [ItemObject.Redescribe(newDescription string)](/internal/scripting/item_func.go)
 Change the description for an item

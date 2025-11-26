@@ -1,11 +1,13 @@
 # Room Specific Functions
 
 - [Room Specific Functions](#room-specific-functions)
+  - [CreateEmptyRoomInstances(quantity int) \[\]int](#createemptyroominstancesquantity-int-int)
   - [CreateInstancesFromRoomIds(RoomIds \[int, int...\]) Object ](#createinstancesfromroomidsroomids-int-int-object-)
   - [CreateInstancesFromZone(zoneName string) Object ](#createinstancesfromzonezonename-string-object-)
   - [GetRoom(roomId int) RoomObject ](#getroomroomid-int-roomobject-)
   - [RoomObject.RoomId() int](#roomobjectroomid-int)
   - [RoomObject.SendText(msg string\[, excludeUserIds int\])](#roomobjectsendtextmsg-string-excludeuserids-int)
+  - [RoomObject.SendTextToExits(msg string, isQuiet bool\[, excludeUserIds int\])](#roomobjectsendtexttoexitsmsg-string-isquiet-bool-excludeuserids-int)
   - [RoomObject.SetTempData(key string, value any)](#roomobjectsettempdatakey-string-value-any)
   - [RoomObject.GetTempData(key string) any](#roomobjectgettempdatakey-string-any)
   - [RoomObject.SetPermData(key string, value any)](#roomobjectsetpermdatakey-string-value-any)
@@ -13,7 +15,7 @@
   - [RoomObject.GetItems() \[\]ItemObject](#roomobjectgetitems-itemobject)
   - [RoomObject.DestroyItem(itm ScriptItem) ](#roomobjectdestroyitemitm-scriptitem-)
   - [RoomObject.SpawnItem(itemId int, inStash bool) \[\]ItemObject](#roomobjectspawnitemitemid-int-instash-bool-itemobject)
-  - [RoomObject.GetMob(mobId int) Actor](#roomobjectgetmobmobid-int-actor)
+  - [RoomObject.GetMob(mobId int \[, createIfMissing bool\]) Actor](#roomobjectgetmobmobid-int--createifmissing-bool-actor)
   - [RoomObject.GetMobs(\[mobId int\]) \[\]Actor](#roomobjectgetmobsmobid-int-actor)
   - [RoomObject.GetPlayers() \[\]Actor](#roomobjectgetplayers-actor)
   - [RoomObject.GetAllActors() \[\]Actor](#roomobjectgetallactors-actor)
@@ -23,16 +25,23 @@
   - [RoomObject.HasQuest(questId string \[,partyUserId int\]) \[\]int](#roomobjecthasquestquestid-string-partyuserid-int-int)
   - [RoomObject.MissingQuest(questId string \[,partyUserId int\]) \[\]int](#roomobjectmissingquestquestid-string-partyuserid-int-int)
   - [RoomObject.SpawnMob(mobId int) Actor](#roomobjectspawnmobmobid-int-actor)
-  - [RoomObject.AddTemporaryExit(exitNameSimple string, exitNameFancy string, exitRoomId int, expiresTimeString string](#roomobjectaddtemporaryexitexitnamesimple-string-exitnamefancy-string-exitroomid-int-expirestimestring-string)
-  - [RoomObject.RemoveTemporaryExit(exitNameSimple string, exitNameFancy string, exitRoomId int](#roomobjectremovetemporaryexitexitnamesimple-string-exitnamefancy-string-exitroomid-int)
+  - [RoomObject.AddTemporaryExit(exitNameSimple string, exitNameFancy string, exitRoomId int, expiresTimeString string) bool](#roomobjectaddtemporaryexitexitnamesimple-string-exitnamefancy-string-exitroomid-int-expirestimestring-string-bool)
+  - [RoomObject.RemoveTemporaryExit(exitNameSimple string, exitNameFancy string, exitRoomId int) bool](#roomobjectremovetemporaryexitexitnamesimple-string-exitnamefancy-string-exitroomid-int-bool)
   - [RoomObject.HasMutator(mutName string) bool](#roomobjecthasmutatormutname-string-bool)
   - [RoomObject.AddMutator(mutName string)](#roomobjectaddmutatormutname-string)
   - [RoomObject.RemoveMutator(mutName string)](#roomobjectremovemutatormutname-string)
   - [RoomObject.IsEphemeral() bool](#roomobjectisephemeral-bool)
   - [RoomObject.RoomIdSource() int](#roomobjectroomidsource-int)
-  - [RoomObject.RepeatSpawnItem(itemId int, roundInterval int \[, containerName\]](#roomobjectrepeatspawnitemitemid-int-roundinterval-int--containername)
+  - [RoomObject.RepeatSpawnItem(itemId int, roundInterval int \[, containerName\]) bool](#roomobjectrepeatspawnitemitemid-int-roundinterval-int--containername-bool)
   - [RoomObject.SetLocked(exitName string, lockIt bool)](#roomobjectsetlockedexitname-string-lockit-bool)
   - [RoomObject.IsLocked(exitName string) bool](#roomobjectislockedexitname-string-bool)
+
+## [CreateEmptyRoomInstances(quantity int) []int](/internal/scripting/room_func.go)
+Creates a specified number of empty ephemeral room instances.
+
+|  Argument | Explanation |
+| --- | --- |
+| quantity | Number of empty rooms to create |
 
 ## [CreateInstancesFromRoomIds(RoomIds [int, int...]) Object ](/internal/scripting/room_func.go)
 Returns an Object with key/value pairs of `ProvidedRoomId`=>`NewRoomId`
@@ -64,6 +73,15 @@ Sends a message to everyone in the room.
 |  Argument | Explanation |
 | --- | --- |
 | msg | the message to send |
+| excludeUserIds | One or more comma separated userIds to exclude from receiving the message. |
+
+## [RoomObject.SendTextToExits(msg string, isQuiet bool[, excludeUserIds int])](/internal/scripting/room_func.go)
+Sends a message to all rooms with an exit leading to this room.
+
+|  Argument | Explanation |
+| --- | --- |
+| msg | the message to send |
+| isQuiet | If true, only those with superior "hearing" will see it. |
 | excludeUserIds | One or more comma separated userIds to exclude from receiving the message. |
 
 ## [RoomObject.SetTempData(key string, value any)](/internal/scripting/room_func.go)
@@ -112,7 +130,7 @@ _Note: See [/scripting/docs/FUNCTIONS_ITEMS.md](FUNCTIONS_ITEMS.md) for details 
 ## [RoomObject.DestroyItem(itm ScriptItem) ](/internal/scripting/room_func.go)
 Destroy an item from the ground.
 
-## [RoomObject.SpawnItem(itemId int, inStash bool) []ItemObject](/internal/scripting/room_func.go)
+## [RoomObject.SpawnItem(itemId int, inStash bool)](/internal/scripting/room_func.go)
 Spawns an item in the room.
 
 |  Argument | Explanation |
@@ -121,12 +139,13 @@ Spawns an item in the room.
 | inStash | If true, spawns stashed instead of visible. |
 
 
-## [RoomObject.GetMob(mobId int) Actor](/internal/scripting/room_func.go)
+## [RoomObject.GetMob(mobId int [, createIfMissing bool]) Actor](/internal/scripting/room_func.go)
 Returns the first mob that matches the provided MobId type (Note: NOT MOB INSTANCE ID!)
 
 |  Argument | Explanation |
 | --- | --- |
 | mobId | MobId to match. |
+| createIfMissing (optional) | If true, will spawn the mob if not found. |
 
 ## [RoomObject.GetMobs([mobId int]) []Actor](/internal/scripting/room_func.go)
 Returns an array of mob `Actor`s in the room.
@@ -186,7 +205,7 @@ _Note: This could be useful for situations where you want to allow a whole party
 | partyUserId (optional) | Only check the specified user and their party |
 
 ## [RoomObject.MissingQuest(questId string [,partyUserId int]) []int](/internal/scripting/room_func.go)
-Returns an array of userId's in the romo who DON'T have the questId. If partyyUserId is supplied, only checks the user and their party specified.
+Returns an array of userId's in the room who DON'T have the questId. If partyUserId is supplied, only checks the user and their party specified.
 
 _Note: This could be useful for situations where you want to disallow a whole party access to an area even if only one of them is missing the quest._
 
@@ -202,7 +221,7 @@ Creates a new instance of MobId,and returns the `Actor` of the mob.
 | --- | --- |
 | mobId | The ID if the mob type to spawn. NOT THE INSTANCE ID. |
 
-## [RoomObject.AddTemporaryExit(exitNameSimple string, exitNameFancy string, exitRoomId int, expiresTimeString string](/internal/scripting/room_func.go)
+## [RoomObject.AddTemporaryExit(exitNameSimple string, exitNameFancy string, exitRoomId int, expiresTimeString string) bool](/internal/scripting/room_func.go)
 Adds a temporary exit to the room for the specified amount of time.
 
 |  Argument | Explanation |
@@ -212,7 +231,7 @@ Adds a temporary exit to the room for the specified amount of time.
 | exitRoomId | The roomId the exit should lead to. |
 | expiresTimeString | Time string (1 day, 1 real day, 4 hours, etc) before it vanishes. |
 
-## [RoomObject.RemoveTemporaryExit(exitNameSimple string, exitNameFancy string, exitRoomId int](/internal/scripting/room_func.go)
+## [RoomObject.RemoveTemporaryExit(exitNameSimple string, exitNameFancy string, exitRoomId int) bool](/internal/scripting/room_func.go)
 Removes a temporary exit
 
 _Note: all 3 parameters much match an existing temporary exit for it to be removed._
@@ -243,7 +262,7 @@ _Note: If the mutator already exists this is ignored._
 ## [RoomObject.RemoveMutator(mutName string)](/internal/scripting/room_func.go)
 Removes a mutator from a room.
 
-_Note: This only expires it. It may be a mutator that respawns, in which case this doens't really completely remove it._
+_Note: This only expires it. It may be a mutator that respawns, in which case this doesn't really completely remove it._
 
 |  Argument | Explanation |
 | --- | --- |
@@ -252,20 +271,14 @@ _Note: This only expires it. It may be a mutator that respawns, in which case th
 ## [RoomObject.IsEphemeral() bool](/internal/scripting/room_func.go)
 Returns true if the room is an Ephemeral Copy of a room.
 
-_Note: This only expires it. It may be a mutator that respawns, in which case this doens't really completely remove it._
-
-|  Argument | Explanation |
-| --- | --- |
-| mutName | the MutatorId of the mutator. |
-
 ## [RoomObject.RoomIdSource() int](/internal/scripting/room_func.go)
 Returns the source RoomId if this room is an ephemeral copy, otherwise just the normal RoomId
 
 
-## [RoomObject.RepeatSpawnItem(itemId int, roundInterval int [, containerName]](/internal/scripting/room_func.go)
-Removes a temporary exit
+## [RoomObject.RepeatSpawnItem(itemId int, roundInterval int [, containerName]) bool](/internal/scripting/room_func.go)
+Sets up automatic item respawning in the room.
 
-_Note: all 3 parameters much match an existing temporary exit for it to be removed._
+_Note: The item will respawn after the specified interval when removed from the room._
 
 |  Argument | Explanation |
 | --- | --- |
