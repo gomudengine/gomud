@@ -42,12 +42,12 @@ function onMagic(sourceActor, targetActors) {
             SendRoomMessage(roomId, sourceName+' stops chanting and lets loose a shower of sparks, hitting '+targetName+'.', sourceUserId, targetUserId);
 
             // Tell the target about the dmg
-            SendUserMessage(targetUserId, sourceName+' stops chanting fires a shower of sparks at you, hitting for <ansi fg="damage">'+dmgAmtStr+' damage</ansi>.');
+            SendUserMessage(targetUserId, sourceName+' stops chanting and fires a shower of sparks at you, hitting for <ansi fg="damage">'+dmgAmtStr+' damage</ansi>.');
 
         } else {
 
             // Tell the cast they did it to themselves
-            SendUserMessage(sourceUserId, 'You stop chanting and fires a shower of sparks at yourself, doing <ansi fg="damage">'+dmgAmtStr+' damage</ansi>.');
+            SendUserMessage(sourceUserId, 'You stop chanting and fire a shower of sparks at yourself, doing <ansi fg="damage">'+dmgAmtStr+' damage</ansi>.');
 
             // Tell the room about the dmg, except the source and target
             SendRoomMessage(roomId, sourceName+' stops chanting and fires a shower of sparks at themselves, hurting themselves.', sourceUserId, targetUserId);

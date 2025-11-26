@@ -91,7 +91,7 @@ function onWait(sourceActor, targetActor) {
             break;
         default:
             SendUserMessage(sourceActor.UserId(), '<ansi fg="219">You whistle several times, changing your pitch ever so slightly.</ansi>');
-            SendRoomMessage(sourceActor.GetRoomId(), `<ansi fg="219">`+sourceActor.GetCharacterName(true)+' whistles several times, changing your pitch ever so slightly.</ansi>', sourceActor.UserId());
+            SendRoomMessage(sourceActor.GetRoomId(), `<ansi fg="219">`+sourceActor.GetCharacterName(true)+' whistles several times, changing their pitch ever so slightly.</ansi>', sourceActor.UserId());
     }
 
 }

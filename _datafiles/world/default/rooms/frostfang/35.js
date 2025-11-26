@@ -2,6 +2,12 @@
 
 const magic_phrase = "zyphrial lumara vorthos";
 
+// EventFlags constants
+const EventFlags = {
+    CmdSkipScripts: 1,
+    CmdBlockInputUntilComplete: 2
+};
+
 function onCommand_west(rest, user, room) {
 
     if ( !user.HasQuest("3-end") ) {

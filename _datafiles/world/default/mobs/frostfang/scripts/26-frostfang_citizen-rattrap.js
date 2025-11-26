@@ -19,7 +19,7 @@ function onAsk(mob, room, eventDetails) {
 
             mob.Command("say Thanks for picking it up!");
 
-            user.GetParty().GiveQuest("7-gettrap");
+            user.GetParty().GiveQuest("7-tradetrap");
 
             return true;
         }

@@ -137,10 +137,10 @@ function onIdle(mob, room) {
 
     if ( sizeAfter != sizeBefore ) {
         if ( sizeAfter == 0 ) {
+            mob.SetTempData('playersTold', null);
+        } else {
             mob.SetTempData('playersTold', playersTold);
         }
-    } else {
-        mob.SetTempData('playersTold', null);
     }
 
     action = round % 3;

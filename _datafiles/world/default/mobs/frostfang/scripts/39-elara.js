@@ -68,7 +68,7 @@ function onGive(mob, room, eventDetails) {
         mob.Command("emote Shows you some useful gestures.");
         mob.Command("say Check your <ansi fg=\"command\">spellbook</ansi>.");
 
-        party = user.GetParty().LearnSpell("illum");
+        user.GetParty().LearnSpell("illum");
         
         return true;
     }

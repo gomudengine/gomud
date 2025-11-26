@@ -46,7 +46,7 @@ function onAsk(mob, room, eventDetails) {
         //
         // Search the text they inputted for the "ask" command for one of the questStartSubjects
         //
-        match = UtilFindMatchIn(eventDetails.askText, questStartSubjects);
+        var match = UtilFindMatchIn(eventDetails.askText, questStartSubjects);
 
         if ( match.found ) {
 
@@ -66,7 +66,7 @@ function onAsk(mob, room, eventDetails) {
     // By this point in the script we know they've at least started the quest
     // Lets see if they are asking any follow up questions for more info.
     //
-    match = UtilFindMatchIn(eventDetails.askText, questInfoSubjects);
+    var match = UtilFindMatchIn(eventDetails.askText, questInfoSubjects);
     if ( match.found ) {
         mob.Command("emote thinks hard for a moment.");
         mob.Command("say You can get sharp sticks from a shop, and gold from selling objects, or possibly killing bad guys and looting them.");
@@ -170,7 +170,7 @@ function onGive(mob, room, eventDetails) {
             //
             // If they gave too much gold, lets give them back the change.
             //
-            excessGold = eventDetails.gold - REQUIRED_GOLD_AMOUNT;
+            var excessGold = eventDetails.gold - REQUIRED_GOLD_AMOUNT;
             if ( excessGold > 0 ) {
                 mob.Command("say Here's your change.");
                 mob.Command("give "+String(excessGold)+" gold " + user.ShorthandId()); // Give it to the player using shorthand
