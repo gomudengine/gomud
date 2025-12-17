@@ -1,4 +1,4 @@
-roomid: 488
+roomid: 1004
 zone: Frostfang Slums
 title: Poorly Lit Street
 description: 'Tucked away in the heart of Frostfang''s sprawling slums, a dimly lit
@@ -10,15 +10,6 @@ description: 'Tucked away in the heart of Frostfang''s sprawling slums, a dimly 
   from shattered glass. An ornate door stands out here, clearly well cared for.'
 biome: city
 exits:
-  door:
-    roomid: 1004
-    mapdirection: southwest
-    exitmessage: You get the feeling you shouldn't be here.
-    lock:
-      difficulty: 4
-      relockinterval: 15 minutes
-      trapbuffids: [13]
-  east:
-    roomid: 489
-  north:
-    roomid: 487
+  out:
+    roomid: 488
+    mapdirection: northeast

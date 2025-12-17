@@ -128,26 +128,28 @@ YAML-loadable conversation definition:
 ### Conversation YAML Structure
 ```yaml
 # Example conversation file: conversations/frostfang/123.yaml
-- Supported:
+- 
+  Supported: # A map of lowercase names of "Initiator" (#1) to array of "Participant" (#2) names allowed to use this conversation.
     "guard": ["player", "visitor"]
     "*": ["*"]  # Universal conversation
   Conversation:
-    - ["#1", "say Hello there, traveler!"]
-    - ["#2", "say Greetings, guard."]
-    - ["#1", "say Welcome to our town."]
-    - ["#2", "emote nods politely"]
+    - ["#1 say Hello there, traveler!"]
+    - ["#2 say Greetings, guard."]
+    - ["#1 say Welcome to our town."]
+    - ["#2 emote nods politely"]
 
-- Supported:
+- 
+  Supported:
     "guard": ["merchant"]
   Conversation:
-    - ["#1", "say Any goods to declare?"]
-    - ["#2", "say Just the usual wares."]
+    - ["#1 say Any goods to declare?"]
+    - ["#2 say Just the usual wares."]
 ```
 
 ### Command Format
 - **Participant Prefix**: `#1` (initiator) or `#2` (participant)
-- **Command Structure**: `["#1", "command arguments"]`
-- **Action Types**: Any valid mob command (say, emote, look, etc.)
+- **Command Structure**: `["#1 command arguments"]` - participant identifier and command are in a single string
+- **Action Types**: Any valid mob command (say, sayto, emote, look, etc.)
 
 ## Usage Patterns
 
@@ -212,77 +214,3 @@ if conversations.HasConverseFile(mobId, zoneName) {
 - **Cultural Context**: Zone-appropriate dialogue and interactions
 - **Immersion**: Rich, contextual NPC interactions enhance world building
 - **Scalable Content**: Easy addition of new conversations per zone
-
-## Performance Considerations
-
-### Caching Strategy
-- **File Existence**: Cache file existence checks to reduce filesystem access
-- **Conversation Loading**: Load conversations only when needed
-- **Memory Cleanup**: Automatic cleanup of inactive conversations
-- **Usage Tracking**: Efficient tracking of conversation usage patterns
-
-### Memory Management
-- **Lightweight Storage**: Minimal memory footprint per active conversation
-- **Automatic Cleanup**: Periodic removal of stale conversations
-- **Efficient Indexing**: Fast lookup of active conversations by ID
-- **Resource Limits**: Implicit limits through automatic cleanup
-
-### File System Optimization
-- **Organized Structure**: Hierarchical file organization for efficient access
-- **Lazy Loading**: Conversations loaded only when participants match
-- **Error Handling**: Graceful handling of missing or malformed files
-- **Path Sanitization**: Consistent file path generation
-
-## Future Enhancements
-
-### Advanced Features
-- **Branching Conversations**: Multiple conversation paths based on conditions
-- **Dynamic Content**: Conversations that change based on game state
-- **Emotional States**: NPC mood affecting conversation selection
-- **Relationship Tracking**: Conversation history affecting future interactions
-
-### Enhanced Selection
-- **Weighted Selection**: Probability-based conversation selection
-- **Conditional Conversations**: Conversations requiring specific conditions
-- **Time-Based Conversations**: Conversations available at certain times
-- **Reputation-Based**: Conversations based on player reputation
-
-### Content Management
-- **Conversation Editor**: Visual tool for creating conversations
-- **Validation Tools**: Tools for validating conversation syntax
-- **Import/Export**: Tools for sharing conversations between servers
-- **Version Control**: Track changes to conversation content
-
-### Performance Improvements
-- **Preloading**: Preload frequently used conversations
-- **Compression**: Compressed storage for large conversation sets
-- **Database Integration**: Optional database storage for conversations
-- **Streaming**: Stream large conversations for memory efficiency
-
-## Security and Validation
-
-### Input Validation
-- **Name Sanitization**: Ensure participant names are properly sanitized
-- **Command Validation**: Validate conversation commands for safety
-- **Path Security**: Prevent path traversal attacks through zone names
-- **Resource Limits**: Prevent resource exhaustion through conversation abuse
-
-### Content Safety
-- **Command Filtering**: Filter dangerous or inappropriate commands
-- **Content Validation**: Validate conversation content for appropriateness
-- **Error Handling**: Safe handling of malformed conversation files
-- **Access Control**: Ensure only authorized conversations are accessible
-
-## Administrative Features
-
-### Monitoring and Analytics
-- **Usage Statistics**: Track conversation usage patterns
-- **Performance Metrics**: Monitor conversation system performance
-- **Error Tracking**: Log and track conversation-related errors
-- **Content Analysis**: Analyze conversation effectiveness and popularity
-
-### Content Management
-- **Dynamic Loading**: Hot-reload conversations without server restart
-- **Content Validation**: Validate conversation files before deployment
-- **Backup and Recovery**: Backup and restore conversation content
-- **Version Management**: Track conversation content versions

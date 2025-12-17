@@ -12,6 +12,8 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
+	//"github.com/GoMudEngine/GoMud/internal/mudlog"
+	//"github.com/GoMudEngine/GoMud/internal/procedural"
 	"github.com/GoMudEngine/GoMud/internal/races"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/scripting"
@@ -22,6 +24,26 @@ import (
 
 func Start(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
+	/*
+	mazeW := 15
+	mazeH := 8
+
+	maze := procedural.NewGridMaze()
+	// Generate the maze
+	mazeRooms := maze.Generate2D(mazeW, mazeH)
+
+	allRoomIds, startRoomId, endRoomId := procedural.CreateEphemeralMaze2D(mazeRooms)
+
+	mudlog.Error("TEST", "startTmpRoomId", startRoomId, "endRoomId", endRoomId, "allRoomIds", allRoomIds)
+	rooms.MoveToRoom(user.UserId, startRoomId)
+	return true, nil
+	*/
+	//
+	//
+	//
+	//
+	//
+	//
 	if user.Character.RoomId != -1 {
 		return false, errors.New(`only allowed in the void`)
 	}
@@ -249,6 +271,9 @@ func Start(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		user.SendText(`The Tutorial zone is fully occupied right now. Please try again in a few minutes`)
 		return true, nil
 	}
+
+	// Send them back to the void if they leave the game in the middle of the tutorial
+	user.Character.RoomIdOnReset = -1
 
 	ephemeralStartRoomId := createdRoomIds[startRoom]
 
