@@ -447,6 +447,14 @@ func GetDetails(r *Room, user *users.UserRecord, tinymap ...[]string) RoomTempla
 		}
 	}
 
+	if user.Character.HasBuffFlag(buffs.Tripping) {
+		details.Title = colorpatterns.ApplyCharacterWarping(details.Title)
+		details.Description = colorpatterns.ApplyCharacterWarping(details.Description)
+
+		details.Title = colorpatterns.ApplyColorPattern(details.Title, "tripping")
+		details.Description = colorpatterns.ApplyColorPattern(details.Description, "tripping")
+	}
+	
 	return details
 
 }

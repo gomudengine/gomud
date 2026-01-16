@@ -49,6 +49,7 @@ const (
 	// Harmful flags
 	Poison Flag = `poison`
 	Drunk  Flag = `drunk`
+	Tripping  Flag = `tripping`
 
 	// Useful flags
 	Hidden       Flag = `hidden`

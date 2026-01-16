@@ -1,0 +1,10 @@
+itemid: 30016
+name: spotted mushroom
+namesimple: mushroom
+description: A small red capped mushroom with white spots. Small magenta spores occasionally fall from it.
+type: food
+subtype: edible
+uses: 1
+value: 20
+buffids: 
+- 40
