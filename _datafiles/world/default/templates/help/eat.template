@@ -5,7 +5,7 @@ The <ansi fg="command">eat</ansi> command eats an item you carry (if it is edibl
 <ansi fg="yellow">Usage: </ansi>
 
   <ansi fg="command">eat sandwich</ansi>
-  This would drink your sandwich.
+  This would eat your sandwich.
 
 Find out more about referring to items by name by typing <ansi fg="command">help item-names</ansi>.
 
