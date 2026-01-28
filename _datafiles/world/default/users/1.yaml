@@ -17,10 +17,9 @@ character:
     other adventurers, granting them strength, wisdom, or fortune beyond their wildest
     dreams. Conversely, he can also mete out justice to those who would seek to disrupt
     the balance of the world, swiftly and decisively.
-  adjectives:
-  - zombie
-  roomid: 2
-  zone: Frostfang
+  roomid: 487
+  roomidonreset: 0
+  zone: Frostfang Slums
   raceid: 2
   stats:
     strength:
@@ -65,18 +64,16 @@ character:
     list:
     - buffid: 28
       permabuff: true
-      roundcounter: 3
+      roundcounter: 22
       triggersleft: 1000000000
     - buffid: 29
       permabuff: true
-      roundcounter: 11
+      roundcounter: 15
       triggersleft: 1000000000
     - buffid: 39
       permabuff: true
+      roundcounter: 4
       triggersleft: 1000000000
-    - buffid: 32
-      roundcounter: 79
-      triggersleft: 1
   equipment:
     weapon:
       itemid: 10004

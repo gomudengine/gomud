@@ -10,14 +10,15 @@ import (
 	"strings"
 	"time"
 
+	"unicode"
+
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
-	"github.com/GoMudEngine/ansitags"
 	"github.com/GoMudEngine/GoMud/internal/util"
+	"github.com/GoMudEngine/ansitags"
 	"github.com/mattn/go-runewidth"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
-	"unicode"
 )
 
 // TODO: Load patterns from a config file.
@@ -67,7 +68,7 @@ func ApplyColorPattern(input string, pattern string, method ...ColorizeStyle) st
 
 func ApplyCharacterWarping(input string) string {
 
-	randomSymbols := []rune{'°', '•', '·', '˚', '˙','✧', '✦', '✺','~', '≈','⋆'}
+	randomSymbols := []rune{'°', '•', '·', '˚', '˙', '✧', '✦', '✺', '~', '≈', '⋆'}
 	newString := strings.Builder{}
 
 	inTagPlaceholder := false
@@ -112,13 +113,13 @@ func ApplyCharacterWarping(input string) string {
 		if runeChar == 32 { // space
 
 			if util.Rand(5) == 0 {
-				runeChar = randomSymbols[util.Rand(len(randomSymbols))] 
+				runeChar = randomSymbols[util.Rand(len(randomSymbols))]
 			}
 
 		} else {
 			if util.Rand(3) == 0 {
 				runeChar = unicode.ToUpper(runeChar)
-			} 
+			}
 			if util.Rand(5) == 0 {
 				switch runeChar {
 				case 'a':
@@ -200,7 +201,6 @@ func ApplyColors(input string, patternValues []int, method ...ColorizeStyle) str
 					continue
 				}
 			}
-
 
 			newString.WriteString(fmt.Sprintf(`<ansi fg="%d">%s</ansi>`, patternValues[patternPosition], string(runeChar)))
 			if runeChar != 32 { // space

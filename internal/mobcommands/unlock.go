@@ -3,9 +3,10 @@ package mobcommands
 import (
 	"fmt"
 	"strings"
-	"github.com/GoMudEngine/GoMud/internal/rooms"
+
 	"github.com/GoMudEngine/GoMud/internal/mobs"
-	"github.com/GoMudEngine/GoMud/internal/util" 
+	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/util"
 )
 
 func Unlock(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {

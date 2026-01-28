@@ -243,7 +243,7 @@ func main() {
 
 	//
 	// Capture OS signals to gracefully shutdown the server
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGTSTP)
 
 	// for testing purposes, enable event debugging
 	//events.SetDebug(true)

@@ -454,7 +454,7 @@ func GetDetails(r *Room, user *users.UserRecord, tinymap ...[]string) RoomTempla
 		details.Title = colorpatterns.ApplyColorPattern(details.Title, "tripping")
 		details.Description = colorpatterns.ApplyColorPattern(details.Description, "tripping")
 	}
-	
+
 	return details
 
 }

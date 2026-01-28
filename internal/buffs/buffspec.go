@@ -47,9 +47,9 @@ const (
 	RemoveCurse Flag = `remove-curse`
 
 	// Harmful flags
-	Poison Flag = `poison`
-	Drunk  Flag = `drunk`
-	Tripping  Flag = `tripping`
+	Poison   Flag = `poison`
+	Drunk    Flag = `drunk`
+	Tripping Flag = `tripping`
 
 	// Useful flags
 	Hidden       Flag = `hidden`
