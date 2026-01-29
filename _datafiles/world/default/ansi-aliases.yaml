@@ -154,6 +154,7 @@ colors:
   user-corpse: 143
   tip-text: 219
   character-joined: 120
+  md-p: 8
   md-h1-prefix: black-bold
   md-h1: magenta
   md-h2: yellow-bold
