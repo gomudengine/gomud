@@ -15,14 +15,16 @@ You'll need a set of *lockpicks*.
 
     **[HP:66/66 MP:35/35]:** ~pick north~
 
-    **The Lock Sequence Looks like:**  
-    **╔═══════╦═══════╦═══════╦═══════╦═══════╗**  
-    **║       ║       ║       ║       ║       ║**  
-    **║   ?   ║   ?   ║   ?   ║   ?   ║   ?   ║**  
-    **║       ║       ║       ║       ║       ║**  
-    **╚═══════╩═══════╩═══════╩═══════╩═══════╝**  
-    **Move your lockpick?** **[**UP**/**DOWN**/**quit**]**
+    <ansi fg="black-bold">.:</ansi> <ansi fg="table-title">The Lock Sequence Looks like:</ansi>
 
-**Note:** *Each **?** symbol represents an UP or DOWN you must guess in the sequence.*
+    <ansi fg="yellow-bold">╔═══════╦═══════╦═══════╦═══════╦═══════╗  
+    ║       ║       ║       ║       ║       ║  
+    <ansi fg="yellow-bold">║</ansi>   <ansi fg="red-bold">?</ansi>   <ansi fg="yellow-bold">║</ansi>   <ansi fg="red-bold">?</ansi>   <ansi fg="yellow-bold">║</ansi>   <ansi fg="red-bold">?</ansi>   <ansi fg="yellow-bold">║</ansi>   <ansi fg="red-bold">?</ansi>   <ansi fg="yellow-bold">║</ansi>   <ansi fg="red-bold">?</ansi>   <ansi fg="yellow-bold">║</ansi>  
+    <ansi fg="yellow-bold">║       ║       ║       ║       ║       ║</ansi>  
+    ╚═══════╩═══════╩═══════╩═══════╩═══════╝</ansi>
+    
+    <ansi fg="black-bold">.:</ansi> <ansi fg="yellow-bold">Move your lockpick?</ansi> <ansi fg="black-bold">[</ansi>UP<ansi fg="black-bold">/</ansi>DOWN<ansi fg="black-bold">/</ansi>quit<ansi fg="black-bold">]</ansi>
+
+**Note:** Each **?** symbol represents an UP or DOWN you must guess in the sequence.
 
 **See also:** ~help picklock-example~, ~help keyring~
