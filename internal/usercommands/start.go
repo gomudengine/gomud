@@ -21,31 +21,6 @@ import (
 )
 
 func Start(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
-	/*
-		mazeW := 15
-		mazeH := 8
-
-		maze := procedural.NewGridMaze()
-		// Generate the maze
-		mazeRooms := maze.Generate2D(mazeW, mazeH)
-
-		allRoomIds, startRoomId, endRoomId := procedural.CreateEphemeralMaze2D(mazeRooms)
-
-		mudlog.Error("TEST", "startTmpRoomId", startRoomId, "endRoomId", endRoomId, "allRoomIds", allRoomIds)
-
-		rooms.MoveToRoom(user.UserId, startRoomId)
-
-		// "Beyond the ornate door, the building’s interior dissolves into a forgotten maze of narrow chambers and crooked corridors, as if the structure has been slowly folding in on itself for decades. The air is damp and stale, heavy with the earthy scent of rot and wet stone. Cracked walls sag beneath peeling plaster, exposing warped beams blackened by age and moisture. Mushrooms thrive in the gloom—pale caps cluster along the floorboards, spill from crumbling mortar, and creep up the walls in soft, phosphorescent patches that provide the only light, casting sickly shadows that twist and crawl as you move. Debris crunches underfoot: fallen ceiling tiles, splintered furniture, and heaps of unidentifiable refuse softened by mold. Water drips somewhere unseen, echoing through the labyrinth, making it impossible to tell how large the place truly is."
-
-		// "The room feels like just another fragment of a structure long past saving, its original purpose impossible to guess. The ceiling hangs low and uneven, with sections bowed inward as though the building itself is slowly collapsing. Damp stone and rotting wood dominate every surface, feeding thick growths of mushrooms that sprout in tangled clusters along the walls and floor. Some are brittle and gray, others swollen and faintly luminous, staining the air with a sour, fungal musk. Old debris lies half-buried in mold—splintered crates, scraps of cloth, and rusted metal shapes softened by decay. Every sound seems muted here, swallowed by the damp, until the occasional drip of water or distant creak of settling timbers reminds you that the maze is still shifting, still alive in its own slow, ruinous way."
-		return true, nil
-	*/
-	//
-	//
-	//
-	//
-	//
-	//
 	if user.Character.RoomId != -1 {
 		return false, errors.New(`only allowed in the void`)
 	}
