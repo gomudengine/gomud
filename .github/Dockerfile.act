@@ -3,6 +3,9 @@ FROM golang:1.25.0-bookworm
 ENV DEBIAN_FRONTEND=noninteractive
 ENV GOBIN=/usr/local/bin
 ENV HOME=/home/gomud
+ENV GOPATH=/home/gomud/go
+ENV GOCACHE=/home/gomud/.cache/go-build
+ENV GOMODCACHE=/home/gomud/go/pkg/mod
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -25,7 +28,7 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/nekto
     | bash -s -- -b /usr/local/bin
 
 RUN useradd --create-home --home-dir /home/gomud --shell /bin/bash gomud \
-    && mkdir -p /work /home/gomud/.cache/act \
+    && mkdir -p /work /home/gomud/.cache/act /home/gomud/.cache/go-build /home/gomud/go/pkg/mod \
     && chown -R gomud:gomud /work /home/gomud
 
 USER gomud
