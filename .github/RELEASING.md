@@ -18,19 +18,16 @@
    git tag vX.Y.Z
    git push origin vX.Y.Z
    ```
-   This triggers the `build-and-release` workflow.
+   This triggers the `Release` workflow.
 
-5. **Monitor Draft Release**
+4. **Monitor Release**
    - GitHub Actions will:
-     - Run `go generate ./…`
+     - Run `go generate ./...`
      - Build artifacts with `main.version=vX.Y.Z`
      - Zip as `go-mud-release-vX.Y.Z.zip`
-     - Draft a GitHub Release named `vX.Y.Z`
+     - Publish the GitHub Release for `vX.Y.Z`
 
-6. **Finalize Release Notes**
-   - Review and adjust the draft on GitHub, then click **Publish release**.
-
-7. **Announce**
+5. **Announce**
    - Share the release link with the team or via configured notifications.
 
 ---
@@ -48,21 +45,24 @@
    ```
 
 3. **Tag & Push**
-   - Pushing the tag triggers the same workflow.
+   - Pushing the tag triggers the same release workflow.
 
 4. **Publish**
-   - Review draft release, then click **Publish release**.
+   - The workflow publishes the release automatically after the build completes.
 
 ---
 
 ### FAQ / Guidelines
 
 - **Does every merge to `master` trigger a release?**
-  No – only pushing a Git tag matching `v*.*.*` triggers a release.
+  No - only pushing a Git tag matching `v*.*.*` triggers a release.
+
+- **Is auto-tagging enabled?**
+  No - releases are manual. Create and push the version tag yourself when you want to publish.
 
 - **When should I bump minor vs. patch?**
   - **Minor** for new, backward‑compatible features.
   - **Patch** for bug fixes or documentation tweaks.
 
 - **What about `go generate` directives?**
-  The workflow runs `go generate ./…` automatically before each build.
+  The workflow runs `go generate ./...` automatically before each build.

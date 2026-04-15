@@ -1,0 +1,15 @@
+{
+  "pull_request": {
+    "title": "Local act dry run",
+    "body": "Local workflow validation",
+    "html_url": "https://example.invalid/pull/1",
+    "head": {
+      "ref": "local-ci"
+    },
+    "base": {
+      "ref": "master"
+    }
+  },
+  "head_ref": "local-ci",
+  "base_ref": "master"
+}

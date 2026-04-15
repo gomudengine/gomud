@@ -5,6 +5,17 @@
 VERSION ?= $(shell git rev-parse HEAD)
 BIN ?= go-mud-server
 DOCKER_COMPOSE := docker-compose -f compose.yml
+GO_CONSOLE_IMAGE ?= golang:1.25.0-bookworm
+CI_LOCAL_IMAGE ?= gomud-ci-local
+CI_LOCAL_ACT_CACHE_DIR ?= $(PWD)/.git/.cache/act
+CI_LOCAL_RUN := docker run --rm \
+	-v /var/run/docker.sock:/var/run/docker.sock \
+	-v "$(PWD)":/work \
+	-v "$(CI_LOCAL_ACT_CACHE_DIR)":/root/.cache/act \
+	-w /work \
+	$(CI_LOCAL_IMAGE)
+ACT_FLAGS ?= --pull=false -P ubuntu-24.04=catthehacker/ubuntu:act-latest
+ACT_DRYRUN_SECRETS ?= -s DISCORD_WEBHOOK_URL=https://example.invalid/webhook
 
 export GOFLAGS := -mod=mod
 
@@ -14,15 +25,52 @@ export GOFLAGS := -mod=mod
 docker_build: 
 	TAG=$(VERSION) $(DOCKER_COMPOSE) build server
 
+.PHONY: ci-local-image
+ci-local-image: ### Build the local CI tool image.
+	docker build -f .github/Dockerfile.act -t $(CI_LOCAL_IMAGE) .
+
+.PHONY: ci-local
+ci-local: ci-local-image ### Run local CI validation in a container.
+	mkdir -p "$(CI_LOCAL_ACT_CACHE_DIR)"
+	$(CI_LOCAL_RUN) make ci-local-inner
+
+.PHONY: ci-local-inner
+ci-local-inner: ### Run the local CI checks inside the CI tool image.
+	actionlint .github/workflows/*.yml
+	yamllint .github
+	$(MAKE) validate
+	$(MAKE) js-lint
+	act $(ACT_FLAGS) --dryrun push \
+		-e .github/act/push_master.json \
+		-W .github/workflows/lint.yml
+	act $(ACT_FLAGS) --dryrun pull_request \
+		-e .github/act/pull_request.json \
+		-W .github/workflows/lint.yml
+	act $(ACT_FLAGS) --dryrun pull_request \
+		-e .github/act/pull_request.json \
+		-W .github/workflows/run-test.yml
+	act $(ACT_FLAGS) --dryrun pull_request $(ACT_DRYRUN_SECRETS) \
+		-e .github/act/pull_request.json \
+		-W .github/workflows/discord-notify.yml
+	act $(ACT_FLAGS) --dryrun push \
+		-e .github/act/push_tag.json \
+		-W .github/workflows/build-and-release.yml
+	act $(ACT_FLAGS) --dryrun push $(ACT_DRYRUN_SECRETS) \
+		-e .github/act/push_master.json \
+		-W .github/workflows/docker-package.yml
+	act $(ACT_FLAGS) --dryrun pull_request $(ACT_DRYRUN_SECRETS) \
+		-e .github/act/pull_request.json \
+		-W .github/workflows/docker-package.yml
+
 DOCKER_CMD ?= bash
 
 .PHONY: console
-console:
+console: ### Open a shell in the project Go toolchain container.
 	@docker run --rm -it --init \
-			-v "$(PWD)":/src \
-			-w /src \
-			golang:1.21.3-alpine3.18 \
-			$(DOCKER_CMD)
+				-v "$(PWD)":/src \
+				-w /src \
+				$(GO_CONSOLE_IMAGE) \
+				$(DOCKER_CMD)
 
 docker-%:
 	@$(MAKE) console DOCKER_CMD="make $(patsubst docker-%,%,$@)"
@@ -110,8 +158,8 @@ shell:
 validate: fmtcheck vet
 
 .PHONY: test
-test: js-lint
-	@go test ./...
+test: generate js-lint ### Run code generation, lint, and Go tests.
+		@go test -race ./...
 
 .PHONY: coverage
 coverage: 
@@ -204,4 +252,3 @@ help:                 ### List makefile targets.
 		| sed "s/\(.*\):\(.*\)###\(.*\)$$/  `printf "\033[93m"`\1:`printf "\033[36m"`\2`printf "\033[97m"`-\3`printf "\033[0m"`/" \
     	| sed "/^[^[:blank:]]/{x;p;x;}"
 	@printf "\n"
-

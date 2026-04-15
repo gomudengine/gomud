@@ -1,0 +1,45 @@
+---
+name: Lint
+
+"on":
+  push:
+    branches:
+      - master
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+
+concurrency:
+  group: >-
+    ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup-go
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+
+      - name: Run Go lint checks
+        run: make validate
+
+      - name: Run JavaScript lint checks
+        run: >-
+          npx --yes jshint .
+          2>&1 | grep -v "^npm " | tee /dev/stderr | grep -Eq "^[0-9]+ errors"
+          && exit 1 || true

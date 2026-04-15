@@ -1,9 +1,11 @@
+---
 name: "Setup Go"
-description: "Checkout and setup Go using go.mod"
+description: "Setup Go using go.mod"
 runs:
   using: "composite"
   steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-go@v5
+    - uses: actions/setup-go@v6.4.0
       with:
-        go-version-file: 'go.mod'
+        go-version-file: go.mod
+        cache: true
+        cache-dependency-path: go.sum
