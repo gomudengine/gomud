@@ -1,36 +1,50 @@
 # GoMud
 
+## Overview
+
 ![image](feature-screenshots/splash.png)
 
-GoMud is an in-development open source MUD (Multi-user Dungeon) game world and library.
+**GoMud** is an open-source MUD (_Multi-User Dungeon_) game server and library, written in Go.
 
-It ships with a default world to play in, but can be overwritten or modified to build your own world using built-in tools.
+It includes a fully playable default world, and provides built-in tools to customize or create your own.
 
-# User Support
+Playable online demo: **https://www.gomud.net**
 
-If you have comments, questions, suggestions:
+---
 
-[Github Discussions](https://github.com/GoMudEngine/GoMud/discussions) - Don't be shy. Your questions or requests might help others too.
+<!-- TOC -->
+- [Features](#features)
+  - [Screenshots](#screenshots)
+  - [ANSI Colors](#ansi-colors)
+  - [Small Feature Demos](#small-feature-demos)
+- [Setup](#setup)
+  - [Requirements](#requirements)
+  - [Usage](#usage)
+- [Connecting](#connecting)
+- [User Support](#user-support)
+- [Development Notes](#development-notes)
+  - [Contributor Guide](#contributor-guide)
+  - [Build Commands](#build-commands)
+  - [Env Vars](#env-vars)
+  - [Why Go?](#why-go)
 
-[Discord Server](https://discord.gg/cjukKvQWyy) - Get more interactive help in the GoMud Discord server.
+---
 
-[Guides](_datafiles/guides/README.md) - Community created guides to help get started.
+<!-- /TOC -->
 
-# Contributor Guide
+## Features
 
-Interested in contributing? Check out our [CONTRIBUTING.md](https://github.com/GoMudEngine/GoMud/blob/master/.github/CONTRIBUTING.md) to learn about the process.
-
-## Screenshots
+### Screenshots
 
 Click below to see in-game screenshots of just a handful of features:
 
 [![Feature Screenshots](feature-screenshots/screenshots-thumb.png "Feature Screenshots")](feature-screenshots/README.md)
 
-## ANSI Colors
+### ANSI Colors
 
 Colorization is handled through extensive use of my [github.com/GoMudEngine/ansitags](https://github.com/GoMudEngine/ansitags) library.
 
-## Small Feature Demos
+### Small Feature Demos
 
 - [Auto-complete input](https://youtu.be/7sG-FFHdhtI)
 - [In-game maps](https://youtu.be/navCCH-mz_8)
@@ -48,36 +62,101 @@ Colorization is handled through extensive use of my [github.com/GoMudEngine/ansi
 - [Web Socket "Virtual Terminal"](https://www.youtube.com/watch?v=L-qtybXO4aw)
 - [Alternate Characters](https://www.youtube.com/watch?v=VERF2l70W34)
 
+---
+
+## Setup
+
+### Requirements
+
+- `go` language runtime installed
+
+- `docker` to build/run as a container (optional)
+
+### Usage
+
+In a Terminal, run one of the following commands:
+
+```shell
+make run          # runs GoMud using the `go` framework
+
+make build        # creates a executable binary of GoMud at `./go-mud-server`
+
+make docker-run   # runs GoMud in a container using Docker Compose
+
+make help         # shows all available `make` command options
+```
+
+---
+
 ## Connecting
 
-_TELNET_ : connect to `localhost` on port `33333` with a telnet client
+When the GoMud server is running, you can connect it via the Terminal, or with a web browser:
 
-_WEB CLIENT_: [http://localhost/webclient](http://localhost/webclient)
+- Telnet: `localhost:33333` or `localhost:44444`
+- Local-only telnet port: `127.0.0.1:9999`
 
-**Default Username:** _admin_
+- Web client: [http://localhost/webclient](http://localhost/webclient)
+- Web admin: [http://localhost/admin/](http://localhost/admin/)
 
-**Default Password:** _password_
+Default seeded credentials in the bundled world:
 
-## Env Vars
+- Username: `admin`
+- Password: `password`
 
-When running several environment variables can be set to alter behaviors of the mud:
+---
 
-- **CONFIG_PATH**_=/path/to/alternative/config.yaml_ - This can provide a path to a copy of the config.yaml containing only values you wish to override. This way you don't have to modify the original config.yaml
-- **LOG_PATH**_=/path/to/log.txt_ - This will write all logs to a specified file. If unspecified, will write to _stderr_.
-- **LOG_LEVEL**_={LOW/MEDIUM/HIGH}_ - This sets how verbose you want the logs to be. _(Note: Log files rotate every 100MB)_
-- **LOG_NOCOLOR**_=1_ - If set, logs will be written without colorization.
+## User Support
 
-# Why Go?
+If you have comments, questions, suggestions (don't be shy, your questions or requests might help others too):
+
+- [Github Discussions](https://github.com/GoMudEngine/GoMud/discussions)
+
+- [Discord Server](https://discord.gg/cjukKvQWyy)
+
+- [Community Guides](_datafiles/guides/README.md)
+
+---
+
+## Development Notes
+
+### Contributor Guide
+
+Interested in contributing? Check out our [CONTRIBUTING.md](https://github.com/GoMudEngine/GoMud/blob/master/.github/CONTRIBUTING.md) to learn about the process.
+
+### Build Commands
+
+| Command            | Description                                                                 |
+|--------------------|-----------------------------------------------------------------------------|
+| `make build`       | Validates and builds the server binary.                                     |
+| `make run`         | Generates module imports and starts the server with `go run .`.             |
+| `make run-docker`  | Builds and starts the Docker environment from `compose.yml`.                |
+| `make test`        | Runs code generation, JavaScript linting, and `go test -race ./...`.        |
+| `make validate`    | Runs `fmtcheck` and `go vet`.                                               |
+| `make ci-local`    | Builds the local CI container and runs workflow validation.                 |
+| `make help`        | Lists the available developer targets.                                      |
+
+### Env Vars
+
+When running, several environment variables can be set to alter behaviors of the mud:
+
+| Variable      | Example Value                   | Descripton                           |
+|---------------|---------------------------------|--------------------------------------|
+| `CONFIG_PATH` | `/path/to/config.yaml`          | Use alternate config file            |
+| `LOG_PATH`    | `/path/to/log.txt`              | Log to file instead of stderr        |
+| `LOG_LEVEL`   | `LOW` / `MEDIUM` / `HIGH`       | Set verbosity (rotates at 100MB)     |
+| `LOG_NOCOLOR` | `1`                             | Disable colored log output           |
+
+### Why Go?
 
 Why not?
 
-Go provides a lot of terrific benefits such as:
+Go provides a number of practical benefits:
 
-- Compatible - High degree of compatibility across platforms or CPU Architectures. Go code quite painlessly compiles for Windows, Linux, ARM, etc. with minimal to no changes to the code.
-- Fast - Go is fast. From execution to builds. The current GoMud project builds on a Macbook in less than a couple of seconds.
-- Opinionated - Go style and patterns are well established and provide a reliable way to dive into a project and immediately feel familiar with the style.
-- Modern - Go is a relatively new/modern language without the burden of "every feature people thought would be useful in the last 30 or 40 years" added to it.
-- Upgradable - Go's promise of maintaining backward compatibility means upgrading versions over time remains a simple and painless process (If not downright invisible).
-- Statically Linked - If you have the binary, you have the working program. Externally linked dependencies (and whether you have them) are not an issue.
-- No Central Registries - Go is built to naturally incorporate library includes straight from their repos (such as git). This is neato.
-- Concurrent - Go has concurrency built in as a feature of the language, not a library you include.
+- **Compatible**: Easily builds across platforms and CPU architectures (Windows, Linux, MacOS, etc).
+- **Fast**: Execution and build times are quick, and GoMud builds in just a couple of seconds.
+- **Opinionated**: Consistent style/patterns make it easy to jump into any Go project.
+- **Modern**: A relatively new language without decades of accumulated baggage.
+- **Upgradable**: Strong backward compatibility makes version upgrades simple and low-risk.
+- **Statically linked**: Built binaries have no dependency headaches.
+- **No central registries**: Dependencies are pulled directly from source repositories.
+- **Concurrent**: Concurrency is built into the language itself, not bolted on via external libraries.
