@@ -116,7 +116,13 @@ func (u *UserRecord) PasswordMatches(input string) bool {
 		return true
 	}
 
-	// No plaintext fallback. No hash-of-hash bypass.
+	// Temporary compatibility for plaintext bootstrap passwords. Other parts of
+	// the login flow force these users to change their password immediately.
+	if u.HasPlaintextPassword() && u.Password == input {
+		return true
+	}
+
+	// No hash-of-hash bypass.
 	return false
 }
 
