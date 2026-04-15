@@ -11,6 +11,8 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 )
 
+var copyoverFd int = -1
+
 func HandleFlags(serverVersion string) {
 
 	var portsearch string
@@ -18,6 +20,7 @@ func HandleFlags(serverVersion string) {
 
 	flag.StringVar(&portsearch, "port-search", "", "Search for the first 10 open ports: -port-search=30000-40000")
 	flag.BoolVar(&showVersion, "version", false, "Display the current binary version")
+	flag.IntVar(&copyoverFd, "copyover-fd", -1, "Internal: file descriptor for copyover state pipe")
 
 	flag.Parse()
 
@@ -30,6 +33,11 @@ func HandleFlags(serverVersion string) {
 		doPortSearch(portsearch)
 		os.Exit(0)
 	}
+}
+
+// CopyoverFd returns the copyover pipe file descriptor, or -1 if this is not a copyover restore.
+func CopyoverFd() int {
+	return copyoverFd
 }
 
 func doPortSearch(portRangeStr string) {

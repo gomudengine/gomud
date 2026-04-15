@@ -63,6 +63,7 @@ var (
 		`cast`:        {Cast, false, false},
 		`cooldowns`:   {Cooldowns, true, false},
 		`command`:     {Command, false, true}, // Admin only
+		`copyover`:    {Copyover, true, true}, // Admin only
 		`conditions`:  {Conditions, true, false},
 		`consider`:    {Consider, true, false},
 		`deafen`:      {Deafen, true, true}, // Admin only

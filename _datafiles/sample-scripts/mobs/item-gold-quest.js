@@ -38,6 +38,8 @@ function onAsk(mob, room, eventDetails) {
         return true;
     }
 
+    var match;
+
     //
     // Do this part of they have not started the quest yet
     //
@@ -46,7 +48,7 @@ function onAsk(mob, room, eventDetails) {
         //
         // Search the text they inputted for the "ask" command for one of the questStartSubjects
         //
-        var match = UtilFindMatchIn(eventDetails.askText, questStartSubjects);
+        match = UtilFindMatchIn(eventDetails.askText, questStartSubjects);
 
         if ( match.found ) {
 
@@ -66,7 +68,7 @@ function onAsk(mob, room, eventDetails) {
     // By this point in the script we know they've at least started the quest
     // Lets see if they are asking any follow up questions for more info.
     //
-    var match = UtilFindMatchIn(eventDetails.askText, questInfoSubjects);
+    match = UtilFindMatchIn(eventDetails.askText, questInfoSubjects);
     if ( match.found ) {
         mob.Command("emote thinks hard for a moment.");
         mob.Command("say You can get sharp sticks from a shop, and gold from selling objects, or possibly killing bad guys and looting them.");

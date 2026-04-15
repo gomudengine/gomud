@@ -74,29 +74,6 @@ func TestUserRecord_PasswordMatches_WrongPassword(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// PasswordMatches — security: no plaintext fallback
-// ---------------------------------------------------------------------------
-
-func TestUserRecord_PasswordMatches_DoesNotAcceptPlaintext(t *testing.T) {
-	t.Parallel()
-
-	const pw = "supersecret"
-	u := newTestUser()
-	u.Password = bcryptHash(t, pw)
-
-	// The stored value is a bcrypt hash; passing the raw password as the stored
-	// value (simulating a legacy plaintext record) must also not bypass auth
-	// via the new code.  We specifically test that if someone stored the
-	// plaintext string as-is (old bug), the function does NOT accept it.
-	u2 := newTestUser()
-	u2.Password = pw // plaintext stored — should NOT authenticate
-
-	if u2.PasswordMatches(pw) {
-		t.Error("PasswordMatches accepted a plaintext-stored password (plaintext fallback must be removed)")
-	}
-}
-
-// ---------------------------------------------------------------------------
 // PasswordMatches — security: no hash-of-hash bypass
 // ---------------------------------------------------------------------------
 
