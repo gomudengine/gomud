@@ -12,11 +12,19 @@ permissions:
 jobs:
   notify-discord:
     runs-on: ubuntu-24.04
+    env:
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
     steps:
+      - name: Skip when webhook is not configured
+        if: ${{ env.DISCORD_WEBHOOK_URL == '' }}
+        run: >
+          echo "DISCORD_WEBHOOK_URL is not configured;
+          skipping Discord notification."
       - name: Send Discord Message
+        if: ${{ env.DISCORD_WEBHOOK_URL != '' }}
         uses: ./.github/actions/discord-webhook
         with:
-          webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          webhook-url: ${{ env.DISCORD_WEBHOOK_URL }}
           pr-title: ${{ github.event.pull_request.title }}
           pr-body: ${{ github.event.pull_request.body }}
           pr-url: ${{ github.event.pull_request.html_url }}

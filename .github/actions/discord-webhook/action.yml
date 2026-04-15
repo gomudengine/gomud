@@ -4,7 +4,7 @@ description: "Send PR info to Discord"
 inputs:
   webhook-url:
     description: "Discord webhook URL"
-    required: true
+    required: false
   pr-title:
     description: "Title of the pull request"
     required: false
