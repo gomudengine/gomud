@@ -102,6 +102,7 @@ func (u *UserRecord) HasPlaintextPassword() bool {
 }
 
 func (u *UserRecord) PasswordMatches(input string) bool {
+
 	// Try bcrypt first (new format).
 	if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(input)); err == nil {
 		return true
@@ -116,13 +117,12 @@ func (u *UserRecord) PasswordMatches(input string) bool {
 		return true
 	}
 
-	// Temporary compatibility for plaintext bootstrap passwords. Other parts of
-	// the login flow force these users to change their password immediately.
+	// Special case for new setups before things get reset
 	if u.HasPlaintextPassword() && u.Password == input {
 		return true
 	}
 
-	// No hash-of-hash bypass.
+	// No plaintext fallback. No hash-of-hash bypass.
 	return false
 }
 
