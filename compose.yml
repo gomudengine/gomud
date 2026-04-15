@@ -1,10 +1,19 @@
+---
 services:
+  # -- GoMud server container
   server:
     container_name: "go-mud-server"
     build:
       dockerfile: ./provisioning/Dockerfile
       args:
         - BIN=go-mud-server
+    cap_drop:
+      # Drop all Linux capabilities by default, then add back
+      # only what the server needs.
+      - ALL
+    cap_add:
+      # Allows a non-root process to bind the in-container HTTP port 80.
+      - NET_BIND_SERVICE
     networks:
       - mud_network
     image: localhost/go-mud-server:${TAG:-latest}
@@ -12,34 +21,48 @@ services:
       SERVICE_NAME: go-mud-server
       PORT: 33333
     ports:
+      # Expose the telnet/game port and the built-in HTTP web/admin interface.
       - 33333:33333
       - 80:80
     volumes:
+      # Persist logs in a named Docker volume shared with the
+      # log tailing sidecar.
       - type: volume
         source: log-volume
         target: /app/log
 
+  # -- BusyBox dev container
   busybox:
     container_name: "server-logs"
+    # Lightweight sidecar container that only tails the server log file.
+    # This makes `docker compose up` show live application logs even though the
+    # main server writes them to a shared volume inside `/app/log`.
     image: busybox
     command:
       - "tail"
       - "-F"
       - "/app/log/logfile.log"
     volumes:
+      # Read the same log volume so `docker compose up` shows live server logs.
       - type: volume
         source: log-volume
         target: /app/log
 
+  # -- Terminal dev container
   terminal:
     container_name: "mud-terminal"
     build:
+      # Build a tiny interactive telnet client container for local testing.
       dockerfile: ./provisioning/terminal/Dockerfile
       args:
         - BIN=mud-terminal
+    # Optional helper container used to connect to the running MUD over the
+    # internal Docker network, similar to opening a terminal client from a
+    # second machine on the same network.
     stdin_open: true
     tty: true
     depends_on:
+      # Start the terminal helper after the server container is created.
       - server
     networks:
       - mud_network
@@ -50,8 +73,11 @@ services:
       COLUMNS: 120
 
 volumes:
+  # Named volume so logs survive container recreation during local development.
   log-volume:
 
 networks:
   mud_network:
+    # Stable network name so the terminal container can always
+    # reach `go-mud-server`.
     name: mud_network
