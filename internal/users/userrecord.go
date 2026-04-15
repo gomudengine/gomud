@@ -102,7 +102,6 @@ func (u *UserRecord) HasPlaintextPassword() bool {
 }
 
 func (u *UserRecord) PasswordMatches(input string) bool {
-
 	// Try bcrypt first (new format).
 	if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(input)); err == nil {
 		return true
@@ -114,11 +113,6 @@ func (u *UserRecord) PasswordMatches(input string) bool {
 		if hash, err := bcrypt.GenerateFromPassword([]byte(input), bcrypt.DefaultCost); err == nil {
 			u.Password = string(hash)
 		}
-		return true
-	}
-
-	// Special case for new setups before things get reset
-	if u.HasPlaintextPassword() && u.Password == input {
 		return true
 	}
 
