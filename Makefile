@@ -5,13 +5,21 @@
 VERSION ?= $(shell git rev-parse HEAD)
 BIN ?= go-mud-server
 DOCKER_COMPOSE := docker-compose -f compose.yml
-GO_CONSOLE_IMAGE ?= golang:1.25.0-bookworm
+GO_VERSION ?= $(shell awk '/^toolchain go/ { sub(/^toolchain go/, ""); print; found=1; exit } /^go / && !gover { gover=$$2 } END { if (!found && gover) print gover }' go.mod)
+GO_CONSOLE_IMAGE ?= golang:$(GO_VERSION)-bookworm
 CI_LOCAL_IMAGE ?= gomud-ci-local
+CI_LOCAL_UID ?= $(shell id -u)
+CI_LOCAL_GID ?= $(shell id -g)
+CI_LOCAL_DOCKER_SOCK_GID ?= $(shell stat -c '%g' /var/run/docker.sock 2>/dev/null || id -g)
+CI_LOCAL_HOME ?= /home/gomud
 CI_LOCAL_ACT_CACHE_DIR ?= $(PWD)/.git/.cache/act
 CI_LOCAL_RUN := docker run --rm \
+	--user "$(CI_LOCAL_UID):$(CI_LOCAL_GID)" \
+	--group-add "$(CI_LOCAL_DOCKER_SOCK_GID)" \
+	-e HOME="$(CI_LOCAL_HOME)" \
 	-v /var/run/docker.sock:/var/run/docker.sock \
 	-v "$(PWD)":/work \
-	-v "$(CI_LOCAL_ACT_CACHE_DIR)":/root/.cache/act \
+	-v "$(CI_LOCAL_ACT_CACHE_DIR)":"$(CI_LOCAL_HOME)/.cache/act" \
 	-w /work \
 	$(CI_LOCAL_IMAGE)
 ACT_FLAGS ?= --pull=false -P ubuntu-24.04=catthehacker/ubuntu:act-latest
