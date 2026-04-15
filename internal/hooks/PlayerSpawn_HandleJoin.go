@@ -65,19 +65,24 @@ func HandleJoin(e events.Event) events.ListenerReturn {
 	}
 
 	// TODO HERE
-	loginCmds := configs.GetConfig().Server.OnLoginCommands
-	if len(loginCmds) > 0 {
+	if user.HasPlaintextPassword() {
+		user.SendText(`<ansi fg="alert-5">You must change your password before doing anything else.</ansi>`)
+		user.SendText(`<ansi fg="yellow">Type <ansi fg="yellow-bold">password</ansi> to set a new password.</ansi>`)
+	} else {
+		loginCmds := configs.GetConfig().Server.OnLoginCommands
+		if len(loginCmds) > 0 {
 
-		for _, cmd := range loginCmds {
+			for _, cmd := range loginCmds {
 
-			events.AddToQueue(events.Input{
-				UserId:    evt.UserId,
-				InputText: cmd,
-				ReadyTurn: 0, // No delay between execution of commands
-			})
+				events.AddToQueue(events.Input{
+					UserId:    evt.UserId,
+					InputText: cmd,
+					ReadyTurn: 0, // No delay between execution of commands
+				})
+
+			}
 
 		}
-
 	}
 
 	if room != nil {

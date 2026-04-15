@@ -89,6 +89,18 @@ func (u *UserRecord) ClientSettings() connections.ClientSettings {
 	return connections.GetClientSettings(u.connectionId)
 }
 
+func (u *UserRecord) HasPlaintextPassword() bool {
+	// bcrypt check
+	if strings.HasPrefix(u.Password, "$2a$") || strings.HasPrefix(u.Password, "$2b$") {
+		return false
+	}
+	// SHA256 check
+	if len(u.Password) == 64 {
+		return false
+	}
+	return true
+}
+
 func (u *UserRecord) PasswordMatches(input string) bool {
 
 	// Try bcrypt first (new format).
@@ -106,7 +118,7 @@ func (u *UserRecord) PasswordMatches(input string) bool {
 	}
 
 	// Special case for new setups before things get reset
-	if u.Username == "admin" && input == "password" && u.Password == input {
+	if u.HasPlaintextPassword() && u.Password == input {
 		return true
 	}
 
