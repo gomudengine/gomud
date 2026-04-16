@@ -39,7 +39,4 @@ jobs:
         run: make validate
 
       - name: Run JavaScript lint checks
-        run: >-
-          npx --yes jshint .
-          2>&1 | grep -v "^npm " | tee /dev/stderr | grep -Eq "^[0-9]+ errors"
-          && exit 1 || true
+        run: make js-lint

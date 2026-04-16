@@ -1,4 +1,9 @@
 {
-    "esversion": 6
+  "esversion": 11,
+  "browser": true,
+  "devel": true,
+  "sub": true,
+  "-W014": true,
+  "-W083": true,
+  "-W097": true
 }
-    

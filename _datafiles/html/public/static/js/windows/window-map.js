@@ -1,3 +1,5 @@
+/* global Client, RoomGridSVG, VirtualWindow, VirtualWindows */
+
 /**
  * window-map.js
  *

@@ -1,3 +1,5 @@
+/* global Client, VirtualWindow, VirtualWindows, injectStyles */
+
 /**
  * window-character.js
  *
