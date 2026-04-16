@@ -353,6 +353,8 @@ func (g *GMCPRoomModule) GetRoomNode(user *users.UserRecord, gmcpModule string) 
 		payload.Name = room.Title
 		payload.Area = room.Zone
 		payload.Environment = room.GetBiome().Name
+		payload.MapSymbol = room.GetMapSymbol()
+		payload.MapLegend = room.MapLegend
 		payload.Details = []string{}
 
 		// Coordinates
@@ -439,6 +441,9 @@ func (g *GMCPRoomModule) GetRoomNode(user *users.UserRecord, gmcpModule string) 
 		if room.IsCharacterRoom {
 			payload.Details = append(payload.Details, `character`)
 		}
+		if room.IsPvp() {
+			payload.Details = append(payload.Details, `pvp`)
+		}
 
 		// Indicate if this is an ephemeral room
 		if rooms.IsEphemeralRoomId(room.RoomId) {
@@ -480,6 +485,8 @@ type GMCPRoomModule_Payload struct {
 	Area        string                                              `json:"area"`
 	Environment string                                              `json:"environment"`
 	Coordinates string                                              `json:"coords"`
+	MapSymbol   string                                              `json:"mapsymbol"`
+	MapLegend   string                                              `json:"maplegend"`
 	Exits       map[string]int                                      `json:"exits"`
 	ExitsV2     map[string]GMCPRoomModule_Payload_Contents_ExitInfo `json:"exitsv2"`
 	Details     []string                                            `json:"details"`

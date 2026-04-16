@@ -32,6 +32,7 @@
         #terminal {
             flex: 1;
             min-width: 0;
+            position: relative;
         }
 
         #input-area {
@@ -87,71 +88,310 @@
             position: absolute;
             top: 10px;
             right: 10px;
-            font-size: 26px;
+            font-size: 20px;
             color: white;
-            padding: 10px;
+            padding: 8px 10px;
             cursor: pointer;
             z-index: 9999;
             background-color: rgba(30, 30, 30, 0.8);
             border-radius: 5px;
+            line-height: 1;
         }
 
-        #floating-menu {
-            position: absolute;
-            top: 60px;
-            right: 10px;
-            width: 450px;
-            padding: 10px;
-            background-color: #2e2e2e;
-            border: 1px solid #444;
-            border-radius: 5px;
+        /* Modal backdrop */
+        #settings-backdrop {
             display: none;
-            z-index: 9999;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
         }
 
-        #floating-menu h3 {
-            color: #fff;
+        #settings-backdrop.open {
+            display: flex;
+        }
+
+        /* Modal panel */
+        #floating-menu {
+            position: relative;
+            width: 520px;
+            max-width: 94vw;
+            max-height: 80vh;
+            background-color: #1e1e1e;
+            border: 1px solid #1c6b60;
+            border-radius: 8px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Modal header */
+        #settings-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px 0;
+            flex-shrink: 0;
+        }
+
+        #settings-title {
+            color: #dffbd1;
+            font-size: 13px;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        #settings-close {
+            color: #7ab8a0;
+            font-size: 20px;
+            cursor: pointer;
+            line-height: 1;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: Arial, sans-serif;
+        }
+
+        #settings-close:hover {
+            color: #dffbd1;
+            background: #0d2e28;
+        }
+
+        /* Tab bar */
+        #settings-tab-bar {
+            display: flex;
+            flex-shrink: 0;
+            border-bottom: 1px solid #0f3333;
+            padding: 0 16px;
+            margin-top: 10px;
+        }
+
+        .settings-tab-btn {
+            padding: 6px 14px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font: inherit;
+            font-size: 12px;
+            font-family: Arial, sans-serif;
+            color: #7ab8a0;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            transition: color 0.15s;
+        }
+
+        .settings-tab-btn:hover {
+            color: #dffbd1;
+        }
+
+        .settings-tab-btn.active {
+            color: #dffbd1;
+            border-bottom-color: #3ad4b8;
+        }
+
+        /* Tab panels */
+        #settings-tab-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        #settings-tab-body::-webkit-scrollbar       { width: 4px; }
+        #settings-tab-body::-webkit-scrollbar-track  { background: #111; }
+        #settings-tab-body::-webkit-scrollbar-thumb  { background: #1c6b60; border-radius: 2px; }
+
+        .settings-tab-panel {
+            display: none;
+        }
+
+        .settings-tab-panel.active {
+            display: block;
+        }
+
+        .settings-section {
+            padding: 0;
+        }
+
+        .settings-section + .settings-section {
+            border-top: none;
+            margin-top: 16px;
+        }
+
+        .settings-section-title {
+            color: #7ab8a0;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
             margin-bottom: 10px;
+            font-family: Arial, sans-serif;
+            border-bottom: 1px solid #0f3333;
+            padding-bottom: 5px;
         }
 
         .slider-container {
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             display: flex;
             align-items: center;
         }
 
         .slider-container label {
             color: #ccc;
-            width: 150px;
+            width: 130px;
+            font-size: 13px;
+            font-family: Arial, sans-serif;
         }
 
         .slider-container input[type="range"] {
             flex: 1;
-            margin: 0 10px;
+            margin: 0 8px;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 4px;
+            border-radius: 2px;
+            background: #555;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .slider-container input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #1c6b60;
+            cursor: pointer;
+            border: 2px solid #3ad4b8;
+            transition: background 0.15s;
+        }
+
+        .slider-container input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #1c6b60;
+            cursor: pointer;
+            border: 2px solid #3ad4b8;
+            transition: background 0.15s;
+        }
+
+        .slider-container input[type="range"]::-webkit-slider-thumb:hover {
+            background: #3ad4b8;
+        }
+
+        .slider-container input[type="range"]::-moz-range-thumb:hover {
+            background: #3ad4b8;
         }
 
         .slider-icon {
-            width: 32px;
+            width: 24px;
             text-align: center;
-            font-size: 20px;
+            font-size: 16px;
             color: #ccc;
         }
 
         #mute-container {
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             color: #ccc;
             display: flex;
             align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-family: Arial, sans-serif;
         }
 
         #mute-container label {
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
-        #mute-container input[type="checkbox"] {
-            margin-right: 8px;
-            transform: scale(1.2);
+        /* Toggle switch */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 32px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+            position: absolute;
+        }
+
+        .toggle-track {
+            position: absolute;
+            inset: 0;
+            background: #555;
+            border-radius: 18px;
             cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .toggle-track::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 14px;
+            height: 14px;
+            background: #fff;
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+
+        .toggle-switch input:checked + .toggle-track {
+            background: #1c6b60;
+        }
+
+        .toggle-switch input:checked + .toggle-track::after {
+            transform: translateX(14px);
+        }
+
+        /* Reset layout button */
+        #reset-layout-btn {
+            margin-top: 14px;
+            padding: 7px 14px;
+            background: #0d2e28;
+            border: 1px solid #1c6b60;
+            border-radius: 4px;
+            color: #7ab8a0;
+            font-size: 12px;
+            font-family: Arial, sans-serif;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: background 0.15s, color 0.15s;
+        }
+
+        #reset-layout-btn:hover {
+            background: #1c6b60;
+            color: #dffbd1;
+        }
+
+        /* Window toggle rows */
+        .win-toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 4px 0;
+            color: #ccc;
+            font-size: 13px;
+            font-family: Arial, sans-serif;
+        }
+
+        .win-toggle-row + .win-toggle-row {
+            border-top: 1px solid #383838;
         }
     </style>
 
@@ -165,11 +405,11 @@
     <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/gmcp.js"></script>
     <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/webclient-core.js"></script>
     <!-- Left dock -->
+     <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/windows/window-gametime.js"></script>
     <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/windows/window-character.js"></script>
     <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/windows/window-vitals.js"></script>
     <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/windows/window-status.js"></script>
     <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/windows/window-party.js"></script>
-    
     <!-- Right dock -->
     <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/windows/window-map.js"></script>
     <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/windows/window-comm.js"></script>
@@ -178,21 +418,49 @@
 </head>
 <body onload="init()">
 
-    <div id="menu-icon" onclick="toggleMenu()">🔊</div>
-
-    <div id="floating-menu">
-        <h3>Volume Controls</h3>
-        <div id="mute-container">
-            <input type="checkbox" id="mute-checkbox" onchange="toggleMuteAll()">
-            <label for="mute-checkbox"><span id="mute-icon">🔊</span> Mute All Sound</label>
-        </div>
-        <div id="sliders-container"></div>
-    </div>
-
     <div id="main-container">
         <div id="dock-left"></div>
-        <div id="terminal"></div>
+        <div id="terminal">
+            <div id="menu-icon" onclick="toggleMenu()">&#9881;</div>
+        </div>
         <div id="dock-right"></div>
+    </div>
+
+    <div id="settings-backdrop">
+        <div id="floating-menu">
+            <div id="settings-header">
+                <span id="settings-title">Settings</span>
+                <span id="settings-close" onclick="toggleMenu()">&#x2715;</span>
+            </div>
+            <div id="settings-tab-bar">
+                <button class="settings-tab-btn active" data-tab="tab-volume">Volume</button>
+                <button class="settings-tab-btn" data-tab="tab-windows">Windows</button>
+            </div>
+            <div id="settings-tab-body">
+                <div class="settings-tab-panel active" id="tab-volume">
+                    <div class="settings-section">
+                        <div class="settings-section-title">Volume Controls</div>
+                        <div id="mute-container">
+                            <label>
+                                <span class="toggle-switch">
+                                    <input type="checkbox" id="mute-checkbox" onchange="toggleMuteAll()">
+                                    <span class="toggle-track"></span>
+                                </span>
+                                <span id="mute-icon">&#128266;</span> Mute All Sound
+                            </label>
+                        </div>
+                        <div id="sliders-container"></div>
+                    </div>
+                </div>
+                <div class="settings-tab-panel" id="tab-windows">
+                    <div class="settings-section">
+                        <div class="settings-section-title">Windows</div>
+                        <div id="windows-container"></div>
+                    </div>
+                    <button id="reset-layout-btn" onclick="resetLayout()">Reset Layout</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <button id="connect-button">Connect to {{ .CONFIG.Server.MudName }}</button>
@@ -207,6 +475,29 @@
         function init()          { Client.init(); }
         function toggleMenu()    { Client.toggleMenu(); }
         function toggleMuteAll() { Client.toggleMuteAll(); }
+        function resetLayout()   { Client.resetLayout(); }
+
+        // Tab switching for the settings modal
+        document.addEventListener('DOMContentLoaded', function() {
+            var tabBar = document.getElementById('settings-tab-bar');
+            tabBar.addEventListener('click', function(e) {
+                var btn = e.target.closest('.settings-tab-btn');
+                if (!btn) { return; }
+                tabBar.querySelectorAll('.settings-tab-btn').forEach(function(b) {
+                    b.classList.remove('active');
+                });
+                document.querySelectorAll('.settings-tab-panel').forEach(function(p) {
+                    p.classList.remove('active');
+                });
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.tab).classList.add('active');
+            });
+
+            // Close modal when clicking the backdrop outside the panel
+            document.getElementById('settings-backdrop').addEventListener('click', function(e) {
+                if (e.target === this) { Client.toggleMenu(); }
+            });
+        });
     </script>
 
 </body>

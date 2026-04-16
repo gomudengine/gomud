@@ -10,9 +10,10 @@
     overflow: hidden;
 }
 
-/* Hide maximize and fullscreen controls — windows are informational panels */
+/* Hide maximize, fullscreen, and close controls — windows are managed via settings */
 .wb-max  { display: none; }
 .wb-full { display: none; }
+.wb-close { display: none; }
 
 /* -------------------------------------------------------------------------
  * Dock slots
@@ -29,10 +30,18 @@
     flex-shrink: 0;
     width: 0;
     min-width: 0;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
     background: #111;
     position: relative;
 }
+
+#dock-left::-webkit-scrollbar,
+#dock-right::-webkit-scrollbar       { width: 4px; }
+#dock-left::-webkit-scrollbar-track,
+#dock-right::-webkit-scrollbar-track  { background: #111; }
+#dock-left::-webkit-scrollbar-thumb,
+#dock-right::-webkit-scrollbar-thumb  { background: #1c6b60; border-radius: 2px; }
 
 #dock-left.has-panels  { width: var(--dock-left-width,  363px); min-width: 80px; }
 #dock-right.has-panels { width: var(--dock-right-width, 363px); min-width: 80px; }
@@ -158,6 +167,25 @@
     content: '\2913';  /* downwards arrow to bar - visually suggests docking */
 }
 .wb-dock-btn:hover { opacity: 1; }
+
+/* -------------------------------------------------------------------------
+ * Disconnected state
+ *
+ * When the WebSocket is not connected, all virtual windows are grayed out
+ * and pointer interaction is blocked. The class is toggled by
+ * VirtualWindows.setConnected() in webclient-core.js.
+ * ------------------------------------------------------------------------- */
+.windows-disconnected .dock-panel {
+    opacity: 0.4;
+    pointer-events: none;
+    filter: grayscale(0.6);
+}
+
+.windows-disconnected .winbox {
+    opacity: 0.4;
+    pointer-events: none;
+    filter: grayscale(0.6);
+}
 
 /* Slot-width drag handle — flex sibling of the dock slot inside #main-container.
  * Never clipped, always grabbable. Shown only when the slot has panels. */

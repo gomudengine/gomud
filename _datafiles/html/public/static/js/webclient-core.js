@@ -56,8 +56,9 @@ class DockSlot {
     // height (optional) sets the preferred panel height in px.
     // onClose (optional) called when the panel's X button is clicked.
     // onMoveTo (optional) called with (newSide, dropIdx) when dragged to the opposite slot.
+    // insertAt (optional) index at which to insert; appends if omitted or out of range.
     // Returns the panel wrapper element.
-    addPanel(contentEl, title, onPopout, height, onClose, onMoveTo) {
+    addPanel(contentEl, title, onPopout, height, onClose, onMoveTo, insertAt) {
         if (!this.el) { return null; }
         const panel = document.createElement('div');
         panel.className = 'dock-panel';
@@ -83,18 +84,8 @@ class DockSlot {
         popoutBtn.textContent = this.side === 'left' ? '\u2197' : '\u2196';  // NE / NW arrow
         popoutBtn.addEventListener('click', onPopout);
 
-        const closeBtn = document.createElement('span');
-        closeBtn.className   = 'dock-panel-close';
-        closeBtn.title       = 'Close';
-        closeBtn.textContent = '\u00d7';  // ×
-        closeBtn.addEventListener('click', () => {
-            this.removePanel(contentEl);
-            if (typeof onClose === 'function') { onClose(); }
-        });
-
         titlebar.appendChild(titleSpan);
         titlebar.appendChild(popoutBtn);
-        titlebar.appendChild(closeBtn);
 
         const content = document.createElement('div');
         content.className = 'dock-panel-content';
@@ -108,17 +99,33 @@ class DockSlot {
             if (typeof onMoveTo === 'function') { onMoveTo(newSide, dropIdx); }
         });
 
-        // Insert a vertical resize handle before this panel if there are others
+        // Insert a vertical resize handle and the panel at the correct position.
+        // If insertAt is a valid index within the current panels, insert before
+        // that panel; otherwise append at the end.
+        const useInsert = (typeof insertAt === 'number' && insertAt >= 0 && insertAt < this._panels.length);
         let resizeHandle = null;
-        if (this._panels.length > 0) {
+
+        if (useInsert) {
+            const refEntry = this._panels[insertAt];
+            // A resize handle goes between panels, so insert one before the new panel
+            // (which sits before refEntry).
             resizeHandle = document.createElement('div');
             resizeHandle.className = 'dock-panel-resize';
-            this.el.appendChild(resizeHandle);
+            this.el.insertBefore(resizeHandle, refEntry.panel);
             this._initPanelResize(resizeHandle);
+            this.el.insertBefore(panel, refEntry.panel);
+            this._panels.splice(insertAt, 0, { panel, contentEl, resizeHandle });
+        } else {
+            // Append at the end — only add a resize handle if there are existing panels.
+            if (this._panels.length > 0) {
+                resizeHandle = document.createElement('div');
+                resizeHandle.className = 'dock-panel-resize';
+                this.el.appendChild(resizeHandle);
+                this._initPanelResize(resizeHandle);
+            }
+            this.el.appendChild(panel);
+            this._panels.push({ panel, contentEl, resizeHandle });
         }
-
-        this.el.appendChild(panel);
-        this._panels.push({ panel, contentEl, resizeHandle });
         this._setActive(true);
         return panel;
     }
@@ -212,6 +219,7 @@ class DockSlot {
             document.removeEventListener('mouseup',   onUp);
             document.removeEventListener('touchmove', onMove);
             document.removeEventListener('touchend',  onUp);
+            LayoutStore.saveDockWidths();
         };
         handle.addEventListener('mousedown', (e) => {
             e.preventDefault();
@@ -247,6 +255,14 @@ class DockSlot {
             document.removeEventListener('mouseup',   onUp);
             document.removeEventListener('touchmove', onMove);
             document.removeEventListener('touchend',  onUp);
+            // Save the docked height for both panels that were resized
+            [prevPanel, nextPanel].forEach(panelEl => {
+                if (!panelEl) { return; }
+                const entry = this._panels.find(p => p.panel === panelEl);
+                if (!entry) { return; }
+                const win = VirtualWindows.getWindows().find(w => w._contentEl === entry.contentEl);
+                if (win) { LayoutStore.saveWindow(win); }
+            });
         };
         handle.addEventListener('mousedown', (e) => {
             e.preventDefault();
@@ -434,11 +450,124 @@ class DockSlot {
             this._panels[i].resizeHandle = handle;
             this._initPanelResize(handle);
         }
+
+        // Notify the registry so the canonical order is updated
+        VirtualWindows.notifyReorder(this.side, this._panels.map(p => p.contentEl));
     }
 }
 
 // Singleton slot instances, populated by Client.init() once the DOM is ready.
 const DockSlots = {};
+
+// ---------------------------------------------------------------------------
+// LayoutStore
+//
+// Persists window layout to localStorage under the key 'windowLayout'.
+// Saved state per window:
+//   enabled       bool    — whether the window is open
+//   docked        bool    — whether it is in a dock slot
+//   dockSide      string  — 'left' | 'right' (only when docked)
+//   dockedHeight  number  — panel height in px (only when docked)
+//   floatX        number  — WinBox x position (only when floating)
+//   floatY        number  — WinBox y position (only when floating)
+//   floatWidth    number  — WinBox width (only when floating)
+//   floatHeight   number  — WinBox height (only when floating)
+// Plus top-level keys:
+//   dockWidths    object  — { left: number, right: number }
+// ---------------------------------------------------------------------------
+const LayoutStore = (() => {
+    const KEY = 'windowLayout';
+
+    function load() {
+        try {
+            const raw = localStorage.getItem(KEY);
+            return raw ? JSON.parse(raw) : {};
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function save(data) {
+        try {
+            localStorage.setItem(KEY, JSON.stringify(data));
+        } catch (e) {
+            // localStorage unavailable — silently ignore
+        }
+    }
+
+    // Merge a partial update into the stored layout and persist.
+    function patch(updater) {
+        const data = load();
+        updater(data);
+        save(data);
+    }
+
+    // Save the current state of a single VirtualWindow.
+    function saveWindow(win) {
+        patch(data => {
+            if (!data.windows) { data.windows = {}; }
+            const entry = data.windows[win._id] || {};
+
+            entry.enabled = win.isOpen() || win._win === false ? win.isOpen() : true;
+
+            if (win._win === 'docked') {
+                entry.docked   = true;
+                entry.dockSide = win._dockSide;
+                // Read current rendered panel height
+                const slot = DockSlots[win._dockSide];
+                if (slot) {
+                    const pe = slot._panels.find(p => p.contentEl === win._contentEl);
+                    if (pe) { entry.dockedHeight = Math.round(pe.panel.offsetHeight); }
+                }
+            } else if (win._win && win._win !== false) {
+                entry.docked     = false;
+                entry.dockSide   = win._dockSide;
+                entry.floatX     = Math.round(win._win.x);
+                entry.floatY     = Math.round(win._win.y);
+                entry.floatWidth  = Math.round(win._win.width);
+                entry.floatHeight = Math.round(win._win.height);
+            } else {
+                // closed — preserve last known docked state
+                if (entry.docked === undefined) {
+                    entry.docked   = win._defaultDocked;
+                    entry.dockSide = win._dockSide;
+                }
+            }
+
+            data.windows[win._id] = entry;
+        });
+    }
+
+    // Save dock slot widths.
+    function saveDockWidths() {
+        patch(data => {
+            data.dockWidths = {};
+            ['left', 'right'].forEach(side => {
+                const slot = DockSlots[side];
+                if (slot && slot.el && slot.el.classList.contains('has-panels')) {
+                    data.dockWidths[side] = slot.el.offsetWidth;
+                }
+            });
+        });
+    }
+
+    // Return saved state for a single window, or null.
+    function getWindow(id) {
+        const data = load();
+        return (data.windows && data.windows[id]) ? data.windows[id] : null;
+    }
+
+    function getDockWidths() {
+        const data = load();
+        return data.dockWidths || {};
+    }
+
+    function reset() {
+        localStorage.removeItem(KEY);
+    }
+
+    return { saveWindow, saveDockWidths, getWindow, getDockWidths, reset };
+})();
 
 // ---------------------------------------------------------------------------
 // VirtualWindow
@@ -474,21 +603,32 @@ const DockSlots = {};
 // ---------------------------------------------------------------------------
 class VirtualWindow {
     constructor(id, options) {
-        this._id             = id;
-        this._factory        = options.factory;
-        this._dockSide       = options.dock || null;
-        this._defaultDocked  = options.defaultDocked || false;
-        this._dockedHeight   = options.dockedHeight || null;  // preferred px height when docked
-        this._win            = undefined;
-        this._contentEl      = null;
-        this._winboxOpts     = null;
+        this._id              = id;
+        this._factory         = options.factory;
+        this._dockSide        = options.dock || null;
+        this._defaultDocked   = options.defaultDocked || false;
+        this._dockedHeight    = options.dockedHeight || null;
+        this._origDockSide    = options.dock || null;
+        this._origDockedHeight = options.dockedHeight || null;
+        this._win             = undefined;
+        this._contentEl       = null;
+        this._winboxOpts      = null;
     }
 
-    // Open the window. On first call, honours defaultDocked.
+    // Open the window. On first call, honours defaultDocked and saved layout.
     // Subsequent calls are no-ops unless the window is not yet open.
     open() {
         if (this._win === false)      { return; }  // user closed it
         if (this._win !== undefined)  { return; }  // already open (float or docked)
+
+        // Check saved layout for this window
+        const saved = LayoutStore.getWindow(this._id);
+
+        // If saved as disabled, mark closed and stop.
+        if (saved && saved.enabled === false) {
+            this._win = false;
+            return;
+        }
 
         // First open: run the factory to get opts + content element
         const opts = this._factory();
@@ -496,7 +636,30 @@ class VirtualWindow {
         this._winboxOpts = opts;
         this._contentEl  = opts.mount;
 
-        if (this._dockSide && this._defaultDocked) {
+        // Apply saved float geometry if present
+        if (saved && saved.docked === false && saved.floatWidth) {
+            this._winboxOpts.x      = saved.floatX;
+            this._winboxOpts.y      = saved.floatY;
+            this._winboxOpts.width  = saved.floatWidth;
+            this._winboxOpts.height = saved.floatHeight;
+        }
+
+        // Apply saved docked height
+        if (saved && saved.docked !== false && saved.dockedHeight) {
+            this._dockedHeight = saved.dockedHeight;
+        }
+
+        // Determine whether to dock or float
+        const shouldDock = saved
+            ? (saved.docked !== false && !!this._dockSide)
+            : (this._dockSide && this._defaultDocked);
+
+        // If saved on a different dock side, update
+        if (saved && saved.dockSide && saved.docked !== false) {
+            this._dockSide = saved.dockSide;
+        }
+
+        if (shouldDock) {
             this._dockNow();
         } else {
             this._floatNow();
@@ -505,6 +668,18 @@ class VirtualWindow {
 
     isOpen() {
         return this._win === 'docked' || (!!this._win && this._win !== false);
+    }
+
+    // Re-open a window that was previously closed by the user.
+    // Resets the closed state and opens as if for the first time.
+    reopen() {
+        if (this._win !== false) { return; }
+        this._win = undefined;
+        // Reset content so factory runs again on open()
+        this._contentEl  = null;
+        this._winboxOpts = null;
+        this.open();
+        LayoutStore.saveWindow(this);
     }
 
     // Returns the WinBox instance when floating, null when docked or closed.
@@ -526,6 +701,7 @@ class VirtualWindow {
         this._win = undefined;
 
         this._dockNow();
+        LayoutStore.saveWindow(this);
     }
 
     // Move from docked to floating. Safe to call when already floating.
@@ -534,35 +710,49 @@ class VirtualWindow {
 
         const slot = DockSlots[this._dockSide];
 
-        // Capture the panel's vertical position before it is removed so the
-        // floating window can appear at roughly the same screen position.
-        const panel = slot.el.querySelector('.dock-panel');
-        let spawnY = null;
-        if (panel) {
-            const rect = panel.getBoundingClientRect();
-            spawnY = Math.round(rect.top);
+        // Measure the panel's current rendered dimensions before removing it,
+        // so the floating window matches what the user saw while docked.
+        // The titlebar height (~24px) is subtracted from the panel height to
+        // get the content-only height that WinBox will use for its body.
+        let spawnY    = null;
+        let spawnSize = null;
+        const panelEntry = slot._panels.find(p => p.contentEl === this._contentEl);
+        if (panelEntry) {
+            const rect      = panelEntry.panel.getBoundingClientRect();
+            const titlebar  = panelEntry.panel.querySelector('.dock-panel-titlebar');
+            const titleH    = titlebar ? titlebar.offsetHeight : 24;
+            const margin    = 10;
+            const spawnH    = Math.round(rect.height);
+            const maxY      = window.innerHeight - spawnH - margin;
+            spawnY    = Math.min(Math.max(margin, Math.round(rect.top)), maxY);
+            spawnSize = { width: Math.round(rect.width), height: spawnH - titleH };
         }
 
         slot.removePanel(this._contentEl);
         this._win = undefined;
 
-        this._floatNow(spawnY);
+        this._floatNow(spawnY, spawnSize);
+        LayoutStore.saveWindow(this);
     }
 
     // -----------------------------------------------------------------------
     // Private
     // -----------------------------------------------------------------------
 
-    _floatNow(spawnY) {
+    _floatNow(spawnY, spawnSize) {
         const opts = Object.assign({}, this._winboxOpts);
 
-        // If spawning from a docked position, place the window at the same
-        // vertical position, inset 50px from the edge of the viewport.
+        // If spawning from a docked position, use the panel's measured dimensions
+        // and place the window inset from the dock edge.
         if (spawnY !== undefined && spawnY !== null) {
             opts.y = spawnY;
             opts.x = this._dockSide === 'right'
-                ? window.innerWidth  - (opts.width  || 363) - 50
+                ? window.innerWidth  - (spawnSize ? spawnSize.width : (opts.width  || 363)) - 50
                 : 50;
+        }
+        if (spawnSize) {
+            opts.width  = spawnSize.width;
+            opts.height = spawnSize.height;
         }
 
         // Re-attach content to body if it was moved by the dock slot
@@ -580,8 +770,29 @@ class VirtualWindow {
             if (this._contentEl && this._contentEl.parentNode) {
                 this._contentEl.parentNode.removeChild(this._contentEl);
             }
+            LayoutStore.saveWindow(this);
             if (typeof userOnClose === 'function') { return userOnClose(force); }
             return false;
+        };
+
+        // Save position/size when the user moves or resizes the floating window.
+        const self = this;
+        const _saveThrottled = (() => {
+            let t = null;
+            return () => {
+                clearTimeout(t);
+                t = setTimeout(() => LayoutStore.saveWindow(self), 300);
+            };
+        })();
+        const existingOnMove   = opts.onmove;
+        const existingOnResize = opts.onresize;
+        opts.onmove = function(x, y) {
+            if (existingOnMove) { existingOnMove.call(this, x, y); }
+            _saveThrottled();
+        };
+        opts.onresize = function(w, h) {
+            if (existingOnResize) { existingOnResize.call(this, w, h); }
+            _saveThrottled();
         };
 
         // Wrap oncreate to add the dock button.
@@ -609,8 +820,9 @@ class VirtualWindow {
     }
 
     _dockNow() {
-        const slot   = DockSlots[this._dockSide];
-        const height = this._dockedHeight || (this._winboxOpts && this._winboxOpts.height) || null;
+        const slot      = DockSlots[this._dockSide];
+        const height    = this._dockedHeight || (this._winboxOpts && this._winboxOpts.height) || null;
+        const insertAt  = VirtualWindows.getDockInsertIndex(this);
         slot.addPanel(
             this._contentEl,
             this._winboxOpts.title,
@@ -626,14 +838,20 @@ class VirtualWindow {
             },
             (newSide) => {
                 // User dragged the panel to the opposite slot.
-                // Remove from the current slot, update _dockSide, re-dock.
+                // Update the canonical order tables: remove from old side,
+                // append to new side (position will settle via notifyReorder
+                // once the panel is dropped and _movePanel fires, but we need
+                // the ID present in the new side's list for getDockInsertIndex).
+                VirtualWindows.notifySlotChange(this._id, this._dockSide, newSide);
                 slot.removePanel(this._contentEl);
                 this._dockSide = newSide;
                 this._win = undefined;
                 this._dockNow();
-            }
+            },
+            insertAt
         );
         this._win = 'docked';
+        LayoutStore.saveWindow(this);
     }
 }
 
@@ -659,6 +877,12 @@ const VirtualWindows = (() => {
     // Ordered list of all registered VirtualWindow instances
     const _windows  = [];
 
+    // Per-dock-side ordered list of window IDs, representing the canonical
+    // slot order. Populated on register() and updated on drag reorder.
+    // Map<side, string[]>
+    const _dockOrder         = { left: [], right: [] };
+    const _dockOrderOriginal = { left: [], right: [] };
+
     function register(descriptor) {
         if (!descriptor || !Array.isArray(descriptor.gmcpHandlers)) {
             console.error('VirtualWindows.register: descriptor must have gmcpHandlers array');
@@ -679,7 +903,90 @@ const VirtualWindows = (() => {
         });
         if (win) {
             _windows.push(win);
+            // Record the registration order as the initial dock order
+            if (win._dockSide && _dockOrder[win._dockSide]) {
+                _dockOrder[win._dockSide].push(win._id);
+                _dockOrderOriginal[win._dockSide].push(win._id);
+            }
         }
+    }
+
+    // Returns the index at which a window should be inserted into its dock slot,
+    // based on the canonical order relative to currently docked windows.
+    function getDockInsertIndex(win) {
+        const side = win._dockSide;
+        if (!side || !_dockOrder[side]) { return undefined; }
+
+        const order     = _dockOrder[side];
+        const winPos    = order.indexOf(win._id);
+        if (winPos === -1) { return undefined; }
+
+        const slot      = DockSlots[side];
+        if (!slot)       { return undefined; }
+
+        // Count how many currently-docked panels belong to windows that
+        // appear before this window in the canonical order.
+        let insertIdx = 0;
+        for (const entry of slot._panels) {
+            const entryWin = _windows.find(w => w._contentEl === entry.contentEl);
+            if (!entryWin) { continue; }
+            const entryPos = order.indexOf(entryWin._id);
+            if (entryPos !== -1 && entryPos < winPos) {
+                insertIdx++;
+            }
+        }
+        return insertIdx;
+    }
+
+    // Called by DockSlot._movePanel after a drag reorder completes.
+    // newOrder is the array of contentEl references in their new slot order.
+    function notifyReorder(side, newOrder) {
+        if (!_dockOrder[side]) { return; }
+        // Rebuild the canonical order for this side by mapping contentEls back
+        // to window IDs, preserving the positions of any IDs not currently docked.
+        const currentIds = newOrder
+            .map(contentEl => {
+                const w = _windows.find(w => w._contentEl === contentEl);
+                return w ? w._id : null;
+            })
+            .filter(id => id !== null);
+
+        // Merge: replace positions of currently-docked windows with the new
+        // order, leaving undocked/closed windows at their last known positions.
+        const undocked = _dockOrder[side].filter(id => !currentIds.includes(id));
+        // Interleave undocked IDs back into the new order at their nearest position
+        const merged = [...currentIds];
+        for (const id of undocked) {
+            const oldIdx = _dockOrder[side].indexOf(id);
+            // Find the insertion point: after the last merged entry whose old
+            // index was less than oldIdx.
+            let insertAt = 0;
+            for (let i = 0; i < merged.length; i++) {
+                const mergedOld = _dockOrder[side].indexOf(merged[i]);
+                if (mergedOld !== -1 && mergedOld < oldIdx) {
+                    insertAt = i + 1;
+                }
+            }
+            merged.splice(insertAt, 0, id);
+        }
+        _dockOrder[side] = merged;
+    }
+
+    // Called when a window is dragged from one slot to the other.
+    // Removes the window ID from oldSide's order and appends it to newSide's.
+    function notifySlotChange(winId, oldSide, newSide) {
+        if (_dockOrder[oldSide]) {
+            const idx = _dockOrder[oldSide].indexOf(winId);
+            if (idx !== -1) { _dockOrder[oldSide].splice(idx, 1); }
+        }
+        if (_dockOrder[newSide] && !_dockOrder[newSide].includes(winId)) {
+            _dockOrder[newSide].push(winId);
+        }
+    }
+
+    function resetOrder() {
+        _dockOrder.left  = [..._dockOrderOriginal.left];
+        _dockOrder.right = [..._dockOrderOriginal.right];
     }
 
     function handleGMCP(namespace, body) {
@@ -702,9 +1009,33 @@ const VirtualWindows = (() => {
 
     function openAll() {
         _windows.forEach(win => win.open());
+
+        // Restore saved dock slot widths
+        const widths = LayoutStore.getDockWidths();
+        ['left', 'right'].forEach(side => {
+            if (!widths[side]) { return; }
+            const slot = DockSlots[side];
+            if (!slot || !slot.el || !slot.el.classList.contains('has-panels')) { return; }
+            slot.el.style.setProperty('--dock-' + side + '-width', widths[side] + 'px');
+            slot.el.style.width = widths[side] + 'px';
+        });
+        // Trigger a terminal resize after layout is settled
+        requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
     }
 
-    return { register, handleGMCP, openAll };
+    function getWindows() {
+        return _windows.slice();
+    }
+
+    function setConnected(connected) {
+        if (connected) {
+            document.body.classList.remove('windows-disconnected');
+        } else {
+            document.body.classList.add('windows-disconnected');
+        }
+    }
+
+    return { register, handleGMCP, openAll, getWindows, setConnected, getDockInsertIndex, notifyReorder, notifySlotChange, resetOrder };
 })();
 
 // ---------------------------------------------------------------------------
@@ -904,6 +1235,7 @@ const Client = (() => {
                 const gmcpNamespace = gmcpPayload.slice(0, jsonIndex).trim();
                 const gmcpBody      = JSON.parse(gmcpPayload.slice(jsonIndex).trim());
                 _applyGMCPPayload(gmcpNamespace, gmcpBody);
+                _printGMCPDebug(gmcpNamespace, gmcpBody);
                 VirtualWindows.handleGMCP(gmcpNamespace, gmcpBody);
                 return;
             }
@@ -929,6 +1261,7 @@ const Client = (() => {
             connectButton.style.display = 'none';
             connectButton.disabled = true;
             textInput.focus();
+            VirtualWindows.setConnected(true);
         };
 
         socket.onmessage = _onMessage;
@@ -938,6 +1271,7 @@ const Client = (() => {
         };
 
         socket.onclose = function(event) {
+            VirtualWindows.setConnected(false);
             if (event.wasClean) {
                 term.writeln('Connection closed cleanly, code=' + event.code + ', reason=' + event.reason);
             } else {
@@ -1066,9 +1400,112 @@ const Client = (() => {
         }
     }
 
+    function buildWindowToggles() {
+        const container = document.getElementById('windows-container');
+        if (!container) { return; }
+        container.innerHTML = '';
+
+        VirtualWindows.getWindows().forEach(win => {
+            const row = document.createElement('div');
+            row.className = 'win-toggle-row';
+
+            const label = document.createElement('span');
+            label.textContent = win._id;
+
+            const switchEl = document.createElement('label');
+            switchEl.className = 'toggle-switch';
+
+            const input = document.createElement('input');
+            input.type    = 'checkbox';
+            input.checked = win.isOpen();
+            input.addEventListener('change', () => {
+                if (input.checked) {
+                    win.reopen();
+                } else {
+                    // Close: mimic user closing the window
+                    if (win._win === 'docked') {
+                        const slot = DockSlots[win._dockSide];
+                        slot.removePanel(win._contentEl);
+                        if (win._contentEl && win._contentEl.parentNode) {
+                            win._contentEl.parentNode.removeChild(win._contentEl);
+                        }
+                        win._win = false;
+                    } else if (win._win && win._win !== false) {
+                        const wb = win._win;
+                        win._win = false;
+                        wb.onclose = null;
+                        wb.close();
+                        if (win._contentEl && win._contentEl.parentNode) {
+                            win._contentEl.parentNode.removeChild(win._contentEl);
+                        }
+                    }
+                    LayoutStore.saveWindow(win);
+                }
+            });
+
+            const track = document.createElement('span');
+            track.className = 'toggle-track';
+
+            switchEl.appendChild(input);
+            switchEl.appendChild(track);
+            row.appendChild(label);
+            row.appendChild(switchEl);
+            container.appendChild(row);
+        });
+    }
+
     function toggleMenu() {
-        const menu = document.getElementById('floating-menu');
-        menu.style.display = (menu.style.display === 'none' || menu.style.display === '') ? 'block' : 'none';
+        const backdrop = document.getElementById('settings-backdrop');
+        const isOpen   = backdrop.classList.contains('open');
+        if (!isOpen) {
+            buildWindowToggles();
+            backdrop.classList.add('open');
+        } else {
+            backdrop.classList.remove('open');
+        }
+    }
+
+    function resetLayout() {
+        LayoutStore.reset();
+
+        // Close all windows first, then reopen each one in its default state.
+        VirtualWindows.getWindows().forEach(win => {
+            // Tear down whatever state the window is currently in
+            if (win._win === 'docked') {
+                const slot = DockSlots[win._dockSide];
+                if (slot) { slot.removePanel(win._contentEl); }
+                if (win._contentEl && win._contentEl.parentNode) {
+                    win._contentEl.parentNode.removeChild(win._contentEl);
+                }
+            } else if (win._win && win._win !== false) {
+                const wb = win._win;
+                wb.onclose = null;
+                wb.close();
+                if (win._contentEl && win._contentEl.parentNode) {
+                    win._contentEl.parentNode.removeChild(win._contentEl);
+                }
+            } else if (win._win === false && win._contentEl && win._contentEl.parentNode) {
+                win._contentEl.parentNode.removeChild(win._contentEl);
+            }
+
+            // Reset all window state back to construction defaults
+            win._win         = undefined;
+            win._contentEl   = null;
+            win._winboxOpts  = null;
+            win._dockSide    = win._origDockSide;
+            win._dockedHeight = win._origDockedHeight;
+        });
+
+        // Restore dock slot widths to default (remove inline styles)
+        ['left', 'right'].forEach(side => {
+            const slot = DockSlots[side];
+            if (!slot || !slot.el) { return; }
+            slot.el.style.removeProperty('width');
+            slot.el.style.removeProperty('--dock-' + side + '-width');
+        });
+
+        // Reopen all windows in default positions
+        VirtualWindows.openAll();
     }
 
     // -----------------------------------------------------------------------
@@ -1109,8 +1546,28 @@ const Client = (() => {
     // to add their own !commands processed before sending to the server.
     // fn receives the full input string and returns true if it handled it.
     // -----------------------------------------------------------------------
+    // -----------------------------------------------------------------------
+    // GMCP debug mode
+    // -----------------------------------------------------------------------
+    let gmcpDebugEnabled = false;
+
+    function _printGMCPDebug(namespace, body) {
+        if (!gmcpDebugEnabled) { return; }
+        term.writeln('\r\x1b[33m[GMCP] ' + namespace + '\x1b[0m');
+        const lines = JSON.stringify(body, null, 2).split('\n');
+        lines.forEach(line => term.writeln('\r\x1b[90m' + line + '\x1b[0m'));
+    }
+
     const specialCommands = {
-        '!net': { description: 'Print out network traffic stats', fn: () => { printNetStats(); return true; } },
+        '!net':  { description: 'Print out network traffic stats', fn: () => { printNetStats(); return true; } },
+        '!gmcp': {
+            description: 'Toggle GMCP payload debug output in the terminal',
+            fn: () => {
+                gmcpDebugEnabled = !gmcpDebugEnabled;
+                term.writeln('\r\x1b[33mGMCP debug ' + (gmcpDebugEnabled ? 'enabled' : 'disabled') + '\x1b[0m');
+                return true;
+            },
+        },
     };
 
     function registerCommand(name, description, fn) {
@@ -1269,6 +1726,9 @@ const Client = (() => {
 
         // Open all registered virtual windows immediately so they are present
         // on page load rather than waiting for the first GMCP payload.
+        // Windows start in the disconnected (grayed-out) state until the
+        // WebSocket connects.
+        VirtualWindows.setConnected(false);
         VirtualWindows.openAll();
     }
 
@@ -1299,6 +1759,7 @@ const Client = (() => {
         init,
         toggleMenu,
         toggleMuteAll,
+        resetLayout,
 
         // Utility
         sendData,
