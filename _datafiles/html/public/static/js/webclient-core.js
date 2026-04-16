@@ -53,8 +53,9 @@ class DockSlot {
     // Add a content element as a new panel with the given title.
     // height (optional) sets the preferred panel height in px.
     // onClose (optional) called when the panel's X button is clicked.
+    // onMoveTo (optional) called with (newSide, dropIdx) when dragged to the opposite slot.
     // Returns the panel wrapper element.
-    addPanel(contentEl, title, onPopout, height, onClose) {
+    addPanel(contentEl, title, onPopout, height, onClose, onMoveTo) {
         if (!this.el) { return null; }
         const panel = document.createElement('div');
         panel.className = 'dock-panel';
@@ -100,8 +101,10 @@ class DockSlot {
         panel.appendChild(titlebar);
         panel.appendChild(content);
 
-        // Wire up drag-to-reorder on the titlebar
-        this._initPanelDrag(titlebar, panel);
+        // Wire up drag-to-reorder on the titlebar, with cross-slot transfer support
+        this._initPanelDrag(titlebar, panel, (newSide, dropIdx) => {
+            if (typeof onMoveTo === 'function') { onMoveTo(newSide, dropIdx); }
+        });
 
         // Insert a vertical resize handle before this panel if there are others
         let resizeHandle = null;
@@ -266,8 +269,9 @@ class DockSlot {
 
     // Drag-to-reorder on a panel's titlebar.
     // Shows a ghost label following the cursor and a drop indicator line
-    // between panels. On drop, reorders the panel in the DOM and _panels array.
-    _initPanelDrag(titlebar, panel) {
+    // between panels. On drop, reorders the panel in the DOM and _panels array,
+    // or calls onMoveTo(newSide, dropIdx) if dropped into the opposite slot.
+    _initPanelDrag(titlebar, panel, onMoveTo) {
         titlebar.addEventListener('mousedown', (e) => {
             // Ignore clicks on the action buttons
             if (e.target.classList.contains('dock-panel-popout') ||
@@ -276,77 +280,119 @@ class DockSlot {
             }
             e.preventDefault();
 
-            const slotRect  = this.el.getBoundingClientRect();
-            const srcIdx    = this._panels.findIndex(p => p.panel === panel);
+            const srcIdx = this._panels.findIndex(p => p.panel === panel);
             if (srcIdx === -1) { return; }
+
+            const oppSide = this.side === 'left' ? 'right' : 'left';
+            const oppSlot = DockSlots[oppSide];
 
             // Ghost label that follows the cursor
             const ghost = document.createElement('div');
-            ghost.className   = 'dock-drag-ghost';
+            ghost.className = 'dock-drag-ghost';
             ghost.textContent = titlebar.querySelector('.dock-panel-title').textContent;
-            ghost.style.width = slotRect.width + 'px';
-            ghost.style.left  = slotRect.left + 'px';
-            ghost.style.top   = e.clientY + 'px';
             document.body.appendChild(ghost);
 
-            // Drop indicator line
-            const indicator = document.createElement('div');
-            indicator.className = 'dock-drop-indicator';
-            indicator.style.display = 'none';
-            this.el.appendChild(indicator);
+            // Two drop indicators — one per slot
+            const ownIndicator = document.createElement('div');
+            ownIndicator.className = 'dock-drop-indicator';
+            ownIndicator.style.display = 'none';
+            this.el.appendChild(ownIndicator);
+
+            let oppIndicator = null;
+            if (oppSlot && oppSlot.el) {
+                oppIndicator = document.createElement('div');
+                oppIndicator.className = 'dock-drop-indicator';
+                oppIndicator.style.display = 'none';
+                oppSlot.el.appendChild(oppIndicator);
+            }
 
             panel.classList.add('dock-dragging');
 
-            let dropIdx = srcIdx;
+            let dropSide = this.side;
+            let dropIdx  = srcIdx;
+
+            const _calcDropIdx = (slot, clientY) => {
+                const panels = slot._panels;
+                let idx = panels.length;
+                for (let i = 0; i < panels.length; i++) {
+                    if (panels[i].panel === panel) { continue; }
+                    const r = panels[i].panel.getBoundingClientRect();
+                    if (clientY < r.top + r.height / 2) { idx = i; break; }
+                }
+                return idx;
+            };
+
+            const _showIndicator = (indicator, slot, idx) => {
+                if (!indicator || !slot.el) { return; }
+                const panels    = slot._panels;
+                const slotRect  = slot.el.getBoundingClientRect();
+                indicator.style.display = 'block';
+                if (panels.length === 0 || idx >= panels.length) {
+                    const last = panels.length > 0 ? panels[panels.length - 1].panel : null;
+                    indicator.style.top = last
+                        ? (last.getBoundingClientRect().bottom - slotRect.top + 2) + 'px'
+                        : '4px';
+                } else {
+                    const r = panels[idx].panel.getBoundingClientRect();
+                    indicator.style.top = (r.top - slotRect.top - 2) + 'px';
+                }
+            };
 
             const onMove = (e) => {
                 ghost.style.top = e.clientY + 'px';
 
-                // Determine insert position by comparing cursor to each panel midpoint
-                const panels = this._panels;
-                let newDropIdx = panels.length;  // default: after last
+                const ownRect = this.el.getBoundingClientRect();
+                const oppRect = oppSlot && oppSlot.el ? oppSlot.el.getBoundingClientRect() : null;
 
-                for (let i = 0; i < panels.length; i++) {
-                    if (panels[i].panel === panel) { continue; }  // skip self
-                    const r = panels[i].panel.getBoundingClientRect();
-                    if (e.clientY < r.top + r.height / 2) {
-                        newDropIdx = i;
-                        break;
-                    }
-                }
+                // Determine which slot the cursor is over
+                const overOpp = oppRect &&
+                    e.clientX >= oppRect.left && e.clientX <= oppRect.right &&
+                    oppRect.width > 0;
 
-                dropIdx = newDropIdx;
-
-                // Position the indicator line
-                if (dropIdx === srcIdx || dropIdx === srcIdx + 1) {
-                    // Would not change order — hide indicator
-                    indicator.style.display = 'none';
+                if (overOpp) {
+                    dropSide = oppSide;
+                    dropIdx  = _calcDropIdx(oppSlot, e.clientY);
+                    ghost.style.left  = oppRect.left + 'px';
+                    ghost.style.width = oppRect.width + 'px';
+                    ownIndicator.style.display = 'none';
+                    _showIndicator(oppIndicator, oppSlot, dropIdx);
                 } else {
-                    indicator.style.display = 'block';
-                    let refPanel;
-                    if (dropIdx >= panels.length) {
-                        // After the last panel
-                        refPanel = panels[panels.length - 1].panel;
-                        const r  = refPanel.getBoundingClientRect();
-                        indicator.style.top = (r.bottom - slotRect.top + 2) + 'px';
+                    dropSide = this.side;
+                    dropIdx  = _calcDropIdx(this, e.clientY);
+                    ghost.style.left  = ownRect.left + 'px';
+                    ghost.style.width = ownRect.width + 'px';
+                    if (oppIndicator) { oppIndicator.style.display = 'none'; }
+                    // Hide own indicator when drop would not change order
+                    if (dropIdx === srcIdx || dropIdx === srcIdx + 1) {
+                        ownIndicator.style.display = 'none';
                     } else {
-                        refPanel = panels[dropIdx].panel;
-                        const r  = refPanel.getBoundingClientRect();
-                        indicator.style.top = (r.top - slotRect.top - 2) + 'px';
+                        _showIndicator(ownIndicator, this, dropIdx);
                     }
                 }
             };
+
+            // Set initial ghost position
+            const initRect = this.el.getBoundingClientRect();
+            ghost.style.left  = initRect.left + 'px';
+            ghost.style.width = initRect.width + 'px';
+            ghost.style.top   = e.clientY + 'px';
 
             const onUp = () => {
                 document.removeEventListener('mousemove', onMove);
                 document.removeEventListener('mouseup',   onUp);
 
                 ghost.remove();
-                indicator.remove();
+                ownIndicator.remove();
+                if (oppIndicator) { oppIndicator.remove(); }
                 panel.classList.remove('dock-dragging');
 
-                // Only reorder if the drop position actually changes order
-                if (dropIdx !== srcIdx && dropIdx !== srcIdx + 1) {
+                if (dropSide !== this.side) {
+                    // Dropped into the opposite slot
+                    if (typeof onMoveTo === 'function') {
+                        onMoveTo(dropSide, dropIdx);
+                    }
+                } else if (dropIdx !== srcIdx && dropIdx !== srcIdx + 1) {
+                    // Reorder within own slot
                     this._movePanel(srcIdx, dropIdx);
                 }
             };
@@ -575,6 +621,14 @@ class VirtualWindow {
                     this._contentEl.parentNode.removeChild(this._contentEl);
                 }
                 this._win = false;
+            },
+            (newSide) => {
+                // User dragged the panel to the opposite slot.
+                // Remove from the current slot, update _dockSide, re-dock.
+                slot.removePanel(this._contentEl);
+                this._dockSide = newSide;
+                this._win = undefined;
+                this._dockNow();
             }
         );
         this._win = 'docked';
