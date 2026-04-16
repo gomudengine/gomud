@@ -10,9 +10,10 @@
     overflow: hidden;
 }
 
-/* Hide maximize and fullscreen controls — windows are informational panels */
+/* Hide maximize, fullscreen, and close controls — windows are managed via settings */
 .wb-max  { display: none; }
 .wb-full { display: none; }
+.wb-close { display: none; }
 
 /* -------------------------------------------------------------------------
  * Dock slots

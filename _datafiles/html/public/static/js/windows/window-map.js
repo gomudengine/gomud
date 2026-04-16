@@ -192,6 +192,9 @@
     // DOM factory
     // -----------------------------------------------------------------------
     function createDOM() {
+        gr = null;
+        allRooms.currentZoneKey = '';
+        allRooms.roomZones = {};
         const el = document.createElement('div');
         el.id = 'map-render';
         el.style.width  = '100%';
