@@ -22,6 +22,8 @@ In general, PRs should:
 - Include unit tests for any packages you are adding or changing.
   - Unit tests should use [testify](https://github.com/stretchr/testify). Do not auto generate/commit mocks with the mockery tool.
 - Include reasonable code documentation as well as update relevant markdown documentation.
+- Run `make ci-local` before opening or updating a PR when you change CI or workflow files. This uses Docker to run the same local workflow lint and `act` dry-run checks documented in `.github/`.
+- The scheduled `Update Go Toolchain` workflow proposes PRs when the repo's pinned Go version falls behind the latest stable release. Review those PRs like any other dependency update.
 - A PR template will automatically pre-populate your Pull Request. Fill in the fields requested, as they are required.
   - Additional sections can be added to a PR, such as screenshots, or other named sections of your choosing. Include these after the required sections.
 

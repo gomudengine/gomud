@@ -1,3 +1,4 @@
+---
 name: "Codegen and Test"
 description: "Run go generate and go test"
 runs:
