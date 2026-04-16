@@ -67,8 +67,49 @@
     padding: 0 6px;
     height: 20px;
     flex-shrink: 0;
-    cursor: default;
+    cursor: grab;
     user-select: none;
+}
+
+.dock-panel-titlebar:active {
+    cursor: grabbing;
+}
+
+/* Source panel fades while being dragged */
+.dock-panel.dock-dragging {
+    opacity: 0.35;
+}
+
+/* Ghost panel that follows the cursor during a drag */
+.dock-drag-ghost {
+    position: fixed;
+    pointer-events: none;
+    z-index: 99999;
+    opacity: 0.85;
+    border: 1px solid #3ad4b8;
+    border-radius: 3px;
+    background: #1c6b60;
+    color: #fff;
+    font-size: 12px;
+    font-family: Arial, sans-serif;
+    padding: 0 6px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+}
+
+/* Drop indicator line shown between panels */
+.dock-drop-indicator {
+    position: absolute;
+    left: 4px;
+    right: 4px;
+    height: 2px;
+    background: #3ad4b8;
+    border-radius: 1px;
+    pointer-events: none;
+    z-index: 100;
+    box-shadow: 0 0 4px #3ad4b8;
 }
 
 .dock-panel-title {

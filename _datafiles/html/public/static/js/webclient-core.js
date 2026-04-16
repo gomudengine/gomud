@@ -100,6 +100,9 @@ class DockSlot {
         panel.appendChild(titlebar);
         panel.appendChild(content);
 
+        // Wire up drag-to-reorder on the titlebar
+        this._initPanelDrag(titlebar, panel);
+
         // Insert a vertical resize handle before this panel if there are others
         let resizeHandle = null;
         if (this._panels.length > 0) {
@@ -260,6 +263,130 @@ class DockSlot {
             document.addEventListener('touchend',  onUp);
         }, { passive: true });
     }
+
+    // Drag-to-reorder on a panel's titlebar.
+    // Shows a ghost label following the cursor and a drop indicator line
+    // between panels. On drop, reorders the panel in the DOM and _panels array.
+    _initPanelDrag(titlebar, panel) {
+        titlebar.addEventListener('mousedown', (e) => {
+            // Ignore clicks on the action buttons
+            if (e.target.classList.contains('dock-panel-popout') ||
+                e.target.classList.contains('dock-panel-close')) {
+                return;
+            }
+            e.preventDefault();
+
+            const slotRect  = this.el.getBoundingClientRect();
+            const srcIdx    = this._panels.findIndex(p => p.panel === panel);
+            if (srcIdx === -1) { return; }
+
+            // Ghost label that follows the cursor
+            const ghost = document.createElement('div');
+            ghost.className   = 'dock-drag-ghost';
+            ghost.textContent = titlebar.querySelector('.dock-panel-title').textContent;
+            ghost.style.width = slotRect.width + 'px';
+            ghost.style.left  = slotRect.left + 'px';
+            ghost.style.top   = e.clientY + 'px';
+            document.body.appendChild(ghost);
+
+            // Drop indicator line
+            const indicator = document.createElement('div');
+            indicator.className = 'dock-drop-indicator';
+            indicator.style.display = 'none';
+            this.el.appendChild(indicator);
+
+            panel.classList.add('dock-dragging');
+
+            let dropIdx = srcIdx;
+
+            const onMove = (e) => {
+                ghost.style.top = e.clientY + 'px';
+
+                // Determine insert position by comparing cursor to each panel midpoint
+                const panels = this._panels;
+                let newDropIdx = panels.length;  // default: after last
+
+                for (let i = 0; i < panels.length; i++) {
+                    if (panels[i].panel === panel) { continue; }  // skip self
+                    const r = panels[i].panel.getBoundingClientRect();
+                    if (e.clientY < r.top + r.height / 2) {
+                        newDropIdx = i;
+                        break;
+                    }
+                }
+
+                dropIdx = newDropIdx;
+
+                // Position the indicator line
+                if (dropIdx === srcIdx || dropIdx === srcIdx + 1) {
+                    // Would not change order — hide indicator
+                    indicator.style.display = 'none';
+                } else {
+                    indicator.style.display = 'block';
+                    let refPanel;
+                    if (dropIdx >= panels.length) {
+                        // After the last panel
+                        refPanel = panels[panels.length - 1].panel;
+                        const r  = refPanel.getBoundingClientRect();
+                        indicator.style.top = (r.bottom - slotRect.top + 2) + 'px';
+                    } else {
+                        refPanel = panels[dropIdx].panel;
+                        const r  = refPanel.getBoundingClientRect();
+                        indicator.style.top = (r.top - slotRect.top - 2) + 'px';
+                    }
+                }
+            };
+
+            const onUp = () => {
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup',   onUp);
+
+                ghost.remove();
+                indicator.remove();
+                panel.classList.remove('dock-dragging');
+
+                // Only reorder if the drop position actually changes order
+                if (dropIdx !== srcIdx && dropIdx !== srcIdx + 1) {
+                    this._movePanel(srcIdx, dropIdx);
+                }
+            };
+
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup',   onUp);
+        });
+    }
+
+    // Reorder a panel from fromIdx to toIdx (insert-before semantics).
+    // Rebuilds the DOM order and the resize handles between panels.
+    _movePanel(fromIdx, toIdx) {
+        if (fromIdx === toIdx) { return; }
+
+        // Remove all resize handles from the DOM — we'll rebuild them
+        this._panels.forEach(p => {
+            if (p.resizeHandle) {
+                p.resizeHandle.remove();
+                p.resizeHandle = null;
+            }
+        });
+
+        // Reorder the _panels array
+        const moved = this._panels.splice(fromIdx, 1)[0];
+        const insertAt = toIdx > fromIdx ? toIdx - 1 : toIdx;
+        this._panels.splice(insertAt, 0, moved);
+
+        // Re-append panels to the slot in the new order
+        this._panels.forEach(p => this.el.appendChild(p.panel));
+
+        // Rebuild resize handles between adjacent panels
+        for (let i = 1; i < this._panels.length; i++) {
+            const handle = document.createElement('div');
+            handle.className = 'dock-panel-resize';
+            // Insert before the panel at index i
+            this.el.insertBefore(handle, this._panels[i].panel);
+            this._panels[i].resizeHandle = handle;
+            this._initPanelResize(handle);
+        }
+    }
 }
 
 // Singleton slot instances, populated by Client.init() once the DOM is ready.
@@ -358,18 +485,37 @@ class VirtualWindow {
         if (this._win !== 'docked') { return; }
 
         const slot = DockSlots[this._dockSide];
+
+        // Capture the panel's vertical position before it is removed so the
+        // floating window can appear at roughly the same screen position.
+        const panel = slot.el.querySelector('.dock-panel');
+        let spawnY = null;
+        if (panel) {
+            const rect = panel.getBoundingClientRect();
+            spawnY = Math.round(rect.top);
+        }
+
         slot.removePanel(this._contentEl);
         this._win = undefined;
 
-        this._floatNow();
+        this._floatNow(spawnY);
     }
 
     // -----------------------------------------------------------------------
     // Private
     // -----------------------------------------------------------------------
 
-    _floatNow() {
+    _floatNow(spawnY) {
         const opts = Object.assign({}, this._winboxOpts);
+
+        // If spawning from a docked position, place the window at the same
+        // vertical position, inset 50px from the edge of the viewport.
+        if (spawnY !== undefined && spawnY !== null) {
+            opts.y = spawnY;
+            opts.x = this._dockSide === 'right'
+                ? window.innerWidth  - (opts.width  || 363) - 50
+                : 50;
+        }
 
         // Re-attach content to body if it was moved by the dock slot
         if (this._contentEl && !document.body.contains(this._contentEl)) {
