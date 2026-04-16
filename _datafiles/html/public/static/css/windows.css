@@ -1,0 +1,15 @@
+/*
+ * windows.css
+ *
+ * Global WinBox overrides that apply to every virtual window.
+ * Per-window styles are injected by each window module via injectStyles().
+ */
+
+.wb-body {
+    background: #000;
+    overflow: hidden;
+}
+
+/* Hide maximize and fullscreen controls — windows are informational panels */
+.wb-max  { display: none; }
+.wb-full { display: none; }
