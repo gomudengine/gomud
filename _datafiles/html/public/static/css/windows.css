@@ -159,6 +159,25 @@
 }
 .wb-dock-btn:hover { opacity: 1; }
 
+/* -------------------------------------------------------------------------
+ * Disconnected state
+ *
+ * When the WebSocket is not connected, all virtual windows are grayed out
+ * and pointer interaction is blocked. The class is toggled by
+ * VirtualWindows.setConnected() in webclient-core.js.
+ * ------------------------------------------------------------------------- */
+.windows-disconnected .dock-panel {
+    opacity: 0.4;
+    pointer-events: none;
+    filter: grayscale(0.6);
+}
+
+.windows-disconnected .winbox {
+    opacity: 0.4;
+    pointer-events: none;
+    filter: grayscale(0.6);
+}
+
 /* Slot-width drag handle — flex sibling of the dock slot inside #main-container.
  * Never clipped, always grabbable. Shown only when the slot has panels. */
 .dock-slot-resize {

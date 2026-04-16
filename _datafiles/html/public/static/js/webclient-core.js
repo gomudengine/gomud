@@ -702,7 +702,15 @@ const VirtualWindows = (() => {
         _windows.forEach(win => win.open());
     }
 
-    return { register, handleGMCP, openAll };
+    function setConnected(connected) {
+        if (connected) {
+            document.body.classList.remove('windows-disconnected');
+        } else {
+            document.body.classList.add('windows-disconnected');
+        }
+    }
+
+    return { register, handleGMCP, openAll, setConnected };
 })();
 
 // ---------------------------------------------------------------------------
@@ -902,6 +910,7 @@ const Client = (() => {
                 const gmcpNamespace = gmcpPayload.slice(0, jsonIndex).trim();
                 const gmcpBody      = JSON.parse(gmcpPayload.slice(jsonIndex).trim());
                 _applyGMCPPayload(gmcpNamespace, gmcpBody);
+                _printGMCPDebug(gmcpNamespace, gmcpBody);
                 VirtualWindows.handleGMCP(gmcpNamespace, gmcpBody);
                 return;
             }
@@ -927,6 +936,7 @@ const Client = (() => {
             connectButton.style.display = 'none';
             connectButton.disabled = true;
             textInput.focus();
+            VirtualWindows.setConnected(true);
         };
 
         socket.onmessage = _onMessage;
@@ -936,6 +946,7 @@ const Client = (() => {
         };
 
         socket.onclose = function(event) {
+            VirtualWindows.setConnected(false);
             if (event.wasClean) {
                 term.writeln('Connection closed cleanly, code=' + event.code + ', reason=' + event.reason);
             } else {
@@ -1107,8 +1118,28 @@ const Client = (() => {
     // to add their own !commands processed before sending to the server.
     // fn receives the full input string and returns true if it handled it.
     // -----------------------------------------------------------------------
+    // -----------------------------------------------------------------------
+    // GMCP debug mode
+    // -----------------------------------------------------------------------
+    let gmcpDebugEnabled = false;
+
+    function _printGMCPDebug(namespace, body) {
+        if (!gmcpDebugEnabled) { return; }
+        term.writeln('\r\x1b[33m[GMCP] ' + namespace + '\x1b[0m');
+        const lines = JSON.stringify(body, null, 2).split('\n');
+        lines.forEach(line => term.writeln('\r\x1b[90m' + line + '\x1b[0m'));
+    }
+
     const specialCommands = {
-        '!net': { description: 'Print out network traffic stats', fn: () => { printNetStats(); return true; } },
+        '!net':  { description: 'Print out network traffic stats', fn: () => { printNetStats(); return true; } },
+        '!gmcp': {
+            description: 'Toggle GMCP payload debug output in the terminal',
+            fn: () => {
+                gmcpDebugEnabled = !gmcpDebugEnabled;
+                term.writeln('\r\x1b[33mGMCP debug ' + (gmcpDebugEnabled ? 'enabled' : 'disabled') + '\x1b[0m');
+                return true;
+            },
+        },
     };
 
     function registerCommand(name, description, fn) {
@@ -1267,6 +1298,9 @@ const Client = (() => {
 
         // Open all registered virtual windows immediately so they are present
         // on page load rather than waiting for the first GMCP payload.
+        // Windows start in the disconnected (grayed-out) state until the
+        // WebSocket connects.
+        VirtualWindows.setConnected(false);
         VirtualWindows.openAll();
     }
 

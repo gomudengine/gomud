@@ -176,6 +176,7 @@
 
         .cw-equip-badge.cursed { background:#3d0f0f; color:#e06060; border:1px solid #6b1c1c; }
         .cw-equip-badge.quest  { background:#2e2000; color:#d4a843; border:1px solid #6b5010; }
+        .cw-equip-badge.uses   { background:#1a1a2e; color:#9ab0d4; border:1px solid #2e4a6b; }
 
         /* ---- Stats grid (inside Overview, above vitals) ---- */
         #cw-stats-grid {
@@ -268,6 +269,19 @@
             text-align: right;
         }
 
+        .cw-tt-hint {
+            font-size: 0.73em;
+            color: #7ab8a0;
+            line-height: 1.4;
+            font-style: italic;
+        }
+
+        .cw-tt-hint .cw-tt-cmd {
+            font-style: normal;
+            color: #3ad4b8;
+            font-weight: bold;
+        }
+
         /* ---- Quests tab ---- */
         #cw-quests {
             padding: 4px 6px;
@@ -336,6 +350,28 @@
             border-radius: 3px;
             background: linear-gradient(to right, #1c6b60, #3ad4b8);
             transition: width 0.4s ease-out;
+        }
+
+        #cw-quests .cq-item.complete {
+            background: #060e0c;
+            border-color: #1a3a30;
+            opacity: 0.6;
+        }
+
+        #cw-quests .cq-item.complete:hover,
+        #cw-quests .cq-item.complete.expanded {
+            opacity: 1;
+            background: #0a1e1a;
+        }
+
+        #cw-quests .cq-item.complete .cq-name {
+            color: #7ab8a0;
+            text-decoration: line-through;
+        }
+
+        #cw-quests .cq-item.complete .cq-pct {
+            color: #3ad4b8;
+            font-weight: bold;
         }
 
         #cw-quests .cq-bar-fill.complete {
@@ -454,7 +490,59 @@
 
         .cw-bp-badge.cursed { background:#3d0f0f; color:#e06060; border:1px solid #6b1c1c; }
         .cw-bp-badge.quest  { background:#2e2000; color:#d4a843; border:1px solid #6b5010; }
+        .cw-bp-badge.uses   { background:#1a1a2e; color:#9ab0d4; border:1px solid #2e4a6b; }
     `);
+
+    // -----------------------------------------------------------------------
+    // Item hint — mirrors the GetLongDescription() logic from items/items.go.
+    // Returns an HTML string (may contain <span class="cw-tt-cmd">) or null.
+    // -----------------------------------------------------------------------
+    function _itemHint(item) {
+        const type    = (item.type    || '').toLowerCase();
+        const subtype = (item.subtype || '').toLowerCase();
+        const details = item.details || [];
+
+        function cmd(name) {
+            return '<span class="cw-tt-cmd">' + name + '</span>';
+        }
+
+        if (details.includes('quest')) {
+            return 'This is a quest item.';
+        }
+        if (type === 'readable') {
+            return 'You should probably ' + cmd('read') + ' this.';
+        }
+        if (subtype === 'drinkable') {
+            return 'You could probably ' + cmd('drink') + ' this.';
+        }
+        if (subtype === 'edible') {
+            return 'You could probably ' + cmd('eat') + ' this.';
+        }
+        if (type === 'lockpicks') {
+            return 'These are used with the ' + cmd('picklock') + ' command.';
+        }
+        if (type === 'key') {
+            return 'When you find the right door, keys are added to your ' + cmd('keyring') + ' automatically.';
+        }
+        if (subtype === 'wearable') {
+            return 'It looks like wearable ' + type + ' equipment.';
+        }
+        if (type === 'weapon') {
+            const handsDetail = details.find(d => d.endsWith('-handed'));
+            const handsText   = handsDetail ? handsDetail : '1-handed';
+            if (subtype === 'shooting') {
+                return 'A ' + handsText + ' ranged weapon. Can be fired into adjacent areas. (' + cmd('help shoot') + ')';
+            }
+            if (subtype === 'claws') {
+                return 'A ' + handsText + ' claws weapon. Can be dual wielded without training.';
+            }
+            return 'A ' + handsText + ' weapon.';
+        }
+        if (subtype === 'usable') {
+            return 'You could probably ' + cmd('use') + ' this.';
+        }
+        return null;
+    }
 
     // -----------------------------------------------------------------------
     // Tooltip
@@ -503,6 +591,12 @@
                     '<span class="cw-tt-row-value">' + r.value + '</span>' +
                 '</div>';
             });
+        }
+
+        const hint = _itemHint(item);
+        if (hint) {
+            html += '<hr class="cw-tt-divider">';
+            html += '<div class="cw-tt-hint">' + hint + '</div>';
         }
 
         tooltip.innerHTML = html;
@@ -748,6 +842,8 @@
                 badgeEl.textContent = 'cursed'; badgeEl.className = 'cw-equip-badge cursed'; badgeEl.style.display = '';
             } else if (isQuest) {
                 badgeEl.textContent = 'quest';  badgeEl.className = 'cw-equip-badge quest';  badgeEl.style.display = '';
+            } else if (item.uses > 0) {
+                badgeEl.textContent = item.uses + 'x'; badgeEl.className = 'cw-equip-badge uses'; badgeEl.style.display = '';
             } else {
                 badgeEl.style.display = 'none';
             }
@@ -819,6 +915,9 @@
             } else if (isQuest) {
                 badgeEl.textContent = 'quest';
                 badgeEl.classList.add('quest');
+            } else if (item.uses > 0) {
+                badgeEl.textContent = item.uses + 'x';
+                badgeEl.classList.add('uses');
             } else {
                 badgeEl.style.display = 'none';
             }
@@ -854,8 +953,11 @@
             return;
         }
 
-        // Sort: least complete first, then alphabetical
+        // Sort: incomplete first (least complete first), completed last, then alphabetical within each group
         const sorted = [...quests].sort((a, b) => {
+            const ac = (a.completion || 0) >= 100;
+            const bc = (b.completion || 0) >= 100;
+            if (ac !== bc) { return ac ? 1 : -1; }
             if (a.completion !== b.completion) { return a.completion - b.completion; }
             return (a.name || '').localeCompare(b.name || '');
         });
@@ -866,12 +968,12 @@
             const isExpanded = expanded.has(q.name);
 
             const item = document.createElement('div');
-            item.className       = 'cq-item' + (isExpanded ? ' expanded' : '');
+            item.className       = 'cq-item' + (complete ? ' complete' : '') + (isExpanded ? ' expanded' : '');
             item.dataset.questName = q.name || '';
             item.innerHTML =
                 '<div class="cq-header">' +
                     '<span class="cq-name">' + (q.name || 'Unknown Quest') + '</span>' +
-                    '<span class="cq-pct">' + pct + '%</span>' +
+                    '<span class="cq-pct">' + (complete ? 'Complete' : pct + '%') + '</span>' +
                 '</div>' +
                 '<div class="cq-bar-track">' +
                     '<div class="cq-bar-fill' + (complete ? ' complete' : '') + '" style="width:' + pct + '%"></div>' +

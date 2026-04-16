@@ -48,7 +48,7 @@ func init() {
 	events.RegisterListener(events.CharacterChanged{}, g.charChangeHandler)
 	events.RegisterListener(events.BuffsTriggered{}, g.buffTriggeredHandler)
 
-	events.RegisterListener(events.Quest{}, g.questProgressHandler)
+	events.RegisterListener(events.Quest{}, g.questProgressHandler, events.Last)
 
 }
 
@@ -610,7 +610,7 @@ func (g *GMCPCharModule) GetCharNode(user *users.UserRecord, gmcpModule string) 
 				}
 			}
 
-			questPayload.Completion = int(math.Floor(float64(completedSteps)/float64(totalSteps)) * 100)
+			questPayload.Completion = int(math.Floor(float64(completedSteps) / float64(totalSteps) * 100))
 
 			// Add to the returned output
 			payload.Quests = append(payload.Quests, questPayload)
@@ -741,6 +741,10 @@ func newInventory_Item(itm items.Item) GMCPCharModule_Payload_Inventory_Item {
 
 	if itmSpec.QuestToken != `` {
 		d.Details = append(d.Details, `quest`)
+	}
+
+	if itmSpec.Type == items.Weapon {
+		d.Details = append(d.Details, strconv.Itoa(itmSpec.Hands)+`-handed`)
 	}
 
 	return d

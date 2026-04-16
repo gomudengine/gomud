@@ -17,51 +17,62 @@
 (function() {
 
     injectStyles(`
-        .tabs {
+        #comm-output {
             width: 100%;
             display: flex;
             flex-direction: column;
             height: 100%;
+            background: #000;
         }
 
-        .tab-buttons {
+        #comm-output .tab-buttons {
             display: flex;
+            flex-shrink: 0;
             border-bottom: 1px solid #0f3333;
         }
 
-        .tab-button {
+        #comm-output .tab-button {
             flex: 1;
-            padding: 0.75em;
-            background: #279888;
+            padding: 5px 4px;
+            background: #0d2e28;
             border: none;
             cursor: pointer;
             font: inherit;
-            font-size: small;
-            transition: background 0.2s;
+            font-size: 0.7em;
+            color: #7ab8a0;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            transition: background 0.15s, color 0.15s;
+            border-right: 1px solid #0f3333;
         }
 
-        .tab-button:not(.active):hover {
+        #comm-output .tab-button:last-child {
+            border-right: none;
+        }
+
+        #comm-output .tab-button:hover {
             background: #0f3333;
             color: #dffbd1;
         }
 
-        .tab-button.active {
-            background: #dffbd1;
-            border-bottom: 2px solid #0f3333;
+        #comm-output .tab-button.active {
+            background: #000;
+            color: #dffbd1;
+            border-bottom: 2px solid #3ad4b8;
         }
 
-        .tab-contents {
+        #comm-output .tab-contents {
             flex: 1;
-            padding: 0.25em;
+            overflow: hidden;
             background: #000;
         }
 
-        .tab-content {
+        #comm-output .tab-content {
             display: none;
             height: 100%;
         }
 
-        .tab-content.active {
+        #comm-output .tab-content.active {
             display: block;
         }
 
@@ -97,7 +108,7 @@
     function createDOM() {
         const root = document.createElement('div');
         root.id        = 'comm-output';
-        root.className = 'tabs';
+        root.style.height = '100%';
 
         // Tab button row
         const buttonRow = document.createElement('div');
