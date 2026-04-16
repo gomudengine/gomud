@@ -93,6 +93,8 @@ ActorObjects are the basic object that represents Users and NPCs
   - [ActorObject.TimerExpired(name string) bool](#actorobjecttimerexpiredname-string-bool)
   - [ActorObject.TimerExists(name string) bool](#actorobjecttimerexistsname-string-bool)
   - [ActorObject.AddEventLog(category string, message string)](#actorobjectaddeventlogcategory-string-message-string)
+  - [ActorObject.MarkVisitedRoom(roomId1 int [, roomId2, ...])](#actorobjectmarkvisitedroomroomid1-int--roomid2-)
+  - [ActorObject.MarkVisitedZone(zoneName string)](#actorobjectmarkvisitedzonezoneename-string)
 
 
 
@@ -639,3 +641,29 @@ Adds a line to the users Event Log (`history`)
 | --- | --- |
 | category | A short single word category  |
 | message | A single line describing the event |
+
+## [ActorObject.MarkVisitedRoom(roomId1 int [, roomId2, ...])](/internal/scripting/actor_func.go)
+Marks one or more rooms as visited for this actor. Only applies to user actors; mobs do not track room visits. Each room is recorded under the zone it belongs to.
+
+_Note: Non-positive room IDs are silently ignored._
+
+|  Argument | Explanation |
+| --- | --- |
+| roomId1, roomId2, ... | One or more room IDs to mark as visited |
+
+**Example:**
+```javascript
+user.MarkVisitedRoom(101, 102, 103);
+```
+
+## [ActorObject.MarkVisitedZone(zoneName string)](/internal/scripting/actor_func.go)
+Marks every room in the named zone as visited for this actor. Only applies to user actors; mobs do not track room visits. Accepts partial zone name matches.
+
+|  Argument | Explanation |
+| --- | --- |
+| zoneName | The zone name (or partial name) to mark all rooms visited in |
+
+**Example:**
+```javascript
+user.MarkVisitedZone("frostfang");
+```

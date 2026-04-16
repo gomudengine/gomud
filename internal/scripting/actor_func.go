@@ -381,6 +381,47 @@ func (a ScriptActor) AddEventLog(category string, message string) {
 	}
 }
 
+// MarkVisitedRoom marks one or more rooms as visited for this actor.
+// Only applies to user actors; mobs do not track room visits.
+// Each roomId argument is recorded under the zone that room belongs to.
+func (a ScriptActor) MarkVisitedRoom(roomIds ...int) {
+	if a.userRecord == nil {
+		return
+	}
+	for _, roomId := range roomIds {
+		room := rooms.LoadRoom(roomId)
+		if room == nil {
+			continue
+		}
+		zCfg := rooms.GetZoneConfig(room.Zone)
+		var validRoomIds map[int]struct{}
+		if zCfg != nil {
+			validRoomIds = zCfg.RoomIds
+		}
+		a.characterRecord.MarkVisitedRoom(roomId, room.Zone, validRoomIds)
+	}
+}
+
+// MarkVisitedZone marks every room in the named zone as visited for this actor.
+// Only applies to user actors; mobs do not track room visits.
+// Uses FindZoneName for partial/best-match zone name resolution.
+func (a ScriptActor) MarkVisitedZone(zoneName string) {
+	if a.userRecord == nil {
+		return
+	}
+	resolvedZone := rooms.FindZoneName(zoneName)
+	if resolvedZone == `` {
+		return
+	}
+	zCfg := rooms.GetZoneConfig(resolvedZone)
+	if zCfg == nil {
+		return
+	}
+	for roomId := range zCfg.RoomIds {
+		a.characterRecord.MarkVisitedRoom(roomId, resolvedZone, nil)
+	}
+}
+
 func (a ScriptActor) GiveItem(itm any) {
 
 	var sItem *ScriptItem

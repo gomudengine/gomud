@@ -305,10 +305,10 @@ func GetDetails(r *Room, user *users.UserRecord, tinymap ...[]string) RoomTempla
 
 	for exitStr, exitInfo := range r.Exits {
 
-		// If it's a secret room we need to make sure the player has recently been there before including it in the exits
+		// If it's a secret room we need to make sure the player has been there before including it in the exits
 		if exitInfo.Secret {
 			if targetRm := LoadRoom(exitInfo.RoomId); targetRm != nil {
-				if targetRm.HasVisited(user.UserId, VisitorUser) {
+				if user.Character.HasVisitedRoom(exitInfo.RoomId, targetRm.Zone) {
 					details.VisibleExits[exitStr] = exitInfo
 				}
 			}

@@ -26,6 +26,8 @@ PartyObjects represent collections of actors (users and NPCs) that are grouped t
   - [PartyObject.GiveExtraLife()](#partyobjectgiveextralife)
   - [PartyObject.GrantXP(xpAmt int, reason string)](#partyobjectgrantxpxpamt-int-reason-string)
   - [PartyObject.TimerSet(name string, period string)](#partyobjecttimersetname-string-period-string)
+  - [PartyObject.MarkVisitedRoom(roomId1 int [, roomId2, ...])](#partyobjectmarkvisitedroomroomid1-int--roomid2-)
+  - [PartyObject.MarkVisitedZone(zoneName string)](#partyobjectmarkvisitedzonezoneename-string)
 
 
 
@@ -196,3 +198,27 @@ Starts a new Round timer for all party members.
 | --- | --- |
 | name | A string identifier. Reusing names will overwrite previously assigned names |
 | period | How long until the timer expires. `1 real hour`, `1 hour`, etc |
+
+## [PartyObject.MarkVisitedRoom(roomId1 int [, roomId2, ...])](/internal/scripting/party_func.go)
+Marks one or more rooms as visited for all user members of the party. Mobs in the party are unaffected.
+
+|  Argument | Explanation |
+| --- | --- |
+| roomId1, roomId2, ... | One or more room IDs to mark as visited |
+
+**Example:**
+```javascript
+user.GetParty().MarkVisitedRoom(101, 102, 103);
+```
+
+## [PartyObject.MarkVisitedZone(zoneName string)](/internal/scripting/party_func.go)
+Marks every room in the named zone as visited for all user members of the party. Mobs in the party are unaffected. Accepts partial zone name matches.
+
+|  Argument | Explanation |
+| --- | --- |
+| zoneName | The zone name (or partial name) to mark all rooms visited in |
+
+**Example:**
+```javascript
+user.GetParty().MarkVisitedZone("frostfang");
+```

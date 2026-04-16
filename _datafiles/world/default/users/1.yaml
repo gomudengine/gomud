@@ -17,9 +17,9 @@ character:
     other adventurers, granting them strength, wisdom, or fortune beyond their wildest
     dreams. Conversely, he can also mete out justice to those who would seek to disrupt
     the balance of the world, swiftly and decisively.
-  roomid: 487
+  roomid: 1
   roomidonreset: 0
-  zone: Frostfang Slums
+  zone: Frostfang
   raceid: 2
   stats:
     strength:
@@ -64,15 +64,15 @@ character:
     list:
     - buffid: 28
       permabuff: true
-      roundcounter: 22
+      roundcounter: 9
       triggersleft: 1000000000
     - buffid: 29
       permabuff: true
-      roundcounter: 15
+      roundcounter: 32
       triggersleft: 1000000000
     - buffid: 39
       permabuff: true
-      roundcounter: 4
+      roundcounter: 6
       triggersleft: 1000000000
   equipment:
     weapon:
@@ -147,6 +147,23 @@ character:
     - itemid: 30002
       uses: 1
   created: 2024-10-31T13:28:45.391415-07:00
+  zonesvisited:
+    Frostfang:
+      "0": "0xFFFFFFFEFFFFFFFE"
+      "1": "0x00000000000017FF"
+      "2": "0x000000C000000000"
+      "4": "0x0002EFFFFFDFFFFC"
+      "6": "0x0003000000000000"
+      "9": "0x0000000800000000"
+      "10": "0x0000000000000004"
+      "11": "0x0000000018000000"
+      "12": "0x2DFFFFF8FFBFFF00"
+      "13": "0x0000800000000000"
+      "15": "0x00000C0000000000"
+    Frostfang Slums:
+      "6": "0x0080000000000000"
+    Whispering Wastes:
+      "2": "0x00000F0000000000"
 itemstorage:
   items:
   - itemid: 20011

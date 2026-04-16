@@ -560,6 +560,10 @@ func (r *mapper) GetLimitedMap(centerRoomId int, c Config) mapRender {
 			continue
 		}
 
+		if !c.HasVisited(node.RoomId) {
+			continue
+		}
+
 		symbol = node.Symbol
 		legend = node.Legend
 
@@ -616,7 +620,8 @@ func (r *mapper) GetLimitedMap(centerRoomId int, c Config) mapRender {
 				}
 
 				if c.UserId >= 0 {
-					if !targetRoom.HasVisited(c.UserId, rooms.VisitorUser) {
+					user := users.GetByUserId(c.UserId)
+					if user == nil || !user.Character.HasVisitedRoom(exitInfo.RoomId, targetRoom.Zone) {
 						continue
 					}
 				}

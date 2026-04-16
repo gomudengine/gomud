@@ -143,6 +143,17 @@ func Map(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 		}
 	}
 
+	if skillLevel <= 4 {
+		visited := make(map[int]struct{})
+		for _, bs := range user.Character.ZonesVisited {
+			for roomId := range bs.ToSet() {
+				visited[roomId] = struct{}{}
+			}
+		}
+		visited[user.Character.RoomId] = struct{}{}
+		c.SetVisitedRooms(visited)
+	}
+
 	if p := parties.Get(user.UserId); p != nil {
 		for _, uid := range p.GetMembers() {
 			if tmpUser := users.GetByUserId(uid); tmpUser != nil {
@@ -182,13 +193,19 @@ func Map(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 		}
 	}
 
+	zoneCompletePct := 0
+	if zCfg := rooms.GetZoneConfig(zone); zCfg != nil {
+		zoneCompletePct = user.Character.ZoneVisitPercent(zone, zCfg.RoomIds)
+	}
+
 	mapData := map[string]any{
-		"Title":        room.Zone,
-		"DisplayLines": displayLines,
-		"Height":       len(displayLines),
-		"Width":        width,
-		"Legend":       legend,
-		"LegendWidth":  width,
+		"Title":           room.Zone,
+		"ZoneCompletePct": zoneCompletePct,
+		"DisplayLines":    displayLines,
+		"Height":          len(displayLines),
+		"Width":           width,
+		"Legend":          legend,
+		"LegendWidth":     width,
 		"LeftBorder": map[string]any{
 			"Top":    ".-=~=-.",
 			"Mid":    []string{"( _ __)", "(__  _)"},

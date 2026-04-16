@@ -12,6 +12,13 @@ The `internal/characters` package is the core character system for GoMud, handli
 - **Experience and leveling**: Level progression and TNL (To Next Level) calculations
 - **Persistence**: Character data serialization/deserialization
 
+### Room Visit Tracking (`roombitset.go`)
+- **RoomBitset**: Chunked bitset type (`map[uint16]uint64`) for memory-efficient permanent room visit tracking
+- **Block-based storage**: Each map key is `roomId/64`; each value is a `uint64` bitmask covering that 64-room window
+- **Zone-sharded on Character**: `ZonesVisited map[string]RoomBitset` persisted to YAML under `zonesvisited`
+- **Human-readable serialization**: Blocks serialize as hex strings (e.g. `"0x000000000000003F"`) for debuggable save files
+- **Pruning**: `RoomBitset.Prune(validRoomIds)` clears bits for deleted rooms and removes empty blocks
+
 ### Character Statistics System
 - **Six core stats**: Strength, Speed, Smarts, Vitality, Mysticism, Perception
 - **Stat scaling**: Stats over 100 use `SQRT(overage)*2` formula for diminishing returns
@@ -46,7 +53,8 @@ The `internal/characters` package is the core character system for GoMud, handli
 - YAML-based character data storage
 - Automatic saving with configurable intervals
 - Character creation timestamps and history tracking
-- Room history for movement tracking
+- Short-term room history for map rendering (`roomHistory`, capped by memory capacity)
+- Permanent room visit tracking via `ZonesVisited` (chunked bitset, persisted to YAML)
 
 ### Dynamic Stat System
 - Base stats from race definitions
@@ -91,6 +99,8 @@ The `internal/characters` package is the core character system for GoMud, handli
 - Equipment management through worn item slots
 - State management through adjectives and flags
 - Combat integration through aggro and damage tracking
+- Room visit tracking via `MarkVisitedRoom(roomId, zone)` and queried with `HasVisitedRoom(roomId, zone)`
+- Zone exploration progress via `ZoneVisitProgress(zone, validRoomIds)` returning `(visited, total int)`
 
 ## Testing
 Comprehensive test coverage in `*_test.go` files covering:
@@ -101,5 +111,8 @@ Comprehensive test coverage in `*_test.go` files covering:
 - Shop mechanics and restocking
 - Kill/death tracking
 - Cooldown management
+- `RoomBitset` set/has/count/prune operations
+- `RoomBitset` YAML round-trip serialization
+- `MarkVisitedRoom`, `HasVisitedRoom`, and `ZoneVisitProgress` integration
 
 This package serves as the foundation for all character-related functionality in GoMud, providing a rich and flexible character model that supports both player and NPC needs.

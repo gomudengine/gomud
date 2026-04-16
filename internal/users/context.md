@@ -472,10 +472,13 @@ type OnlineInfo struct {
 ### Character System Integration
 ```go
 // Users have associated characters
-- user.Character                    // Full character data
-- user.Character.Name              // Character name
-- user.Character.Level             // Character progression
-- user.Character.RoomId            // Current location
+- user.Character                                          // Full character data
+- user.Character.Name                                    // Character name
+- user.Character.Level                                   // Character progression
+- user.Character.RoomId                                  // Current location
+- user.Character.HasVisitedRoom(roomId, zone)            // Permanent room visit check
+- user.Character.MarkVisitedRoom(roomId, zone)           // Record a room visit
+- user.Character.ZoneVisitProgress(zone, validRoomIds)   // Visited/total count for a zone
 ```
 
 ### Connection System Integration

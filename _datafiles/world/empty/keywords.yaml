@@ -68,6 +68,7 @@ help:
       - races
       - who
       - history
+      - visited
     items:
       - drop
       - drink
@@ -125,6 +126,7 @@ help:
       - buff
       - build
       - command
+      - copyover
       - deafen
       - item
       - grant
@@ -145,6 +147,7 @@ help:
       - syslogs
       - zap
       - zone
+      - visit
 # Aliases for keywords when typing: help <keyword>
 # Key is the target keyword, value is the list of aliases
 help-aliases:

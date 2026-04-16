@@ -88,6 +88,7 @@ type Character struct {
 	Pet              pets.Pet                       `yaml:"pet,omitempty"`           // Do they have a pet?
 	Created          time.Time                      `yaml:"created"`                 // When this character was created
 	Timers           map[string]gametime.RoundTimer `yaml:"timers,omitempty"`        // any special timers added to this character
+	ZonesVisited     map[string]RoomBitset          `yaml:"zonesvisited,omitempty"`  // permanent record of every room visited, keyed by zone name
 	roomHistory      []int                          // A stack FILO of the last X rooms the character has been in
 	PlayerDamage     map[int]int                    `yaml:"-"` // key = who, value = how much
 	LastPlayerDamage uint64                         `yaml:"-"` // last round a player damaged this character
@@ -982,6 +983,70 @@ func (c *Character) RememberRoom(roomId int) {
 		c.roomHistory = c.roomHistory[len(c.roomHistory)-(mapHistory-1):]
 	}
 	c.roomHistory = append(c.roomHistory, roomId)
+}
+
+// MarkVisitedRoom permanently records that this character has visited roomId
+// in the given zone. Safe to call every time a player enters a room.
+// Returns true only if this specific call completed the zone (i.e. every room
+// in validRoomIds is now visited). Returns false if the room was already
+// visited, if validRoomIds is empty, or if the zone is still incomplete.
+func (c *Character) MarkVisitedRoom(roomId int, zone string, validRoomIds map[int]struct{}) bool {
+	if c.ZonesVisited == nil {
+		c.ZonesVisited = make(map[string]RoomBitset)
+	}
+	if _, ok := c.ZonesVisited[zone]; !ok {
+		c.ZonesVisited[zone] = make(RoomBitset)
+	}
+
+	// If the bit was already set this call cannot be the completing visit.
+	if c.ZonesVisited[zone].Has(roomId) {
+		return false
+	}
+
+	c.ZonesVisited[zone].Set(roomId)
+
+	if len(validRoomIds) == 0 {
+		return false
+	}
+
+	return c.ZonesVisited[zone].IsComplete(validRoomIds)
+}
+
+// HasVisitedRoom reports whether this character has ever visited roomId in zone.
+func (c *Character) HasVisitedRoom(roomId int, zone string) bool {
+	if c.ZonesVisited == nil {
+		return false
+	}
+	bs, ok := c.ZonesVisited[zone]
+	if !ok {
+		return false
+	}
+	return bs.Has(roomId)
+}
+
+// ZoneVisitProgress returns how many rooms the character has visited in zone
+// and the total number of rooms in that zone, allowing callers to compute a
+// completion percentage. validRoomIds should come from ZoneConfig.RoomIds.
+func (c *Character) ZoneVisitProgress(zone string, validRoomIds map[int]struct{}) (visited int, total int) {
+	total = len(validRoomIds)
+	if c.ZonesVisited == nil {
+		return 0, total
+	}
+	bs, ok := c.ZonesVisited[zone]
+	if !ok {
+		return 0, total
+	}
+	return bs.CountIn(validRoomIds), total
+}
+
+// ZoneVisitPercent returns the percentage (0–100) of rooms in zone that the
+// character has visited. Returns 0 when the zone has no rooms.
+func (c *Character) ZoneVisitPercent(zone string, validRoomIds map[int]struct{}) int {
+	visited, total := c.ZoneVisitProgress(zone, validRoomIds)
+	if total == 0 {
+		return 0
+	}
+	return int(float64(visited) / float64(total) * 100)
 }
 
 func (c *Character) IsQuestDone(questToken string) bool {

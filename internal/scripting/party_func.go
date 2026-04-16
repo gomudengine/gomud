@@ -238,3 +238,15 @@ func (p ScriptParty) TimerSet(name string, period string) {
 		a.TimerSet(name, period)
 	})
 }
+
+func (p ScriptParty) MarkVisitedRoom(roomIds ...int) {
+	p.each(func(a ScriptActor) {
+		a.MarkVisitedRoom(roomIds...)
+	})
+}
+
+func (p ScriptParty) MarkVisitedZone(zoneName string) {
+	p.each(func(a ScriptActor) {
+		a.MarkVisitedZone(zoneName)
+	})
+}
