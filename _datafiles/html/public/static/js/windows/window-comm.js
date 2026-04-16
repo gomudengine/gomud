@@ -153,20 +153,25 @@
     // -----------------------------------------------------------------------
     // VirtualWindow instance
     // -----------------------------------------------------------------------
-    const win = new VirtualWindow('Comm', function() {
-        const el = createDOM();
-        return {
-            title:      'Communications',
-            mount:      el,
-            background: '#1c6b60',
-            border:     1,
-            x:          'right',
-            y:          450,
-            width:      363,
-            height:     20 + 290,
-            header:     20,
-            bottom:     60,
-        };
+    const win = new VirtualWindow('Comm', {
+        dock:          'right',
+        defaultDocked: true,
+        dockedHeight:  310,
+        factory() {
+            const el = createDOM();
+            return {
+                title:      'Communications',
+                mount:      el,
+                background: '#1c6b60',
+                border:     1,
+                x:          'right',
+                y:          450,
+                width:      363,
+                height:     20 + 290,
+                header:     20,
+                bottom:     60,
+            };
+        },
     });
 
     // -----------------------------------------------------------------------
@@ -230,6 +235,7 @@
     // Registration
     // -----------------------------------------------------------------------
     VirtualWindows.register({
+        window:       win,
         gmcpHandlers: ['Comm'],
         onGMCP(namespace, body) {
             updateComm();

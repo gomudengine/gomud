@@ -38,32 +38,40 @@
     // -----------------------------------------------------------------------
     // VirtualWindow instance
     // -----------------------------------------------------------------------
-    const win = new VirtualWindow('Map', function() {
-        const el = createDOM();
-        return {
-            title:      'Map',
-            mount:      el,
-            background: '#1c6b60',
-            border:     1,
-            x:          'right',
-            y:          66,
-            width:      363,
-            height:     20 + 363,
-            header:     20,
-            bottom:     60,
-            oncreate: function() {
-                gr = new RoomGridSVG('#map-render', {
-                    cellSize:    80,
-                    cellMargin:  80,
-                    initialZoom: 0.5,
-                });
-            },
-        };
+    const win = new VirtualWindow('Map', {
+        dock:          'right',
+        defaultDocked: true,
+        dockedHeight:  363,
+        factory() {
+            const el = createDOM();
+            return {
+                title:      'Map',
+                mount:      el,
+                background: '#1c6b60',
+                border:     1,
+                x:          'right',
+                y:          66,
+                width:      363,
+                height:     20 + 363,
+                header:     20,
+                bottom:     60,
+            };
+        },
     });
 
     // -----------------------------------------------------------------------
     // Update logic
     // -----------------------------------------------------------------------
+    function ensureGrid() {
+        if (!gr) {
+            gr = new RoomGridSVG('#map-render', {
+                cellSize:    80,
+                cellMargin:  80,
+                initialZoom: 0.5,
+            });
+        }
+    }
+
     function updateMap() {
         const obj = Client.GMCPStructs.Room;
         if (!obj || !obj.Info) {
@@ -75,10 +83,13 @@
             return;
         }
 
+        ensureGrid();
+
         const info   = obj.Info;
         const winBox = win.get();
-
-        winBox.setTitle('Map (' + info.area + ')');
+        if (winBox) {
+            winBox.setTitle('Map (' + info.area + ')');
+        }
 
         // Parse coordinate string: "zoneName, x, y, z"
         const coords = info.coords.split(',').map(s => s.trim());
@@ -153,6 +164,7 @@
     // Registration
     // -----------------------------------------------------------------------
     VirtualWindows.register({
+        window:       win,
         gmcpHandlers: ['Room'],
         onGMCP(namespace, body) {
             updateMap();

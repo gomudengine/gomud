@@ -29,63 +29,407 @@ function injectStyles(css) {
 }
 
 // ---------------------------------------------------------------------------
-// VirtualWindow
+// DockSlot
 //
-// Wraps a WinBox instance with a well-defined three-state lifecycle:
-//   undefined  -> not yet created (first GMCP data triggers creation)
-//   WinBox obj -> open
-//   false      -> user closed it; will not reopen automatically
-//
-// Usage:
-//   const win = new VirtualWindow('My Title', () => {
-//       const el = document.createElement('div');
-//       // ... build DOM ...
-//       document.body.appendChild(el);
-//       return { mount: el, width: 300, height: 200, x: 'right', y: 0 };
-//   });
-//   win.open();          // creates on first call, no-ops if closed by user
-//   win.isOpen()         // true if the WinBox exists and is not closed
-//   win.get()            // returns the WinBox instance, or null
+// Manages one side's dock column (#dock-left or #dock-right).
+// Handles:
+//   - adding / removing panels
+//   - showing / hiding the slot (zero-width when empty)
+//   - the slot-width drag handle
+//   - the per-panel vertical resize handles
 // ---------------------------------------------------------------------------
-class VirtualWindow {
-    constructor(id, factory) {
-        this._id      = id;
-        this._factory = factory;
-        this._win     = undefined;  // undefined | WinBox | false
+class DockSlot {
+    constructor(side) {
+        this.side    = side;  // 'left' | 'right'
+        this.el      = document.getElementById('dock-' + side);
+        this._panels = [];    // ordered list of { panel, contentEl, resizeHandle }
+        this._initSlotResize();
     }
 
-    open() {
-        // Already open
-        if (this._win && this._win !== false) {
-            return;
+    // Add a content element as a new panel with the given title.
+    // height (optional) sets the preferred panel height in px.
+    // onClose (optional) called when the panel's X button is clicked.
+    // Returns the panel wrapper element.
+    addPanel(contentEl, title, onPopout, height, onClose) {
+        const panel = document.createElement('div');
+        panel.className = 'dock-panel';
+
+        // Apply preferred height as a fixed flex-basis so the panel does not
+        // grow to fill the slot. The user can still drag the resize handle to
+        // redistribute space between panels.
+        if (height) {
+            panel.style.flex      = '0 0 ' + height + 'px';
+            panel.style.flexBasis = height + 'px';
         }
-        // User explicitly closed it — do not reopen
-        if (this._win === false) {
-            return;
+
+        const titlebar = document.createElement('div');
+        titlebar.className = 'dock-panel-titlebar';
+
+        const titleSpan = document.createElement('span');
+        titleSpan.className   = 'dock-panel-title';
+        titleSpan.textContent = title;
+
+        const popoutBtn = document.createElement('span');
+        popoutBtn.className   = 'dock-panel-popout';
+        popoutBtn.title       = 'Pop out';
+        popoutBtn.textContent = this.side === 'left' ? '\u2197' : '\u2196';  // NE / NW arrow
+        popoutBtn.addEventListener('click', onPopout);
+
+        const closeBtn = document.createElement('span');
+        closeBtn.className   = 'dock-panel-close';
+        closeBtn.title       = 'Close';
+        closeBtn.textContent = '\u00d7';  // ×
+        closeBtn.addEventListener('click', () => {
+            this.removePanel(contentEl);
+            if (typeof onClose === 'function') { onClose(); }
+        });
+
+        titlebar.appendChild(titleSpan);
+        titlebar.appendChild(popoutBtn);
+        titlebar.appendChild(closeBtn);
+
+        const content = document.createElement('div');
+        content.className = 'dock-panel-content';
+        content.appendChild(contentEl);
+
+        panel.appendChild(titlebar);
+        panel.appendChild(content);
+
+        // Insert a vertical resize handle before this panel if there are others
+        let resizeHandle = null;
+        if (this._panels.length > 0) {
+            resizeHandle = document.createElement('div');
+            resizeHandle.className = 'dock-panel-resize';
+            this.el.appendChild(resizeHandle);
+            this._initPanelResize(resizeHandle);
         }
-        // First open: build the WinBox via the factory
-        const opts = this._factory();
-        if (!opts) {
-            return;
-        }
-        // Inject the onclose handler so we record the user's intent
-        const userOnClose = opts.onclose;
-        opts.onclose = (force) => {
-            this._win = false;
-            if (typeof userOnClose === 'function') {
-                return userOnClose(force);
+
+        this.el.appendChild(panel);
+        this._panels.push({ panel, contentEl, resizeHandle });
+        this._setActive(true);
+        return panel;
+    }
+
+    // Remove a panel by its content element. Returns the content element.
+    removePanel(contentEl) {
+        const idx = this._panels.findIndex(p => p.contentEl === contentEl);
+        if (idx === -1) { return contentEl; }
+
+        const { panel, resizeHandle } = this._panels[idx];
+
+        // Remove the resize handle that was inserted before this panel,
+        // or the one after it if this is the first panel.
+        if (resizeHandle) {
+            resizeHandle.remove();
+        } else if (this._panels.length > 1) {
+            // This was the first panel; remove the handle that was after it
+            const next = this._panels[1];
+            if (next.resizeHandle) {
+                next.resizeHandle.remove();
+                next.resizeHandle = null;
             }
-            return false;
+        }
+
+        // Move content back out before removing the panel
+        document.body.appendChild(contentEl);
+        panel.remove();
+        this._panels.splice(idx, 1);
+
+        if (this._panels.length === 0) {
+            this._setActive(false);
+        }
+        return contentEl;
+    }
+
+    hasPanel(contentEl) {
+        return this._panels.some(p => p.contentEl === contentEl);
+    }
+
+    _setActive(active) {
+        if (active) {
+            this.el.classList.add('has-panels');
+        } else {
+            this.el.classList.remove('has-panels');
+        }
+        // Defer until after the browser has completed its layout pass so
+        // fitAddon.fit() measures the terminal at its new settled dimensions.
+        requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+    }
+
+    // Slot-width drag handle — inserted as a sibling of the slot in
+    // #main-container so it is never clipped by the slot's overflow:hidden.
+    // Hidden when the slot is empty, shown when it has panels.
+    _initSlotResize() {
+        const handle = document.createElement('div');
+        handle.className = 'dock-slot-resize dock-slot-resize-' + this.side;
+        // Insert adjacent to the slot inside #main-container
+        const container = this.el.parentNode;
+        if (this.side === 'right') {
+            container.insertBefore(handle, this.el);
+        } else {
+            this.el.insertAdjacentElement('afterend', handle);
+        }
+
+        // Keep visibility in sync with the slot's active state
+        const observer = new MutationObserver(() => {
+            handle.style.display = this.el.classList.contains('has-panels') ? '' : 'none';
+        });
+        observer.observe(this.el, { attributes: true, attributeFilter: ['class'] });
+        handle.style.display = 'none';  // hidden until first panel is added
+
+        let startX, startWidth, _rafPending = false;
+        const onMove = (e) => {
+            const dx    = (e.clientX || e.touches[0].clientX) - startX;
+            const width = Math.max(80, startWidth + (this.side === 'right' ? -dx : dx));
+            this.el.style.setProperty('--dock-' + this.side + '-width', width + 'px');
+            this.el.style.width = width + 'px';
+            if (!_rafPending) {
+                _rafPending = true;
+                requestAnimationFrame(() => {
+                    _rafPending = false;
+                    window.dispatchEvent(new Event('resize'));
+                });
+            }
         };
-        this._win = new WinBox(opts);
+        const onUp = () => {
+            handle.classList.remove('dragging');
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup',   onUp);
+            document.removeEventListener('touchmove', onMove);
+            document.removeEventListener('touchend',  onUp);
+        };
+        handle.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            handle.classList.add('dragging');
+            startX     = e.clientX;
+            startWidth = this.el.offsetWidth;
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup',   onUp);
+        });
+        handle.addEventListener('touchstart', (e) => {
+            startX     = e.touches[0].clientX;
+            startWidth = this.el.offsetWidth;
+            document.addEventListener('touchmove', onMove, { passive: false });
+            document.addEventListener('touchend',  onUp);
+        }, { passive: true });
+    }
+
+    // Vertical resize handle between two stacked panels
+    _initPanelResize(handle) {
+        let startY, prevHeight, nextHeight, prevPanel, nextPanel;
+
+        const onMove = (e) => {
+            const dy   = (e.clientY || e.touches[0].clientY) - startY;
+            const newPrev = Math.max(40, prevHeight + dy);
+            const newNext = Math.max(40, nextHeight - dy);
+            prevPanel.style.flexBasis = newPrev + 'px';
+            prevPanel.style.flex      = '0 0 ' + newPrev + 'px';
+            nextPanel.style.flexBasis = newNext + 'px';
+            nextPanel.style.flex      = '0 0 ' + newNext + 'px';
+        };
+        const onUp = () => {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup',   onUp);
+            document.removeEventListener('touchmove', onMove);
+            document.removeEventListener('touchend',  onUp);
+        };
+        handle.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            startY      = e.clientY;
+            prevPanel   = handle.previousElementSibling;
+            nextPanel   = handle.nextElementSibling;
+            prevHeight  = prevPanel.offsetHeight;
+            nextHeight  = nextPanel.offsetHeight;
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup',   onUp);
+        });
+        handle.addEventListener('touchstart', (e) => {
+            startY      = e.touches[0].clientY;
+            prevPanel   = handle.previousElementSibling;
+            nextPanel   = handle.nextElementSibling;
+            prevHeight  = prevPanel.offsetHeight;
+            nextHeight  = nextPanel.offsetHeight;
+            document.addEventListener('touchmove', onMove, { passive: false });
+            document.addEventListener('touchend',  onUp);
+        }, { passive: true });
+    }
+}
+
+// Singleton slot instances, created once the DOM is ready.
+// VirtualWindow instances reference these by side name.
+const DockSlots = {};
+document.addEventListener('DOMContentLoaded', () => {
+    DockSlots.left  = new DockSlot('left');
+    DockSlots.right = new DockSlot('right');
+});
+
+// ---------------------------------------------------------------------------
+// VirtualWindow
+//
+// Wraps a WinBox instance with a well-defined lifecycle and optional docking.
+//
+// States:
+//   undefined  -> never opened
+//   'docked'   -> content is in a dock slot panel; no WinBox exists
+//   WinBox obj -> floating
+//   false      -> user closed it from floating state; will not reopen
+//
+// Constructor options (passed as the second argument to VirtualWindow):
+//   factory()         required  Returns WinBox opts object. Must append
+//                               the content element to document.body.
+//   dock              optional  'left' | 'right'  — which slot to use.
+//                               If omitted the window is float-only.
+//   defaultDocked     optional  boolean — start docked instead of floating.
+//   dockedHeight      optional  number (px) — preferred panel height when docked.
+//                               Defaults to the height from the factory opts.
+//
+// Usage:
+//   const win = new VirtualWindow('id', {
+//       factory() { ... return { title, mount: el, ... }; },
+//       dock: 'right',
+//       defaultDocked: true,
+//   });
+//   win.open();       creates on first call, no-op if closed by user
+//   win.isOpen()      true when floating or docked
+//   win.get()         returns WinBox instance, or null when docked/closed
+//   win.dock()        move from floating -> docked
+//   win.undock()      move from docked   -> floating
+// ---------------------------------------------------------------------------
+class VirtualWindow {
+    constructor(id, options) {
+        this._id             = id;
+        this._factory        = options.factory;
+        this._dockSide       = options.dock || null;
+        this._defaultDocked  = options.defaultDocked || false;
+        this._dockedHeight   = options.dockedHeight || null;  // preferred px height when docked
+        this._win            = undefined;
+        this._contentEl      = null;
+        this._winboxOpts     = null;
+    }
+
+    // Open the window. On first call, honours defaultDocked.
+    // Subsequent calls are no-ops unless the window is not yet open.
+    open() {
+        if (this._win === false)      { return; }  // user closed it
+        if (this._win !== undefined)  { return; }  // already open (float or docked)
+
+        // First open: run the factory to get opts + content element
+        const opts = this._factory();
+        if (!opts) { return; }
+        this._winboxOpts = opts;
+        this._contentEl  = opts.mount;
+
+        if (this._dockSide && this._defaultDocked) {
+            this._dockNow();
+        } else {
+            this._floatNow();
+        }
     }
 
     isOpen() {
-        return !!this._win && this._win !== false;
+        return this._win === 'docked' || (!!this._win && this._win !== false);
     }
 
+    // Returns the WinBox instance when floating, null when docked or closed.
     get() {
-        return (this._win && this._win !== false) ? this._win : null;
+        return (this._win && this._win !== false && this._win !== 'docked')
+            ? this._win : null;
+    }
+
+    // Move from floating to docked. Safe to call when already docked.
+    dock() {
+        if (!this._dockSide)          { return; }
+        if (this._win === 'docked')   { return; }
+        if (!this._win || this._win === false) { return; }
+
+        // Destroy the WinBox without triggering the user-close state
+        const wb = this._win;
+        wb.onclose = null;
+        wb.close();
+        this._win = undefined;
+
+        this._dockNow();
+    }
+
+    // Move from docked to floating. Safe to call when already floating.
+    undock() {
+        if (this._win !== 'docked') { return; }
+
+        const slot = DockSlots[this._dockSide];
+        slot.removePanel(this._contentEl);
+        this._win = undefined;
+
+        this._floatNow();
+    }
+
+    // -----------------------------------------------------------------------
+    // Private
+    // -----------------------------------------------------------------------
+
+    _floatNow() {
+        const opts = Object.assign({}, this._winboxOpts);
+
+        // Re-attach content to body if it was moved by the dock slot
+        if (this._contentEl && !document.body.contains(this._contentEl)) {
+            document.body.appendChild(this._contentEl);
+        }
+        opts.mount = this._contentEl;
+
+        // Inject close handler — sets state to false and removes the content
+        // element from the DOM so WinBox's unmount() doesn't leave it visible
+        // as a bare element on document.body.
+        const userOnClose = opts.onclose;
+        opts.onclose = (force) => {
+            this._win = false;
+            if (this._contentEl && this._contentEl.parentNode) {
+                this._contentEl.parentNode.removeChild(this._contentEl);
+            }
+            if (typeof userOnClose === 'function') { return userOnClose(force); }
+            return false;
+        };
+
+        // Wrap oncreate to add the dock button.
+        // IMPORTANT: this._win must be set before oncreate fires because WinBox
+        // calls oncreate synchronously inside its constructor, before the
+        // assignment `this._win = new WinBox(opts)` completes. We use a
+        // placeholder object so addControl can be called safely, then replace
+        // it with the real WinBox instance immediately after construction.
+        const existingOncreate = opts.oncreate;
+        if (this._dockSide) {
+            const self = this;
+            opts.oncreate = function(o) {
+                if (existingOncreate) { existingOncreate.call(this, o); }
+                this.addControl({
+                    index: 0,
+                    class: 'wb-dock-btn',
+                    click: () => self.dock(),
+                });
+            };
+        } else if (existingOncreate) {
+            opts.oncreate = existingOncreate;
+        }
+
+        this._win = new WinBox(opts);
+    }
+
+    _dockNow() {
+        const slot   = DockSlots[this._dockSide];
+        const height = this._dockedHeight || (this._winboxOpts && this._winboxOpts.height) || null;
+        slot.addPanel(
+            this._contentEl,
+            this._winboxOpts.title,
+            () => this.undock(),
+            height,
+            () => {
+                // User clicked X on the docked panel — same semantics as
+                // closing a floating window: remove content and deregister.
+                if (this._contentEl && this._contentEl.parentNode) {
+                    this._contentEl.parentNode.removeChild(this._contentEl);
+                }
+                this._win = false;
+            }
+        );
+        this._win = 'docked';
     }
 }
 
@@ -94,6 +438,7 @@ class VirtualWindow {
 //
 // Window modules call VirtualWindows.register(descriptor) where descriptor is:
 //   {
+//       window:       VirtualWindow instance (required for openAll)
 //       gmcpHandlers: ['Char.Vitals', 'Char'],   // GMCP namespaces this handles
 //       onGMCP(namespace, data) { ... }           // called when any listed namespace updates
 //   }
@@ -102,10 +447,13 @@ class VirtualWindow {
 // handleGMCP(namespace, body) walks from the most-specific to least-specific
 // namespace segment and calls every handler registered at the first level that
 // has any handlers.
+// openAll() opens every registered window immediately — called by Client.init().
 // ---------------------------------------------------------------------------
 const VirtualWindows = (() => {
     // Map<gmcpNamespace, Array<handler function>>
     const _handlers = {};
+    // Ordered list of all registered VirtualWindow instances
+    const _windows  = [];
 
     function register(descriptor) {
         if (!descriptor || !Array.isArray(descriptor.gmcpHandlers)) {
@@ -116,29 +464,43 @@ const VirtualWindows = (() => {
             console.error('VirtualWindows.register: descriptor must have onGMCP function');
             return;
         }
+        const win = (descriptor.window instanceof VirtualWindow) ? descriptor.window : null;
         descriptor.gmcpHandlers.forEach(ns => {
             if (!_handlers[ns]) {
                 _handlers[ns] = [];
             }
-            _handlers[ns].push(descriptor.onGMCP.bind(descriptor));
+            // Store the handler alongside its window so dispatch can skip
+            // handlers whose window has been closed by the user.
+            _handlers[ns].push({ fn: descriptor.onGMCP.bind(descriptor), win });
         });
+        if (win) {
+            _windows.push(win);
+        }
     }
 
     function handleGMCP(namespace, body) {
         // Walk from most-specific to least-specific namespace segment.
-        // Call all handlers registered at the first matching level.
+        // Call all handlers registered at the first matching level,
+        // skipping any whose associated window has been closed.
         const parts = namespace.split('.');
         for (let i = parts.length; i >= 1; i--) {
             const path = parts.slice(0, i).join('.');
             if (_handlers[path] && _handlers[path].length > 0) {
-                _handlers[path].forEach(fn => fn(namespace, body));
+                _handlers[path].forEach(entry => {
+                    if (entry.win && !entry.win.isOpen()) { return; }
+                    entry.fn(namespace, body);
+                });
                 return;
             }
         }
         console.log('GMCP (unhandled):', namespace, body);
     }
 
-    return { register, handleGMCP };
+    function openAll() {
+        _windows.forEach(win => win.open());
+    }
+
+    return { register, handleGMCP, openAll };
 })();
 
 // ---------------------------------------------------------------------------
@@ -690,6 +1052,10 @@ const Client = (() => {
         console.log('  Client.debug = true   - enable debug logging');
         console.log('  Client.registerCommand(name, description, fn)  - add a terminal command');
         console.log('  Client.registerShortcut(code, command)          - add a keyboard shortcut');
+
+        // Open all registered virtual windows immediately so they are present
+        // on page load rather than waiting for the first GMCP payload.
+        VirtualWindows.openAll();
     }
 
     // -----------------------------------------------------------------------

@@ -116,20 +116,25 @@
     // -----------------------------------------------------------------------
     // VirtualWindow instance
     // -----------------------------------------------------------------------
-    const win = new VirtualWindow('Char.Vitals', function() {
-        const el = createDOM();
-        return {
-            title:      'Vitals',
-            mount:      el,
-            background: '#1c6b60',
-            border:     1,
-            x:          window.innerWidth - 300 - 63,
-            y:          0,
-            width:      300,
-            height:     20 + 40,
-            header:     20,
-            bottom:     60,
-        };
+    const win = new VirtualWindow('Char.Vitals', {
+        dock:          'right',
+        defaultDocked: true,
+        dockedHeight:  60,
+        factory() {
+            const el = createDOM();
+            return {
+                title:      'Vitals',
+                mount:      el,
+                background: '#1c6b60',
+                border:     1,
+                x:          window.innerWidth - 300 - 63,
+                y:          0,
+                width:      300,
+                height:     20 + 40,
+                header:     20,
+                bottom:     60,
+            };
+        },
     });
 
     // -----------------------------------------------------------------------
@@ -164,6 +169,7 @@
     // Registration
     // -----------------------------------------------------------------------
     VirtualWindows.register({
+        window:       win,
         gmcpHandlers: ['Char.Vitals', 'Char'],
         onGMCP(namespace) {
             // Both Char and Char.Vitals route here.

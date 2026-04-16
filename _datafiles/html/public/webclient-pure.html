@@ -31,6 +31,7 @@
 
         #terminal {
             flex: 1;
+            min-width: 0;
         }
 
         #input-area {
@@ -181,7 +182,9 @@
     </div>
 
     <div id="main-container">
+        <div id="dock-left"></div>
         <div id="terminal"></div>
+        <div id="dock-right"></div>
     </div>
 
     <button id="connect-button">Connect to {{ .CONFIG.Server.MudName }}</button>
