@@ -29,10 +29,18 @@
     flex-shrink: 0;
     width: 0;
     min-width: 0;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
     background: #111;
     position: relative;
 }
+
+#dock-left::-webkit-scrollbar,
+#dock-right::-webkit-scrollbar       { width: 4px; }
+#dock-left::-webkit-scrollbar-track,
+#dock-right::-webkit-scrollbar-track  { background: #111; }
+#dock-left::-webkit-scrollbar-thumb,
+#dock-right::-webkit-scrollbar-thumb  { background: #1c6b60; border-radius: 2px; }
 
 #dock-left.has-panels  { width: var(--dock-left-width,  363px); min-width: 80px; }
 #dock-right.has-panels { width: var(--dock-right-width, 363px); min-width: 80px; }
