@@ -40,9 +40,13 @@ function injectStyles(css) {
 // ---------------------------------------------------------------------------
 class DockSlot {
     constructor(side) {
-        this.side    = side;  // 'left' | 'right'
+        this.side    = side;
         this.el      = document.getElementById('dock-' + side);
-        this._panels = [];    // ordered list of { panel, contentEl, resizeHandle }
+        this._panels = [];
+        if (!this.el) {
+            console.error('DockSlot: #dock-' + side + ' not found. Check that webclient-pure.html contains <div id="dock-' + side + '"> inside #main-container.');
+            return;
+        }
         this._initSlotResize();
     }
 
@@ -51,6 +55,7 @@ class DockSlot {
     // onClose (optional) called when the panel's X button is clicked.
     // Returns the panel wrapper element.
     addPanel(contentEl, title, onPopout, height, onClose) {
+        if (!this.el) { return null; }
         const panel = document.createElement('div');
         panel.className = 'dock-panel';
 
@@ -112,6 +117,7 @@ class DockSlot {
 
     // Remove a panel by its content element. Returns the content element.
     removePanel(contentEl) {
+        if (!this.el) { return contentEl; }
         const idx = this._panels.findIndex(p => p.contentEl === contentEl);
         if (idx === -1) { return contentEl; }
 
@@ -160,6 +166,7 @@ class DockSlot {
     // #main-container so it is never clipped by the slot's overflow:hidden.
     // Hidden when the slot is empty, shown when it has panels.
     _initSlotResize() {
+        if (!this.el) { return; }
         const handle = document.createElement('div');
         handle.className = 'dock-slot-resize dock-slot-resize-' + this.side;
         // Insert adjacent to the slot inside #main-container
@@ -255,13 +262,8 @@ class DockSlot {
     }
 }
 
-// Singleton slot instances, created once the DOM is ready.
-// VirtualWindow instances reference these by side name.
+// Singleton slot instances, populated by Client.init() once the DOM is ready.
 const DockSlots = {};
-document.addEventListener('DOMContentLoaded', () => {
-    DockSlots.left  = new DockSlot('left');
-    DockSlots.right = new DockSlot('right');
-});
 
 // ---------------------------------------------------------------------------
 // VirtualWindow
@@ -531,6 +533,12 @@ const Client = (() => {
     term.loadAddon(fitAddon);
 
     function resizeTerminal() {
+        const hasLeft  = DockSlots.left  && DockSlots.left.el  && DockSlots.left.el.classList.contains('has-panels');
+        const hasRight = DockSlots.right && DockSlots.right.el && DockSlots.right.el.classList.contains('has-panels');
+        const fontSize = (hasLeft && hasRight) ? 16 : (hasLeft || hasRight) ? 18 : 20;
+        if (term.options.fontSize !== fontSize) {
+            term.options.fontSize = fontSize;
+        }
         fitAddon.fit();
     }
 
@@ -916,6 +924,10 @@ const Client = (() => {
     // init()
     // -----------------------------------------------------------------------
     function init() {
+        // Initialise dock slots first — VirtualWindows.openAll() depends on them.
+        DockSlots.left  = new DockSlot('left');
+        DockSlots.right = new DockSlot('right');
+
         connectButton = document.getElementById('connect-button');
         textOutput    = document.getElementById('terminal');
         textInput     = document.getElementById('command-input');

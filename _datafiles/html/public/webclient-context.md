@@ -8,44 +8,78 @@ create new virtual windows that respond to GMCP payloads.
 ## File Map
 
 ```
-webclient-pure.html                      Page shell, layout, init bridge
-static/js/webclient-core.js             Core infrastructure (loaded first)
-static/js/windows/window-vitals.js      Vitals window module
-static/js/windows/window-map.js         Map window module
-static/js/windows/window-comm.js        Communications window module
-static/css/windows.css                  Shared dock/panel styles
+webclient-pure.html                               Page shell, layout, init bridge
+static/js/webclient-core.js                      Core infrastructure (loaded first)
+static/js/windows/window-character.js            Character window (left dock)
+static/js/windows/window-vitals.js               Vitals window (left dock)
+static/js/windows/window-status.js               Status window (left dock)
+static/js/windows/window-party.js                Party window (left dock)
+static/js/windows/window-map.js                  Map window (right dock)
+static/js/windows/window-comm.js                 Communications window (right dock)
+static/css/windows.css                           Shared dock/panel styles
 ```
 
 `webclient-pure.html` is a Go template. All static asset paths must be prefixed
-with `{{ .CONFIG.FilePaths.WebCDNLocation }}`. To add a new window module,
-add one `<script>` tag after the existing window scripts.
+with `{{ .CONFIG.FilePaths.WebCDNLocation }}`. To add a new window module, add
+one `<script>` tag in the appropriate dock comment block.
+
+---
+
+## Current Window Layout
+
+### Left dock
+
+| File | Title | Tabs | GMCP namespaces |
+|---|---|---|---|
+| `window-character.js` | Character | Overview, Pack, Quests | `Char.Info`, `Char.Stats`, `Char.Inventory`, `Char.Inventory.Backpack`, `Char.Quests`, `Char` |
+| `window-vitals.js` | Vitals | — | `Char.Vitals`, `Char` |
+| `window-status.js` | Status | Worth, Effects | `Char.Worth`, `Char.Affects`, `Char` |
+| `window-party.js` | Party | — | `Party`, `Party.Vitals` |
+
+### Right dock
+
+| File | Title | Tabs | GMCP namespaces |
+|---|---|---|---|
+| `window-map.js` | Map | — | `Room` |
+| `window-comm.js` | Communications | Say, Whisper, Party, Broadcasts | `Comm` |
 
 ---
 
 ## Architecture Overview
 
-```
-webclient-core.js defines three globals:
+`webclient-core.js` defines these globals, available to all window modules:
 
-  injectStyles(css)        Append a <style> block to <head>
-  VirtualWindows           Registry: register(), handleGMCP(), openAll()
-  Client                   Shared state and services
-  VirtualWindow            Class: lifecycle for a single panel
-  DockSlots                Singleton: { left, right } DockSlot instances
+```
+injectStyles(css)    Append a <style> block to <head>
+VirtualWindows       Registry: register(), handleGMCP(), openAll()
+VirtualWindow        Class: lifecycle for a single panel
+DockSlots            Object: { left, right } DockSlot instances (populated by Client.init())
+Client               Shared state and services
 ```
 
 ### Load and init sequence
 
-1. `webclient-core.js` executes — globals are defined, `DockSlots` are created
-   on `DOMContentLoaded`.
-2. Window module scripts execute — each calls `VirtualWindows.register(...)`,
-   which records the window and its GMCP handlers.
+1. `webclient-core.js` executes — all globals are defined.
+2. Window module scripts execute in order — each calls `VirtualWindows.register(...)`,
+   recording the window instance and its GMCP handlers.
 3. The page `onload` fires, calling `Client.init()`.
-4. `Client.init()` sets up the terminal, WebSocket, and volume sliders, then
-   calls `VirtualWindows.openAll()` — every registered window opens immediately.
+4. `Client.init()` initialises `DockSlots`, mounts the terminal, sets up the
+   WebSocket and volume sliders, then calls `VirtualWindows.openAll()` — every
+   registered window opens immediately on page load.
 5. When the WebSocket receives a `!!GMCP(...)` message, `VirtualWindows.handleGMCP()`
-   dispatches it to the matching handler(s). Handlers whose window has been
-   closed by the user are silently skipped.
+   dispatches it to all matching handlers. Handlers whose associated window has
+   been closed by the user are silently skipped.
+
+### Terminal font size
+
+`resizeTerminal()` automatically adjusts the xterm.js font size based on how
+many dock slots are occupied:
+
+| Dock state | Font size |
+|---|---|
+| Neither slot has panels | 20px |
+| One slot has panels | 18px |
+| Both slots have panels | 16px |
 
 ---
 
@@ -60,8 +94,8 @@ A `VirtualWindow` has four states:
 | WinBox instance | Floating, visible |
 | `false` | Closed by the user; will not reopen for this session |
 
-`open()` is idempotent — safe to call on every GMCP update. It is a no-op
-if the window is already open or has been closed.
+`open()` is idempotent — safe to call on every GMCP update. It is a no-op if
+the window is already open or has been closed by the user.
 
 ### Constructor options
 
@@ -70,7 +104,7 @@ new VirtualWindow(id, {
     factory(),        // required — called once on first open; returns WinBox opts
     dock,             // optional — 'left' | 'right'; enables docking
     defaultDocked,    // optional — boolean; start docked instead of floating
-    dockedHeight,     // optional — number (px); preferred height when docked
+    dockedHeight,     // optional — number (px); preferred panel height when docked
 })
 ```
 
@@ -84,7 +118,7 @@ The `factory()` function must:
 ```js
 win.open()      // Open (first call) or no-op (already open or closed)
 win.isOpen()    // true when floating or docked
-win.get()       // Returns WinBox instance when floating, null otherwise
+win.get()       // Returns WinBox instance when floating, null when docked/closed
 win.dock()      // Move from floating to docked
 win.undock()    // Move from docked to floating
 ```
@@ -98,7 +132,7 @@ VirtualWindows.register({
     window:       win,            // VirtualWindow instance (enables openAll + GMCP skip)
     gmcpHandlers: ['Foo.Bar'],    // GMCP namespaces this module handles
     onGMCP(namespace, body) {     // called on matching GMCP payload
-        ...
+        // ...
     },
 });
 ```
@@ -106,12 +140,14 @@ VirtualWindows.register({
 **Dispatch rules:**
 - Namespaces are matched from most-specific to least-specific. A payload of
   `Char.Vitals` matches `Char.Vitals` before `Char`.
-- Multiple modules may register for the same namespace — all are called.
+- Multiple modules may register for the same namespace — all matching handlers
+  are called.
 - If a handler's associated `window` is closed (`_win === false`), it is
-  skipped entirely. No handler is called for a closed window.
+  skipped entirely.
 
 **`Client.GMCPStructs`** is updated before `onGMCP` is called, so handlers
-can always read the latest value from it directly.
+always read the latest value from it directly rather than from the `body`
+argument.
 
 ---
 
@@ -138,7 +174,12 @@ Client.registerShortcut(code, command)          // Add a keyboard shortcut
 
 `static/js/windows/window-example.js`
 
-Every module is wrapped in an IIFE to keep all state private.
+Every module is an IIFE to keep all state private. The pattern is:
+- `injectStyles()` at the top for CSS
+- `createDOM()` builds and appends the content element
+- A `VirtualWindow` instance with `factory()` returning WinBox opts
+- One or more update functions that read from `Client.GMCPStructs`
+- `VirtualWindows.register()` at the bottom
 
 ```js
 'use strict';
@@ -155,8 +196,7 @@ Every module is wrapped in an IIFE to keep all state private.
     `);
 
     // -- DOM factory --------------------------------------------------------
-    // Called once, on first open. Creates the content element and appends it
-    // to document.body so WinBox can mount it.
+    // Called once on first open. Must append to document.body.
     function createDOM() {
         const el = document.createElement('div');
         el.id = 'example-content';
@@ -167,7 +207,7 @@ Every module is wrapped in an IIFE to keep all state private.
 
     // -- VirtualWindow instance ---------------------------------------------
     const win = new VirtualWindow('Example', {
-        dock:          'right',   // enable docking to the right column
+        dock:          'right',   // 'left' | 'right' — enables docking
         defaultDocked: true,      // start docked on page load
         dockedHeight:  200,       // preferred height (px) when docked
         factory() {
@@ -189,11 +229,9 @@ Every module is wrapped in an IIFE to keep all state private.
 
     // -- Update logic -------------------------------------------------------
     function update() {
-        // GMCPStructs is already updated before onGMCP fires.
         const data = Client.GMCPStructs.Some && Client.GMCPStructs.Some.Namespace;
         if (!data) { return; }
 
-        // win.open() is a no-op if already open or closed by the user.
         win.open();
         if (!win.isOpen()) { return; }
 
@@ -204,9 +242,7 @@ Every module is wrapped in an IIFE to keep all state private.
     VirtualWindows.register({
         window:       win,
         gmcpHandlers: ['Some.Namespace', 'Some'],
-        onGMCP(namespace, body) {
-            update();
-        },
+        onGMCP() { update(); },
     });
 
 })();
@@ -214,33 +250,32 @@ Every module is wrapped in an IIFE to keep all state private.
 
 ### 2. Register the script in `webclient-pure.html`
 
-Add one line after the existing window scripts:
+Add one `<script>` tag in the appropriate dock comment block:
 
 ```html
+<!-- Left dock: character identity, party, communications -->
 <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/windows/window-example.js"></script>
 ```
 
-That is all that is required. The window will open on page load, respond to
-its GMCP namespaces, and stop receiving payloads if the user closes it.
+That is all that is required. The window will open on page load, respond to its
+GMCP namespaces, and stop receiving payloads if the user closes it.
 
 ---
 
 ## GMCP Namespace Conventions
 
 Namespaces follow a dot-separated hierarchy. Register the most specific
-namespace you need. If you need to handle both a parent and a child (e.g.
-`Char` and `Char.Vitals`), register both in `gmcpHandlers` — the dispatch
-walks from most-specific to least-specific and stops at the first level that
-has any registered handlers, calling all of them.
+namespace you need. If you need to handle both a parent and a child namespace,
+list both — the dispatch walks from most-specific to least-specific and stops at
+the first level that has any registered handlers, calling all of them.
 
 ```js
-// Receives Char.Vitals payloads directly, and also bare Char payloads
-// (which update GMCPStructs.Char and may include Vitals data).
-gmcpHandlers: ['Char.Vitals', 'Char'],
+// Receives Char.Worth payloads directly, and also bare Char payloads.
+gmcpHandlers: ['Char.Worth', 'Char'],
 ```
 
-Inside `onGMCP`, always read from `Client.GMCPStructs` rather than the `body`
-argument. The store is the source of truth and is updated before dispatch.
+Always read from `Client.GMCPStructs` inside `onGMCP` rather than from the
+`body` argument. The store is the source of truth and is always current.
 
 ---
 
@@ -249,14 +284,17 @@ argument. The store is the source of truth and is updated before dispatch.
 - Two slots exist: `#dock-left` and `#dock-right`, both flex children of
   `#main-container`.
 - A slot is zero-width when empty and expands to its stored width when it
-  contains panels. The slot-width drag handle appears between the slot and
-  the terminal when panels are present.
+  contains panels. A drag handle appears between the slot and the terminal
+  when panels are present, allowing the slot width to be resized.
 - Panels within a slot can be resized vertically by dragging the handle
   between them.
-- Each docked panel has a titlebar with a pop-out arrow (undocks to floating)
-  and an X (closes the window for the session).
+- Each docked panel has a titlebar with:
+  - A pop-out arrow — undocks the panel to a floating WinBox
+  - An X — closes the window for the session
 - When a floating window has `dock` configured, its WinBox header contains a
-  dock button (downward arrow) that moves it back into the slot.
+  dock button (↓ arrow) that moves it back into the slot.
+- Closing a window (from either floating or docked state) sets `_win = false`
+  and deregisters it from GMCP dispatch for the remainder of the session.
 
 ---
 
@@ -267,7 +305,7 @@ argument. The store is the source of truth and is updated before dispatch.
 ```js
 Client.registerCommand('!example', 'Print example info', (input) => {
     Client.term.writeln('Example command ran.');
-    return true;  // return true to consume the input (clears the input field)
+    return true;  // return true to consume the input (clears the field)
 });
 ```
 
@@ -283,3 +321,13 @@ Client.registerShortcut('Tab', 'look');
 
 The `code` value is a `KeyboardEvent.code` string (e.g. `'KeyM'`, `'Tab'`,
 `'F11'`). Shortcuts only fire when the command input field is empty.
+
+### Adding a comm channel tab
+
+In `window-comm.js`, add an entry to the `CHANNELS` array:
+
+```js
+{ id: 'guild', label: 'Guild', cssClass: 'guild', active: false },
+```
+
+No other changes are required. The tab and its panel are created automatically.

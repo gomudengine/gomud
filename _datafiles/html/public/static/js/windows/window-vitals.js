@@ -117,7 +117,7 @@
     // VirtualWindow instance
     // -----------------------------------------------------------------------
     const win = new VirtualWindow('Char.Vitals', {
-        dock:          'right',
+        dock:          'left',
         defaultDocked: true,
         dockedHeight:  60,
         factory() {
@@ -127,7 +127,7 @@
                 mount:      el,
                 background: '#1c6b60',
                 border:     1,
-                x:          window.innerWidth - 300 - 63,
+                x:          0,
                 y:          0,
                 width:      300,
                 height:     20 + 40,
