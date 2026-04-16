@@ -98,6 +98,8 @@ func loadUserById(userId int) (*UserRecord, error) {
 		return nil, err
 	}
 
+	user.Character.Validate()
+
 	return user, nil
 }
 

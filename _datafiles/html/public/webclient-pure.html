@@ -524,6 +524,7 @@
         let socket = null;
         let debugOutput = false;
         let isDragging = false;
+        let pendingReconnectToken = null;
 
         const connectButton = document.getElementById('connect-button');
         const textOutput = document.getElementById('terminal');
@@ -566,26 +567,18 @@
                 }
                 return true;
             }
+            if (cmd === "RELOGTKN:") {
+                pendingReconnectToken = cmdString.substring(9);
+                return true;
+            }
             return false;
         }
 
-        connectButton.addEventListener('click', () => {
-            if (socket && socket.readyState === WebSocket.OPEN) {
-                socket.close();
-                return;
-            }
-
-            debugLog("Connecting to: " + 'ws://'+location.host +'/ws');
-            socket = new WebSocket('ws://'+location.host +'/ws');
-
+        function attachSocketHandlers(openMessage, clearOnOpen) {
             socket.onopen = function() {
-                term.writeln("Connected to the server!");
-                term.clear();
-
-                // Hide the button when connected
+                if (clearOnOpen) { term.clear(); }
+                term.writeln(openMessage);
                 connectButton.style.display = 'none';
-
-                // We also disable it right away to prevent double-click confusion
                 connectButton.disabled = true;
                 textInput.focus();
             };
@@ -718,7 +711,6 @@
                 } else {
                     term.writeln("Connection died");
                 }
-                // Show the button again when disconnected
                 connectButton.style.display = 'block';
                 connectButton.disabled = false;
 
@@ -726,7 +718,25 @@
                     textInput.value = '';
                     textInput.type = "text";
                 }
+
+                if (pendingReconnectToken) {
+                    var token = pendingReconnectToken;
+                    pendingReconnectToken = null;
+                    setTimeout(function() { reconnectWithToken(token); }, 500);
+                }
             };
+        }
+
+        connectButton.addEventListener('click', () => {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.close();
+                return;
+            }
+
+            var wsUrl = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws';
+            debugLog("Connecting to: " + wsUrl);
+            socket = new WebSocket(wsUrl);
+            attachSocketHandlers("Connected to the server!", true);
         });
 
         textInput.addEventListener('keydown', function(event) {
@@ -791,6 +801,18 @@
             totalBytesSent += dataToSend.length;
             socket.send(dataToSend);
             return true;
+        }
+
+        function reconnectWithToken(token) {
+            debugLog("Reconnecting with copyover token");
+            var wsUrl = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws';
+            socket = new WebSocket(wsUrl);
+            attachSocketHandlers("Reconnected after server reboot.", false);
+            var origOnOpen = socket.onopen;
+            socket.onopen = function() {
+                origOnOpen();
+                socket.send(token);
+            };
         }
 
         function printNetStats() {

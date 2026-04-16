@@ -153,6 +153,50 @@ func GetByConnectionId(connectionId connections.ConnectionId) *UserRecord {
 	return nil
 }
 
+// CopyoverReconnectUser takes over an existing session for a user who is
+// reconnecting after a copyover. The caller must have already validated a
+// one-time reconnect token that proves the identity of the connecting client.
+// Unlike LoginUser, this always succeeds for users that are currently tracked
+// (zombie or not), because the old connection is a stale copyover socket that
+// is no longer connected.
+func CopyoverReconnectUser(user *UserRecord, connectionId connections.ConnectionId) (*UserRecord, string, error) {
+
+	mudlog.Info("CopyoverReconnectUser()", "username", user.Username, "connectionId", connectionId)
+
+	user.Character.SetAdjective(`zombie`, false)
+
+	if userId, ok := userManager.Usernames[user.Username]; ok {
+		if existingUser, ok := userManager.Users[userId]; ok {
+			user = existingUser
+		}
+
+		if oldConnId, ok := userManager.UserConnections[userId]; ok {
+			delete(userManager.ZombieConnections, oldConnId)
+			delete(userManager.Connections, oldConnId)
+		}
+	}
+
+	user.connectionId = connectionId
+	user.Character.SetAdjective(`zombie`, false)
+	user.connectionTime = time.Now()
+	user.SetLastInputRound(util.GetRoundCount())
+
+	userManager.Users[user.UserId] = user
+	userManager.Usernames[user.Username] = user.UserId
+	userManager.Connections[user.connectionId] = user.UserId
+	userManager.UserConnections[user.UserId] = user.connectionId
+
+	for _, mobInstId := range user.Character.GetCharmIds() {
+		if !mobs.MobInstanceExists(mobInstId) {
+			user.Character.TrackCharmed(mobInstId, false)
+		}
+	}
+
+	user.EventLog.Add(`conn`, `Reconnected`)
+
+	return user, "Reconnecting...", nil
+}
+
 // First time creating a user.
 func LoginUser(user *UserRecord, connectionId connections.ConnectionId) (*UserRecord, string, error) {
 

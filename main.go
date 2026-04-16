@@ -108,6 +108,17 @@ func main() {
 	copyover.Register(users.CopyoverContributor())
 	copyover.Register(util.CopyoverContributor())
 	copyover.Register(gametime.CopyoverContributor())
+	copyover.Register(copyover.TokenContributor())
+
+	// Wire up the reconnect-token issuer so that connections can issue tokens
+	// for WebSocket clients without creating an import cycle.
+	connections.IssueWebSocketReconnectToken = func(connectionId connections.ConnectionId) (string, error) {
+		u := users.GetByConnectionId(connectionId)
+		if u == nil {
+			return "", fmt.Errorf("no user for connection %d", connectionId)
+		}
+		return copyover.IssueReconnectToken(u.UserId)
+	}
 
 	configs.ReloadConfig()
 	c := configs.GetConfig()
@@ -908,14 +919,11 @@ func HandleWebSocketConnection(conn *websocket.Conn) {
 	// Needs to be created BEFORE the first handler call
 	var sharedState map[string]any = make(map[string]any)
 
-	loginHandler := inputhandlers.GetLoginPromptHandler()           // Get the configured handler func
-	connDetails.AddInputHandler("LoginPromptHandler", loginHandler) // Add it with a unique name
-
 	// Describes whatever the client sent us
 	clientInput := &connections.ClientInput{
 		ConnectionId: connDetails.ConnectionId(),
 		DataIn:       []byte{},
-		Buffer:       make([]byte, 0, connections.ReadBufferSize), // DataIn is appended to this buffer after processing
+		Buffer:       make([]byte, 0, connections.ReadBufferSize),
 		EnterPressed: false,
 		Clipboard:    []byte{},
 		History:      connections.InputHistory{},
@@ -928,6 +936,9 @@ func HandleWebSocketConnection(conn *websocket.Conn) {
 
 	plugins.OnNetConnect(connDetails)
 
+	loginHandler := inputhandlers.GetLoginPromptHandler()
+	connDetails.AddInputHandler("LoginPromptHandler", loginHandler)
+
 	if audioConfig := audio.GetFile(`intro`); audioConfig.FilePath != `` {
 		v := 100
 		if audioConfig.Volume > 0 && audioConfig.Volume <= 100 {
@@ -939,22 +950,12 @@ func HandleWebSocketConnection(conn *websocket.Conn) {
 		)
 	}
 
-	// --- Send Initial Welcome/Splash ---
-	// (This part was mostly correct before)
 	splashTxt, _ := templates.Process("login/connect-splash", nil)
 	connections.SendTo([]byte(templates.AnsiParse(splashTxt)), connDetails.ConnectionId())
 
-	// --- Trigger the Prompt Handler to initialize state and send the FIRST prompt ---
-	// Create a dummy input that signifies "start the process" but has no actual user data/control codes.
 	initialTriggerInput := &connections.ClientInput{
 		ConnectionId: connDetails.ConnectionId(),
-		// Ensure flags like EnterPressed are false
 	}
-	// Call the handler function directly ONCE.
-	// This executes the `!ok` block inside the handler, which:
-	// 1. Creates the PromptHandlerState in sharedState.
-	// 2. Calls advanceAndSendPromptCustom -> sendPromptFunc for the *first* step (username).
-	// 3. Returns false (which we ignore here, as we aren't in the main loop yet).
 	loginHandler(initialTriggerInput, sharedState)
 
 	c := configs.GetConfig()
@@ -985,6 +986,40 @@ func HandleWebSocketConnection(conn *websocket.Conn) {
 
 			mudlog.Warn("WS Read", "error", err)
 			break
+		}
+
+		// Check for a copyover reconnect token before normal input handling.
+		if userObject == nil {
+			if userId, ok := copyover.ConsumeReconnectToken(string(message)); ok {
+				tmpUser := users.GetByUserId(userId)
+				if tmpUser != nil {
+					loggedInUser, msg, loginErr := users.CopyoverReconnectUser(tmpUser, clientInput.ConnectionId)
+					if loginErr != nil {
+						if len(msg) > 0 {
+							connections.SendTo([]byte(msg), clientInput.ConnectionId)
+						}
+						connections.Remove(clientInput.ConnectionId)
+						return
+					}
+					if len(msg) > 0 {
+						connections.SendTo([]byte(msg), clientInput.ConnectionId)
+					}
+					userObject = loggedInUser
+					connDetails.RemoveInputHandler("LoginPromptHandler")
+					connDetails.AddInputHandler("EchoInputHandler", inputhandlers.EchoInputHandler)
+					connDetails.AddInputHandler("HistoryInputHandler", inputhandlers.HistoryInputHandler)
+					if userObject.Role == users.RoleAdmin {
+						connDetails.AddInputHandler("SystemCommandInputHandler", inputhandlers.SystemCommandInputHandler)
+					}
+					connDetails.AddInputHandler("SignalHandler", inputhandlers.SignalHandler, "AnsiHandler")
+					connDetails.SetState(connections.LoggedIn)
+					worldManager.SendEnterWorld(userObject.UserId, userObject.Character.RoomId)
+					mudlog.Info("WebSocket copyover reconnect", "username", userObject.Username, "connectionId", clientInput.ConnectionId)
+					clientInput.Reset()
+					continue
+				}
+				// Token valid but user not in memory; fall through to normal login handling.
+			}
 		}
 
 		clientInput.DataIn = message
@@ -1068,6 +1103,10 @@ func HandleWebSocketConnection(conn *websocket.Conn) {
 			worldManager.SendEnterWorld(userObject.UserId, userObject.Character.RoomId)
 
 			clientInput.Reset()
+			continue
+		}
+
+		if userObject == nil {
 			continue
 		}
 
