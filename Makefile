@@ -187,7 +187,7 @@ js-lint:  ### Run Javascript linter
 #   This should allow us to use it in CI/CD.
 #   Only lint maintained frontend JS paths to avoid blocking contributors on
 #   world/sample scripts that follow different conventions.
-	@docker run --rm -v "$(PWD)":/app -w /app node:20 npx jshint $(JS_LINT_PATHS) \
+	@docker run --rm -v "$(PWD)":/app -w /app node:22 npx jshint $(JS_LINT_PATHS) \
 	 2>&1 | grep -v "^npm " | tee /dev/stderr | grep -Eq "^[0-9]+ errors" && exit 1 || true
 
 #
