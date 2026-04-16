@@ -217,6 +217,7 @@ class DockSlot {
             document.removeEventListener('mouseup',   onUp);
             document.removeEventListener('touchmove', onMove);
             document.removeEventListener('touchend',  onUp);
+            LayoutStore.saveDockWidths();
         };
         handle.addEventListener('mousedown', (e) => {
             e.preventDefault();
@@ -252,6 +253,14 @@ class DockSlot {
             document.removeEventListener('mouseup',   onUp);
             document.removeEventListener('touchmove', onMove);
             document.removeEventListener('touchend',  onUp);
+            // Save the docked height for both panels that were resized
+            [prevPanel, nextPanel].forEach(panelEl => {
+                if (!panelEl) { return; }
+                const entry = this._panels.find(p => p.panel === panelEl);
+                if (!entry) { return; }
+                const win = VirtualWindows.getWindows().find(w => w._contentEl === entry.contentEl);
+                if (win) { LayoutStore.saveWindow(win); }
+            });
         };
         handle.addEventListener('mousedown', (e) => {
             e.preventDefault();
@@ -449,6 +458,116 @@ class DockSlot {
 const DockSlots = {};
 
 // ---------------------------------------------------------------------------
+// LayoutStore
+//
+// Persists window layout to localStorage under the key 'windowLayout'.
+// Saved state per window:
+//   enabled       bool    — whether the window is open
+//   docked        bool    — whether it is in a dock slot
+//   dockSide      string  — 'left' | 'right' (only when docked)
+//   dockedHeight  number  — panel height in px (only when docked)
+//   floatX        number  — WinBox x position (only when floating)
+//   floatY        number  — WinBox y position (only when floating)
+//   floatWidth    number  — WinBox width (only when floating)
+//   floatHeight   number  — WinBox height (only when floating)
+// Plus top-level keys:
+//   dockWidths    object  — { left: number, right: number }
+// ---------------------------------------------------------------------------
+const LayoutStore = (() => {
+    const KEY = 'windowLayout';
+
+    function load() {
+        try {
+            const raw = localStorage.getItem(KEY);
+            return raw ? JSON.parse(raw) : {};
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function save(data) {
+        try {
+            localStorage.setItem(KEY, JSON.stringify(data));
+        } catch (e) {
+            // localStorage unavailable — silently ignore
+        }
+    }
+
+    // Merge a partial update into the stored layout and persist.
+    function patch(updater) {
+        const data = load();
+        updater(data);
+        save(data);
+    }
+
+    // Save the current state of a single VirtualWindow.
+    function saveWindow(win) {
+        patch(data => {
+            if (!data.windows) { data.windows = {}; }
+            const entry = data.windows[win._id] || {};
+
+            entry.enabled = win.isOpen() || win._win === false ? win.isOpen() : true;
+
+            if (win._win === 'docked') {
+                entry.docked   = true;
+                entry.dockSide = win._dockSide;
+                // Read current rendered panel height
+                const slot = DockSlots[win._dockSide];
+                if (slot) {
+                    const pe = slot._panels.find(p => p.contentEl === win._contentEl);
+                    if (pe) { entry.dockedHeight = Math.round(pe.panel.offsetHeight); }
+                }
+            } else if (win._win && win._win !== false) {
+                entry.docked     = false;
+                entry.dockSide   = win._dockSide;
+                entry.floatX     = Math.round(win._win.x);
+                entry.floatY     = Math.round(win._win.y);
+                entry.floatWidth  = Math.round(win._win.width);
+                entry.floatHeight = Math.round(win._win.height);
+            } else {
+                // closed — preserve last known docked state
+                if (entry.docked === undefined) {
+                    entry.docked   = win._defaultDocked;
+                    entry.dockSide = win._dockSide;
+                }
+            }
+
+            data.windows[win._id] = entry;
+        });
+    }
+
+    // Save dock slot widths.
+    function saveDockWidths() {
+        patch(data => {
+            data.dockWidths = {};
+            ['left', 'right'].forEach(side => {
+                const slot = DockSlots[side];
+                if (slot && slot.el && slot.el.classList.contains('has-panels')) {
+                    data.dockWidths[side] = slot.el.offsetWidth;
+                }
+            });
+        });
+    }
+
+    // Return saved state for a single window, or null.
+    function getWindow(id) {
+        const data = load();
+        return (data.windows && data.windows[id]) ? data.windows[id] : null;
+    }
+
+    function getDockWidths() {
+        const data = load();
+        return data.dockWidths || {};
+    }
+
+    function reset() {
+        localStorage.removeItem(KEY);
+    }
+
+    return { saveWindow, saveDockWidths, getWindow, getDockWidths, reset };
+})();
+
+// ---------------------------------------------------------------------------
 // VirtualWindow
 //
 // Wraps a WinBox instance with a well-defined lifecycle and optional docking.
@@ -482,21 +601,32 @@ const DockSlots = {};
 // ---------------------------------------------------------------------------
 class VirtualWindow {
     constructor(id, options) {
-        this._id             = id;
-        this._factory        = options.factory;
-        this._dockSide       = options.dock || null;
-        this._defaultDocked  = options.defaultDocked || false;
-        this._dockedHeight   = options.dockedHeight || null;  // preferred px height when docked
-        this._win            = undefined;
-        this._contentEl      = null;
-        this._winboxOpts     = null;
+        this._id              = id;
+        this._factory         = options.factory;
+        this._dockSide        = options.dock || null;
+        this._defaultDocked   = options.defaultDocked || false;
+        this._dockedHeight    = options.dockedHeight || null;
+        this._origDockSide    = options.dock || null;
+        this._origDockedHeight = options.dockedHeight || null;
+        this._win             = undefined;
+        this._contentEl       = null;
+        this._winboxOpts      = null;
     }
 
-    // Open the window. On first call, honours defaultDocked.
+    // Open the window. On first call, honours defaultDocked and saved layout.
     // Subsequent calls are no-ops unless the window is not yet open.
     open() {
         if (this._win === false)      { return; }  // user closed it
         if (this._win !== undefined)  { return; }  // already open (float or docked)
+
+        // Check saved layout for this window
+        const saved = LayoutStore.getWindow(this._id);
+
+        // If saved as disabled, mark closed and stop.
+        if (saved && saved.enabled === false) {
+            this._win = false;
+            return;
+        }
 
         // First open: run the factory to get opts + content element
         const opts = this._factory();
@@ -504,7 +634,30 @@ class VirtualWindow {
         this._winboxOpts = opts;
         this._contentEl  = opts.mount;
 
-        if (this._dockSide && this._defaultDocked) {
+        // Apply saved float geometry if present
+        if (saved && saved.docked === false && saved.floatWidth) {
+            this._winboxOpts.x      = saved.floatX;
+            this._winboxOpts.y      = saved.floatY;
+            this._winboxOpts.width  = saved.floatWidth;
+            this._winboxOpts.height = saved.floatHeight;
+        }
+
+        // Apply saved docked height
+        if (saved && saved.docked !== false && saved.dockedHeight) {
+            this._dockedHeight = saved.dockedHeight;
+        }
+
+        // Determine whether to dock or float
+        const shouldDock = saved
+            ? (saved.docked !== false && !!this._dockSide)
+            : (this._dockSide && this._defaultDocked);
+
+        // If saved on a different dock side, update
+        if (saved && saved.dockSide && saved.docked !== false) {
+            this._dockSide = saved.dockSide;
+        }
+
+        if (shouldDock) {
             this._dockNow();
         } else {
             this._floatNow();
@@ -524,6 +677,7 @@ class VirtualWindow {
         this._contentEl  = null;
         this._winboxOpts = null;
         this.open();
+        LayoutStore.saveWindow(this);
     }
 
     // Returns the WinBox instance when floating, null when docked or closed.
@@ -545,6 +699,7 @@ class VirtualWindow {
         this._win = undefined;
 
         this._dockNow();
+        LayoutStore.saveWindow(this);
     }
 
     // Move from docked to floating. Safe to call when already floating.
@@ -575,6 +730,7 @@ class VirtualWindow {
         this._win = undefined;
 
         this._floatNow(spawnY, spawnSize);
+        LayoutStore.saveWindow(this);
     }
 
     // -----------------------------------------------------------------------
@@ -612,8 +768,29 @@ class VirtualWindow {
             if (this._contentEl && this._contentEl.parentNode) {
                 this._contentEl.parentNode.removeChild(this._contentEl);
             }
+            LayoutStore.saveWindow(this);
             if (typeof userOnClose === 'function') { return userOnClose(force); }
             return false;
+        };
+
+        // Save position/size when the user moves or resizes the floating window.
+        const self = this;
+        const _saveThrottled = (() => {
+            let t = null;
+            return () => {
+                clearTimeout(t);
+                t = setTimeout(() => LayoutStore.saveWindow(self), 300);
+            };
+        })();
+        const existingOnMove   = opts.onmove;
+        const existingOnResize = opts.onresize;
+        opts.onmove = function(x, y) {
+            if (existingOnMove) { existingOnMove.call(this, x, y); }
+            _saveThrottled();
+        };
+        opts.onresize = function(w, h) {
+            if (existingOnResize) { existingOnResize.call(this, w, h); }
+            _saveThrottled();
         };
 
         // Wrap oncreate to add the dock button.
@@ -672,6 +849,7 @@ class VirtualWindow {
             insertAt
         );
         this._win = 'docked';
+        LayoutStore.saveWindow(this);
     }
 }
 
@@ -700,7 +878,8 @@ const VirtualWindows = (() => {
     // Per-dock-side ordered list of window IDs, representing the canonical
     // slot order. Populated on register() and updated on drag reorder.
     // Map<side, string[]>
-    const _dockOrder = { left: [], right: [] };
+    const _dockOrder         = { left: [], right: [] };
+    const _dockOrderOriginal = { left: [], right: [] };
 
     function register(descriptor) {
         if (!descriptor || !Array.isArray(descriptor.gmcpHandlers)) {
@@ -725,6 +904,7 @@ const VirtualWindows = (() => {
             // Record the registration order as the initial dock order
             if (win._dockSide && _dockOrder[win._dockSide]) {
                 _dockOrder[win._dockSide].push(win._id);
+                _dockOrderOriginal[win._dockSide].push(win._id);
             }
         }
     }
@@ -802,6 +982,11 @@ const VirtualWindows = (() => {
         }
     }
 
+    function resetOrder() {
+        _dockOrder.left  = [..._dockOrderOriginal.left];
+        _dockOrder.right = [..._dockOrderOriginal.right];
+    }
+
     function handleGMCP(namespace, body) {
         // Walk from most-specific to least-specific namespace segment.
         // Call all handlers registered at the first matching level,
@@ -822,6 +1007,18 @@ const VirtualWindows = (() => {
 
     function openAll() {
         _windows.forEach(win => win.open());
+
+        // Restore saved dock slot widths
+        const widths = LayoutStore.getDockWidths();
+        ['left', 'right'].forEach(side => {
+            if (!widths[side]) { return; }
+            const slot = DockSlots[side];
+            if (!slot || !slot.el || !slot.el.classList.contains('has-panels')) { return; }
+            slot.el.style.setProperty('--dock-' + side + '-width', widths[side] + 'px');
+            slot.el.style.width = widths[side] + 'px';
+        });
+        // Trigger a terminal resize after layout is settled
+        requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
     }
 
     function getWindows() {
@@ -836,7 +1033,7 @@ const VirtualWindows = (() => {
         }
     }
 
-    return { register, handleGMCP, openAll, getWindows, setConnected, getDockInsertIndex, notifyReorder, notifySlotChange };
+    return { register, handleGMCP, openAll, getWindows, setConnected, getDockInsertIndex, notifyReorder, notifySlotChange, resetOrder };
 })();
 
 // ---------------------------------------------------------------------------
@@ -1240,6 +1437,7 @@ const Client = (() => {
                             win._contentEl.parentNode.removeChild(win._contentEl);
                         }
                     }
+                    LayoutStore.saveWindow(win);
                 }
             });
 
@@ -1263,6 +1461,49 @@ const Client = (() => {
         } else {
             backdrop.classList.remove('open');
         }
+    }
+
+    function resetLayout() {
+        LayoutStore.reset();
+
+        // Close all windows first, then reopen each one in its default state.
+        VirtualWindows.getWindows().forEach(win => {
+            // Tear down whatever state the window is currently in
+            if (win._win === 'docked') {
+                const slot = DockSlots[win._dockSide];
+                if (slot) { slot.removePanel(win._contentEl); }
+                if (win._contentEl && win._contentEl.parentNode) {
+                    win._contentEl.parentNode.removeChild(win._contentEl);
+                }
+            } else if (win._win && win._win !== false) {
+                const wb = win._win;
+                wb.onclose = null;
+                wb.close();
+                if (win._contentEl && win._contentEl.parentNode) {
+                    win._contentEl.parentNode.removeChild(win._contentEl);
+                }
+            } else if (win._win === false && win._contentEl && win._contentEl.parentNode) {
+                win._contentEl.parentNode.removeChild(win._contentEl);
+            }
+
+            // Reset all window state back to construction defaults
+            win._win         = undefined;
+            win._contentEl   = null;
+            win._winboxOpts  = null;
+            win._dockSide    = win._origDockSide;
+            win._dockedHeight = win._origDockedHeight;
+        });
+
+        // Restore dock slot widths to default (remove inline styles)
+        ['left', 'right'].forEach(side => {
+            const slot = DockSlots[side];
+            if (!slot || !slot.el) { return; }
+            slot.el.style.removeProperty('width');
+            slot.el.style.removeProperty('--dock-' + side + '-width');
+        });
+
+        // Reopen all windows in default positions
+        VirtualWindows.openAll();
     }
 
     // -----------------------------------------------------------------------
@@ -1516,6 +1757,7 @@ const Client = (() => {
         init,
         toggleMenu,
         toggleMuteAll,
+        resetLayout,
 
         // Utility
         sendData,

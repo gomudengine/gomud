@@ -358,6 +358,27 @@
             transform: translateX(14px);
         }
 
+        /* Reset layout button */
+        #reset-layout-btn {
+            margin-top: 14px;
+            padding: 7px 14px;
+            background: #0d2e28;
+            border: 1px solid #1c6b60;
+            border-radius: 4px;
+            color: #7ab8a0;
+            font-size: 12px;
+            font-family: Arial, sans-serif;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: background 0.15s, color 0.15s;
+        }
+
+        #reset-layout-btn:hover {
+            background: #1c6b60;
+            color: #dffbd1;
+        }
+
         /* Window toggle rows */
         .win-toggle-row {
             display: flex;
@@ -436,6 +457,7 @@
                         <div class="settings-section-title">Windows</div>
                         <div id="windows-container"></div>
                     </div>
+                    <button id="reset-layout-btn" onclick="resetLayout()">Reset Layout</button>
                 </div>
             </div>
         </div>
@@ -453,6 +475,7 @@
         function init()          { Client.init(); }
         function toggleMenu()    { Client.toggleMenu(); }
         function toggleMuteAll() { Client.toggleMuteAll(); }
+        function resetLayout()   { Client.resetLayout(); }
 
         // Tab switching for the settings modal
         document.addEventListener('DOMContentLoaded', function() {
