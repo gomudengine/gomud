@@ -1,4 +1,4 @@
-/* global MP3Player, WinBox */
+/* global MP3Player, Triggers, WinBox */
 
 /**
  * webclient-core.js
@@ -1767,7 +1767,7 @@ const Client = (() => {
     }
 
     function GetGMCP(path) {
-        return getByPath(Client.GMCPStructs, path)
+        return getByPath(Client.GMCPStructs, path);
     }
 
     // -----------------------------------------------------------------------
