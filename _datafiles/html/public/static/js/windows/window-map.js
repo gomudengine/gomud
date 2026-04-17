@@ -1,4 +1,4 @@
-/* global Client, VirtualWindow, VirtualWindows, injectStyles */
+/* global Client, ResizeObserver, VirtualWindow, VirtualWindows, injectStyles */
 
 /**
  * window-map.js

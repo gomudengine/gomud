@@ -62,7 +62,7 @@ ci-local-inner: ### Run the local CI checks inside the CI tool image.
 		-e .github/act/pull_request.json \
 		-W .github/workflows/discord-notify.yml
 	act $(ACT_FLAGS) --dryrun push \
-		-e .github/act/push_tag.json \
+		-e .github/act/push_master.json \
 		-W .github/workflows/build-and-release.yml
 	act $(ACT_FLAGS) --dryrun push $(ACT_DRYRUN_SECRETS) \
 		-e .github/act/push_master.json \

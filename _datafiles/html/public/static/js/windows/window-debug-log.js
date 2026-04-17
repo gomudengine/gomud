@@ -1,3 +1,4 @@
+/* global Client, VirtualWindow, VirtualWindows, injectStyles */
 /**
  * window-debug-log.js
  *

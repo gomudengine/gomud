@@ -1,4 +1,5 @@
 .vscode
+bin/
 private-notes.txt
 _datafiles/**/users/*
 _datafiles/**/plugin-data/*
