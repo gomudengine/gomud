@@ -43,8 +43,8 @@ jobs:
           {
             echo "binary_version=${binary_version}"
             echo "release_tag=${release_tag}"
-            echo "datafiles_archive=go-mud-datafiles-${release_tag}.zip"
-            echo "checksums_file=go-mud-${release_tag}-SHA256SUMS.txt"
+            echo "datafiles_archive=gomud-all-datafiles-${release_tag}.zip"
+            echo "checksums_file=gomud-${release_tag}-SHA256SUMS.txt"
           } >> "$GITHUB_OUTPUT"
 
   build:
@@ -74,31 +74,31 @@ jobs:
         run: >-
           env GOOS=windows GOARCH=amd64 go build -v
           -ldflags "-X main.version=${{ env.BINARY_VERSION }}"
-          -o bin/go-mud-windows_x64.exe .
+          -o bin/gomud-windows_x64.exe .
 
       - name: Build darwin/arm64
         run: >-
           env GOOS=darwin GOARCH=arm64 go build -v
           -ldflags "-X main.version=${{ env.BINARY_VERSION }}"
-          -o bin/go-mud-darwin_arm64 .
+          -o bin/gomud-darwin_arm64 .
 
       - name: Build darwin/amd64
         run: >-
           env GOOS=darwin GOARCH=amd64 go build -v
           -ldflags "-X main.version=${{ env.BINARY_VERSION }}"
-          -o bin/go-mud-darwin_x64 .
+          -o bin/gomud-darwin_x64 .
 
       - name: Build linux/amd64
         run: >-
           env GOOS=linux GOARCH=amd64 go build -v
           -ldflags "-X main.version=${{ env.BINARY_VERSION }}"
-          -o bin/go-mud-linux_x64 .
+          -o bin/gomud-linux_x64 .
 
       - name: Build linux/arm5
         run: >-
           env GOOS=linux GOARCH=arm GOARM=5 go build -v
           -ldflags "-X main.version=${{ env.BINARY_VERSION }}"
-          -o bin/go-mud-linux_arm5 .
+          -o bin/gomud-linux_arm5 .
 
       - name: Upload bin
         uses: actions/upload-artifact@v4
@@ -132,11 +132,11 @@ jobs:
         run: |
           cd bin
           sha256sum \
-            go-mud-windows_x64.exe \
-            go-mud-darwin_arm64 \
-            go-mud-darwin_x64 \
-            go-mud-linux_x64 \
-            go-mud-linux_arm5 \
+            gomud-windows_x64.exe \
+            gomud-darwin_arm64 \
+            gomud-darwin_x64 \
+            gomud-linux_x64 \
+            gomud-linux_arm5 \
             "${{ env.DATAFILES_ARCHIVE }}" \
             > "${{ env.CHECKSUMS_FILE }}"
 
@@ -144,11 +144,11 @@ jobs:
         uses: softprops/action-gh-release@v3.0.0
         with:
           files: |
-            bin/go-mud-windows_x64.exe
-            bin/go-mud-darwin_arm64
-            bin/go-mud-darwin_x64
-            bin/go-mud-linux_x64
-            bin/go-mud-linux_arm5
+            bin/gomud-windows_x64.exe
+            bin/gomud-darwin_arm64
+            bin/gomud-darwin_x64
+            bin/gomud-linux_x64
+            bin/gomud-linux_arm5
             bin/${{ env.DATAFILES_ARCHIVE }}
             bin/${{ env.CHECKSUMS_FILE }}
           name: ${{ env.RELEASE_TAG }} prerelease
