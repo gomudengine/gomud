@@ -2,9 +2,6 @@
 
 [Semantic Versioning 2.0.0 reference](https://github.com/semver/semver/blob/master/semver.md)
 
-This downstream fork is the proving ground for release automation changes before they
-are proposed upstream.
-
 Recommended versioning for the next release line:
 
 - Start the next stable release at `v0.10.0`.
@@ -15,22 +12,24 @@ Recommended versioning for the next release line:
 ### 1. New Feature or Breaking‑Change Release (Minor/Major)
 
 1. **Merge & Verify**
+
 - Merge all feature or breaking‑change PRs into `master`.
 - Ensure CI (tests, linter, codegen) all pass on `master`.
 
-2. **Determine Version Bump**
+1. **Determine Version Bump**
+
 - **Major** (`X.0.0`) when you make incompatible changes
 - **Minor** (`0.Y.0`) when you add functionality in a backward compatible manner
 - **Patch** (`0.0.Z`) when you make backward compatible bug fixes
 
-3. **Merge to `master`**
+1. **Merge to `master`**
    - Merging to `master` triggers the `Release` workflow automatically.
 
-   Or, for a manual downstream test without merging:
+   Or, for a manual test without merging:
    - Run the `Release` workflow with `workflow_dispatch`.
    - Optionally provide a short `release_label` such as `test`.
 
-4. **Monitor Release**
+2. **Monitor Release**
    - GitHub Actions will:
      - Run `go generate ./...`
      - Build per-platform binaries with `main.version` set from `main.go`
@@ -40,9 +39,9 @@ Recommended versioning for the next release line:
      - Publish a GitHub prerelease for that generated tag
      - Leave the release unmarked as `Latest`
 
-5. **Announce**
-   - After review, the upstream owner can edit the release in GitHub and promote it
-     to `Latest`.
+3. **Announce**
+   - After review, a repo owner can edit the release in GitHub and promote it to
+     `Latest`.
    - Share the release link with the team or via configured notifications.
 
 ---
@@ -66,18 +65,14 @@ Recommended versioning for the next release line:
 
 ---
 
-### 3. Downstream First-Test Flow
+### 3. Manual Test Release Flow
 
-1. **Validate in this fork first**
-   - Use this downstream repo to verify any release automation change before opening
-     an upstream PR.
-
-2. **Run the release workflow manually**
-   - Use `workflow_dispatch` on the downstream repo when you want a test release
+1. **Run the release workflow manually**
+   - Use `workflow_dispatch` when you want a test release
      without merging to `master`.
    - Optionally set `release_label=test` or similar to make the generated tag clearer.
 
-3. **Verify the GitHub release**
+2. **Verify the GitHub release**
    - Confirm the workflow succeeds.
    - Confirm the per-platform binaries are attached.
    - Confirm the `_datafiles` zip asset is attached.
@@ -85,9 +80,9 @@ Recommended versioning for the next release line:
    - Confirm GitHub marks the release as a prerelease.
    - Confirm GitHub does not mark it as `Latest`.
 
-4. **Clean up if needed**
+3. **Clean up if needed**
    - Delete the test tag and release after validation if you do not want to keep them
-     in downstream history.
+     in repository history.
 
 ---
 
@@ -102,7 +97,7 @@ Recommended versioning for the next release line:
 
 - **Can I create a test release without merging to `master`?**
   Yes - run the `Release` workflow manually with `workflow_dispatch`. That keeps PR
-  submissions clean while still allowing downstream test releases on demand.
+  submissions clean while still allowing on-demand test releases.
 
 - **Are workflow-created releases stable releases?**
   No - the workflow creates prereleases. A repo owner must manually promote a release
