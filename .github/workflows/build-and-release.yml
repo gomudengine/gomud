@@ -52,7 +52,7 @@ jobs:
           {
             echo "binary_version=${binary_version}"
             echo "release_tag=${release_tag}"
-            echo "datafiles_archive=gomud-all-datafiles-${release_tag}.zip"
+            echo "datafiles_archive=gomud-ALL-datafiles-${release_tag}.zip"
             echo "checksums_file=gomud-${release_tag}-SHA256SUMS.txt"
           } >> "$GITHUB_OUTPUT"
 
