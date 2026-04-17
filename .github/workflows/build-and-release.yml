@@ -34,6 +34,8 @@ jobs:
 
       - name: Compute release metadata
         id: meta
+        env:
+          RELEASE_LABEL: ${{ inputs.release_label }}
         run: |
           binary_version="$(
             sed -n 's/^const VERSION = \"\\([^\"]*\\)\"$/\\1/p' main.go
@@ -45,8 +47,15 @@ jobs:
 
           release_stamp="$(date -u +%Y%m%d%H%M%S)"
           release_tag="pre-${release_stamp}-${GITHUB_SHA::7}"
-          if [ -n "${{ inputs.release_label }}" ]; then
-            release_tag="${release_tag}-${{ inputs.release_label }}"
+          release_label="${RELEASE_LABEL:-}"
+          if [ -n "$release_label" ]; then
+            case "$release_label" in
+              *[!A-Za-z0-9._-]*)
+                echo "release_label must match [A-Za-z0-9._-]+" >&2
+                exit 1
+                ;;
+            esac
+            release_tag="${release_tag}-${release_label}"
           fi
 
           {
@@ -162,6 +171,7 @@ jobs:
             bin/${{ env.CHECKSUMS_FILE }}
           name: ${{ env.RELEASE_TAG }}
           tag_name: ${{ env.RELEASE_TAG }}
+          target_commitish: ${{ github.sha }}
           prerelease: true
           make_latest: false
           generate_release_notes: true
