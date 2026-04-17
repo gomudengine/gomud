@@ -12,5 +12,6 @@ biome: city
 exits:
   cell door:
     roomid: 1002
+    mapdirection: west
     lock:
       difficulty: 32

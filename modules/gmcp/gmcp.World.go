@@ -87,6 +87,15 @@ func (g *GMCPWorldModule) buildWorldMap(user *users.UserRecord) []GMCPWorldMap_R
 		return entries
 	}
 
+	// Pre-build a set of zone root room IDs so we can tag them efficiently
+	// while iterating over all visited rooms below.
+	zoneRoots := map[int]struct{}{}
+	for zoneName := range user.Character.ZonesVisited {
+		if rootId, err := rooms.GetZoneRoot(zoneName); err == nil {
+			zoneRoots[rootId] = struct{}{}
+		}
+	}
+
 	for _, bitset := range user.Character.ZonesVisited {
 		for roomId := range bitset.ToSet() {
 
@@ -165,6 +174,9 @@ func (g *GMCPWorldModule) buildWorldMap(user *users.UserRecord) []GMCPWorldMap_R
 			}
 			if rooms.IsEphemeralRoomId(room.RoomId) {
 				entry.Details = append(entry.Details, `ephemeral`)
+			}
+			if _, isRoot := zoneRoots[room.RoomId]; isRoot {
+				entry.Details = append(entry.Details, `root`)
 			}
 
 			entries = append(entries, entry)

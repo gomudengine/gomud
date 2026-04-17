@@ -454,33 +454,50 @@
             var gx       = parseInt(coords[1], 10);
             var gy       = parseInt(coords[2], 10);
             var gz       = parseInt(coords[3], 10);
+
+            // Skip rooms at 0,0 that are not the zone root — they have no
+            // valid mapped position and would render on top of the origin.
+            var isZoneRoot = Array.isArray(info.details) && info.details.indexOf('root') !== -1;
+            if (gx === 0 && gy === 0 && !isZoneRoot) { return; }
+
             var zoneKey  = zoneName + '/z:' + gz;
 
             if (!Array.isArray(allRooms.roomZones[zoneKey])) {
                 allRooms.roomZones[zoneKey] = [];
             }
 
-            // Build flat exit id list (2D only, same zone only)
-            // Cross-zone exits are stored as directional stubs.
+            // Build exit lines from exitsv2.
+            // Secret exits are only drawn if the destination has been visited.
+            // Cross-zone exits become direction stubs; same-zone exits are edges.
             var exitIds   = [];
             var exitStubs = [];
             if (info.exitsv2) {
                 for (var dir in info.exitsv2) {
                     var exitInfo = info.exitsv2[dir];
                     if (exitInfo.dz !== 0) { continue; }
-                    var targetInfo = roomInfoStore.get(exitInfo.num);
-                    if (targetInfo) {
-                        var targetCoords = targetInfo.coords ?
-                            targetInfo.coords.split(',').map(function (s) { return s.trim(); }) : null;
-                        if (targetCoords && targetCoords.length >= 4) {
-                            var targetZoneKey = targetCoords[0] + '/z:' + targetCoords[3];
-                            if (targetZoneKey !== zoneKey) {
-                                exitStubs.push({ dx: exitInfo.dx, dy: exitInfo.dy });
-                                continue;
-                            }
+
+                    var isSecret    = Array.isArray(exitInfo.details) && exitInfo.details.indexOf('secret') !== -1;
+                    var destVisited = roomInfoStore.has(exitInfo.num);
+
+                    // Secret exits are suppressed until the destination is visited.
+                    if (isSecret && !destVisited) { continue; }
+
+                    // Determine whether the destination is in the same zone.
+                    var destInfo    = roomInfoStore.get(exitInfo.num);
+                    var isCrossZone = false;
+                    if (destInfo && destInfo.coords) {
+                        var destCoords  = destInfo.coords.split(',').map(function (s) { return s.trim(); });
+                        if (destCoords.length >= 4) {
+                            var destZoneKey = destCoords[0] + '/z:' + destCoords[3];
+                            isCrossZone = (destZoneKey !== zoneKey);
                         }
                     }
-                    exitIds.push(exitInfo.num);
+
+                    if (isCrossZone || !destInfo) {
+                        exitStubs.push({ dx: exitInfo.dx, dy: exitInfo.dy });
+                    } else {
+                        exitIds.push(exitInfo.num);
+                    }
                 }
             }
 
@@ -568,6 +585,21 @@
                 html += '<span class="tt-badge ' + b + '">' + b + '</span>';
             });
             html += '</div>';
+        }
+
+        if (info.exitsv2) {
+            var exitNames = Object.keys(info.exitsv2).filter(function (dir) {
+                var e = info.exitsv2[dir];
+                var isSecret = Array.isArray(e.details) && e.details.indexOf('secret') !== -1;
+                return !isSecret || roomInfoStore.has(e.num);
+            }).sort();
+            if (exitNames.length > 0) {
+                html += '<hr class="tt-divider">' +
+                    '<div class="tt-row">' +
+                    '<span class="tt-label">Exits</span>' +
+                    '<span class="tt-value">' + exitNames.join(', ') + '</span>' +
+                    '</div>';
+            }
         }
 
         tooltip.innerHTML     = html;
@@ -741,44 +773,56 @@
         // the biome symbol embedded in the maplegend/environment fields.
         var sym = info.mapsymbol || '•';
 
-        // Build the flat exit id list (2D only)
+        // Build exit lines from exitsv2.
+        // Secret exits are only drawn if the destination has been visited.
+        // Cross-zone exits are drawn as direction stubs; same-zone exits are
+        // drawn as full edges to the destination room.
         var exitIds   = [];
         var exitStubs = [];
         for (var dir in info.exitsv2) {
             var exitInfo = info.exitsv2[dir];
-            if (exitInfo.dz === 0) {
-                // Determine whether this exit stays within the current zone.
-                var exitInZone = false;
-                var zoneArr2 = allRooms.roomZones[zoneKey];
-                if (Array.isArray(zoneArr2)) {
-                    for (var j = 0; j < zoneArr2.length; j++) {
-                        if (zoneArr2[j].RoomId === exitInfo.num) {
-                            exitInZone = true;
-                            break;
-                        }
-                    }
-                }
-                if (!exitInZone) {
-                    var exitStoredInfo = roomInfoStore.get(exitInfo.num);
-                    if (exitStoredInfo) {
-                        // Known room in a different zone — record a stub line.
-                        exitStubs.push({ dx: exitInfo.dx, dy: exitInfo.dy });
-                        zoneExitStubs.push({ roomId: info.num, dx: exitInfo.dx, dy: exitInfo.dy });
-                        continue;
-                    }
-                }
+            if (exitInfo.dz !== 0) { continue; }
 
+            var isSecret     = Array.isArray(exitInfo.details) && exitInfo.details.indexOf('secret') !== -1;
+            var destVisited  = roomInfoStore.has(exitInfo.num);
+
+            // Secret exits are suppressed until the destination is visited.
+            if (isSecret && !destVisited) { continue; }
+
+            // Determine whether the destination is in the same zone.
+            var destInfo     = roomInfoStore.get(exitInfo.num);
+            var isCrossZone  = false;
+            if (destInfo && destInfo.coords) {
+                var destCoords  = destInfo.coords.split(',').map(function (s) { return s.trim(); });
+                if (destCoords.length >= 4) {
+                    var destZoneKey = destCoords[0] + '/z:' + destCoords[3];
+                    isCrossZone = (destZoneKey !== zoneKey);
+                }
+            }
+
+            if (isCrossZone) {
+                // Draw a stub line in the exit direction.
+                exitStubs.push({ dx: exitInfo.dx, dy: exitInfo.dy });
+                zoneExitStubs.push({ roomId: info.num, dx: exitInfo.dx, dy: exitInfo.dy });
+            } else if (destInfo) {
+                // Same zone, destination is known — draw a full edge.
                 exitIds.push(exitInfo.num);
-                // Pre-add exit room at its grid position if not yet known
                 if (!rooms.has(exitInfo.num)) {
+                    var destCoords2 = destInfo.coords.split(',').map(function (s) { return s.trim(); });
                     addOrUpdateRoom(
                         exitInfo.num,
-                        gx + exitInfo.dx,
-                        gy + exitInfo.dy,
-                        '•'
+                        parseInt(destCoords2[1], 10),
+                        parseInt(destCoords2[2], 10),
+                        destInfo.mapsymbol || '•'
                     );
                 }
                 addEdge(info.num, exitInfo.num);
+            } else {
+                // Destination not yet visited — draw a stub in the exit direction
+                // so the player can see there is an exit without rendering an
+                // unknown room square at an unverified position.
+                exitStubs.push({ dx: exitInfo.dx, dy: exitInfo.dy });
+                zoneExitStubs.push({ roomId: info.num, dx: exitInfo.dx, dy: exitInfo.dy });
             }
         }
 

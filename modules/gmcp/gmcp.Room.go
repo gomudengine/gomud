@@ -449,6 +449,10 @@ func (g *GMCPRoomModule) GetRoomNode(user *users.UserRecord, gmcpModule string) 
 		if rooms.IsEphemeralRoomId(room.RoomId) {
 			payload.Details = append(payload.Details, `ephemeral`)
 		}
+		// Indicate if this is the zone root room
+		if rootId, err := rooms.GetZoneRoot(room.Zone); err == nil && rootId == room.RoomId {
+			payload.Details = append(payload.Details, `root`)
+		}
 		// end room details
 
 	}
