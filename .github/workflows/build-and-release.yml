@@ -94,7 +94,11 @@ jobs:
         uses: softprops/action-gh-release@v3.0.0
         with:
           files: bin/${{ env.RELEASE_FILENAME }}-${{ env.RELEASE_VERSION }}.zip
+          name: ${{ env.RELEASE_VERSION }} prerelease
           tag_name: ${{ env.RELEASE_VERSION }}
+          prerelease: true
+          make_latest: false
+          generate_release_notes: true
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
