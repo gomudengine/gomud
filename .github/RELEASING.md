@@ -34,8 +34,8 @@ Recommended versioning for the next release line:
      - Run `go generate ./...`
      - Build per-platform binaries with `main.version` set from `main.go`
      - Create a generated prerelease tag like `pre-YYYYMMDDHHMMSS-<sha7>`
-     - Archive `_datafiles` as `go-mud-datafiles-pre-YYYYMMDDHHMMSS-<sha7>.zip`
-     - Generate `go-mud-pre-YYYYMMDDHHMMSS-<sha7>-SHA256SUMS.txt`
+     - Archive `_datafiles` as `gomud-ALL-datafiles-pre-YYYYMMDDHHMMSS-<sha7>.zip`
+     - Generate `gomud-pre-YYYYMMDDHHMMSS-<sha7>-SHA256SUMS.txt`
      - Publish a GitHub prerelease for that generated tag
      - Leave the release unmarked as `Latest`
 
