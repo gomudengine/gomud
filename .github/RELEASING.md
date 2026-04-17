@@ -26,6 +26,10 @@ Recommended versioning for the next release line:
 3. **Merge to `master`**
    - Merging to `master` triggers the `Release` workflow automatically.
 
+   Or, for a manual downstream test without merging:
+   - Run the `Release` workflow with `workflow_dispatch`.
+   - Optionally provide a short `release_label` such as `test`.
+
 4. **Monitor Release**
    - GitHub Actions will:
      - Run `go generate ./...`
@@ -51,9 +55,14 @@ Recommended versioning for the next release line:
 2. **Merges to `master` do publish release binaries**
    - A push to `master` runs the `Release` workflow and publishes a prerelease.
 
-3. **Generated release naming**
+3. **Manual test runs can also publish prereleases**
+   - `workflow_dispatch` can be used to create a test prerelease without merging.
+   - An optional `release_label` is appended to the generated prerelease tag.
+
+4. **Generated release naming**
    - The release tag is generated automatically from UTC time plus the merge commit SHA.
    - Example: `pre-20260417021530-1a2b3c4`
+   - With a manual label: `pre-20260417021530-1a2b3c4-test`
 
 ---
 
@@ -63,9 +72,10 @@ Recommended versioning for the next release line:
    - Use this downstream repo to verify any release automation change before opening
      an upstream PR.
 
-2. **Merge a test branch to downstream `master`**
-   - Use a downstream-only branch or temporary merge to trigger the release workflow.
-   - The workflow will generate its own prerelease tag automatically.
+2. **Run the release workflow manually**
+   - Use `workflow_dispatch` on the downstream repo when you want a test release
+     without merging to `master`.
+   - Optionally set `release_label=test` or similar to make the generated tag clearer.
 
 3. **Verify the GitHub release**
    - Confirm the workflow succeeds.
@@ -89,6 +99,10 @@ Recommended versioning for the next release line:
 - **Is auto-tagging enabled?**
   Stable semver tags are not generated automatically. The merge-driven workflow creates
   its own prerelease tag from UTC time plus commit SHA.
+
+- **Can I create a test release without merging to `master`?**
+  Yes - run the `Release` workflow manually with `workflow_dispatch`. That keeps PR
+  submissions clean while still allowing downstream test releases on demand.
 
 - **Are workflow-created releases stable releases?**
   No - the workflow creates prereleases. A repo owner must manually promote a release

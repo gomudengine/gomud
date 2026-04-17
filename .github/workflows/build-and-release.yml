@@ -5,6 +5,12 @@ name: Release
   push:
     branches:
       - master
+  workflow_dispatch:
+    inputs:
+      release_label:
+        description: Optional prerelease label suffix, e.g. test or rc
+        required: false
+        type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -39,6 +45,9 @@ jobs:
 
           release_stamp="$(date -u +%Y%m%d%H%M%S)"
           release_tag="pre-${release_stamp}-${GITHUB_SHA::7}"
+          if [ -n "${{ inputs.release_label }}" ]; then
+            release_tag="${release_tag}-${{ inputs.release_label }}"
+          fi
 
           {
             echo "binary_version=${binary_version}"
