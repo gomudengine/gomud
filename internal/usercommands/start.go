@@ -189,6 +189,9 @@ func Start(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 
 	events.AddToQueue(events.CharacterCreated{UserId: user.UserId, CharacterName: user.Character.Name})
 
+	// Trigger a player changed event
+	events.AddToQueue(events.PlayerChanged{UserId: user.UserId})
+
 	duration := time.Now().Sub(user.Joined)
 	if duration.Hours() > 1 {
 

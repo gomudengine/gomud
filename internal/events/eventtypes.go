@@ -222,6 +222,13 @@ type PlayerDespawn struct {
 
 func (p PlayerDespawn) Type() string { return `PlayerDespawn` }
 
+// Something has changed about a a player.
+type PlayerChanged struct {
+	UserId int
+}
+
+func (p PlayerChanged) Type() string { return `PlayerChanged` }
+
 type Log struct {
 	FollowAdd    connections.ConnectionId
 	FollowRemove connections.ConnectionId

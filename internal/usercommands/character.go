@@ -278,6 +278,10 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 			room.SendText(`<ansi fg="username">`+oldName+`</ansi> vanishes, and <ansi fg="username">`+char.Name+`</ansi> appears in a shower of sparks!`, user.UserId)
 
 			user.ClearPrompt()
+
+			// Trigger a player changed event
+			events.AddToQueue(events.PlayerChanged{UserId: user.UserId})
+
 			return true, nil
 
 		}

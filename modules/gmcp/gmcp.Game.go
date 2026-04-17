@@ -28,6 +28,7 @@ func init() {
 
 	events.RegisterListener(events.PlayerDespawn{}, g.onJoinLeave)
 	events.RegisterListener(events.PlayerSpawn{}, g.onJoinLeave)
+	events.RegisterListener(events.PlayerChanged{}, g.onJoinLeave)
 
 }
 
