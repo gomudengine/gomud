@@ -99,6 +99,7 @@
         '$':  '#2a6a2a',   // shop
         '%':  '#2a5a7a',   // trainer
         '♜':  '#3a3a3a',   // wall
+        '+':  '#5fb7ff',   // healer
         '•':  '#3a3a4a',   // generic / default biome dot
     };
 
@@ -128,6 +129,7 @@
         '    display: block;',
         '    position: absolute;',
         '    top: 0; left: 0;',
+        '    cursor: grab;',
         '}',
         '#map-tooltip {',
         '    position: fixed;',
@@ -242,7 +244,7 @@
 
     /**
      * zoneExitStubs: Array of { roomId, dx, dy } for exits that leave the
-     * current zone.  Drawn as short stub lines from the room outward.
+     * known map (unvisited destinations).  Drawn as short stub lines outward.
      */
     var zoneExitStubs = [];
 
@@ -264,6 +266,20 @@
     var easeStartTime = null;
     var easeRafId    = null;
 
+    /**
+     * Pan offset in grid coordinates applied on top of the camera position.
+     * Set by click-drag.  Cleared when the player moves to a new room.
+     */
+    var panOffsetX = 0;
+    var panOffsetY = 0;
+
+    /** Drag state for click-and-pan. */
+    var dragActive    = false;
+    var dragStartPxX  = 0;
+    var dragStartPxY  = 0;
+    var dragStartPanX = 0;
+    var dragStartPanY = 0;
+
     /** Current zoom scale factor. */
     var zoomScale = 1.0;
 
@@ -275,11 +291,15 @@
     /** setTimeout handle for hiding the tooltip. */
     var tooltipHideTimer = null;
 
-    /** Per-zone room cache, keyed by "zoneName/z:N". */
-    var allRooms = {
-        currentZoneKey: '',
-        roomZones: {},
-    };
+    /**
+     * Per-room info cache, keyed by roomId.
+     * Stores { RoomId, x, y, z, zoneName, symbol, exits, stubs } for every
+     * ingested room so we can do cross-zone flood-fills at render time.
+     */
+    var roomCache = {};
+
+    /** The zone key ("zoneName/z:N") of the zone the player is currently in. */
+    var currentZoneKey = '';
 
     /** True once World.Map has been requested this session, to avoid re-requesting. */
     var worldMapRequested = false;
@@ -312,8 +332,8 @@
         var step = BASE_STEP * zoomScale;
 
         return {
-            px: midX + (gx - cameraX) * step,
-            py: midY + (gy - cameraY) * step,
+            px: midX + (gx - cameraX - panOffsetX) * step,
+            py: midY + (gy - cameraY - panOffsetY) * step,
         };
     }
 
@@ -331,6 +351,10 @@
      * If CENTER_EASE_DURATION is 0, snaps immediately.
      */
     function setCameraTarget(tx, ty) {
+        // Clear any manual pan so the view re-centres on the player.
+        panOffsetX = 0;
+        panOffsetY = 0;
+
         if (CENTER_EASE_DURATION <= 0) {
             cameraX = tx;
             cameraY = ty;
@@ -445,6 +469,24 @@
             ctx.textAlign    = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(sym, p.px, p.py);
+
+            // Vertical-exit indicators: small arrows in the bottom corners
+            if (room.hasUp || room.hasDown) {
+                var arrowSize = Math.max(5, scaledSize * 0.28);
+                var margin    = Math.max(2, scaledSize * 0.1);
+                ctx.font         = 'bold ' + arrowSize + 'px monospace';
+                ctx.textBaseline = 'alphabetic';
+                ctx.fillStyle    = isCurrent ? CURRENT_ROOM_TEXT_COLOR : SYMBOL_TEXT_COLOR;
+                if (room.hasDown) {
+                    ctx.textAlign = 'left';
+                    ctx.fillText('▾', rx + margin, ry + scaledSize - margin);
+                }
+                if (room.hasUp) {
+                    ctx.textAlign    = 'right';
+                    ctx.textBaseline = 'top';
+                    ctx.fillText('▴', rx + scaledSize - margin, ry + margin);
+                }
+            }
         });
     }
 
@@ -453,7 +495,8 @@
     // -------------------------------------------------------------------------
 
     function addOrUpdateRoom(id, gx, gy, symbol) {
-        rooms.set(id, { x: gx, y: gy, symbol: symbol || '•' });
+        var rc = roomCache[id];
+        rooms.set(id, { x: gx, y: gy, symbol: symbol || '•', hasUp: rc ? rc.hasUp : false, hasDown: rc ? rc.hasDown : false });
     }
 
     function addEdge(idA, idB) {
@@ -468,31 +511,75 @@
         currentRoomId = null;
         cameraX = 0;
         cameraY = 0;
+        panOffsetX = 0;
+        panOffsetY = 0;
+        dragActive = false;
         if (easeRafId !== null) { cancelAnimationFrame(easeRafId); easeRafId = null; }
     }
 
+    /**
+     * Rebuild the visible map by flood-filling from the given zone key.
+     *
+     * Starting from all rooms belonging to zoneKey, we follow same-z exits
+     * across zone boundaries to include any spatially connected visited rooms.
+     * Rooms in disconnected zones (no dx/dy path) are naturally excluded.
+     */
     function replayZone(zoneKey) {
         resetMap();
-        var zoneRooms = allRooms.roomZones[zoneKey];
-        if (!Array.isArray(zoneRooms)) { return; }
 
-        // First pass: add all rooms
-        zoneRooms.forEach(function (r) {
+        // Collect the z-level for this zone key so we only cross into rooms
+        // on the same z-plane.
+        var zMatch = zoneKey.match(/\/z:(-?\d+)$/);
+        if (!zMatch) { return; }
+        var targetZ = parseInt(zMatch[1], 10);
+
+        // BFS: start with all rooms whose zone key matches, then follow
+        // same-z exits to rooms in other zones.
+        var visited = {};
+        var queue   = [];
+
+        for (var rid in roomCache) {
+            var rc = roomCache[rid];
+            if (rc.z === targetZ && rc.zoneName + '/z:' + rc.z === zoneKey) {
+                queue.push(parseInt(rid, 10));
+            }
+        }
+
+        while (queue.length > 0) {
+            var id = queue.shift();
+            if (visited[id]) { continue; }
+            visited[id] = true;
+
+            var r = roomCache[id];
+            if (!r) { continue; }
+
             addOrUpdateRoom(r.RoomId, r.x, r.y, r.symbol);
-        });
 
-        // Second pass: add edges and zone-exit stubs
-        zoneRooms.forEach(function (r) {
+            // Follow exits to connected rooms on the same z-plane
+            if (Array.isArray(r.exits)) {
+                r.exits.forEach(function (exitId) {
+                    if (!visited[exitId] && roomCache[exitId]) {
+                        queue.push(exitId);
+                    }
+                });
+            }
+        }
+
+        // Second pass: add edges and stubs for all rooms now in the render set
+        rooms.forEach(function (room, id) {
+            var r = roomCache[id];
+            if (!r) { return; }
+
             if (Array.isArray(r.exits)) {
                 r.exits.forEach(function (exitId) {
                     if (rooms.has(exitId)) {
-                        addEdge(r.RoomId, exitId);
+                        addEdge(id, exitId);
                     }
                 });
             }
             if (Array.isArray(r.stubs)) {
                 r.stubs.forEach(function (stub) {
-                    zoneExitStubs.push({ roomId: r.RoomId, dx: stub.dx, dy: stub.dy });
+                    zoneExitStubs.push({ roomId: id, dx: stub.dx, dy: stub.dy });
                 });
             }
         });
@@ -500,21 +587,28 @@
 
     // -------------------------------------------------------------------------
     // World.Map ingestion
-    // Loads the full visited-room snapshot from the server, populating all
-    // zone caches and the roomInfoStore.  Called once per session.
+    // Loads the full visited-room snapshot from the server, populating the
+    // roomCache and roomInfoStore.  Called once per session.
     // -------------------------------------------------------------------------
     function ingestWorldMap(entries) {
         if (!Array.isArray(entries) || entries.length === 0) { return; }
 
+        // First pass: populate roomInfoStore so all rooms are "visited" before
+        // we compute exit lists.  This ensures cross-zone exits are treated as
+        // full edges regardless of the order entries arrive.
+        entries.forEach(function (info) {
+            if (info.num) {
+                roomInfoStore.set(info.num, info);
+            }
+        });
+
+        // Second pass: parse coordinates and build the room cache.
         entries.forEach(function (info) {
             var id = info.num;
             if (!id) { return; }
 
-            // Store for tooltip use
-            roomInfoStore.set(id, info);
-
             // Parse coordinates from the coord string
-            var coords   = info.coords ? info.coords.split(',').map(function (s) { return s.trim(); }) : null;
+            var coords = info.coords ? info.coords.split(',').map(function (s) { return s.trim(); }) : null;
             if (!coords || coords.length < 4) { return; }
 
             var zoneName = coords[0];
@@ -527,71 +621,65 @@
             var isZoneRoot = Array.isArray(info.details) && info.details.indexOf('root') !== -1;
             if (gx === 0 && gy === 0 && !isZoneRoot) { return; }
 
-            var zoneKey  = zoneName + '/z:' + gz;
-
-            if (!Array.isArray(allRooms.roomZones[zoneKey])) {
-                allRooms.roomZones[zoneKey] = [];
-            }
-
-            // Build exit lines from exitsv2.
-            // Secret exits are only drawn if the destination has been visited.
-            // Cross-zone exits become direction stubs; same-zone exits are edges.
-            var exitIds   = [];
-            var exitStubs = [];
-            if (info.exitsv2) {
-                for (var dir in info.exitsv2) {
-                    var exitInfo = info.exitsv2[dir];
-                    if (exitInfo.dz !== 0) { continue; }
-
-                    var isSecret    = Array.isArray(exitInfo.details) && exitInfo.details.indexOf('secret') !== -1;
-                    var destVisited = roomInfoStore.has(exitInfo.num);
-
-                    // Secret exits are suppressed until the destination is visited.
-                    if (isSecret && !destVisited) { continue; }
-
-                    // Determine whether the destination is in the same zone.
-                    var destInfo    = roomInfoStore.get(exitInfo.num);
-                    var isCrossZone = false;
-                    if (destInfo && destInfo.coords) {
-                        var destCoords  = destInfo.coords.split(',').map(function (s) { return s.trim(); });
-                        if (destCoords.length >= 4) {
-                            var destZoneKey = destCoords[0] + '/z:' + destCoords[3];
-                            isCrossZone = (destZoneKey !== zoneKey);
-                        }
-                    }
-
-                    if (isCrossZone || !destInfo) {
-                        exitStubs.push({ dx: exitInfo.dx, dy: exitInfo.dy });
-                    } else {
-                        exitIds.push(exitInfo.num);
-                    }
-                }
-            }
-
-            var sym = info.mapsymbol || '•';
-
-            // Upsert into zone cache
-            var zoneArr  = allRooms.roomZones[zoneKey];
-            var existing = -1;
-            for (var i = 0; i < zoneArr.length; i++) {
-                if (zoneArr[i].RoomId === id) { existing = i; break; }
-            }
-            var record = { RoomId: id, x: gx, y: gy, symbol: sym, exits: exitIds, stubs: exitStubs };
-            if (existing === -1) {
-                zoneArr.push(record);
-            } else {
-                zoneArr[existing] = record;
-            }
+            upsertRoomCache(id, zoneName, gx, gy, gz, info.mapsymbol || '•', info.exitsv2);
         });
 
         // Rebuild the visible map for the current zone
-        if (allRooms.currentZoneKey) {
+        if (currentZoneKey) {
             var savedCurrentId = currentRoomId;
-            replayZone(allRooms.currentZoneKey);
+            replayZone(currentZoneKey);
             currentRoomId = savedCurrentId;
         }
 
         render();
+    }
+
+    /**
+     * Insert or update a room in roomCache, computing its exit list and stubs
+     * from the exitsv2 map.  An exit becomes a full edge target when the
+     * destination is visited (in roomInfoStore) and dz === 0.  Otherwise it
+     * becomes a stub.
+     */
+    function upsertRoomCache(id, zoneName, gx, gy, gz, sym, exitsv2) {
+        var exitIds   = [];
+        var exitStubs = [];
+        var hasUp     = false;
+        var hasDown   = false;
+
+        if (exitsv2) {
+            for (var dir in exitsv2) {
+                var exitInfo = exitsv2[dir];
+
+                // Track vertical exits for the in-tile indicator.
+                if (exitInfo.dz > 0) { hasUp   = true; }
+                if (exitInfo.dz < 0) { hasDown = true; }
+
+                // Exits with no spatial delta are non-directional (portals, custom
+                // named exits, etc.).  They connect to rooms that belong to a
+                // different coordinate graph, so skip them entirely — the map will
+                // reset naturally when the player enters such a room.
+                if (exitInfo.dx === 0 && exitInfo.dy === 0 && exitInfo.dz === 0) { continue; }
+
+                // Only handle same-z exits for the flat map.
+                if (exitInfo.dz !== 0) { continue; }
+
+                var isSecret    = Array.isArray(exitInfo.details) && exitInfo.details.indexOf('secret') !== -1;
+                var destVisited = roomInfoStore.has(exitInfo.num);
+
+                // Secret exits are suppressed until the destination is visited.
+                if (isSecret && !destVisited) { continue; }
+
+                if (destVisited) {
+                    // Destination is known — draw a full edge regardless of zone.
+                    exitIds.push(exitInfo.num);
+                } else {
+                    // Destination not yet visited — draw a stub in the exit direction.
+                    exitStubs.push({ dx: exitInfo.dx, dy: exitInfo.dy });
+                }
+            }
+        }
+
+        roomCache[id] = { RoomId: id, zoneName: zoneName, x: gx, y: gy, z: gz, symbol: sym, exits: exitIds, stubs: exitStubs, hasUp: hasUp, hasDown: hasDown };
     }
 
     // -------------------------------------------------------------------------
@@ -714,8 +802,8 @@
     // -------------------------------------------------------------------------
     function createDOM() {
         resetMap();
-        allRooms.currentZoneKey = '';
-        allRooms.roomZones      = {};
+        currentZoneKey = '';
+        roomCache      = {};
 
         container = document.createElement('div');
         container.id = 'map-canvas-container';
@@ -725,8 +813,35 @@
         container.appendChild(canvas);
         ctx = canvas.getContext('2d');
 
+        canvas.addEventListener('mouseleave', function (e) {
+            hideTooltip();
+            if (dragActive) {
+                dragActive = false;
+                canvas.style.cursor = '';
+            }
+        });
+
+        // --- Drag to pan ---
+        canvas.addEventListener('mousedown', function (e) {
+            if (e.button !== 0) { return; }
+            dragActive    = true;
+            dragStartPxX  = e.clientX;
+            dragStartPxY  = e.clientY;
+            dragStartPanX = panOffsetX;
+            dragStartPanY = panOffsetY;
+            canvas.style.cursor = 'grabbing';
+            e.preventDefault();
+        });
+
         canvas.addEventListener('mousemove', function (e) {
             var rect = canvas.getBoundingClientRect();
+            if (dragActive) {
+                var step = BASE_STEP * zoomScale;
+                panOffsetX = dragStartPanX - (e.clientX - dragStartPxX) / step;
+                panOffsetY = dragStartPanY - (e.clientY - dragStartPxY) / step;
+                render();
+                return;
+            }
             var id   = roomAtCanvasPoint(e.clientX - rect.left, e.clientY - rect.top);
             var info = id !== null ? roomInfoStore.get(id) : null;
             if (info) {
@@ -737,9 +852,24 @@
             }
         });
 
-        canvas.addEventListener('mouseleave', hideTooltip);
+        canvas.addEventListener('mouseup', function (e) {
+            if (!dragActive) { return; }
+            var dx = e.clientX - dragStartPxX;
+            var dy = e.clientY - dragStartPxY;
+            dragActive = false;
+            canvas.style.cursor = '';
+            // If the mouse moved more than a few pixels, suppress the
+            // subsequent click so it doesn't open the admin menu.
+            if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+                canvas.dataset.suppressClick = '1';
+            }
+        });
 
         canvas.addEventListener('click', function (e) {
+            if (canvas.dataset.suppressClick) {
+                delete canvas.dataset.suppressClick;
+                return;
+            }
             var charInfo = Client.GMCPStructs.Char && Client.GMCPStructs.Char.Info;
             if (!charInfo) { return; }
             if (charInfo.role !== 'admin') { return; }
@@ -837,15 +967,8 @@
         // Parse coordinate string: "zoneName, x, y, z"
         var coords   = info.coords.split(',').map(function (s) { return s.trim(); });
         var zoneName = coords[0];
-        var zoneKey  = zoneName + '/z:' + coords[3];
-
-        if (allRooms.currentZoneKey !== zoneKey) {
-            allRooms.currentZoneKey = zoneKey;
-            if (!Array.isArray(allRooms.roomZones[zoneKey])) {
-                allRooms.roomZones[zoneKey] = [];
-            }
-            replayZone(zoneKey);
-        }
+        var gz       = parseInt(coords[3], 10);
+        var zoneKey  = zoneName + '/z:' + gz;
 
         var gx = parseInt(coords[1], 10);
         var gy = parseInt(coords[2], 10);
@@ -854,78 +977,44 @@
         // the biome symbol embedded in the maplegend/environment fields.
         var sym = info.mapsymbol || '•';
 
-        // Build exit lines from exitsv2.
-        // Secret exits are only drawn if the destination has been visited.
-        // Cross-zone exits are drawn as direction stubs; same-zone exits are
-        // drawn as full edges to the destination room.
-        var exitIds   = [];
-        var exitStubs = [];
-        for (var dir in info.exitsv2) {
-            var exitInfo = info.exitsv2[dir];
-            if (exitInfo.dz !== 0) { continue; }
-
-            var isSecret     = Array.isArray(exitInfo.details) && exitInfo.details.indexOf('secret') !== -1;
-            var destVisited  = roomInfoStore.has(exitInfo.num);
-
-            // Secret exits are suppressed until the destination is visited.
-            if (isSecret && !destVisited) { continue; }
-
-            // Determine whether the destination is in the same zone.
-            var destInfo     = roomInfoStore.get(exitInfo.num);
-            var isCrossZone  = false;
-            if (destInfo && destInfo.coords) {
-                var destCoords  = destInfo.coords.split(',').map(function (s) { return s.trim(); });
-                if (destCoords.length >= 4) {
-                    var destZoneKey = destCoords[0] + '/z:' + destCoords[3];
-                    isCrossZone = (destZoneKey !== zoneKey);
-                }
-            }
-
-            if (isCrossZone) {
-                // Draw a stub line in the exit direction.
-                exitStubs.push({ dx: exitInfo.dx, dy: exitInfo.dy });
-                zoneExitStubs.push({ roomId: info.num, dx: exitInfo.dx, dy: exitInfo.dy });
-            } else if (destInfo) {
-                // Same zone, destination is known — draw a full edge.
-                exitIds.push(exitInfo.num);
-                if (!rooms.has(exitInfo.num)) {
-                    var destCoords2 = destInfo.coords.split(',').map(function (s) { return s.trim(); });
-                    addOrUpdateRoom(
-                        exitInfo.num,
-                        parseInt(destCoords2[1], 10),
-                        parseInt(destCoords2[2], 10),
-                        destInfo.mapsymbol || '•'
-                    );
-                }
-                addEdge(info.num, exitInfo.num);
-            } else {
-                // Destination not yet visited — draw a stub in the exit direction
-                // so the player can see there is an exit without rendering an
-                // unknown room square at an unverified position.
-                exitStubs.push({ dx: exitInfo.dx, dy: exitInfo.dy });
-                zoneExitStubs.push({ roomId: info.num, dx: exitInfo.dx, dy: exitInfo.dy });
-            }
-        }
-
         // Store GMCP info for tooltip use
         roomInfoStore.set(info.num, info);
 
-        // Add / update the current room
-        addOrUpdateRoom(info.num, gx, gy, sym);
-        currentRoomId = info.num;
+        // Update the room cache entry for the current room.
+        upsertRoomCache(info.num, zoneName, gx, gy, gz, sym, info.exitsv2);
 
-        // Persist to zone cache (deduplicated by RoomId)
-        var zoneArr  = allRooms.roomZones[zoneKey];
-        var existing = -1;
-        for (var i = 0; i < zoneArr.length; i++) {
-            if (zoneArr[i].RoomId === info.num) { existing = i; break; }
-        }
-        var record = { RoomId: info.num, x: gx, y: gy, symbol: sym, exits: exitIds, stubs: exitStubs };
-        if (existing === -1) {
-            zoneArr.push(record);
+        // If the player has moved to a different zone/z-plane, rebuild the
+        // entire visible map via a cross-zone flood-fill.  This handles the
+        // case where the new zone has no spatial connection to the previous one.
+        if (currentZoneKey !== zoneKey) {
+            currentZoneKey = zoneKey;
+            replayZone(zoneKey);
         } else {
-            zoneArr[existing] = record;
+            // Same zone — incrementally add the current room and its edges.
+            addOrUpdateRoom(info.num, gx, gy, sym);
+
+            var rc = roomCache[info.num];
+            if (rc) {
+                if (Array.isArray(rc.exits)) {
+                    rc.exits.forEach(function (exitId) {
+                        var destRc = roomCache[exitId];
+                        if (destRc) {
+                            if (!rooms.has(exitId)) {
+                                addOrUpdateRoom(exitId, destRc.x, destRc.y, destRc.symbol);
+                            }
+                            addEdge(info.num, exitId);
+                        }
+                    });
+                }
+                if (Array.isArray(rc.stubs)) {
+                    rc.stubs.forEach(function (stub) {
+                        zoneExitStubs.push({ roomId: info.num, dx: stub.dx, dy: stub.dy });
+                    });
+                }
+            }
         }
+
+        currentRoomId = info.num;
 
         setCameraTarget(gx, gy);
     }
@@ -957,7 +1046,7 @@
         onGMCP: function (namespace) {
             if (namespace === 'World.Map') {
                 updateWorldMap();
-            } else {
+            } else if (namespace === 'Room.Info' || namespace === 'Room') {
                 updateMap();
             }
         },
