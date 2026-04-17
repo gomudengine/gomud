@@ -19,7 +19,7 @@
             height: 100%;
             display: flex;
             flex-direction: column;
-            background: #000;
+            background: #1e1e1e;
             color: #cfcfcf;
             font-family: monospace;
             font-size: 0.75em;
@@ -77,7 +77,7 @@
             return {
                 title: 'Debug Log',
                 mount: el,
-                background: '#1c6b60',
+                background: '#1e1e1e',
                 border: 1,
                 x: 'right',
                 y: 450,

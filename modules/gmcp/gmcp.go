@@ -274,6 +274,20 @@ func (g *GMCPModule) HandleWebGMCP(connectionId uint64, webGMCP []byte) bool {
 			return true
 		}
 
+		if strings.HasPrefix(payloadStr, `World`) {
+			// Try to find the user ID associated with this connection
+			for _, user := range users.GetAllActiveUsers() {
+				if user.ConnectionId() == connectionId {
+					events.AddToQueue(GMCPWorldUpdate{
+						UserId:     user.UserId,
+						Identifier: payloadStr,
+					})
+					break
+				}
+			}
+			return true
+		}
+
 	}
 
 	return false

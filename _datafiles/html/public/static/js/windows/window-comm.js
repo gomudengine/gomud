@@ -24,7 +24,7 @@
             display: flex;
             flex-direction: column;
             height: 100%;
-            background: #000;
+            background: #1e1e1e;
         }
 
         #comm-output .tab-buttons {
@@ -58,7 +58,7 @@
         }
 
         #comm-output .tab-button.active {
-            background: #000;
+            background: #1e1e1e;
             color: #dffbd1;
             border-bottom: 2px solid #3ad4b8;
         }
@@ -66,7 +66,7 @@
         #comm-output .tab-contents {
             flex: 1;
             overflow: hidden;
-            background: #000;
+            background: #1e1e1e;
         }
 
         #comm-output .tab-content {
@@ -80,7 +80,7 @@
 
         .chat-window {
             overflow: scroll;
-            background-color: #000;
+            background-color: #1e1e1e;
             color: #fff;
         }
 
@@ -175,7 +175,7 @@
             return {
                 title:      'Communications',
                 mount:      el,
-                background: '#1c6b60',
+                background: '#1e1e1e',
                 border:     1,
                 x:          'right',
                 y:          450,

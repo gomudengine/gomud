@@ -127,7 +127,7 @@
             return {
                 title:      'Vitals',
                 mount:      el,
-                background: '#1c6b60',
+                background: '#1e1e1e',
                 border:     1,
                 x:          0,
                 y:          0,

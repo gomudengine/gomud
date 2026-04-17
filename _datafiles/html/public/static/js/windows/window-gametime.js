@@ -23,7 +23,7 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            background: #000;
+            background: #1e1e1e;
             user-select: none;
         }
 
@@ -192,7 +192,7 @@
             return {
                 title:      'Time & Date',
                 mount:      el,
-                background: '#1c3a5e',
+                background: '#1e1e1e',
                 border:     1,
                 x:          0,
                 y:          0,

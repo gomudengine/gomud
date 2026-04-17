@@ -26,7 +26,7 @@
             height: 100%;
             overflow-y: auto;
             padding: 4px 6px;
-            background: #000;
+            background: #1e1e1e;
             display: flex;
             flex-direction: column;
             gap: 4px;
@@ -159,7 +159,7 @@
             return {
                 title:      'Party',
                 mount:      el,
-                background: '#1c6b60',
+                background: '#1e1e1e',
                 border:     1,
                 x:          0,
                 y:          0,

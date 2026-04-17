@@ -39,7 +39,7 @@
             height: 100%;
             display: flex;
             flex-direction: column;
-            background: #000;
+            background: #1e1e1e;
         }
 
         #character-window .cw-tab-bar {
@@ -73,7 +73,7 @@
         }
 
         #character-window .cw-tab-btn.active {
-            background: #000;
+            background: #1e1e1e;
             color: #dffbd1;
             border-bottom: 2px solid #3ad4b8;
         }
@@ -772,7 +772,7 @@
             return {
                 title:      'Character',
                 mount:      el,
-                background: '#1c6b60',
+                background: '#1e1e1e',
                 border:     1,
                 x:          0,
                 y:          0,
