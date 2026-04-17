@@ -159,22 +159,19 @@ jobs:
             > "${{ env.CHECKSUMS_FILE }}"
 
       - name: Release with notes
-        uses: softprops/action-gh-release@v3.0.0
-        with:
-          files: |
-            bin/gomud-windows_x64.exe
-            bin/gomud-darwin_arm64
-            bin/gomud-darwin_x64
-            bin/gomud-linux_x64
-            bin/gomud-linux_arm5
-            bin/${{ env.DATAFILES_ARCHIVE }}
-            bin/${{ env.CHECKSUMS_FILE }}
-          name: ${{ env.RELEASE_TAG }}
-          tag_name: ${{ env.RELEASE_TAG }}
-          target_commitish: ${{ github.sha }}
-          prerelease: true
-          make_latest: false
-          generate_release_notes: true
-          fail_on_unmatched_files: true
+        run: |
+          gh release create "$RELEASE_TAG" \
+            bin/gomud-windows_x64.exe \
+            bin/gomud-darwin_arm64 \
+            bin/gomud-darwin_x64 \
+            bin/gomud-linux_x64 \
+            bin/gomud-linux_arm5 \
+            "bin/$DATAFILES_ARCHIVE" \
+            "bin/$CHECKSUMS_FILE" \
+            --title "$RELEASE_TAG" \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --latest=false \
+            --generate-notes
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
