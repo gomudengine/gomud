@@ -1,3 +1,5 @@
+/* global MP3Player, WinBox */
+
 /**
  * webclient-core.js
  *

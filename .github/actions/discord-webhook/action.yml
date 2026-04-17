@@ -17,7 +17,7 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: tsickert/discord-webhook@v7.1.0
+    - uses: tsickert/discord-webhook@v7.0.0
       with:
         webhook-url: ${{ inputs.webhook-url }}
         embed-title: ${{ inputs.pr-title }}

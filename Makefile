@@ -13,6 +13,7 @@ CI_LOCAL_GID ?= $(shell id -g)
 CI_LOCAL_DOCKER_SOCK_GID ?= $(shell stat -c '%g' /var/run/docker.sock 2>/dev/null || id -g)
 CI_LOCAL_HOME ?= /home/gomud
 CI_LOCAL_ACT_CACHE_DIR ?= $(PWD)/.git/.cache/act
+JS_LINT_PATHS := $(shell find _datafiles -name '*.js' -print)
 CI_LOCAL_RUN := docker run --rm \
 	--user "$(CI_LOCAL_UID):$(CI_LOCAL_GID)" \
 	--group-add "$(CI_LOCAL_DOCKER_SOCK_GID)" \
@@ -180,8 +181,8 @@ coverage:
 js-lint:  ### Run Javascript linter
 #   Grep filtering it to remove errors reported by docker image around npm packages
 #   if "### errors" is found in the output, exits with an error code of 1
-#   This should allow us to use it in CI/CD
-	@docker run --rm -v "$(PWD)":/app -w /app node:20 npx jshint . \
+#   This should allow us to use it in CI/CD.
+	@docker run --rm -v "$(PWD)":/app -w /app node:22 npx jshint $(JS_LINT_PATHS) \
 	 2>&1 | grep -v "^npm " | tee /dev/stderr | grep -Eq "^[0-9]+ errors" && exit 1 || true
 
 #
