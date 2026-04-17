@@ -34,9 +34,9 @@ Recommended versioning for the next release line:
 4. **Monitor Release**
    - GitHub Actions will:
      - Run `go generate ./...`
-     - Build artifacts with `main.version=v0.10.0`
-     - Zip as `go-mud-release-v0.10.0.zip`
-     - Generate `go-mud-release-v0.10.0.zip.sha256`
+     - Build per-platform binaries with `main.version=v0.10.0`
+     - Archive `_datafiles` as `go-mud-datafiles-v0.10.0.zip`
+     - Generate `go-mud-v0.10.0-SHA256SUMS.txt`
      - Publish a GitHub prerelease for `v0.10.0`
      - Leave the release unmarked as `Latest`
 
@@ -88,8 +88,9 @@ Recommended versioning for the next release line:
 
 3. **Verify the GitHub release**
    - Confirm the workflow succeeds.
-   - Confirm the zip asset is attached.
-   - Confirm the `.sha256` checksum asset is attached.
+   - Confirm the per-platform binaries are attached.
+   - Confirm the `_datafiles` zip asset is attached.
+   - Confirm the checksum manifest asset is attached.
    - Confirm GitHub marks the release as a prerelease.
    - Confirm GitHub does not mark it as `Latest`.
 
@@ -112,8 +113,9 @@ Recommended versioning for the next release line:
   to `Latest` in GitHub when it is approved.
 
 - **What assets should a release include?**
-  Each release should include the bundled zip and a matching `.sha256` checksum file
-  so testers can verify the download before unpacking it.
+  Each release should include separate per-platform binaries, a `_datafiles` zip,
+  and a checksum manifest so testers can download only what they need and still
+  verify the assets.
 
 - **What tag format should we use going forward?**
   Start the next release line at `v0.10.x`. Use `v0.10.x` for stable releases,

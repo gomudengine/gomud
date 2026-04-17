@@ -14,9 +14,9 @@ permissions:
   contents: write
 
 env:
-  RELEASE_FILENAME: go-mud-release
   RELEASE_VERSION: ${{ github.ref_name }}
-  RELEASE_ARCHIVE: go-mud-release-${{ github.ref_name }}.zip
+  DATAFILES_ARCHIVE: go-mud-datafiles-${{ github.ref_name }}.zip
+  CHECKSUMS_FILE: go-mud-${{ github.ref_name }}-SHA256SUMS.txt
 
 jobs:
   build:
@@ -85,25 +85,35 @@ jobs:
           name: bin-artifact
           path: bin/
 
-      - name: Archive release
+      - name: Archive datafiles
         run: >-
           zip -r
-          bin/${{ env.RELEASE_ARCHIVE }}
-          bin/
+          bin/${{ env.DATAFILES_ARCHIVE }}
+          bin/_datafiles
 
-      - name: Generate release checksum
-        run: >-
-          sha256sum
-          bin/${{ env.RELEASE_ARCHIVE }}
-          >
-          bin/${{ env.RELEASE_ARCHIVE }}.sha256
+      - name: Generate release checksums
+        run: |
+          cd bin
+          sha256sum \
+            go-mud-windows_x64.exe \
+            go-mud-darwin_arm64 \
+            go-mud-darwin_x64 \
+            go-mud-linux_x64 \
+            go-mud-linux_arm5 \
+            "${{ env.DATAFILES_ARCHIVE }}" \
+            > "${{ env.CHECKSUMS_FILE }}"
 
       - name: Release with notes
         uses: softprops/action-gh-release@v3.0.0
         with:
           files: |
-            bin/${{ env.RELEASE_ARCHIVE }}
-            bin/${{ env.RELEASE_ARCHIVE }}.sha256
+            bin/go-mud-windows_x64.exe
+            bin/go-mud-darwin_arm64
+            bin/go-mud-darwin_x64
+            bin/go-mud-linux_x64
+            bin/go-mud-linux_arm5
+            bin/${{ env.DATAFILES_ARCHIVE }}
+            bin/${{ env.CHECKSUMS_FILE }}
           name: ${{ env.RELEASE_VERSION }} prerelease
           tag_name: ${{ env.RELEASE_VERSION }}
           prerelease: true
