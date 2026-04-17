@@ -98,6 +98,23 @@ When the GoMud server is running, you can connect it via the Terminal, or with a
 - Web client: [http://localhost/webclient](http://localhost/webclient)
 - Web admin: [http://localhost/admin/](http://localhost/admin/)
 
+### HTTPS With Certificate Files
+
+GoMud can serve HTTPS when you provide a certificate and private key.
+
+- Set `FilePaths.HttpsCertFile` to the certificate path.
+- Set `FilePaths.HttpsKeyFile` to the private key path.
+- Set `Network.HttpsPort` to the HTTPS port players should use.
+- Set `Network.HttpsRedirect` to `true` if plain HTTP should redirect to HTTPS.
+
+For a guided config update, run:
+
+```shell
+make https-setup
+```
+
+The helper updates `_datafiles/config.yaml` and writes a timestamped backup before making changes.
+
 Default seeded credentials in the bundled world:
 
 - Username: `admin`

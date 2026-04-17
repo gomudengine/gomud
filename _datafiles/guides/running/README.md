@@ -35,3 +35,22 @@ Or you can just build the binary if you prefer:
 Or if you have docker installed:
 
 > `docker compose up --build`
+
+
+# HTTPS With Certificate Files
+
+GoMud already supports HTTPS when you provide certificate files.
+
+For a guided config update, run:
+
+> `make https-setup`
+
+The helper updates `_datafiles/config.yaml` and creates a timestamped backup first.
+
+1. Get a certificate and private key for the hostname players will use.
+2. Set `FilePaths.HttpsCertFile` to the certificate path.
+3. Set `FilePaths.HttpsKeyFile` to the private key path.
+4. Set `Network.HttpsPort` to the HTTPS port.
+5. Optionally set `Network.HttpsRedirect` to `true`.
+
+Restart GoMud after applying the settings.

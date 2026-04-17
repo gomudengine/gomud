@@ -142,6 +142,10 @@ run-new: clean-instances generate run ### Deletes instance data and runs server
 run-docker: ### Build and run server in docker.
 	$(DOCKER_COMPOSE) up --build --remove-orphans server
 
+.PHONY: https-setup
+https-setup: ### Interactive HTTPS certificate setup helper.
+	@sh ./scripts/https-setup.sh
+
 
 .PHONY: client
 client: ### Build and run client terminal client
