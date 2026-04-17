@@ -1,7 +1,5 @@
 //go:build !windows
 
-// Windows does not support the signal being used, let alone the rest of copyover functionality.
-
 package main
 
 import (
@@ -11,6 +9,10 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 )
+
+func registerShutdownSignals(sigCh chan os.Signal) {
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM, syscall.SIGTSTP)
+}
 
 func startCopyoverSignalHandler() {
 	sigCh := make(chan os.Signal, 1)

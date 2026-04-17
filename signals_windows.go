@@ -1,4 +1,4 @@
-//go:build !windows
+//go:build windows
 
 package main
 
@@ -9,5 +9,7 @@ import (
 )
 
 func registerShutdownSignals(sigCh chan os.Signal) {
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM, syscall.SIGTSTP)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 }
+
+func startCopyoverSignalHandler() {}
