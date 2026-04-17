@@ -98,20 +98,41 @@ When the GoMud server is running, you can connect it via the Terminal, or with a
 - Web client: [http://localhost/webclient](http://localhost/webclient)
 - Web admin: [http://localhost/admin/](http://localhost/admin/)
 
-Default seeded credentials in the bundled world:
-
-- Username: `admin`
-- Password: `password`
-
 ### HTTPS With Certificate Files
 
-GoMud can serve HTTPS when you provide a certificate and private key, or can be automated using LetsEncrypt provisioning.
+GoMud can serve HTTPS when you provide a certificate and private key.
 
-For a guided HTTPS setup process, run:
+- Set `FilePaths.HttpsCertFile` to the certificate path.
+- Set `FilePaths.HttpsKeyFile` to the private key path.
+- Set `Network.HttpsPort` to the HTTPS port players should use.
+- Set `Network.HttpsRedirect` to `true` if plain HTTP should redirect to HTTPS.
+
+For a guided config update, run:
 
 ```shell
 make https-setup
 ```
+
+The helper does not edit the bundled base config directly.
+It can PATCH a running GoMud server through `/admin/api/v1/config`, or print a `config-overrides.yaml` snippet for manual save.
+
+### Automatic HTTPS
+
+GoMud can now obtain and renew Let's Encrypt certificates itself for simple single-server installs.
+
+- Set `FilePaths.WebDomain` to your public DNS name.
+- Leave `FilePaths.HttpsCertFile` and `FilePaths.HttpsKeyFile` empty unless you want to supply your own certificate files.
+- Set `Network.HttpPort` to `80` and `Network.HttpsPort` to `443`.
+- Optional: set `FilePaths.HttpsEmail` to receive certificate expiry notices.
+- Point your DNS name at the server and make sure inbound ports `80` and `443` are reachable.
+
+If automatic HTTPS cannot be completed, GoMud keeps serving HTTP and logs the exact reason. Local development on `localhost` should continue to use plain HTTP.
+
+When the admin interface is enabled, `/admin/https/` shows the current HTTPS mode, the checks GoMud ran, and the next steps needed to finish setup.
+Default seeded credentials in the bundled world:
+
+- Username: `admin`
+- Password: `password`
 
 ---
 

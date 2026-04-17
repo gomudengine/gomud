@@ -55,3 +55,21 @@ It can PATCH a running GoMud server through `/admin/api/v1/config`, or print a `
 5. Optionally set `Network.HttpsRedirect` to `true`.
 
 Restart GoMud after applying the settings.
+
+# Automatic HTTPS
+
+For simple single-server installs, GoMud can automatically manage Let's Encrypt certificates for the built-in web client and admin UI.
+
+1. Point a public DNS name at your server.
+2. In `_datafiles/config.yaml`, set `FilePaths.WebDomain` to that hostname.
+3. Set `Network.HttpPort` to `80` and `Network.HttpsPort` to `443`.
+4. Optionally set `FilePaths.HttpsEmail` so Let's Encrypt can send expiry notices.
+5. Leave `FilePaths.HttpsCertFile` and `FilePaths.HttpsKeyFile` empty unless you want to use your own certificate files instead.
+
+Notes:
+
+- Automatic HTTPS is intended for one public server that owns ports `80` and `443`.
+- `localhost`, private-only names, and raw IP addresses will stay on HTTP.
+- If automatic HTTPS cannot succeed, GoMud falls back to HTTP and logs what to fix.
+- The certificate cache is stored in `FilePaths.HttpsCacheDir`, which defaults to `_datafiles/tls`.
+- The admin page at `/admin/https/` shows the current HTTPS mode, checks, and recommended fixes.

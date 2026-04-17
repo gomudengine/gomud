@@ -1,1 +1,11 @@
+.git
+.gitignore
+.vscode
+vendor
+go-mud-server
+tmp-gomud.exe
+server.crt
+server.key
 _datafiles/tls/
+_datafiles/config.yaml.bak.*
+__debug*
