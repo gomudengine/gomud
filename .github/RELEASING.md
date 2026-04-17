@@ -5,6 +5,14 @@
 This downstream fork is the proving ground for release automation changes before they
 are proposed upstream.
 
+Recommended versioning for the next release line:
+
+- Start the next stable release at `v0.10.0`.
+- Use normal stable tags as `v0.10.x`.
+- Use SemVer prerelease tags for downstream validation, not ad hoc `-test` tags.
+- Prefer `v0.10.x-pre.YYYYMMDDHHMMSS` for disposable downstream runs.
+- Prefer `v0.10.x-rc.N` for a release candidate you may want to share or promote.
+
 ### 1. New Feature or Breaking‑Change Release (Minor/Major)
 
 1. **Merge & Verify**
@@ -18,17 +26,17 @@ are proposed upstream.
 
 3. **Create Git Tag**
    ```bash
-   git tag vX.Y.Z
-   git push origin vX.Y.Z
+   git tag v0.10.0
+   git push origin v0.10.0
    ```
    This triggers the `Release` workflow.
 
 4. **Monitor Release**
    - GitHub Actions will:
      - Run `go generate ./...`
-     - Build artifacts with `main.version=vX.Y.Z`
-     - Zip as `go-mud-release-vX.Y.Z.zip`
-     - Publish a GitHub prerelease for `vX.Y.Z`
+     - Build artifacts with `main.version=v0.10.0`
+     - Zip as `go-mud-release-v0.10.0.zip`
+     - Publish a GitHub prerelease for `v0.10.0`
      - Leave the release unmarked as `Latest`
 
 5. **Announce**
@@ -45,9 +53,9 @@ are proposed upstream.
 
 2. **Determine Patch Bump**
    ```bash
-   # if current version is vX.Y.Z:
-   git tag vX.Y.(Z+1)
-   git push origin vX.Y.(Z+1)
+   # for example, after v0.10.0:
+   git tag v0.10.1
+   git push origin v0.10.1
    ```
 
 3. **Tag & Push**
@@ -65,10 +73,16 @@ are proposed upstream.
    - Use this downstream repo to verify any release automation change before opening
      an upstream PR.
 
-2. **Push a disposable test tag**
+2. **Push a disposable prerelease tag**
    ```bash
-   git tag vX.Y.Z-test.1
-   git push origin vX.Y.Z-test.1
+   git tag v0.10.0-pre.20260417014024
+   git push origin v0.10.0-pre.20260417014024
+   ```
+
+   Or, for a numbered candidate:
+   ```bash
+   git tag v0.10.0-rc.1
+   git push origin v0.10.0-rc.1
    ```
 
 3. **Verify the GitHub release**
@@ -94,6 +108,11 @@ are proposed upstream.
 - **Are workflow-created releases stable releases?**
   No - the workflow creates prereleases. A repo owner must manually promote a release
   to `Latest` in GitHub when it is approved.
+
+- **What tag format should we use going forward?**
+  Start the next release line at `v0.10.x`. Use `v0.10.x` for stable releases,
+  `v0.10.x-pre.YYYYMMDDHHMMSS` for disposable downstream validation, and
+  `v0.10.x-rc.N` for numbered release candidates.
 
 - **When should I bump minor vs. patch?**
   - **Minor** for new, backward‑compatible features.
