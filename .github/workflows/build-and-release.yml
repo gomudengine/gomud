@@ -160,7 +160,7 @@ jobs:
             bin/gomud-linux_arm5
             bin/${{ env.DATAFILES_ARCHIVE }}
             bin/${{ env.CHECKSUMS_FILE }}
-          name: ${{ env.RELEASE_TAG }} prerelease
+          name: ${{ env.RELEASE_TAG }}
           tag_name: ${{ env.RELEASE_TAG }}
           prerelease: true
           make_latest: false
