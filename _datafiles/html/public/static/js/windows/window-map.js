@@ -44,6 +44,12 @@
     var ZOOM_MIN = 0.25;
     var ZOOM_MAX = 4.0;
 
+    /**
+     * Duration in seconds for the camera to ease to a new room.
+     * Set to 0 to disable easing and snap instantly.
+     */
+    var CENTER_EASE_DURATION = 0.2;
+
     /** Stroke width of the brown connection lines between rooms. */
     var CONNECTION_WIDTH = 4;
 
@@ -243,6 +249,21 @@
     /** RoomId of the player's current room. */
     var currentRoomId = null;
 
+    /**
+     * Camera position in grid coordinates. Interpolates toward the current
+     * room's grid position when CENTER_EASE_DURATION > 0.
+     */
+    var cameraX = 0;
+    var cameraY = 0;
+
+    /** Animation state for camera easing. */
+    var easeStartX   = 0;
+    var easeStartY   = 0;
+    var easeTargetX  = 0;
+    var easeTargetY  = 0;
+    var easeStartTime = null;
+    var easeRafId    = null;
+
     /** Current zoom scale factor. */
     var zoomScale = 1.0;
 
@@ -286,19 +307,62 @@
      * the current room, respecting the current zoom scale.
      */
     function gridToCanvas(gx, gy) {
-        var cx = currentRoomId !== null && rooms.has(currentRoomId) ?
-            rooms.get(currentRoomId).x : 0;
-        var cy = currentRoomId !== null && rooms.has(currentRoomId) ?
-            rooms.get(currentRoomId).y : 0;
-
         var midX = Math.floor(canvas.width  / 2);
         var midY = Math.floor(canvas.height / 2);
         var step = BASE_STEP * zoomScale;
 
         return {
-            px: midX + (gx - cx) * step,
-            py: midY + (gy - cy) * step,
+            px: midX + (gx - cameraX) * step,
+            py: midY + (gy - cameraY) * step,
         };
+    }
+
+    // -------------------------------------------------------------------------
+    // Camera easing
+    // -------------------------------------------------------------------------
+
+    /** Smoothstep easing: maps t in [0,1] to a smooth curve. */
+    function smoothstep(t) {
+        return t * t * (3 - 2 * t);
+    }
+
+    /**
+     * Begin easing the camera toward the given grid target.
+     * If CENTER_EASE_DURATION is 0, snaps immediately.
+     */
+    function setCameraTarget(tx, ty) {
+        if (CENTER_EASE_DURATION <= 0) {
+            cameraX = tx;
+            cameraY = ty;
+            render();
+            return;
+        }
+
+        // Cancel any in-progress ease
+        if (easeRafId !== null) { cancelAnimationFrame(easeRafId); easeRafId = null; }
+
+        easeStartX    = cameraX;
+        easeStartY    = cameraY;
+        easeTargetX   = tx;
+        easeTargetY   = ty;
+        easeStartTime = null;
+
+        function step(timestamp) {
+            if (easeStartTime === null) { easeStartTime = timestamp; }
+            var elapsed  = (timestamp - easeStartTime) / 1000;
+            var t        = Math.min(elapsed / CENTER_EASE_DURATION, 1);
+            var s        = smoothstep(t);
+            cameraX = easeStartX + (easeTargetX - easeStartX) * s;
+            cameraY = easeStartY + (easeTargetY - easeStartY) * s;
+            render();
+            if (t < 1) {
+                easeRafId = requestAnimationFrame(step);
+            } else {
+                easeRafId = null;
+            }
+        }
+
+        easeRafId = requestAnimationFrame(step);
     }
 
     // -------------------------------------------------------------------------
@@ -402,6 +466,9 @@
         edges.clear();
         zoneExitStubs = [];
         currentRoomId = null;
+        cameraX = 0;
+        cameraY = 0;
+        if (easeRafId !== null) { cancelAnimationFrame(easeRafId); easeRafId = null; }
     }
 
     function replayZone(zoneKey) {
@@ -672,6 +739,20 @@
 
         canvas.addEventListener('mouseleave', hideTooltip);
 
+        canvas.addEventListener('click', function (e) {
+            var charInfo = Client.GMCPStructs.Char && Client.GMCPStructs.Char.Info;
+            if (!charInfo) { return; }
+            if (charInfo.role !== 'admin') { return; }
+            var rect  = canvas.getBoundingClientRect();
+            var id    = roomAtCanvasPoint(e.clientX - rect.left, e.clientY - rect.top);
+            if (id === null) { return; }
+            e.stopPropagation();
+            uiMenu(e, [
+                { label: 'teleport ' + id,  cmd: 'teleport ' + id  },
+                { label: 'room info ' + id, cmd: 'room info ' + id },
+            ]);
+        });
+
         var controls = document.createElement('div');
         controls.id = 'map-zoom-controls';
 
@@ -846,7 +927,7 @@
             zoneArr[existing] = record;
         }
 
-        render();
+        setCameraTarget(gx, gy);
     }
 
     // -------------------------------------------------------------------------

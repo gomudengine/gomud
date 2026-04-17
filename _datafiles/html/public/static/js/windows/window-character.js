@@ -1,4 +1,4 @@
-/* global Client, VirtualWindow, VirtualWindows, injectStyles */
+/* global Client, VirtualWindow, VirtualWindows, injectStyles, uiMenu */
 
 /**
  * window-character.js
@@ -10,6 +10,8 @@
  *                HP/MP bars, equipment slots (with hover tooltips)
  *   Backpack   — carried items with carry capacity, hover tooltips
  *   Quests     — in-progress quest log, click to expand
+ *   Skills     — learned skills with levels and max indicator
+ *   Jobs       — profession completion and proficiency
  *
  * Responds to GMCP namespaces:
  *   Char                    — full character update
@@ -19,6 +21,8 @@
  *   Char.Inventory          — worn equipment + backpack
  *   Char.Inventory.Backpack — backpack items only
  *   Char.Quests             — quest progress
+ *   Char.Skills             — skill names, levels, max flag
+ *   Char.Jobs               — profession completion and proficiency
  *
  * Reads:
  *   Client.GMCPStructs.Char.Info
@@ -27,6 +31,8 @@
  *   Client.GMCPStructs.Char.Inventory.Worn
  *   Client.GMCPStructs.Char.Inventory.Backpack
  *   Client.GMCPStructs.Char.Quests
+ *   Client.GMCPStructs.Char.Skills
+ *   Client.GMCPStructs.Char.Jobs
  */
 
 'use strict';
@@ -105,6 +111,14 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+        }
+
+        #cw-char-name .cw-char-race {
+            cursor: help;
+        }
+
+        #cw-char-name .cw-char-race:hover {
+            color: #3ad4b8;
         }
 
         #cw-char-level {
@@ -195,6 +209,12 @@
             justify-content: space-between;
             align-items: baseline;
             gap: 3px;
+            cursor: help;
+        }
+
+        .cw-stat-cell:hover .cw-stat-abbr,
+        .cw-stat-cell:hover .cw-stat-num {
+            color: #3ad4b8;
         }
 
         .cw-stat-abbr {
@@ -493,6 +513,162 @@
         .cw-bp-badge.cursed { background:#3d0f0f; color:#e06060; border:1px solid #6b1c1c; }
         .cw-bp-badge.quest  { background:#2e2000; color:#d4a843; border:1px solid #6b5010; }
         .cw-bp-badge.uses   { background:#1a1a2e; color:#9ab0d4; border:1px solid #2e4a6b; }
+
+        /* ---- Skills tab ---- */
+        #cw-skills {
+            padding: 4px 6px;
+            gap: 3px;
+        }
+
+        #cw-skills .csk-empty {
+            color: #444;
+            font-size: 0.78em;
+            font-style: italic;
+            text-align: center;
+            padding: 12px 0;
+        }
+
+        .csk-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            min-height: 20px;
+            border-bottom: 1px solid #0a1a16;
+            padding: 3px 2px;
+            flex-shrink: 0;
+        }
+
+        .csk-row:last-child { border-bottom: none; }
+
+        .csk-name {
+            flex: 1;
+            font-size: 0.78em;
+            color: #dffbd1;
+            text-transform: capitalize;
+        }
+
+        .csk-pips {
+            display: flex;
+            gap: 3px;
+            flex-shrink: 0;
+        }
+
+        .csk-pip {
+            width: 9px;
+            height: 9px;
+            border-radius: 2px;
+            border: 1px solid #1c6b60;
+            background: #0a1e1a;
+        }
+
+        .csk-pip.filled {
+            background: #3ad4b8;
+            border-color: #3ad4b8;
+        }
+
+        .csk-pip.filled.max {
+            background: #d4a843;
+            border-color: #d4a843;
+        }
+
+        .csk-badge {
+            font-size: 0.58em;
+            padding: 1px 4px;
+            border-radius: 3px;
+            flex-shrink: 0;
+            background: #2e2000;
+            color: #d4a843;
+            border: 1px solid #6b5010;
+        }
+
+        /* ---- Jobs tab ---- */
+        #cw-jobs {
+            padding: 4px 6px;
+            gap: 5px;
+        }
+
+        #cw-jobs .cjb-empty {
+            color: #444;
+            font-size: 0.78em;
+            font-style: italic;
+            text-align: center;
+            padding: 12px 0;
+        }
+
+        .cjb-item {
+            background: #0a1e1a;
+            border: 1px solid #1c6b60;
+            border-radius: 4px;
+            padding: 5px 7px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .cjb-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 6px;
+        }
+
+        .cjb-name {
+            font-size: 0.82em;
+            color: #dffbd1;
+            font-weight: bold;
+            text-transform: capitalize;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .cjb-meta {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex-shrink: 0;
+        }
+
+        .cjb-proficiency {
+            font-size: 0.68em;
+            color: #7ab8a0;
+            text-transform: capitalize;
+        }
+
+        .cjb-pct {
+            font-size: 0.7em;
+            color: #7ab8a0;
+        }
+
+        .cjb-bar-track {
+            width: 100%;
+            height: 5px;
+            background: #1a1a1a;
+            border-radius: 3px;
+            overflow: hidden;
+            border: 1px solid #1a2e28;
+        }
+
+        .cjb-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            background: linear-gradient(to right, #1c6b60, #3ad4b8);
+            transition: width 0.4s ease-out;
+        }
+
+        .cjb-item.complete .cjb-name {
+            color: #d4a843;
+        }
+
+        .cjb-item.complete .cjb-pct {
+            color: #d4a843;
+            font-weight: bold;
+        }
+
+        .cjb-bar-fill.complete {
+            background: #d4a843;
+        }
     `);
 
     // -----------------------------------------------------------------------
@@ -654,6 +830,38 @@
     }
 
     // -----------------------------------------------------------------------
+    // Context menu helpers
+    // -----------------------------------------------------------------------
+    function _equipMenuItems(item) {
+        if (!item || !item.name) { return null; }
+        return [
+            { label: 'look '   + item.name, cmd: 'look '   + item.name },
+            { label: 'remove ' + item.name, cmd: 'remove ' + item.name },
+        ];
+    }
+
+    function _backpackMenuItems(item) {
+        if (!item || !item.name) { return null; }
+        const type    = (item.type    || '').toLowerCase();
+        const subtype = (item.subtype || '').toLowerCase();
+        const cmds = [{ label: 'look ' + item.name, cmd: 'look ' + item.name }];
+        if (type === 'weapon' || subtype === 'wearable') {
+            cmds.push({ label: 'equip ' + item.name, cmd: 'equip ' + item.name });
+        } else if (subtype === 'edible') {
+            cmds.push({ label: 'eat ' + item.name, cmd: 'eat ' + item.name });
+        } else if (subtype === 'drinkable') {
+            cmds.push({ label: 'drink ' + item.name, cmd: 'drink ' + item.name });
+        } else if (subtype === 'usable') {
+            cmds.push({ label: 'use ' + item.name, cmd: 'use ' + item.name });
+        } else if (subtype === 'throwable') {
+            cmds.push({ label: 'throw ' + item.name, cmd: 'throw ' + item.name });
+        } else if (type === 'readable') {
+            cmds.push({ label: 'read ' + item.name, cmd: 'read ' + item.name });
+        }
+        return cmds;
+    }
+
+    // -----------------------------------------------------------------------
     // Tab switching
     // -----------------------------------------------------------------------
     function makeTabSwitcher(root) {
@@ -726,6 +934,8 @@
                 '<button class="cw-tab-btn active" data-panel="cw-overview">Overview</button>' +
                 '<button class="cw-tab-btn"        data-panel="cw-backpack">Backpack</button>' +
                 '<button class="cw-tab-btn"        data-panel="cw-quests">Quests</button>' +
+                '<button class="cw-tab-btn"        data-panel="cw-skills">Skills</button>' +
+                '<button class="cw-tab-btn"        data-panel="cw-jobs">Jobs</button>' +
             '</div>' +
 
             '<div class="cw-tab-panel active" id="cw-overview">' +
@@ -746,15 +956,37 @@
 
             '<div class="cw-tab-panel" id="cw-quests">' +
                 '<div class="cq-empty">No active quests</div>' +
+            '</div>' +
+
+            '<div class="cw-tab-panel" id="cw-skills">' +
+                '<div class="csk-empty">No skills learned</div>' +
+            '</div>' +
+
+            '<div class="cw-tab-panel" id="cw-jobs">' +
+                '<div class="cjb-empty">No job progress</div>' +
             '</div>';
 
         document.body.appendChild(el);
         makeTabSwitcher(el);
 
-        // Attach tooltip listeners to all equipment rows
+        // Attach click listeners to stat cells
+        STAT_DEFS.forEach(d => {
+            const cell = el.querySelector('.cw-stat-cell:has(#cw-stat-' + d.key + ')');
+            if (cell) {
+                cell.addEventListener('click', () => Client.GMCPRequest('Help ' + d.key));
+            }
+        });
+
+        // Attach tooltip and click-menu listeners to all equipment rows
         EQUIP_SLOTS.forEach(s => {
             const rowEl = el.querySelector('#cw-eqrow-' + s.key);
-            if (rowEl) { attachTooltip(rowEl); }
+            if (!rowEl) { return; }
+            attachTooltip(rowEl);
+            rowEl.addEventListener('click', function(e) {
+                const menuItems = _equipMenuItems(rowItemData.get(rowEl));
+                if (menuItems) { uiMenu(e, menuItems); }
+            });
+            rowEl.style.cursor = 'pointer';
         });
 
         return el;
@@ -791,7 +1023,31 @@
         const info = Client.GMCPStructs.Char && Client.GMCPStructs.Char.Info;
 
         if (info) {
-            document.getElementById('cw-char-name').textContent = [info.name, info.race, info.class].filter(Boolean).join(' · ') || '—';
+            const nameEl = document.getElementById('cw-char-name');
+            nameEl.innerHTML = '';
+
+            const parts = [info.name, info.class].filter(Boolean);
+            if (parts.length) {
+                nameEl.appendChild(document.createTextNode(parts.join(' · ')));
+            }
+
+            if (info.race) {
+                if (parts.length) {
+                    nameEl.appendChild(document.createTextNode(' · '));
+                }
+                const raceSpan = document.createElement('span');
+                raceSpan.className   = 'cw-char-race';
+                raceSpan.textContent = info.race;
+                raceSpan.addEventListener('click', () => {
+                    Client.GMCPRequest('Help race ' + info.race.toLowerCase());
+                });
+                nameEl.appendChild(raceSpan);
+            }
+
+            if (!nameEl.textContent) {
+                nameEl.textContent = '—';
+            }
+
             document.getElementById('cw-char-level').textContent = info.level ? 'Level ' + info.level : 'Level —';
 
             const alignEl = document.getElementById('cw-char-alignment');
@@ -828,6 +1084,7 @@
                 nameEl.className   = 'cw-equip-name empty';
                 badgeEl.style.display = 'none';
                 rowItemData.delete(rowEl);
+                prevEquipNames[slot.key] = '';
                 return;
             }
 
@@ -932,6 +1189,110 @@
             // Register item data and attach tooltip — same mechanism as equipment
             rowItemData.set(row, item);
             attachTooltip(row);
+            row.style.cursor = 'pointer';
+            row.addEventListener('click', function(e) {
+                const menuItems = _backpackMenuItems(rowItemData.get(row));
+                if (menuItems) { uiMenu(e, menuItems); }
+            });
+
+        });
+    }
+
+    function updateSkills() {
+        const skillList = Client.GMCPStructs.Char && Client.GMCPStructs.Char.Skills;
+        const panel = document.getElementById('cw-skills');
+        if (!panel) { return; }
+
+        if (!Array.isArray(skillList) || skillList.length === 0) {
+            panel.innerHTML = '<div class="csk-empty">No skills learned</div>';
+            return;
+        }
+
+        // Sort alphabetically by name
+        const sorted = [...skillList].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+        panel.innerHTML = '';
+
+        sorted.forEach(function(skill) {
+            const level   = skill.level   || 0;
+            const isMax   = skill.maximum || false;
+            const MAX_LVL = 4;
+
+            const row = document.createElement('div');
+            row.className = 'csk-row';
+            row.style.cursor = 'help';
+
+            const nameEl = document.createElement('span');
+            nameEl.className   = 'csk-name';
+            nameEl.textContent = skill.name || '';
+
+            const pipsEl = document.createElement('span');
+            pipsEl.className = 'csk-pips';
+            for (var i = 1; i <= MAX_LVL; i++) {
+                const pip = document.createElement('span');
+                pip.className = 'csk-pip' + (i <= level ? ' filled' + (isMax ? ' max' : '') : '');
+                pipsEl.appendChild(pip);
+            }
+
+            row.appendChild(nameEl);
+            row.appendChild(pipsEl);
+
+            if (isMax) {
+                const badge = document.createElement('span');
+                badge.className   = 'csk-badge';
+                badge.textContent = 'MAX';
+                row.appendChild(badge);
+            }
+
+            row.addEventListener('click', function() {
+                Client.GMCPRequest('Help ' + (skill.name || '').toLowerCase().replace(/\s+/g, '-'));
+            });
+            panel.appendChild(row);
+        });
+    }
+
+    function updateJobs() {
+        const jobs  = Client.GMCPStructs.Char && Client.GMCPStructs.Char.Jobs;
+        const panel = document.getElementById('cw-jobs');
+        if (!panel) { return; }
+
+        if (!Array.isArray(jobs) || jobs.length === 0) {
+            panel.innerHTML = '<div class="cjb-empty">No job progress</div>';
+            return;
+        }
+
+        // Sort: highest completion first, then alphabetical
+        const sorted = [...jobs].sort(function(a, b) {
+            if (b.completion !== a.completion) { return b.completion - a.completion; }
+            return (a.name || '').localeCompare(b.name || '');
+        });
+
+        panel.innerHTML = '';
+
+        sorted.forEach(function(job) {
+            const pct      = Math.max(0, Math.min(100, job.completion || 0));
+            const complete = pct >= 100;
+
+            const item = document.createElement('div');
+            item.className    = 'cjb-item' + (complete ? ' complete' : '');
+            item.style.cursor = 'help';
+
+            item.innerHTML =
+                '<div class="cjb-header">' +
+                    '<span class="cjb-name">' + (job.name || '') + '</span>' +
+                    '<div class="cjb-meta">' +
+                        '<span class="cjb-proficiency">' + (job.proficiency || '') + '</span>' +
+                        '<span class="cjb-pct">' + pct + '%</span>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="cjb-bar-track">' +
+                    '<div class="cjb-bar-fill' + (complete ? ' complete' : '') + '" style="width:' + pct + '%"></div>' +
+                '</div>';
+
+            item.addEventListener('click', function() {
+                Client.GMCPRequest('Help ' + (job.name || '').toLowerCase().replace(/\s+/g, '-'));
+            });
+            panel.appendChild(item);
         });
     }
 
@@ -995,6 +1356,8 @@
         updateEquipment();
         updateBackpack();
         updateQuests();
+        updateSkills();
+        updateJobs();
     }
 
     // -----------------------------------------------------------------------
@@ -1002,7 +1365,7 @@
     // -----------------------------------------------------------------------
     VirtualWindows.register({
         window:       win,
-        gmcpHandlers: ['Char.Info', 'Char.Stats', 'Char.Inventory', 'Char.Inventory.Backpack', 'Char.Quests', 'Char'],
+        gmcpHandlers: ['Char.Info', 'Char.Stats', 'Char.Inventory', 'Char.Inventory.Backpack', 'Char.Quests', 'Char.Skills', 'Char.Jobs', 'Char'],
         onGMCP() { update(); },
     });
 

@@ -82,8 +82,14 @@
             overflow: scroll;
             background-color: #1e1e1e;
             color: #fff;
+            font-size: 12px;
+            padding: 2px;
         }
 
+        .chat-window p {
+            margin-bottom: 2px;
+        }
+        
         .chat-window.broadcast { color: #d700d7; }
         .chat-window.whisper   { color: #737670; }
 

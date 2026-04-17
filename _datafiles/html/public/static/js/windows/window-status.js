@@ -312,8 +312,8 @@
                     '<div class="sw-worth-cell"><span class="sw-worth-cell-label">Gold (bank)</span><span class="sw-worth-cell-value" id="sw-bank">—</span></div>' +
                 '</div>' +
                 '<div class="sw-points-row">' +
-                    '<div class="sw-point-badge" id="sw-badge-sp"><span class="sw-point-badge-label">Skill Pts</span><span class="sw-point-badge-value" id="sw-sp">—</span></div>' +
-                    '<div class="sw-point-badge" id="sw-badge-tp"><span class="sw-point-badge-label">Train Pts</span><span class="sw-point-badge-value" id="sw-tp">—</span></div>' +
+                    '<div class="sw-point-badge" id="sw-badge-sp"><span class="sw-point-badge-label">Skill Points</span><span class="sw-point-badge-value" id="sw-sp">—</span></div>' +
+                    '<div class="sw-point-badge" id="sw-badge-tp"><span class="sw-point-badge-label">Training Points</span><span class="sw-point-badge-value" id="sw-tp">—</span></div>' +
                 '</div>' +
             '</div>' +
 
@@ -323,6 +323,13 @@
 
         document.body.appendChild(el);
         makeTabSwitcher(el);
+
+        const spBadge = el.querySelector('#sw-badge-sp');
+        spBadge.style.cursor = 'help';
+        spBadge.addEventListener('click', () => Client.GMCPRequest('Help stat-train'));
+        const tpBadge = el.querySelector('#sw-badge-tp');
+        tpBadge.style.cursor = 'help';
+        tpBadge.addEventListener('click', () => Client.GMCPRequest('Help train'));
         return el;
     }
 

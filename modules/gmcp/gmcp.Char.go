@@ -242,7 +242,7 @@ func (g *GMCPCharModule) charTrainedHandler(e events.Event) events.ListenerRetur
 	}
 
 	// Changing equipment might affect stats, inventory, maxhp/maxmp etc
-	events.AddToQueue(GMCPCharUpdate{UserId: evt.UserId, Identifier: `Char.Stats, Char.Worth, Char.Vitals, Char.Inventory.Backpack.Summary`})
+	events.AddToQueue(GMCPCharUpdate{UserId: evt.UserId, Identifier: `Char.Stats, Char.Worth, Char.Vitals, Char.Inventory.Backpack.Summary, Char.Skills, Char.Jobs`})
 
 	return events.Continue
 }
@@ -350,6 +350,7 @@ func (g *GMCPCharModule) GetCharNode(user *users.UserRecord, gmcpModule string) 
 			Race:      user.Character.Race(),
 			Alignment: user.Character.AlignmentName(),
 			Level:     user.Character.Level,
+			Role:      user.Role,
 		}
 
 		if !all {
@@ -621,6 +622,41 @@ func (g *GMCPCharModule) GetCharNode(user *users.UserRecord, gmcpModule string) 
 		}
 	}
 
+	if all || g.wantsGMCPPayload(`Char.Skills`, gmcpModule) {
+
+		payload.Skills = []GMCPCharModule_Payload_Skill{}
+
+		for skillName, skillLevel := range user.Character.GetSkills() {
+			payload.Skills = append(payload.Skills, GMCPCharModule_Payload_Skill{
+				Name:    skillName,
+				Level:   skillLevel,
+				Maximum: skillLevel >= 4,
+			})
+		}
+
+		if !all {
+			return payload.Skills, `Char.Skills`
+		}
+	}
+
+	if all || g.wantsGMCPPayload(`Char.Jobs`, gmcpModule) {
+
+		payload.Jobs = []GMCPCharModule_Payload_Job{}
+
+		allRanks := user.Character.GetAllSkillRanks()
+		for _, rank := range skills.GetProfessionRanks(allRanks) {
+			payload.Jobs = append(payload.Jobs, GMCPCharModule_Payload_Job{
+				Name:        rank.Profession,
+				Proficiency: rank.ExperienceTitle,
+				Completion:  int(math.Floor(rank.Completion * 100)),
+			})
+		}
+
+		if !all {
+			return payload.Jobs, `Char.Jobs`
+		}
+	}
+
 	// If we reached this point and Char wasn't requested, we have a problem.
 	if !all {
 		mudlog.Error(`gmcp.Char`, `error`, `Bad module requested`, `module`, gmcpModule)
@@ -657,6 +693,8 @@ type GMCPCharModule_Payload struct {
 	Worth     *GMCPCharModule_Payload_Worth            `json:"Worth,omitempty"`
 	Quests    []GMCPCharModule_Payload_Quest           `json:"Quests,omitempty"`
 	Pets      []GMCPCharModule_Payload_Pet             `json:"Pets,omitempty"`
+	Skills    []GMCPCharModule_Payload_Skill           `json:"Skills,omitempty"`
+	Jobs      []GMCPCharModule_Payload_Job             `json:"Jobs,omitempty"`
 }
 
 // /////////////////
@@ -669,6 +707,7 @@ type GMCPCharModule_Payload_Info struct {
 	Race      string `json:"race,omitempty"`
 	Alignment string `json:"alignment,omitempty"`
 	Level     int    `json:"level,omitempty"`
+	Role      string `json:"role"`
 }
 
 // /////////////////
@@ -812,4 +851,22 @@ type GMCPCharModule_Payload_Pet struct {
 	Name   string `json:"name"`
 	Type   string `json:"type"`
 	Hunger string `json:"hunger"`
+}
+
+// /////////////////
+// Char.Skills
+// /////////////////
+type GMCPCharModule_Payload_Skill struct {
+	Name    string `json:"name"`
+	Level   int    `json:"level"`
+	Maximum bool   `json:"maximum,omitempty"`
+}
+
+// /////////////////
+// Char.Jobs
+// /////////////////
+type GMCPCharModule_Payload_Job struct {
+	Name        string `json:"name"`
+	Completion  int    `json:"completion"`
+	Proficiency string `json:"proficiency"`
 }

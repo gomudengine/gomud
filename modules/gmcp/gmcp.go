@@ -232,13 +232,21 @@ func (g *GMCPModule) HandleWebGMCP(connectionId uint64, webGMCP []byte) bool {
 		payloadStr := string(payload)
 		mudlog.Debug("GMCP Req", "connectionId", connectionId, "identifier", payloadStr)
 
-		if strings.HasPrefix(payloadStr, `Room`) {
+		// Split identifier from optional trailing data (e.g. "Help arcane-scholar")
+		identifier := payloadStr
+		extraData := ``
+		if spaceIdx := strings.Index(payloadStr, ` `); spaceIdx != -1 {
+			identifier = payloadStr[:spaceIdx]
+			extraData = strings.TrimSpace(payloadStr[spaceIdx+1:])
+		}
+
+		if strings.HasPrefix(identifier, `Room`) {
 			// Try to find the user ID associated with this connection
 			for _, user := range users.GetAllActiveUsers() {
 				if user.ConnectionId() == connectionId {
 					events.AddToQueue(GMCPRoomUpdate{
 						UserId:     user.UserId,
-						Identifier: payloadStr,
+						Identifier: identifier,
 					})
 					break
 				}
@@ -246,13 +254,13 @@ func (g *GMCPModule) HandleWebGMCP(connectionId uint64, webGMCP []byte) bool {
 			return true
 		}
 
-		if strings.HasPrefix(payloadStr, `Char`) {
+		if strings.HasPrefix(identifier, `Char`) {
 			// Try to find the user ID associated with this connection
 			for _, user := range users.GetAllActiveUsers() {
 				if user.ConnectionId() == connectionId {
 					events.AddToQueue(GMCPCharUpdate{
 						UserId:     user.UserId,
-						Identifier: payloadStr,
+						Identifier: identifier,
 					})
 					break
 				}
@@ -260,7 +268,7 @@ func (g *GMCPModule) HandleWebGMCP(connectionId uint64, webGMCP []byte) bool {
 			return true
 		}
 
-		if strings.HasPrefix(payloadStr, `Party`) {
+		if strings.HasPrefix(identifier, `Party`) {
 			// Try to find the user ID associated with this connection
 			for _, user := range users.GetAllActiveUsers() {
 				if user.ConnectionId() == connectionId {
@@ -274,13 +282,26 @@ func (g *GMCPModule) HandleWebGMCP(connectionId uint64, webGMCP []byte) bool {
 			return true
 		}
 
-		if strings.HasPrefix(payloadStr, `World`) {
+		if strings.HasPrefix(identifier, `World`) {
 			// Try to find the user ID associated with this connection
 			for _, user := range users.GetAllActiveUsers() {
 				if user.ConnectionId() == connectionId {
 					events.AddToQueue(GMCPWorldUpdate{
 						UserId:     user.UserId,
-						Identifier: payloadStr,
+						Identifier: identifier,
+					})
+					break
+				}
+			}
+			return true
+		}
+
+		if identifier == `Help` {
+			for _, user := range users.GetAllActiveUsers() {
+				if user.ConnectionId() == connectionId {
+					events.AddToQueue(GMCPHelpRequest{
+						UserId: user.UserId,
+						Topic:  extraData,
 					})
 					break
 				}

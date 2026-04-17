@@ -31,6 +31,99 @@ function injectStyles(css) {
 }
 
 // ---------------------------------------------------------------------------
+// uiMenu
+//
+// Spawns a small context menu anchored near a click event.
+// Dismisses on any outside click or when a command is chosen.
+//
+// Usage:
+//   uiMenu(event, [
+//       { label: 'look item',   cmd: 'look longsword'   },
+//       { label: 'remove item', cmd: 'remove longsword' },
+//   ]);
+// ---------------------------------------------------------------------------
+(function() {
+    let menuEl   = null;
+    let offClick = null;
+
+    function dismiss() {
+        if (menuEl) {
+            menuEl.remove();
+            menuEl = null;
+        }
+        if (offClick) {
+            document.removeEventListener('mousedown', offClick, true);
+            offClick = null;
+        }
+    }
+
+    window.uiMenu = function uiMenu(event, items) {
+        dismiss();
+
+        menuEl = document.createElement('div');
+        menuEl.style.cssText = [
+            'position:fixed',
+            'z-index:2147483647',
+            'background:#0d2e28',
+            'border:1px solid #1c6b60',
+            'border-radius:4px',
+            'box-shadow:0 4px 14px rgba(0,0,0,0.7)',
+            'padding:3px 0',
+            'min-width:120px',
+            'font-family:inherit',
+            'font-size:0.75em',
+        ].join(';');
+
+        items.forEach(function(item) {
+            const entry = document.createElement('div');
+            entry.textContent = item.label;
+            entry.style.cssText = [
+                'padding:5px 12px',
+                'color:#dffbd1',
+                'cursor:pointer',
+                'white-space:nowrap',
+                'letter-spacing:0.03em',
+            ].join(';');
+            entry.addEventListener('mouseenter', function() {
+                entry.style.background = '#1c6b60';
+                entry.style.color      = '#ffffff';
+            });
+            entry.addEventListener('mouseleave', function() {
+                entry.style.background = '';
+                entry.style.color      = '#dffbd1';
+            });
+            entry.addEventListener('mousedown', function(e) {
+                e.stopPropagation();
+                dismiss();
+                Client.SendInput(item.cmd);
+            });
+            menuEl.appendChild(entry);
+        });
+
+        // Position: prefer below-right of the click, flip if it would overflow
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        menuEl.style.left = '-9999px';
+        menuEl.style.top  = '-9999px';
+        document.body.appendChild(menuEl);
+
+        const mw = menuEl.offsetWidth;
+        const mh = menuEl.offsetHeight;
+        let x = event.clientX;
+        let y = event.clientY + 4;
+        if (x + mw > vw - 8) { x = vw - mw - 8; }
+        if (y + mh > vh - 8) { y = event.clientY - mh - 4; }
+        menuEl.style.left = Math.max(8, x) + 'px';
+        menuEl.style.top  = Math.max(8, y) + 'px';
+
+        offClick = function(e) {
+            if (menuEl && !menuEl.contains(e.target)) { dismiss(); }
+        };
+        document.addEventListener('mousedown', offClick, true);
+    };
+}());
+
+// ---------------------------------------------------------------------------
 // DockSlot
 //
 // Manages one side's dock column (#dock-left or #dock-right).
@@ -1096,10 +1189,10 @@ const Client = (() => {
     // -----------------------------------------------------------------------
     // Networking stats
     // -----------------------------------------------------------------------
-    let payloadsReceived = 0;
     let totalBytesReceived = 0;
-    let payloadsSent      = 0;
-    let totalBytesSent    = 0;
+    let totalBytesSent     = 0;
+    const gmcpInBytes      = {};  // namespace -> bytes received
+    let connectTime        = null; // Date of last successful connection
 
     // -----------------------------------------------------------------------
     // Command history
@@ -1151,14 +1244,13 @@ const Client = (() => {
     // Examples: Party, Room, Char
     //
     function GMCPRequest(namespace) {
-        socket.send(`!!GMCP(${namespace})`); 
+        sendData(`!!GMCP(${namespace})`);
     }
 
     function sendData(dataToSend) {
         if (!socket || socket.readyState !== WebSocket.OPEN) {
             return false;
         }
-        payloadsSent++;
         totalBytesSent += dataToSend.length;
         socket.send(dataToSend);
         return true;
@@ -1244,7 +1336,6 @@ const Client = (() => {
     }
 
     function _onMessage(event) {
-        payloadsReceived++;
         totalBytesReceived += event.data.length;
 
         // Webclient protocol commands (TEXTMASK:, RELOGTKN:)
@@ -1264,8 +1355,8 @@ const Client = (() => {
                 }
                 const gmcpNamespace = gmcpPayload.slice(0, jsonIndex).trim();
                 const gmcpBody      = JSON.parse(gmcpPayload.slice(jsonIndex).trim());
+                gmcpInBytes[gmcpNamespace] = (gmcpInBytes[gmcpNamespace] || 0) + event.data.length;
                 _applyGMCPPayload(gmcpNamespace, gmcpBody);
-                _printGMCPDebug(gmcpNamespace, gmcpBody);
                 VirtualWindows.handleGMCP(gmcpNamespace, gmcpBody);
                 return;
             }
@@ -1292,6 +1383,11 @@ const Client = (() => {
             connectButton.style.display = 'none';
             connectButton.disabled = true;
             textInput.focus();
+            // Reset all network stats on each new connection
+            totalBytesReceived = 0;
+            totalBytesSent     = 0;
+            Object.keys(gmcpInBytes).forEach(k => delete gmcpInBytes[k]);
+            connectTime = Date.now();
             VirtualWindows.setConnected(true);
         };
 
@@ -1332,7 +1428,7 @@ const Client = (() => {
         const origOnOpen = socket.onopen;
         socket.onopen = function() {
             origOnOpen();
-            socket.send(token);
+            sendData(token);
         };
     }
 
@@ -1541,15 +1637,15 @@ const Client = (() => {
 
 
     // -----------------------------------------------------------------------
-    // Net stats
+    // Net stats — readable by the settings Stats tab
     // -----------------------------------------------------------------------
-    function printNetStats() {
-        term.writeln('');
-        term.writeln(' Request Ct: ' + String(payloadsSent));
-        term.writeln(' Bytes Sent: ' + String(Math.round(totalBytesSent    / 1024 * 100) / 100) + 'kb');
-        term.writeln('Response Ct: ' + String(payloadsReceived));
-        term.writeln(' Bytes Rcvd: ' + String(Math.round(totalBytesReceived / 1024 * 100) / 100) + 'kb');
-        term.writeln('');
+    function getNetStats() {
+        return {
+            totalBytesSent,
+            totalBytesReceived,
+            gmcpInBytes:  Object.assign({}, gmcpInBytes),
+            connectTime,
+        };
     }
 
     // -----------------------------------------------------------------------
@@ -1579,27 +1675,10 @@ const Client = (() => {
     // fn receives the full input string and returns true if it handled it.
     // -----------------------------------------------------------------------
     // -----------------------------------------------------------------------
-    // GMCP debug mode
+    // GMCP debug mode removed
     // -----------------------------------------------------------------------
-    let gmcpDebugEnabled = false;
-
-    function _printGMCPDebug(namespace, body) {
-        if (!gmcpDebugEnabled) { return; }
-        term.writeln('\r\x1b[33m[GMCP] ' + namespace + '\x1b[0m');
-        const lines = JSON.stringify(body, null, 2).split('\n');
-        lines.forEach(line => term.writeln('\r\x1b[90m' + line + '\x1b[0m'));
-    }
 
     const specialCommands = {
-        '!net':  { description: 'Print out network traffic stats', fn: () => { printNetStats(); return true; } },
-        '!gmcp': {
-            description: 'Toggle GMCP payload debug output in the terminal',
-            fn: () => {
-                gmcpDebugEnabled = !gmcpDebugEnabled;
-                term.writeln('\r\x1b[33mGMCP debug ' + (gmcpDebugEnabled ? 'enabled' : 'disabled') + '\x1b[0m');
-                return true;
-            },
-        },
     };
 
     function registerCommand(name, description, fn) {
@@ -1805,5 +1884,6 @@ const Client = (() => {
         SendInput,
         GMCPRequest,
         GetGMCP,
+        getNetStats,
     };
 })();

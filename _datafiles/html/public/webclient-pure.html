@@ -566,6 +566,54 @@
         #add-trigger-btn {
             margin-top: 2px;
         }
+
+        /* Stats tab */
+        .stats-uptime {
+            font-size: 11px;
+            font-family: Arial, sans-serif;
+            color: #3ad4b8;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #0f3333;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: 1fr 7em 7em;
+            align-items: baseline;
+            padding: 3px 0;
+            font-size: 11px;
+            font-family: monospace;
+            border-bottom: 1px solid #0a1a16;
+        }
+        .stats-row:last-child { border-bottom: none; }
+        .stats-row-label  { color: #7ab8a0; font-family: Arial, sans-serif; }
+        .stats-row-values { display: contents; }
+        .stats-row-value  { color: #dffbd1; font-variant-numeric: tabular-nums; text-align: right; padding-right: 8px; }
+        .stats-row-rate   { color: #7ab8a0; font-variant-numeric: tabular-nums; text-align: right; }
+
+        .stats-gmcp-header {
+            display: grid;
+            grid-template-columns: 1fr 7em 7em;
+            align-items: baseline;
+            padding: 4px 0 3px;
+            font-size: 11px;
+            font-family: Arial, sans-serif;
+            color: #7ab8a0;
+            cursor: pointer;
+            user-select: none;
+            border-bottom: 1px solid #0f3333;
+        }
+        .stats-gmcp-header:hover { color: #dffbd1; }
+        .stats-gmcp-toggle { font-size: 9px; color: #3ad4b8; margin-right: 4px; }
+        .stats-gmcp-total  { color: #dffbd1; font-variant-numeric: tabular-nums; font-family: monospace; text-align: right; padding-right: 8px; }
+
+        .stats-gmcp-rows {
+            display: none;
+            flex-direction: column;
+            padding-left: 10px;
+        }
+        .stats-gmcp-rows.open { display: flex; }
     </style>
 
     <link rel="stylesheet" href="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/css/xterm.css" />
@@ -589,6 +637,7 @@
     <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/windows/window-online.js"></script>
     <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/windows/window-comm.js"></script>
     <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/windows/window-debug-log.js"></script>
+    <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/windows/window-modal.js"></script>
     
     
 </head>
@@ -612,6 +661,7 @@
                 <button class="settings-tab-btn active" data-tab="tab-volume">Volume</button>
                 <button class="settings-tab-btn" data-tab="tab-windows">Windows</button>
                 <button class="settings-tab-btn" data-tab="tab-triggers">Triggers</button>
+                <button class="settings-tab-btn" data-tab="tab-stats">Stats</button>
             </div>
             <div id="settings-tab-body">
                 <div class="settings-tab-panel active" id="tab-volume">
@@ -652,6 +702,13 @@
                             </div>
                         </div>
                         <button class="trigger-btn" id="add-trigger-btn">+ Add Trigger</button>
+                    </div>
+                </div>
+                <div class="settings-tab-panel" id="tab-stats">
+                    <div class="settings-section">
+                        <div class="settings-section-title">Network</div>
+                        <div id="stats-net-overall"></div>
+                        <div id="stats-net-gmcp" style="margin-top:8px;"></div>
                     </div>
                 </div>
             </div>
@@ -824,15 +881,136 @@
                 openNewEditor();
             });
 
+            // Restart the stats interval if the modal is reopened with Stats already active.
+            var observer = new MutationObserver(function() {
+                var backdrop = document.getElementById('settings-backdrop');
+                var isOpen   = backdrop.classList.contains('open');
+                var statsTab = document.getElementById('tab-stats');
+                if (isOpen && statsTab && statsTab.classList.contains('active')) {
+                    renderStats();
+                    if (!_statsInterval) {
+                        _statsInterval = setInterval(renderStats, 500);
+                    }
+                } else if (!isOpen) {
+                    if (_statsInterval) { clearInterval(_statsInterval); _statsInterval = null; }
+                }
+            });
+            observer.observe(document.getElementById('settings-backdrop'), { attributes: true, attributeFilter: ['class'] });
+
             // Re-render the trigger list each time the Triggers tab is activated.
+            // Start/stop the stats live-update when the Stats tab is activated.
             tabBar.addEventListener('click', function(e) {
                 var btn = e.target.closest('.settings-tab-btn');
-                if (btn && btn.dataset.tab === 'tab-triggers') {
+                if (!btn) { return; }
+                if (btn.dataset.tab === 'tab-triggers') {
                     closeEditor();
                     renderTriggerList();
                 }
+                if (btn.dataset.tab === 'tab-stats') {
+                    renderStats();
+                    if (!_statsInterval) {
+                        _statsInterval = setInterval(renderStats, 500);
+                    }
+                } else {
+                    if (_statsInterval) {
+                        clearInterval(_statsInterval);
+                        _statsInterval = null;
+                    }
+                }
+            });
+
+            // Stop the stats interval when the settings modal closes.
+            document.getElementById('settings-backdrop').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    if (_statsInterval) { clearInterval(_statsInterval); _statsInterval = null; }
+                }
+            });
+            document.getElementById('settings-close').addEventListener('click', function() {
+                if (_statsInterval) { clearInterval(_statsInterval); _statsInterval = null; }
             });
         });
+
+        // -----------------------------------------------------------------------
+        // Stats tab renderer
+        // -----------------------------------------------------------------------
+        var _gmcpRowsOpen  = false;
+        var _statsInterval = null;
+
+        function fmtBytes(b) {
+            if (b < 1024)      { return b.toFixed(2) + ' B'; }
+            if (b < 1024*1024) { return (b / 1024).toFixed(2) + ' KB'; }
+            return (b / (1024*1024)).toFixed(2) + ' MB';
+        }
+
+        function fmtUptime(ms) {
+            var s   = Math.floor(ms / 1000);
+            var h   = Math.floor(s / 3600);
+            var m   = Math.floor((s % 3600) / 60);
+            var sec = s % 60;
+            if (h > 0) { return h + 'h ' + m + 'm ' + sec + 's'; }
+            if (m > 0) { return m + 'm ' + sec + 's'; }
+            return sec + 's';
+        }
+
+        function statsRow(label, bytes, elapsedSec) {
+            var rate = elapsedSec > 0 ? fmtBytes(bytes / elapsedSec) + '/s' : '—';
+            return '<div class="stats-row">' +
+                '<span class="stats-row-label">' + label + '</span>' +
+                '<span class="stats-row-values">' +
+                    '<span class="stats-row-value">' + fmtBytes(bytes) + '</span>' +
+                    '<span class="stats-row-rate">' + rate + '</span>' +
+                '</span>' +
+            '</div>';
+        }
+
+        function renderStats() {
+            if (typeof Client === 'undefined' || !Client.getNetStats) { return; }
+            var s           = Client.getNetStats();
+            var now         = Date.now();
+            var elapsedMs   = (s.connectTime && s.connectTime > 0) ? (now - s.connectTime) : 0;
+            var elapsedSec  = elapsedMs / 1000;
+
+            // Uptime
+            var overallEl = document.getElementById('stats-net-overall');
+            if (overallEl) {
+                var uptimeHtml = '<div class="stats-uptime">Connected for ' +
+                    (elapsedMs > 0 ? fmtUptime(elapsedMs) : 'not connected') +
+                    '</div>';
+                overallEl.innerHTML = uptimeHtml +
+                    statsRow('Sent',     s.totalBytesSent,     elapsedSec) +
+                    statsRow('Received', s.totalBytesReceived, elapsedSec);
+            }
+
+            // GMCP In collapsible
+            var gmcpEl = document.getElementById('stats-net-gmcp');
+            if (!gmcpEl) { return; }
+
+            var namespaces = Object.keys(s.gmcpInBytes).sort();
+            var gmcpTotal  = namespaces.reduce(function(sum, k) { return sum + s.gmcpInBytes[k]; }, 0);
+            var gmcpRate   = elapsedSec > 0 ? fmtBytes(gmcpTotal / elapsedSec) + '/s' : '—';
+
+            var rowsHtml = namespaces.map(function(ns) {
+                return statsRow(ns, s.gmcpInBytes[ns], elapsedSec);
+            }).join('');
+
+            gmcpEl.innerHTML =
+                '<div class="stats-gmcp-header" id="stats-gmcp-header">' +
+                    '<span><span class="stats-gmcp-toggle">' + (_gmcpRowsOpen ? '&#9660;' : '&#9654;') + '</span>GMCP In</span>' +
+                    '<span class="stats-row-values">' +
+                        '<span class="stats-gmcp-total">' + fmtBytes(gmcpTotal) + '</span>' +
+                        '<span class="stats-row-rate">' + gmcpRate + '</span>' +
+                    '</span>' +
+                '</div>' +
+                '<div class="stats-gmcp-rows' + (_gmcpRowsOpen ? ' open' : '') + '">' +
+                    rowsHtml +
+                '</div>';
+
+            document.getElementById('stats-gmcp-header').addEventListener('click', function() {
+                _gmcpRowsOpen = !_gmcpRowsOpen;
+                renderStats();
+            });
+        }
+
     </script>
 
 </body>
