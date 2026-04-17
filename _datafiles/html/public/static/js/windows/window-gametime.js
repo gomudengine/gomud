@@ -180,7 +180,7 @@
     // -----------------------------------------------------------------------
     // VirtualWindow instance
     // -----------------------------------------------------------------------
-    const win = new VirtualWindow('Gametime', {
+    const win = new VirtualWindow('Time & Date', {
         dock:          'left',
         defaultDocked: true,
         dockedHeight:  100,
@@ -242,7 +242,7 @@
             canvas.height = h;
         }
 
-        const ctx        = canvas.getContext('2d');
+        const ctx        = canvas.getContext('2d', { willReadFrequently: true });
         const night      = data.night;
         const hour24     = data.hour24;
         const minute     = data.minute;

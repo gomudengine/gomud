@@ -188,7 +188,7 @@ func main() {
 	usercommands.AddFunctionExporter(plugins.GetPluginRegistry())
 
 	inputhandlers.AddIACHandler(plugins.GetPluginRegistry())
-
+	inputhandlers.AddTextPrefixHandler(plugins.GetPluginRegistry())
 	//
 	// System Configurations
 	runtime.GOMAXPROCS(int(c.Server.MaxCPUCores))
@@ -399,6 +399,7 @@ func resumeRestoredConnection(connDetails *connections.ConnectionDetails, userOb
 	connDetails.AddInputHandler("TelnetIACHandler", inputhandlers.TelnetIACHandler)
 	connDetails.AddInputHandler("AnsiHandler", inputhandlers.AnsiHandler)
 	connDetails.AddInputHandler("CleanserInputHandler", inputhandlers.CleanserInputHandler)
+	connDetails.AddInputHandler("TextPrefixHandler", inputhandlers.TextPrefixHandler)
 	connDetails.AddInputHandler("EchoInputHandler", inputhandlers.EchoInputHandler)
 	connDetails.AddInputHandler("HistoryInputHandler", inputhandlers.HistoryInputHandler)
 
@@ -553,6 +554,7 @@ func handleTelnetConnection(connDetails *connections.ConnectionDetails, wg *sync
 	// Consider a macro handler at this point?
 	// Text Processing
 	connDetails.AddInputHandler("CleanserInputHandler", inputhandlers.CleanserInputHandler)
+	connDetails.AddInputHandler("TextPrefixHandler", inputhandlers.TextPrefixHandler)
 
 	loginHandler := inputhandlers.GetLoginPromptHandler()           // Get the configured handler func
 	connDetails.AddInputHandler("LoginPromptHandler", loginHandler) // Add it with a unique name
@@ -1006,6 +1008,7 @@ func HandleWebSocketConnection(conn *websocket.Conn) {
 					}
 					userObject = loggedInUser
 					connDetails.RemoveInputHandler("LoginPromptHandler")
+					connDetails.AddInputHandler("TextPrefixHandler", inputhandlers.TextPrefixHandler)
 					connDetails.AddInputHandler("EchoInputHandler", inputhandlers.EchoInputHandler)
 					connDetails.AddInputHandler("HistoryInputHandler", inputhandlers.HistoryInputHandler)
 					if userObject.Role == users.RoleAdmin {
@@ -1086,6 +1089,7 @@ func HandleWebSocketConnection(conn *websocket.Conn) {
 			// Remove the prompt handler (it signaled completion by returning true)
 			connDetails.RemoveInputHandler("LoginPromptHandler")
 			// Replace it with a regular echo handler.
+			connDetails.AddInputHandler("TextPrefixHandler", inputhandlers.TextPrefixHandler)
 			connDetails.AddInputHandler("EchoInputHandler", inputhandlers.EchoInputHandler)
 			// Add admin command handler
 			connDetails.AddInputHandler("HistoryInputHandler", inputhandlers.HistoryInputHandler) // Put history tracking after login handling, since login handling aborts input until complete

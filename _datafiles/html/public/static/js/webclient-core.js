@@ -564,7 +564,13 @@ const LayoutStore = (() => {
         localStorage.removeItem(KEY);
     }
 
-    return { saveWindow, saveDockWidths, getWindow, getDockWidths, reset };
+    function clearWindow(id) {
+        patch(data => {
+            if (data.windows) { delete data.windows[id]; }
+        });
+    }
+
+    return { saveWindow, saveDockWidths, getWindow, getDockWidths, reset, clearWindow };
 })();
 
 // ---------------------------------------------------------------------------
@@ -608,7 +614,7 @@ class VirtualWindow {
         this._dockedHeight    = options.dockedHeight || null;
         this._origDockSide    = options.dock || null;
         this._origDockedHeight = options.dockedHeight || null;
-        this._win             = undefined;
+        this._win             = options.offOnLoad ? false : undefined;
         this._contentEl       = null;
         this._winboxOpts      = null;
     }
@@ -676,6 +682,8 @@ class VirtualWindow {
         // Reset content so factory runs again on open()
         this._contentEl  = null;
         this._winboxOpts = null;
+        // Clear any saved enabled:false so open() does not immediately re-close.
+        LayoutStore.clearWindow(this._id);
         this.open();
         LayoutStore.saveWindow(this);
     }
@@ -991,18 +999,28 @@ const VirtualWindows = (() => {
         // Walk from most-specific to least-specific namespace segment.
         // Call all handlers registered at the first matching level,
         // skipping any whose associated window has been closed.
+        var handled = false;
         const parts = namespace.split('.');
         for (let i = parts.length; i >= 1; i--) {
             const path = parts.slice(0, i).join('.');
+            if (_handlers['*'] && _handlers['*'].length > 0) {
+                _handlers['*'].forEach(entry => {
+                    if (entry.win && !entry.win.isOpen()) { return; }
+                    entry.fn(namespace, body);
+                    handled = true;
+                });
+            }
             if (_handlers[path] && _handlers[path].length > 0) {
                 _handlers[path].forEach(entry => {
                     if (entry.win && !entry.win.isOpen()) { return; }
                     entry.fn(namespace, body);
+                    handled = true;
                 });
-                return;
             }
         }
-        console.log('GMCP (unhandled):', namespace, body);
+        if (!handled) {
+            console.log('GMCP (unhandled):', namespace, body);
+        }
     }
 
     function openAll() {
@@ -1120,6 +1138,18 @@ const Client = (() => {
         if (debugOutput) {
             console.log(msg);
         }
+    }
+
+    function SendInput(str) {
+        sendData(str);
+    }
+
+    //
+    // Request that the server send a GMCP payload.
+    // Examples: Party, Room, Char
+    //
+    function GMCPRequest(namespace) {
+        socket.send(`!!GMCP(${namespace})`); 
     }
 
     function sendData(dataToSend) {
@@ -1250,6 +1280,7 @@ const Client = (() => {
         }
 
         term.write(event.data);
+        Triggers.Try(event.data);
     }
 
     function attachSocketHandlers(openMessage, clearOnOpen) {
@@ -1506,6 +1537,7 @@ const Client = (() => {
         VirtualWindows.openAll();
     }
 
+
     // -----------------------------------------------------------------------
     // Net stats
     // -----------------------------------------------------------------------
@@ -1717,10 +1749,6 @@ const Client = (() => {
         let longest = 0;
         for (const k in specialCommands) { if (k.length > longest) { longest = k.length; } }
         for (const k in specialCommands) { console.log('  ' + k.padEnd(longest) + ' - ' + specialCommands[k].description); }
-        console.log('%cconsole commands:', 'font-weight:bold;');
-        console.log('  Client.debug = true   - enable debug logging');
-        console.log('  Client.registerCommand(name, description, fn)  - add a terminal command');
-        console.log('  Client.registerShortcut(code, command)          - add a keyboard shortcut');
 
         // Open all registered virtual windows immediately so they are present
         // on page load rather than waiting for the first GMCP payload.
@@ -1728,6 +1756,16 @@ const Client = (() => {
         // WebSocket connects.
         VirtualWindows.setConnected(false);
         VirtualWindows.openAll();
+    }
+
+    function getByPath(obj, path) {
+         return path.split('.').reduce((acc, key) => {
+        return acc && acc[key];
+        }, obj);
+    }
+
+    function GetGMCP(path) {
+        return getByPath(Client.GMCPStructs, path)
     }
 
     // -----------------------------------------------------------------------
@@ -1762,5 +1800,8 @@ const Client = (() => {
         // Utility
         sendData,
         debugLog,
+        SendInput,
+        GMCPRequest,
+        GetGMCP,
     };
 })();

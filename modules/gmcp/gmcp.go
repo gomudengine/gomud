@@ -50,7 +50,7 @@ func init() {
 	// how to use a struct
 	//
 	gmcpModule = GMCPModule{
-		plug: plugins.New(`gmcp`, `1.0`),
+		plug: plugins.New(`gmcp`, `1.1`),
 	}
 
 	// connectionId to map[string]int
@@ -60,6 +60,8 @@ func init() {
 	gmcpModule.plug.ExportFunction(`IsMudlet`, gmcpModule.IsMudletExportedFunction)
 
 	gmcpModule.plug.Callbacks.SetIACHandler(gmcpModule.HandleIAC)
+	gmcpModule.plug.Callbacks.SetTextPrefixHandler(gmcpModule.HandleWebGMCP)
+
 	gmcpModule.plug.Callbacks.SetOnNetConnect(gmcpModule.onNetConnect)
 
 	events.RegisterListener(GMCPOut{}, gmcpModule.dispatchGMCP)
@@ -112,6 +114,10 @@ type GMCPLogin struct {
 	Password string
 }
 
+type GMCPRequest struct {
+	Name string
+}
+
 // / SETTINGS
 type GMCPSettings struct {
 	Client struct {
@@ -155,6 +161,13 @@ func (g *GMCPModule) onNetConnect(n plugins.NetConnection) {
 
 func (g *GMCPModule) isGMCPCommand(b []byte) bool {
 	return len(b) > 2 && b[0] == term.TELNET_IAC && b[2] == TELNET_GMCP
+}
+
+func (g *GMCPModule) isGMCPWebCommand(b []byte) bool {
+	if bytes.HasPrefix(b, []byte("!!GMCP")) {
+		return true
+	}
+	return false
 }
 
 func (g *GMCPModule) sendGMCPEvent(userId int, moduleName string, payload any) {
@@ -210,6 +223,62 @@ func (s GMCPSupportsSet) GetSupportedModules() map[string]int {
 	return ret
 }
 
+func (g *GMCPModule) HandleWebGMCP(connectionId uint64, webGMCP []byte) bool {
+	if !g.isGMCPWebCommand(webGMCP) {
+		return false
+	}
+
+	if ok, payload := term.Matches(webGMCP, GmcpWebPayload); ok {
+		payloadStr := string(payload)
+		mudlog.Debug("GMCP Req", "connectionId", connectionId, "identifier", payloadStr)
+
+		if strings.HasPrefix(payloadStr, `Room`) {
+			// Try to find the user ID associated with this connection
+			for _, user := range users.GetAllActiveUsers() {
+				if user.ConnectionId() == connectionId {
+					events.AddToQueue(GMCPRoomUpdate{
+						UserId:     user.UserId,
+						Identifier: payloadStr,
+					})
+					break
+				}
+			}
+			return true
+		}
+
+		if strings.HasPrefix(payloadStr, `Char`) {
+			// Try to find the user ID associated with this connection
+			for _, user := range users.GetAllActiveUsers() {
+				if user.ConnectionId() == connectionId {
+					events.AddToQueue(GMCPCharUpdate{
+						UserId:     user.UserId,
+						Identifier: payloadStr,
+					})
+					break
+				}
+			}
+			return true
+		}
+
+		if strings.HasPrefix(payloadStr, `Party`) {
+			// Try to find the user ID associated with this connection
+			for _, user := range users.GetAllActiveUsers() {
+				if user.ConnectionId() == connectionId {
+					events.AddToQueue(events.PartyUpdated{
+						Action:  "Update",
+						UserIds: []int{user.UserId},
+					})
+					break
+				}
+			}
+			return true
+		}
+
+	}
+
+	return false
+}
+
 func (g *GMCPModule) HandleIAC(connectionId uint64, iacCmd []byte) bool {
 
 	if !g.isGMCPCommand(iacCmd) {
@@ -243,7 +312,6 @@ func (g *GMCPModule) HandleIAC(connectionId uint64, iacCmd []byte) bool {
 	}
 
 	if len(iacCmd) >= 5 && iacCmd[len(iacCmd)-2] == term.TELNET_IAC && iacCmd[len(iacCmd)-1] == term.TELNET_SE {
-		// Unhanlded IAC command, log it
 
 		requestBody := iacCmd[3 : len(iacCmd)-2]
 		//mudlog.Debug("Received", "type", "GMCP", "size", len(iacCmd), "data", string(requestBody))
@@ -362,7 +430,6 @@ func (g *GMCPModule) HandleIAC(connectionId uint64, iacCmd []byte) bool {
 			if err := json.Unmarshal(payload, &decoded); err == nil {
 				mudlog.Debug("GMCP LOGIN", "username", decoded.Name, "password", strings.Repeat(`*`, len(decoded.Password)))
 			}
-
 		// Handle Discord-related messages
 		default:
 			// Check if it's a Discord message

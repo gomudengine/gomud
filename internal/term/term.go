@@ -196,6 +196,10 @@ func IsAnsiCommand(b []byte) bool {
 	return len(b) > 0 && b[0] == ANSI_ESC
 }
 
+func ExtractPayload(b []byte, template TerminalCommand) []byte {
+	return []byte{}
+}
+
 type TerminalCommand struct {
 	Chars    []byte
 	EndChars []byte

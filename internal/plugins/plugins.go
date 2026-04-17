@@ -141,6 +141,20 @@ func (p pluginRegistry) HandleIAC(connectionId uint64, iacCmd []byte) bool {
 	return false
 }
 
+func (p pluginRegistry) HandleTextPrefix(connectionId uint64, txtCmd []byte) bool {
+
+	for _, pItem := range p {
+		if pItem.Callbacks.textPrefixHandler == nil {
+			continue
+		}
+		if pItem.Callbacks.textPrefixHandler(connectionId, txtCmd) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (p pluginRegistry) WebRequest(r *http.Request) (html string, templateData map[string]any, ok bool) {
 
 	reqPath := filepath.Clean(r.URL.Path) // Example: / or /info/faq

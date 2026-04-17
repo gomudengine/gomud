@@ -393,6 +393,179 @@
         .win-toggle-row + .win-toggle-row {
             border-top: 1px solid #383838;
         }
+
+        /* Trigger list */
+        #trigger-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 12px;
+        }
+
+        .trigger-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 6px;
+            background: #0d2e28;
+            border: 1px solid #0f3333;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .trigger-row:hover {
+            background: #133a32;
+        }
+
+        .trigger-row.selected {
+            border-color: #3ad4b8;
+            background: #0f3f36;
+        }
+
+        .trigger-row-pattern {
+            flex: 1;
+            font-family: monospace;
+            font-size: 12px;
+            color: #dffbd1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .trigger-row-badge {
+            font-size: 10px;
+            font-family: Arial, sans-serif;
+            color: #7ab8a0;
+            background: #0a2420;
+            border: 1px solid #0f3333;
+            border-radius: 3px;
+            padding: 1px 5px;
+            flex-shrink: 0;
+        }
+
+        .trigger-delete-btn {
+            background: none;
+            border: none;
+            color: #7ab8a0;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 0 2px;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+        .trigger-delete-btn:hover {
+            color: #e06060;
+        }
+
+        /* Trigger editor */
+        #trigger-editor {
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 12px;
+            padding: 10px;
+            background: #0d2e28;
+            border: 1px solid #1c6b60;
+            border-radius: 4px;
+        }
+
+        #trigger-editor.visible {
+            display: flex;
+        }
+
+        #trigger-editor label {
+            color: #7ab8a0;
+            font-size: 11px;
+            font-family: Arial, sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        #trigger-pattern-input {
+            width: 100%;
+            padding: 5px 7px;
+            background: #111;
+            border: 1px solid #1c6b60;
+            border-radius: 3px;
+            color: #dffbd1;
+            font-family: monospace;
+            font-size: 12px;
+            outline: none;
+        }
+
+        #trigger-pattern-input:focus {
+            border-color: #3ad4b8;
+        }
+
+        #trigger-body-input {
+            width: 100%;
+            min-height: 100px;
+            padding: 6px 7px;
+            background: #111;
+            border: 1px solid #1c6b60;
+            border-radius: 3px;
+            color: #dffbd1;
+            font-family: monospace;
+            font-size: 12px;
+            resize: vertical;
+            outline: none;
+            line-height: 1.5;
+        }
+
+        #trigger-body-input:focus {
+            border-color: #3ad4b8;
+        }
+
+        #trigger-error {
+            color: #e06060;
+            font-size: 11px;
+            font-family: monospace;
+            display: none;
+        }
+
+        #trigger-error.visible {
+            display: block;
+        }
+
+        .trigger-editor-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .trigger-btn {
+            padding: 5px 12px;
+            background: #0d2e28;
+            border: 1px solid #1c6b60;
+            border-radius: 4px;
+            color: #7ab8a0;
+            font-size: 12px;
+            font-family: Arial, sans-serif;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            transition: background 0.15s, color 0.15s;
+        }
+
+        .trigger-btn:hover {
+            background: #1c6b60;
+            color: #dffbd1;
+        }
+
+        .trigger-btn.primary {
+            border-color: #3ad4b8;
+            color: #3ad4b8;
+        }
+
+        .trigger-btn.primary:hover {
+            background: #1c6b60;
+            color: #dffbd1;
+        }
+
+        #add-trigger-btn {
+            margin-top: 2px;
+        }
     </style>
 
     <link rel="stylesheet" href="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/css/xterm.css" />
@@ -401,9 +574,10 @@
     <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/xterm.4.19.0.js"></script>
     <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/xterm-addon-fit.js"></script>
     <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/mp3.js"></script>
+    <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/fx.js"></script>
     <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/winbox.bundle.min.js"></script>
-    <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/gmcp.js"></script>
     <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/webclient-core.js"></script>
+    <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/triggers.js"></script>
     <!-- Left dock -->
      <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/windows/window-gametime.js"></script>
     <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/windows/window-character.js"></script>
@@ -413,6 +587,7 @@
     <!-- Right dock -->
     <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/windows/window-map.js"></script>
     <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/windows/window-comm.js"></script>
+    <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/windows/window-debug-log.js"></script>
     
     
 </head>
@@ -435,6 +610,7 @@
             <div id="settings-tab-bar">
                 <button class="settings-tab-btn active" data-tab="tab-volume">Volume</button>
                 <button class="settings-tab-btn" data-tab="tab-windows">Windows</button>
+                <button class="settings-tab-btn" data-tab="tab-triggers">Triggers</button>
             </div>
             <div id="settings-tab-body">
                 <div class="settings-tab-panel active" id="tab-volume">
@@ -458,6 +634,24 @@
                         <div id="windows-container"></div>
                     </div>
                     <button id="reset-layout-btn" onclick="resetLayout()">Reset Layout</button>
+                </div>
+                <div class="settings-tab-panel" id="tab-triggers">
+                    <div class="settings-section">
+                        <div class="settings-section-title">Triggers</div>
+                        <div id="trigger-list"></div>
+                        <div id="trigger-editor">
+                            <label for="trigger-pattern-input">Pattern</label>
+                            <input type="text" id="trigger-pattern-input" placeholder="e.g. You receive {number} gold." spellcheck="false">
+                            <label for="trigger-body-input">Function body <span style="color:#555;text-transform:none;letter-spacing:0">(receives: matches)</span></label>
+                            <textarea id="trigger-body-input" spellcheck="false"></textarea>
+                            <div id="trigger-error"></div>
+                            <div class="trigger-editor-actions">
+                                <button class="trigger-btn primary" id="trigger-save-btn">Save</button>
+                                <button class="trigger-btn" id="trigger-cancel-btn">Cancel</button>
+                            </div>
+                        </div>
+                        <button class="trigger-btn" id="add-trigger-btn">+ Add Trigger</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -496,6 +690,146 @@
             // Close modal when clicking the backdrop outside the panel
             document.getElementById('settings-backdrop').addEventListener('click', function(e) {
                 if (e.target === this) { Client.toggleMenu(); }
+            });
+
+            // ---------------------------------------------------------------
+            // Triggers tab
+            // ---------------------------------------------------------------
+            var _editingIdx = -1; // -1 = new trigger
+
+            function renderTriggerList() {
+                var list = document.getElementById('trigger-list');
+                list.innerHTML = '';
+                Triggers.getTriggers().forEach(function(t, idx) {
+                    var row = document.createElement('div');
+                    row.className = 'trigger-row';
+                    row.dataset.idx = idx;
+
+                    var toggle = document.createElement('label');
+                    toggle.className = 'toggle-switch';
+                    toggle.title = t.enabled ? 'Enabled' : 'Disabled';
+                    var chk = document.createElement('input');
+                    chk.type = 'checkbox';
+                    chk.checked = t.enabled;
+                    chk.addEventListener('change', function(e) {
+                        e.stopPropagation();
+                        Triggers.setEnabled(idx, chk.checked);
+                        toggle.title = chk.checked ? 'Enabled' : 'Disabled';
+                    });
+                    var track = document.createElement('span');
+                    track.className = 'toggle-track';
+                    toggle.appendChild(chk);
+                    toggle.appendChild(track);
+
+                    var pattern = document.createElement('span');
+                    pattern.className = 'trigger-row-pattern';
+                    pattern.textContent = t.pattern;
+
+                    row.appendChild(toggle);
+                    row.appendChild(pattern);
+
+                    if (t.isDefault) {
+                        var badge = document.createElement('span');
+                        badge.className = 'trigger-row-badge';
+                        badge.textContent = 'default';
+                        row.appendChild(badge);
+                    }
+
+                    if (!t.isDefault) {
+                        var del = document.createElement('button');
+                        del.className = 'trigger-delete-btn';
+                        del.title = 'Delete';
+                        del.textContent = '\u2715';
+                        del.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            if (_editingIdx === idx) { closeEditor(); }
+                            else if (_editingIdx > idx) { _editingIdx--; }
+                            Triggers.removeTrigger(idx);
+                            renderTriggerList();
+                        });
+                        row.appendChild(del);
+                    }
+
+                    row.addEventListener('click', function(e) {
+                        if (e.target.closest('.toggle-switch') || e.target.closest('.trigger-delete-btn')) { return; }
+                        openEditor(idx);
+                        document.querySelectorAll('.trigger-row').forEach(function(r) { r.classList.remove('selected'); });
+                        row.classList.add('selected');
+                    });
+
+                    list.appendChild(row);
+                });
+            }
+
+            function openEditor(idx) {
+                var triggers = Triggers.getTriggers();
+                _editingIdx = idx;
+                var t = triggers[idx];
+                document.getElementById('trigger-pattern-input').value = t.pattern;
+                document.getElementById('trigger-body-input').value = t.body;
+                document.getElementById('trigger-error').textContent = '';
+                document.getElementById('trigger-error').classList.remove('visible');
+                document.getElementById('trigger-editor').classList.add('visible');
+                document.getElementById('add-trigger-btn').style.display = 'none';
+            }
+
+            function openNewEditor() {
+                _editingIdx = -1;
+                document.getElementById('trigger-pattern-input').value = '';
+                document.getElementById('trigger-body-input').value = '';
+                document.getElementById('trigger-error').textContent = '';
+                document.getElementById('trigger-error').classList.remove('visible');
+                document.getElementById('trigger-editor').classList.add('visible');
+                document.getElementById('add-trigger-btn').style.display = 'none';
+                document.querySelectorAll('.trigger-row').forEach(function(r) { r.classList.remove('selected'); });
+                document.getElementById('trigger-pattern-input').focus();
+            }
+
+            function closeEditor() {
+                _editingIdx = -1;
+                document.getElementById('trigger-editor').classList.remove('visible');
+                document.getElementById('trigger-error').classList.remove('visible');
+                document.getElementById('add-trigger-btn').style.display = '';
+                document.querySelectorAll('.trigger-row').forEach(function(r) { r.classList.remove('selected'); });
+            }
+
+            document.getElementById('trigger-save-btn').addEventListener('click', function() {
+                var pattern = document.getElementById('trigger-pattern-input').value.trim();
+                var body    = document.getElementById('trigger-body-input').value;
+                var errEl   = document.getElementById('trigger-error');
+
+                var err;
+                if (_editingIdx === -1) {
+                    err = Triggers.addTrigger(pattern, body);
+                } else {
+                    err = Triggers.saveTrigger(_editingIdx, pattern, body);
+                }
+
+                if (err) {
+                    errEl.textContent = err;
+                    errEl.classList.add('visible');
+                    return;
+                }
+
+                closeEditor();
+                renderTriggerList();
+            });
+
+            document.getElementById('trigger-cancel-btn').addEventListener('click', function() {
+                closeEditor();
+            });
+
+            document.getElementById('add-trigger-btn').addEventListener('click', function() {
+                openNewEditor();
+            });
+
+            // Re-render the trigger list each time the Triggers tab is activated.
+            tabBar.addEventListener('click', function(e) {
+                var btn = e.target.closest('.settings-tab-btn');
+                if (btn && btn.dataset.tab === 'tab-triggers') {
+                    closeEditor();
+                    renderTriggerList();
+                }
             });
         });
     </script>

@@ -39,7 +39,6 @@ type GMCPGameModule struct {
 func (g *GMCPGameModule) onJoinLeave(e events.Event) events.ListenerReturn {
 
 	c := configs.GetConfig()
-
 	tFormat := string(c.TextFormats.Time)
 
 	whoPayload := `"Who": { "Players": [`

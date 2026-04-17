@@ -12,10 +12,11 @@ type PluginCallbacks struct {
 	mobCommands    map[string]mobcommands.CommandAccess
 	scriptCommands map[string]map[string]any
 
-	iacHandler   func(uint64, []byte) bool
-	onLoad       func()
-	onSave       func()
-	onNetConnect func(NetConnection)
+	iacHandler        func(uint64, []byte) bool
+	textPrefixHandler func(uint64, []byte) bool
+	onLoad            func()
+	onSave            func()
+	onNetConnect      func(NetConnection)
 }
 
 func newPluginCallbacks() PluginCallbacks {
@@ -38,6 +39,10 @@ type NetConnection interface {
 
 func (c *PluginCallbacks) SetIACHandler(f func(uint64, []byte) bool) {
 	c.iacHandler = f
+}
+
+func (c *PluginCallbacks) SetTextPrefixHandler(f func(uint64, []byte) bool) {
+	c.textPrefixHandler = f
 }
 
 func (c *PluginCallbacks) SetOnLoad(f func()) {

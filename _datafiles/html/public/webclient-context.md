@@ -10,12 +10,16 @@ create new virtual windows that respond to GMCP payloads.
 ```
 webclient-pure.html                               Page shell, layout, init bridge
 static/js/webclient-core.js                      Core infrastructure (loaded first)
+static/js/fx.js                                  Visual effects library (FX global)
+static/js/triggers.js                            Text-trigger engine (Triggers global)
+static/js/windows/window-gametime.js             Time & Date window (left dock)
 static/js/windows/window-character.js            Character window (left dock)
 static/js/windows/window-vitals.js               Vitals window (left dock)
 static/js/windows/window-status.js               Status window (left dock)
 static/js/windows/window-party.js                Party window (left dock)
 static/js/windows/window-map.js                  Map window (right dock)
 static/js/windows/window-comm.js                 Communications window (right dock)
+static/js/windows/window-debug-log.js            Debug Log window (right dock)
 static/css/windows.css                           Shared dock/panel styles
 ```
 
@@ -31,6 +35,7 @@ one `<script>` tag in the appropriate dock comment block.
 
 | File | Title | Tabs | GMCP namespaces |
 |---|---|---|---|
+| `window-gametime.js` | Time & Date | — | `Gametime` |
 | `window-character.js` | Character | Overview, Pack, Quests | `Char.Info`, `Char.Stats`, `Char.Inventory`, `Char.Inventory.Backpack`, `Char.Quests`, `Char` |
 | `window-vitals.js` | Vitals | — | `Char.Vitals`, `Char` |
 | `window-status.js` | Status | Worth, Effects | `Char.Worth`, `Char.Affects`, `Char` |
@@ -42,6 +47,7 @@ one `<script>` tag in the appropriate dock comment block.
 |---|---|---|---|
 | `window-map.js` | Map | — | `Room` |
 | `window-comm.js` | Communications | Say, Whisper, Party, Broadcasts | `Comm` |
+| `window-debug-log.js` | Debug Log | — | `*` (all namespaces) |
 
 ---
 
@@ -55,6 +61,15 @@ VirtualWindows       Registry: register(), handleGMCP(), openAll()
 VirtualWindow        Class: lifecycle for a single panel
 DockSlots            Object: { left, right } DockSlot instances (populated by Client.init())
 Client               Shared state and services
+```
+
+`fx.js` and `triggers.js` are loaded after `webclient-core.js` and before any window
+modules, and expose two additional globals:
+
+```
+FX                   Visual effects: FX.Confetti(duration)
+Triggers             Text-trigger engine: Triggers.Try(str), Triggers.matchPattern(pattern, str),
+                     Triggers.stripAnsi(str), Triggers.ParseNumber(value)
 ```
 
 ### Load and init sequence
@@ -105,8 +120,13 @@ new VirtualWindow(id, {
     dock,             // optional — 'left' | 'right'; enables docking
     defaultDocked,    // optional — boolean; start docked instead of floating
     dockedHeight,     // optional — number (px); preferred panel height when docked
+    offOnLoad,        // optional — boolean; start closed (user must open manually)
 })
 ```
+
+Setting `offOnLoad: true` initialises `_win` to `false`, so `VirtualWindows.openAll()`
+skips the window entirely. It will not open until the user explicitly opens it (e.g.
+via a terminal command). Use this for optional diagnostic windows like Debug Log.
 
 The `factory()` function must:
 - Create the content DOM element
@@ -142,6 +162,8 @@ VirtualWindows.register({
   `Char.Vitals` matches `Char.Vitals` before `Char`.
 - Multiple modules may register for the same namespace — all matching handlers
   are called.
+- The special namespace `'*'` matches every incoming GMCP payload regardless of
+  name. Use it for catch-all handlers such as debug loggers.
 - If a handler's associated `window` is closed (`_win === false`), it is
   skipped entirely.
 
@@ -160,6 +182,9 @@ Client.MusicPlayer          // MP3Player instance (background music)
 Client.SoundPlayer          // MP3Player instance (sound effects)
 Client.term                 // xterm.js Terminal instance
 Client.sendData(str)        // Send a string over the WebSocket; returns bool
+Client.SendInput(str)       // Send a command string to the server (alias for sendData)
+Client.GMCPRequest(ns)      // Ask the server to re-send a GMCP namespace (e.g. 'Room.Info')
+Client.GetGMCP(path)        // Read a value from GMCPStructs by dot-path (e.g. 'Char.Vitals')
 Client.debugLog(msg)        // Log only when Client.debug === true
 Client.debug                // get/set — enable verbose logging from console
 Client.registerCommand(name, description, fn)   // Add a !terminal command
