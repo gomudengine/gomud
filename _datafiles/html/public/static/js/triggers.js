@@ -1,4 +1,4 @@
-
+/* jshint evil: true */
 const Triggers = (() => {
 
     const STORAGE_KEY = 'triggers';
