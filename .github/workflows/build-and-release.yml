@@ -3,8 +3,8 @@ name: Release
 
 "on":
   push:
-    tags:
-      - 'v*.*.*'
+    branches:
+      - master
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -13,14 +13,45 @@ concurrency:
 permissions:
   contents: write
 
-env:
-  RELEASE_VERSION: ${{ github.ref_name }}
-  DATAFILES_ARCHIVE: go-mud-datafiles-${{ github.ref_name }}.zip
-  CHECKSUMS_FILE: go-mud-${{ github.ref_name }}-SHA256SUMS.txt
-
 jobs:
+  prep:
+    runs-on: ubuntu-24.04
+    outputs:
+      binary_version: ${{ steps.meta.outputs.binary_version }}
+      release_tag: ${{ steps.meta.outputs.release_tag }}
+      datafiles_archive: ${{ steps.meta.outputs.datafiles_archive }}
+      checksums_file: ${{ steps.meta.outputs.checksums_file }}
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Compute release metadata
+        id: meta
+        run: |
+          binary_version="$(
+            sed -n 's/^const VERSION = \"\\([^\"]*\\)\"$/\\1/p' main.go
+          )"
+          if [ -z "$binary_version" ]; then
+            echo "Could not determine binary version from main.go" >&2
+            exit 1
+          fi
+
+          release_stamp="$(date -u +%Y%m%d%H%M%S)"
+          release_tag="pre-${release_stamp}-${GITHUB_SHA::7}"
+
+          {
+            echo "binary_version=${binary_version}"
+            echo "release_tag=${release_tag}"
+            echo "datafiles_archive=go-mud-datafiles-${release_tag}.zip"
+            echo "checksums_file=go-mud-${release_tag}-SHA256SUMS.txt"
+          } >> "$GITHUB_OUTPUT"
+
   build:
     runs-on: ubuntu-24.04
+    needs: prep
+    env:
+      BINARY_VERSION: ${{ needs.prep.outputs.binary_version }}
     steps:
       - uses: actions/checkout@v6.0.2
         with:
@@ -42,31 +73,31 @@ jobs:
       - name: Build windows amd64
         run: >-
           env GOOS=windows GOARCH=amd64 go build -v
-          -ldflags "-X main.version=${{ env.RELEASE_VERSION }}"
+          -ldflags "-X main.version=${{ env.BINARY_VERSION }}"
           -o bin/go-mud-windows_x64.exe .
 
       - name: Build darwin/arm64
         run: >-
           env GOOS=darwin GOARCH=arm64 go build -v
-          -ldflags "-X main.version=${{ env.RELEASE_VERSION }}"
+          -ldflags "-X main.version=${{ env.BINARY_VERSION }}"
           -o bin/go-mud-darwin_arm64 .
 
       - name: Build darwin/amd64
         run: >-
           env GOOS=darwin GOARCH=amd64 go build -v
-          -ldflags "-X main.version=${{ env.RELEASE_VERSION }}"
+          -ldflags "-X main.version=${{ env.BINARY_VERSION }}"
           -o bin/go-mud-darwin_x64 .
 
       - name: Build linux/amd64
         run: >-
           env GOOS=linux GOARCH=amd64 go build -v
-          -ldflags "-X main.version=${{ env.RELEASE_VERSION }}"
+          -ldflags "-X main.version=${{ env.BINARY_VERSION }}"
           -o bin/go-mud-linux_x64 .
 
       - name: Build linux/arm5
         run: >-
           env GOOS=linux GOARCH=arm GOARM=5 go build -v
-          -ldflags "-X main.version=${{ env.RELEASE_VERSION }}"
+          -ldflags "-X main.version=${{ env.BINARY_VERSION }}"
           -o bin/go-mud-linux_arm5 .
 
       - name: Upload bin
@@ -77,7 +108,13 @@ jobs:
 
   release:
     runs-on: ubuntu-24.04
-    needs: build
+    needs:
+      - prep
+      - build
+    env:
+      RELEASE_TAG: ${{ needs.prep.outputs.release_tag }}
+      DATAFILES_ARCHIVE: ${{ needs.prep.outputs.datafiles_archive }}
+      CHECKSUMS_FILE: ${{ needs.prep.outputs.checksums_file }}
     steps:
       - name: Download builds
         uses: actions/download-artifact@v4
@@ -114,8 +151,8 @@ jobs:
             bin/go-mud-linux_arm5
             bin/${{ env.DATAFILES_ARCHIVE }}
             bin/${{ env.CHECKSUMS_FILE }}
-          name: ${{ env.RELEASE_VERSION }} prerelease
-          tag_name: ${{ env.RELEASE_VERSION }}
+          name: ${{ env.RELEASE_TAG }} prerelease
+          tag_name: ${{ env.RELEASE_TAG }}
           prerelease: true
           make_latest: false
           generate_release_notes: true

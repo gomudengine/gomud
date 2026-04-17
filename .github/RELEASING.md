@@ -8,10 +8,9 @@ are proposed upstream.
 Recommended versioning for the next release line:
 
 - Start the next stable release at `v0.10.0`.
-- Use normal stable tags as `v0.10.x`.
-- Use SemVer prerelease tags for downstream validation, not ad hoc `-test` tags.
-- Prefer `v0.10.x-pre.YYYYMMDDHHMMSS` for disposable downstream runs.
-- Prefer `v0.10.x-rc.N` for a release candidate you may want to share or promote.
+- Keep the binary's embedded version in source as a normal semver such as `0.10.0`.
+- Let merge-driven prereleases use generated tags like `pre-YYYYMMDDHHMMSS-<sha7>`.
+- Reserve manual semver tags like `v0.10.x` for a future stable-release process if needed.
 
 ### 1. New Feature or Breaking‑Change Release (Minor/Major)
 
@@ -24,20 +23,17 @@ Recommended versioning for the next release line:
 - **Minor** (`0.Y.0`) when you add functionality in a backward compatible manner
 - **Patch** (`0.0.Z`) when you make backward compatible bug fixes
 
-3. **Create Git Tag**
-   ```bash
-   git tag v0.10.0
-   git push origin v0.10.0
-   ```
-   This triggers the `Release` workflow.
+3. **Merge to `master`**
+   - Merging to `master` triggers the `Release` workflow automatically.
 
 4. **Monitor Release**
    - GitHub Actions will:
      - Run `go generate ./...`
-     - Build per-platform binaries with `main.version=v0.10.0`
-     - Archive `_datafiles` as `go-mud-datafiles-v0.10.0.zip`
-     - Generate `go-mud-v0.10.0-SHA256SUMS.txt`
-     - Publish a GitHub prerelease for `v0.10.0`
+     - Build per-platform binaries with `main.version` set from `main.go`
+     - Create a generated prerelease tag like `pre-YYYYMMDDHHMMSS-<sha7>`
+     - Archive `_datafiles` as `go-mud-datafiles-pre-YYYYMMDDHHMMSS-<sha7>.zip`
+     - Generate `go-mud-pre-YYYYMMDDHHMMSS-<sha7>-SHA256SUMS.txt`
+     - Publish a GitHub prerelease for that generated tag
      - Leave the release unmarked as `Latest`
 
 5. **Announce**
@@ -47,24 +43,17 @@ Recommended versioning for the next release line:
 
 ---
 
-### 2. Basic Patch Release (x.y.Z)
+### 2. Merge-Driven Prerelease Policy
 
-1. **Merge Bug‑Fix PR**
-   - Once the fix is in `master` and CI is green.
+1. **Pull requests do not publish release binaries**
+   - PRs should run normal CI only.
 
-2. **Determine Patch Bump**
-   ```bash
-   # for example, after v0.10.0:
-   git tag v0.10.1
-   git push origin v0.10.1
-   ```
+2. **Merges to `master` do publish release binaries**
+   - A push to `master` runs the `Release` workflow and publishes a prerelease.
 
-3. **Tag & Push**
-   - Pushing the tag triggers the same release workflow.
-
-4. **Publish**
-   - The workflow publishes the release automatically as a prerelease after the build
-     completes.
+3. **Generated release naming**
+   - The release tag is generated automatically from UTC time plus the merge commit SHA.
+   - Example: `pre-20260417021530-1a2b3c4`
 
 ---
 
@@ -74,17 +63,9 @@ Recommended versioning for the next release line:
    - Use this downstream repo to verify any release automation change before opening
      an upstream PR.
 
-2. **Push a disposable prerelease tag**
-   ```bash
-   git tag v0.10.0-pre.20260417014024
-   git push origin v0.10.0-pre.20260417014024
-   ```
-
-   Or, for a numbered candidate:
-   ```bash
-   git tag v0.10.0-rc.1
-   git push origin v0.10.0-rc.1
-   ```
+2. **Merge a test branch to downstream `master`**
+   - Use a downstream-only branch or temporary merge to trigger the release workflow.
+   - The workflow will generate its own prerelease tag automatically.
 
 3. **Verify the GitHub release**
    - Confirm the workflow succeeds.
@@ -103,10 +84,11 @@ Recommended versioning for the next release line:
 ### FAQ / Guidelines
 
 - **Does every merge to `master` trigger a release?**
-  No - only pushing a Git tag matching `v*.*.*` triggers a release.
+  Yes - every push to `master` runs the release workflow and publishes a prerelease.
 
 - **Is auto-tagging enabled?**
-  No - releases are manual. Create and push the version tag yourself when you want to publish.
+  Stable semver tags are not generated automatically. The merge-driven workflow creates
+  its own prerelease tag from UTC time plus commit SHA.
 
 - **Are workflow-created releases stable releases?**
   No - the workflow creates prereleases. A repo owner must manually promote a release
@@ -118,9 +100,8 @@ Recommended versioning for the next release line:
   verify the assets.
 
 - **What tag format should we use going forward?**
-  Start the next release line at `v0.10.x`. Use `v0.10.x` for stable releases,
-  `v0.10.x-pre.YYYYMMDDHHMMSS` for disposable downstream validation, and
-  `v0.10.x-rc.N` for numbered release candidates.
+  Keep the source/binary version on the `0.10.x` line. Let the workflow generate
+  prerelease tags like `pre-YYYYMMDDHHMMSS-<sha7>` on merges to `master`.
 
 - **When should I bump minor vs. patch?**
   - **Minor** for new, backward‑compatible features.
