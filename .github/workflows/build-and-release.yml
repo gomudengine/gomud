@@ -38,7 +38,7 @@ jobs:
           RELEASE_LABEL: ${{ inputs.release_label }}
         run: |
           binary_version="$(
-            sed -n 's/^const VERSION = \"\\([^\"]*\\)\"$/\\1/p' main.go
+            awk -F'"' '/^const VERSION = "/ { print $2; exit }' main.go
           )"
           if [ -z "$binary_version" ]; then
             echo "Could not determine binary version from main.go" >&2
