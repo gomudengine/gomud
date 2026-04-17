@@ -16,6 +16,7 @@ permissions:
 env:
   RELEASE_FILENAME: go-mud-release
   RELEASE_VERSION: ${{ github.ref_name }}
+  RELEASE_ARCHIVE: go-mud-release-${{ github.ref_name }}.zip
 
 jobs:
   build:
@@ -87,13 +88,22 @@ jobs:
       - name: Archive release
         run: >-
           zip -r
-          bin/${{ env.RELEASE_FILENAME }}-${{ env.RELEASE_VERSION }}.zip
+          bin/${{ env.RELEASE_ARCHIVE }}
           bin/
+
+      - name: Generate release checksum
+        run: >-
+          sha256sum
+          bin/${{ env.RELEASE_ARCHIVE }}
+          >
+          bin/${{ env.RELEASE_ARCHIVE }}.sha256
 
       - name: Release with notes
         uses: softprops/action-gh-release@v3.0.0
         with:
-          files: bin/${{ env.RELEASE_FILENAME }}-${{ env.RELEASE_VERSION }}.zip
+          files: |
+            bin/${{ env.RELEASE_ARCHIVE }}
+            bin/${{ env.RELEASE_ARCHIVE }}.sha256
           name: ${{ env.RELEASE_VERSION }} prerelease
           tag_name: ${{ env.RELEASE_VERSION }}
           prerelease: true
