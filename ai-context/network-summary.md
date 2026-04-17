@@ -59,7 +59,7 @@ The GoMud network layer provides a sophisticated, multi-protocol networking syst
 - **Heartbeat**: Ping/pong monitoring (60-second intervals)
 - **Features**:
   - Real-time bidirectional communication
-  - Cross-origin request support for development
+  - Current upgrader accepts all origins (`CheckOrigin` returns `true`)
   - Automatic connection health monitoring
   - Text masking for password input
 
@@ -152,7 +152,8 @@ Network:
   HttpsPort: 0                  # HTTPS port (0 = disabled)
   HttpsRedirect: false          # Auto-redirect HTTP to HTTPS
   ZombieSeconds: 60             # Zombie connection timeout
-  AfkSeconds: 1800              # AFK timeout
+  AfkSeconds: 120               # AFK timeout
+  MaxIdleSeconds: 1800          # Idle disconnect timeout
   TimeoutMods: false            # Timeout moderators/admins
 ```
 
@@ -161,11 +162,17 @@ Network:
 FilePaths:
   WebDomain: "localhost"
   WebCDNLocation: ""            # Optional CDN for static files
+  DataFiles: "_datafiles/world/default"
   PublicHtml: "_datafiles/html/public"
   AdminHtml: "_datafiles/html/admin"
   HttpsCertFile: ""             # TLS certificate
   HttpsKeyFile: ""              # TLS private key
 ```
+
+### Config Loading Notes
+- The bundled base config is always loaded from `_datafiles/config.yaml`
+- Override data is loaded from `${DataFiles}/config-overrides.yaml` by default
+- Setting `CONFIG_PATH` changes the override file path, not the base config path
 
 ## Advanced Features
 

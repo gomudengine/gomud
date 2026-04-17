@@ -119,12 +119,12 @@ make client               # Connect telnet client to Docker instance
 1. Go 1.24+ required (specified in go.mod)
 2. Docker and Docker Compose for containerized development
 3. Make for build automation
-4. Node.js for JavaScript linting (via Docker)
-5. Environment variables for configuration overrides:
-   - `CONFIG_PATH` - Custom config.yaml path
+4. Docker is required for the default `make js-lint` path (`node:22`)
+5. Environment variables:
+   - `CONFIG_PATH` - Override config file path (defaults to `${DataFiles}/config-overrides.yaml`)
    - `LOG_PATH` - Log file location
    - `LOG_LEVEL` - Logging verbosity (LOW/MEDIUM/HIGH)
-   - `LOG_NOCOLOR` - Disable colored logging
+   - `LOG_NOCOLOR` - Disable colored log output
 
 ## Code Conventions
 
@@ -166,10 +166,11 @@ make client               # Connect telnet client to Docker instance
 ## Important Notes
 
 **Configuration Management:**
-- Main config in `_datafiles/config.yaml` (22K+ lines of comprehensive settings)
-- Override configs via `CONFIG_PATH` environment variable
+- Bundled base config lives at `_datafiles/config.yaml`
+- Runtime overrides default to `${DataFiles}/config-overrides.yaml`, or `CONFIG_PATH` if set
+- `DataFiles` defaults to `_datafiles/world/default`
 - Locked configurations prevent runtime modification of critical settings
-- YAML-based configuration with extensive validation
+- YAML-based configuration with validation and reload support
 
 **Networking:**
 - Default telnet ports: 33333, 44444
@@ -199,11 +200,11 @@ make client               # Connect telnet client to Docker instance
 - Log rotation to prevent disk space issues
 
 **Common Pitfalls:**
-- Always run `go generate ./...` before building (required for module imports)
+- Prefer `make` targets over ad hoc commands; `make build`, `make run`, `make test`, and `make ci-local` already include the expected generation/lint/test flow
 - JavaScript scripts must not exceed timeout limits or they will be killed
-- Room instance data is automatically generated - delete `rooms.instances` directories for fresh world state
+- Room instance data is automatically generated; delete `rooms.instances` directories for a fresh world state
 - Configuration changes in locked sections require config file modification, not runtime commands
-- Docker builds require copying `_datafiles` directory to include game content
+- Docker builds must include `_datafiles` so bundled game content is present at runtime
 
 **Deployment:**
 - Multi-stage Docker builds with Alpine Linux
