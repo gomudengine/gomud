@@ -4,6 +4,9 @@ package connections
 
 import "github.com/GoMudEngine/GoMud/internal/copyover"
 
+// IssueWebSocketReconnectToken is set by main to avoid an import cycle.
+var IssueWebSocketReconnectToken func(connectionId ConnectionId) (string, error)
+
 func (c *connectionsCopyoverContributor) CopyoverSave(enc *copyover.Encoder) error {
 	return enc.WriteSection(c.CopyoverName(), connectionsState{ConnectCounter: connectCounter})
 }

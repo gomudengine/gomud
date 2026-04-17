@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"os/signal"
 	"path"
 	"runtime"
 	"runtime/debug"
@@ -14,7 +13,6 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
-	"syscall"
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/audio"
@@ -278,7 +276,7 @@ func main() {
 
 	//
 	// Capture OS signals to gracefully shutdown the server
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGTSTP)
+	registerShutdownSignals(sigChan)
 
 	// for testing purposes, enable event debugging
 	//events.SetDebug(true)
