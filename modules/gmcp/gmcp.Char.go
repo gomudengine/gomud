@@ -272,7 +272,7 @@ func (g *GMCPCharModule) charTrainedHandler(e events.Event) events.ListenerRetur
 	}
 
 	// Changing equipment might affect stats, inventory, maxhp/maxmp etc
-	events.AddToQueue(GMCPCharUpdate{UserId: evt.UserId, Identifier: `Char.Stats, Char.Worth, Char.Vitals, Char.Inventory.Backpack.Summary, Char.Skills, Char.Jobs`})
+	events.AddToQueue(GMCPCharUpdate{UserId: evt.UserId, Identifier: `Char.Info, Char.Stats, Char.Worth, Char.Vitals, Char.Inventory.Backpack.Summary, Char.Skills, Char.Jobs`})
 
 	return events.Continue
 }
@@ -374,13 +374,15 @@ func (g *GMCPCharModule) GetCharNode(user *users.UserRecord, gmcpModule string) 
 
 	if all || g.wantsGMCPPayload(`Char.Info`, gmcpModule) {
 		payload.Info = &GMCPCharModule_Payload_Info{
-			Account:   user.Username,
-			Name:      user.Character.Name,
-			Class:     skills.GetProfession(user.Character.GetAllSkillRanks()),
-			Race:      user.Character.Race(),
-			Alignment: user.Character.AlignmentName(),
-			Level:     user.Character.Level,
-			Role:      user.Role,
+			Account:        user.Username,
+			Name:           user.Character.Name,
+			Class:          skills.GetProfession(user.Character.GetAllSkillRanks()),
+			Race:           user.Character.Race(),
+			Alignment:      user.Character.AlignmentName(),
+			Level:          user.Character.Level,
+			Role:           user.Role,
+			SkillPoints:    user.Character.StatPoints,
+			TrainingPoints: user.Character.TrainingPoints,
 		}
 
 		if !all {
@@ -542,12 +544,10 @@ func (g *GMCPCharModule) GetCharNode(user *users.UserRecord, gmcpModule string) 
 	if all || g.wantsGMCPPayload(`Char.Worth`, gmcpModule) {
 
 		payload.Worth = &GMCPCharModule_Payload_Worth{
-			Gold:           user.Character.Gold,
-			Bank:           user.Character.Bank,
-			SkillPoints:    user.Character.StatPoints,
-			TrainingPoints: user.Character.TrainingPoints,
-			TNL:            user.Character.XPTL(user.Character.Level),
-			XP:             user.Character.Experience,
+			Gold: user.Character.Gold,
+			Bank: user.Character.Bank,
+			TNL:  user.Character.XPTL(user.Character.Level),
+			XP:   user.Character.Experience,
 		}
 
 		if !all {
@@ -792,13 +792,15 @@ type GMCPCharModule_Payload struct {
 // Char.Info
 // /////////////////
 type GMCPCharModule_Payload_Info struct {
-	Account   string `json:"account,omitempty"`
-	Name      string `json:"name,omitempty"`
-	Class     string `json:"class,omitempty"`
-	Race      string `json:"race,omitempty"`
-	Alignment string `json:"alignment,omitempty"`
-	Level     int    `json:"level,omitempty"`
-	Role      string `json:"role"`
+	Account        string `json:"account,omitempty"`
+	Name           string `json:"name,omitempty"`
+	Class          string `json:"class,omitempty"`
+	Race           string `json:"race,omitempty"`
+	Alignment      string `json:"alignment,omitempty"`
+	Level          int    `json:"level,omitempty"`
+	Role           string `json:"role"`
+	SkillPoints    int    `json:"skillpoints"`
+	TrainingPoints int    `json:"trainingpoints"`
 }
 
 // /////////////////
@@ -912,12 +914,10 @@ type GMCPCharModule_Payload_Vitals struct {
 // Char.Worth
 // /////////////////
 type GMCPCharModule_Payload_Worth struct {
-	Gold           int `json:"gold_carry,omitempty"`
-	Bank           int `json:"gold_bank,omitempty"`
-	SkillPoints    int `json:"skillpoints,omitempty"`
-	TrainingPoints int `json:"trainingpoints,omitempty"`
-	TNL            int `json:"tnl,omitempty"`
-	XP             int `json:"xp,omitempty"`
+	Gold int `json:"gold_carry,omitempty"`
+	Bank int `json:"gold_bank,omitempty"`
+	TNL  int `json:"tnl,omitempty"`
+	XP   int `json:"xp,omitempty"`
 }
 
 // /////////////////

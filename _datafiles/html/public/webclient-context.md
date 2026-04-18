@@ -15,7 +15,7 @@ static/js/triggers.js                            Text-trigger engine (Triggers g
 static/js/windows/window-gametime.js             Time & Date window (left dock)
 static/js/windows/window-character.js            Character window (left dock)
 static/js/windows/window-vitals.js               Vitals window (left dock)
-static/js/windows/window-status.js               Status window (left dock)
+static/js/windows/window-status.js               Worth window (left dock)
 static/js/windows/window-party.js                Party window (left dock)
 static/js/windows/window-map.js                  Map window (right dock)
 static/js/windows/window-online.js               Online Players window (right dock, off by default)
@@ -37,9 +37,9 @@ one `<script>` tag in the appropriate dock comment block.
 | File | Title | Tabs | GMCP namespaces |
 |---|---|---|---|
 | `window-gametime.js` | Time & Date | — | `Gametime` |
-| `window-character.js` | Character | Overview, Backpack, Quests, Skills, Jobs | `Char.Info`, `Char.Stats`, `Char.Inventory`, `Char.Inventory.Backpack`, `Char.Quests`, `Char.Skills`, `Char.Jobs`, `Char` |
+| `window-character.js` | Character | Overview, Backpack, Quests, Skills, Jobs, Effects | `Char.Info`, `Char.Stats`, `Char.Inventory`, `Char.Inventory.Backpack`, `Char.Quests`, `Char.Skills`, `Char.Jobs`, `Char.Affects`, `Char` |
 | `window-vitals.js` | Vitals | — | `Char.Vitals`, `Char` |
-| `window-status.js` | Status | Worth, Effects | `Char.Worth`, `Char.Affects`, `Char` |
+| `window-status.js` | Worth | — | `Char.Worth`, `Char` |
 | `window-party.js` | Party | — | `Party`, `Party.Vitals` |
 
 ### Right dock
@@ -382,13 +382,9 @@ Commands offered depend on item type/subtype from the GMCP payload:
 
 ---
 
-## Status Window (window-status.js)
+## Worth Window (window-status.js)
 
-### Worth tab
-
-- **Skill Points** badge — clickable, sends `Help stat-train` GMCP request.
-- **Training Points** badge — clickable, sends `Help train` GMCP request.
-- Both badges highlight with `cursor: help`.
+Displays XP progress bar and gold (carried + bank). No tabs.
 
 ---
 

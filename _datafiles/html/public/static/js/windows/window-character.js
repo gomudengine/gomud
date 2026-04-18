@@ -7,11 +7,12 @@
  *
  * Tabs:
  *   Overview   — name, race/class, level, alignment, stats grid,
- *                HP/MP bars, equipment slots (with hover tooltips)
+ *                equipment slots (with hover tooltips)
  *   Backpack   — carried items with carry capacity, hover tooltips
  *   Quests     — in-progress quest log, click to expand
  *   Skills     — learned skills with levels and max indicator
  *   Jobs       — profession completion and proficiency
+ *   Effects    — active buffs/debuffs with duration bars
  *
  * Responds to GMCP namespaces:
  *   Char                    — full character update
@@ -23,6 +24,7 @@
  *   Char.Quests             — quest progress
  *   Char.Skills             — skill names, levels, max flag
  *   Char.Jobs               — profession completion and proficiency
+ *   Char.Affects            — active buffs/debuffs
  *
  * Reads:
  *   Client.GMCPStructs.Char.Info
@@ -33,6 +35,7 @@
  *   Client.GMCPStructs.Char.Quests
  *   Client.GMCPStructs.Char.Skills
  *   Client.GMCPStructs.Char.Jobs
+ *   Client.GMCPStructs.Char.Affects
  */
 
 'use strict';
@@ -202,6 +205,54 @@
             padding: 4px 0 2px;
             border-top: 1px solid #0f3333;
             border-bottom: 1px solid #0f3333;
+        }
+
+        /* ---- Points row (below stats grid) ---- */
+        #cw-points-row {
+            display: flex;
+            gap: 6px;
+            padding: 4px 0 2px;
+            border-bottom: 1px solid #0f3333;
+        }
+
+        .cw-point-badge {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 2px 6px;
+            background: #0d2e28;
+            border: 1px solid #1c6b60;
+            border-radius: 3px;
+            cursor: help;
+            gap: 4px;
+        }
+
+        .cw-point-badge:hover {
+            background: #0f3333;
+        }
+
+        .cw-point-badge-label {
+            font-size: 0.62em;
+            color: #7ab8a0;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            white-space: nowrap;
+        }
+
+        .cw-point-badge-value {
+            font-size: 0.8em;
+            color: #dffbd1;
+            font-weight: bold;
+        }
+
+        .cw-point-badge.has-points {
+            border-color: #3ad4b8;
+            background: #0d3d35;
+        }
+
+        .cw-point-badge.has-points .cw-point-badge-value {
+            color: #3ad4b8;
         }
 
         .cw-stat-cell {
@@ -692,6 +743,102 @@
         .cjb-bar-fill.complete {
             background: #d4a843;
         }
+
+        /* ---- Effects tab ---- */
+        #cw-effects {
+            padding: 4px 6px;
+            gap: 4px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            align-content: flex-start;
+        }
+
+        .cw-affect-empty {
+            grid-column: 1 / -1;
+            color: #444;
+            font-size: 0.76em;
+            font-style: italic;
+            text-align: center;
+            padding: 14px 0;
+        }
+
+        .cw-affect-item {
+            background: #0a1e1a;
+            border: 1px solid #1c6b60;
+            border-radius: 4px;
+            padding: 4px 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            min-width: 0;
+            box-sizing: border-box;
+        }
+
+        .cw-affect-item.debuff {
+            border-color: #6b1c1c;
+            background: #1e0a0a;
+        }
+
+        .cw-affect-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 4px;
+        }
+
+        .cw-affect-name {
+            font-size: 0.5em;
+            color: #dffbd1;
+            font-weight: bold;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .cw-affect-item.debuff .cw-affect-name { color: #f4a0a0; }
+
+        .cw-affect-source {
+            font-size: 0.63em;
+            color: #7ab8a0;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .cw-affect-item.debuff .cw-affect-source { color: #b87a7a; }
+
+        .cw-affect-mods {
+            font-size: 0.66em;
+            color: #7ab8a0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .cw-affect-item.debuff .cw-affect-mods { color: #b87a7a; }
+
+        .cw-affect-dur-track {
+            width: 100%;
+            height: 4px;
+            background: #1a1a1a;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .cw-affect-dur-fill {
+            height: 100%;
+            border-radius: 2px;
+            background: #1c6b60;
+            transition: width 1s linear;
+        }
+
+        .cw-affect-item.debuff .cw-affect-dur-fill { background: #6b1c1c; }
+
+        .cw-affect-dur-fill.permanent {
+            background: #3ad4b8;
+            width: 100% !important;
+        }
+
+        .cw-affect-item.debuff .cw-affect-dur-fill.permanent { background: #d43a3a; }
     `);
 
     // -----------------------------------------------------------------------
@@ -976,7 +1123,18 @@
                 '<span class="cw-stat-mod" id="cw-stat-mod-' + d.key + '" style="display:none"></span>' +
             '</div>'
         ).join('');
-        return '<div id="cw-stats-grid">' + cells + '</div>';
+        const pointsRow =
+            '<div id="cw-points-row">' +
+                '<div class="cw-point-badge" id="cw-badge-sp">' +
+                    '<span class="cw-point-badge-label">Skill Pts</span>' +
+                    '<span class="cw-point-badge-value" id="cw-sp">—</span>' +
+                '</div>' +
+                '<div class="cw-point-badge" id="cw-badge-tp">' +
+                    '<span class="cw-point-badge-label">Train Pts</span>' +
+                    '<span class="cw-point-badge-value" id="cw-tp">—</span>' +
+                '</div>' +
+            '</div>';
+        return '<div id="cw-stats-grid">' + cells + '</div>' + pointsRow;
     }
 
     function buildEquipSection() {
@@ -1000,6 +1158,7 @@
                 '<button class="cw-tab-btn"        data-panel="cw-quests">Quests</button>' +
                 '<button class="cw-tab-btn"        data-panel="cw-skills">Skills</button>' +
                 '<button class="cw-tab-btn"        data-panel="cw-jobs">Jobs</button>' +
+                '<button class="cw-tab-btn"        data-panel="cw-effects">Effects</button>' +
             '</div>' +
 
             '<div class="cw-tab-panel active" id="cw-overview">' +
@@ -1028,6 +1187,10 @@
 
             '<div class="cw-tab-panel" id="cw-jobs">' +
                 '<div class="cjb-empty">No job progress</div>' +
+            '</div>' +
+
+            '<div class="cw-tab-panel" id="cw-effects">' +
+                '<div class="cw-affect-empty">No active effects</div>' +
             '</div>';
 
         document.body.appendChild(el);
@@ -1045,6 +1208,12 @@
                 modEl.addEventListener('mouseleave', hideStatTooltip);
             }
         });
+
+        // Attach click handlers to the point badges
+        const spBadge = el.querySelector('#cw-badge-sp');
+        if (spBadge) { spBadge.addEventListener('click', () => Client.GMCPRequest('Help stat-train')); }
+        const tpBadge = el.querySelector('#cw-badge-tp');
+        if (tpBadge) { tpBadge.addEventListener('click', () => Client.GMCPRequest('Help train')); }
 
         // Attach tooltip and click-menu listeners to all equipment rows
         EQUIP_SLOTS.forEach(s => {
@@ -1124,6 +1293,17 @@
             const a = (info.alignment || '').toLowerCase();
             alignEl.className = 'cw-char-alignment ' +
                 (a.includes('good') ? 'cw-align-good' : a.includes('evil') ? 'cw-align-evil' : 'cw-align-neutral');
+
+            const sp      = info.skillpoints    || 0;
+            const tp      = info.trainingpoints || 0;
+            const spEl    = document.getElementById('cw-sp');
+            const tpEl    = document.getElementById('cw-tp');
+            const spBadge = document.getElementById('cw-badge-sp');
+            const tpBadge = document.getElementById('cw-badge-tp');
+            if (spEl)    { spEl.textContent = sp; }
+            if (tpEl)    { tpEl.textContent = tp; }
+            if (spBadge) { spBadge.classList.toggle('has-points', sp > 0); }
+            if (tpBadge) { tpBadge.classList.toggle('has-points', tp > 0); }
         }
     }
 
@@ -1428,6 +1608,73 @@
         });
     }
 
+    // -----------------------------------------------------------------------
+    // Effects update
+    // -----------------------------------------------------------------------
+    function _isDebuff(mods) {
+        if (!mods) { return false; }
+        return Object.values(mods).some(v => v < 0);
+    }
+
+    function _formatMods(mods) {
+        if (!mods || Object.keys(mods).length === 0) { return ''; }
+        return Object.entries(mods)
+            .map(([k, v]) => (v >= 0 ? '+' : '') + v + ' ' + k)
+            .join('  ');
+    }
+
+    function updateEffects() {
+        const affects = Client.GMCPStructs.Char && Client.GMCPStructs.Char.Affects;
+        const panel   = document.getElementById('cw-effects');
+        if (!panel) { return; }
+
+        if (!affects) { return; }
+
+        panel.innerHTML = '';
+
+        const keys = Object.keys(affects);
+        if (keys.length === 0) {
+            panel.innerHTML = '<div class="cw-affect-empty">No active effects</div>';
+            return;
+        }
+
+        keys.sort((a, b) => {
+            const da = _isDebuff(affects[a].affects);
+            const db = _isDebuff(affects[b].affects);
+            if (da !== db) { return da ? 1 : -1; }
+            const pa = affects[a].duration_max === -1;
+            const pb = affects[b].duration_max === -1;
+            if (pa !== pb) { return pa ? 1 : -1; }
+            return a.localeCompare(b);
+        });
+
+        keys.forEach(key => {
+            const aff     = affects[key];
+            const debuff  = _isDebuff(aff.affects);
+            const perma   = aff.duration_max === -1;
+            const modText = _formatMods(aff.affects);
+
+            let durPct = 100;
+            if (!perma && aff.duration_max > 0) {
+                durPct = Math.max(0, Math.min(100, Math.round((aff.duration_cur / aff.duration_max) * 100)));
+            }
+
+            const item = document.createElement('div');
+            item.className = 'cw-affect-item' + (debuff ? ' debuff' : '');
+            item.innerHTML =
+                '<div class="cw-affect-header">' +
+                    '<span class="cw-affect-name">' + (aff.name || key) + '</span>' +
+                    '<span class="cw-affect-source">' + (aff.type || '') + '</span>' +
+                '</div>' +
+                (modText ? '<div class="cw-affect-mods">' + modText + '</div>' : '') +
+                '<div class="cw-affect-dur-track">' +
+                    '<div class="cw-affect-dur-fill' + (perma ? ' permanent' : '') + '" style="width:' + durPct + '%"></div>' +
+                '</div>';
+
+            panel.appendChild(item);
+        });
+    }
+
     function update() {
         win.open();
         if (!win.isOpen()) { return; }
@@ -1438,6 +1685,7 @@
         updateQuests();
         updateSkills();
         updateJobs();
+        updateEffects();
     }
 
     // -----------------------------------------------------------------------
@@ -1445,7 +1693,7 @@
     // -----------------------------------------------------------------------
     VirtualWindows.register({
         window:       win,
-        gmcpHandlers: ['Char.Info', 'Char.Stats', 'Char.Inventory', 'Char.Inventory.Backpack', 'Char.Quests', 'Char.Skills', 'Char.Jobs', 'Char'],
+        gmcpHandlers: ['Char.Info', 'Char.Stats', 'Char.Inventory', 'Char.Inventory.Backpack', 'Char.Quests', 'Char.Skills', 'Char.Jobs', 'Char.Affects', 'Char'],
         onGMCP() { update(); },
     });
 
