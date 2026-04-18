@@ -238,9 +238,9 @@
     var rooms = new Map();
 
     /**
-     * edges: Set of canonical "minId-maxId" strings to avoid duplicate lines.
+     * edges: Map of canonical "minId-maxId" strings to { locked, secret } flags.
      */
-    var edges = new Set();
+    var edges = new Map();
 
     /**
      * zoneExitStubs: Array of { roomId, dx, dy } for exits that leave the
@@ -393,6 +393,71 @@
     // Rendering
     // -------------------------------------------------------------------------
 
+    /**
+     * Draw a small badge on a connection line at (mx, my).
+     * type: 'key' draws a key icon; 'secret' draws a question mark.
+     * The badge is a filled square sized to fit neatly on the line.
+     */
+    function drawLineBadge(mx, my, type) {
+        var sz   = Math.max(7, Math.round(CONNECTION_WIDTH * zoomScale * 2.5));
+        var half = sz / 2;
+
+        console.log('[map] drawing ' + type + ' badge at (' + Math.round(mx) + ', ' + Math.round(my) + ') size=' + sz);
+
+        ctx.save();
+
+        // Background square
+        ctx.fillStyle = MAP_BACKGROUND;
+        ctx.fillRect(mx - half, my - half, sz, sz);
+
+        if (type === 'secret') {
+            // Question mark in gold
+            ctx.fillStyle    = '#d4a843';
+            ctx.font         = 'bold ' + Math.round(sz * 0.85) + 'px monospace';
+            ctx.textAlign    = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('?', mx, my);
+        } else {
+            // Key icon drawn with canvas primitives
+            // Color
+            var kc = '#9ab0d4';
+            var lw = Math.max(1, sz * 0.14);
+            ctx.strokeStyle = kc;
+            ctx.fillStyle   = kc;
+            ctx.lineWidth   = lw;
+            ctx.lineCap     = 'round';
+
+            // Key bow (small circle on the left side)
+            var bowR  = sz * 0.22;
+            var bowCx = mx - sz * 0.14;
+            var bowCy = my;
+            ctx.beginPath();
+            ctx.arc(bowCx, bowCy, bowR, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Key shaft (horizontal line to the right)
+            var shaftX1 = bowCx + bowR;
+            var shaftX2 = mx + half * 0.82;
+            ctx.beginPath();
+            ctx.moveTo(shaftX1, bowCy);
+            ctx.lineTo(shaftX2, bowCy);
+            ctx.stroke();
+
+            // Two small teeth on the shaft
+            var toothH = sz * 0.18;
+            var t1x    = shaftX1 + (shaftX2 - shaftX1) * 0.45;
+            var t2x    = shaftX1 + (shaftX2 - shaftX1) * 0.72;
+            ctx.beginPath();
+            ctx.moveTo(t1x, bowCy);
+            ctx.lineTo(t1x, bowCy + toothH);
+            ctx.moveTo(t2x, bowCy);
+            ctx.lineTo(t2x, bowCy + toothH);
+            ctx.stroke();
+        }
+
+        ctx.restore();
+    }
+
     function render() {
         if (!ctx || !canvas) { return; }
 
@@ -407,7 +472,7 @@
         ctx.lineWidth   = CONNECTION_WIDTH * zoomScale;
         ctx.lineCap     = 'round';
 
-        edges.forEach(function (key) {
+        edges.forEach(function (flags, key) {
             var parts = key.split('-');
             var idA   = parseInt(parts[0], 10);
             var idB   = parseInt(parts[1], 10);
@@ -422,6 +487,12 @@
             ctx.moveTo(pA.px, pA.py);
             ctx.lineTo(pB.px, pB.py);
             ctx.stroke();
+
+            if (flags.locked || flags.secret) {
+                var mx = (pA.px + pB.px) / 2;
+                var my = (pA.py + pB.py) / 2;
+                drawLineBadge(mx, my, flags.secret ? 'secret' : 'key');
+            }
         });
 
         // Draw zone-exit stubs: short lines from room center outward
@@ -434,10 +505,18 @@
             if (len === 0) { return; }
             var nx  = stub.dx / len;
             var ny  = stub.dy / len;
+            var ex  = p.px + nx * stubLen;
+            var ey  = p.py + ny * stubLen;
             ctx.beginPath();
             ctx.moveTo(p.px, p.py);
-            ctx.lineTo(p.px + nx * stubLen, p.py + ny * stubLen);
+            ctx.lineTo(ex, ey);
             ctx.stroke();
+
+            if (stub.locked || stub.secret) {
+                var mx = (p.px + ex) / 2;
+                var my = (p.py + ey) / 2;
+                drawLineBadge(mx, my, stub.secret ? 'secret' : 'key');
+            }
         });
 
         // Draw room squares
@@ -499,14 +578,21 @@
         rooms.set(id, { x: gx, y: gy, symbol: symbol || '•', hasUp: rc ? rc.hasUp : false, hasDown: rc ? rc.hasDown : false });
     }
 
-    function addEdge(idA, idB) {
+    function addEdge(idA, idB, locked, secret) {
         var key = idA < idB ? (idA + '-' + idB) : (idB + '-' + idA);
-        edges.add(key);
+        if (!edges.has(key)) {
+            edges.set(key, { locked: !!locked, secret: !!secret });
+        } else {
+            // Merge flags — if either direction reports locked/secret, keep it.
+            var existing = edges.get(key);
+            existing.locked = existing.locked || !!locked;
+            existing.secret = existing.secret || !!secret;
+        }
     }
 
     function resetMap() {
         rooms.clear();
-        edges.clear();
+        edges.clear(); // Map.clear() works the same as Set.clear()
         zoneExitStubs = [];
         currentRoomId = null;
         cameraX = 0;
@@ -557,9 +643,9 @@
 
             // Follow exits to connected rooms on the same z-plane
             if (Array.isArray(r.exits)) {
-                r.exits.forEach(function (exitId) {
-                    if (!visited[exitId] && roomCache[exitId]) {
-                        queue.push(exitId);
+                r.exits.forEach(function (exit) {
+                    if (!visited[exit.num] && roomCache[exit.num]) {
+                        queue.push(exit.num);
                     }
                 });
             }
@@ -571,15 +657,15 @@
             if (!r) { return; }
 
             if (Array.isArray(r.exits)) {
-                r.exits.forEach(function (exitId) {
-                    if (rooms.has(exitId)) {
-                        addEdge(id, exitId);
+                r.exits.forEach(function (exit) {
+                    if (rooms.has(exit.num)) {
+                        addEdge(id, exit.num, exit.locked, exit.secret);
                     }
                 });
             }
             if (Array.isArray(r.stubs)) {
                 r.stubs.forEach(function (stub) {
-                    zoneExitStubs.push({ roomId: id, dx: stub.dx, dy: stub.dy });
+                    zoneExitStubs.push({ roomId: id, dx: stub.dx, dy: stub.dy, locked: stub.locked, secret: stub.secret });
                 });
             }
         });
@@ -664,6 +750,7 @@
                 if (exitInfo.dz !== 0) { continue; }
 
                 var isSecret    = Array.isArray(exitInfo.details) && exitInfo.details.indexOf('secret') !== -1;
+                var isLocked    = Array.isArray(exitInfo.details) && exitInfo.details.indexOf('locked') !== -1;
                 var destVisited = roomInfoStore.has(exitInfo.num);
 
                 // Secret exits are suppressed until the destination is visited.
@@ -671,10 +758,10 @@
 
                 if (destVisited) {
                     // Destination is known — draw a full edge regardless of zone.
-                    exitIds.push(exitInfo.num);
+                    exitIds.push({ num: exitInfo.num, locked: isLocked, secret: isSecret });
                 } else {
                     // Destination not yet visited — draw a stub in the exit direction.
-                    exitStubs.push({ dx: exitInfo.dx, dy: exitInfo.dy });
+                    exitStubs.push({ dx: exitInfo.dx, dy: exitInfo.dy, locked: isLocked, secret: isSecret });
                 }
             }
         }
@@ -996,19 +1083,19 @@
             var rc = roomCache[info.num];
             if (rc) {
                 if (Array.isArray(rc.exits)) {
-                    rc.exits.forEach(function (exitId) {
-                        var destRc = roomCache[exitId];
+                    rc.exits.forEach(function (exit) {
+                        var destRc = roomCache[exit.num];
                         if (destRc) {
-                            if (!rooms.has(exitId)) {
-                                addOrUpdateRoom(exitId, destRc.x, destRc.y, destRc.symbol);
+                            if (!rooms.has(exit.num)) {
+                                addOrUpdateRoom(exit.num, destRc.x, destRc.y, destRc.symbol);
                             }
-                            addEdge(info.num, exitId);
+                            addEdge(info.num, exit.num, exit.locked, exit.secret);
                         }
                     });
                 }
                 if (Array.isArray(rc.stubs)) {
                     rc.stubs.forEach(function (stub) {
-                        zoneExitStubs.push({ roomId: info.num, dx: stub.dx, dy: stub.dy });
+                        zoneExitStubs.push({ roomId: info.num, dx: stub.dx, dy: stub.dy, locked: stub.locked, secret: stub.secret });
                     });
                 }
             }

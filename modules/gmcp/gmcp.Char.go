@@ -208,7 +208,7 @@ func (g *GMCPCharModule) equipmentChangeHandler(e events.Event) events.ListenerR
 	statsToChange := ``
 
 	if len(evt.ItemsRemoved) > 0 || len(evt.ItemsWorn) > 0 {
-		statsToChange += `Char.Inventory, Char.Stats, Char.Vitals`
+		statsToChange += `Char.Inventory, Char.Stats, Char.Vitals, Char.Affects`
 	}
 
 	// If only gold or bank changed
@@ -476,12 +476,18 @@ func (g *GMCPCharModule) GetCharNode(user *users.UserRecord, gmcpModule string) 
 	if all || g.wantsGMCPPayload(`Char.Stats`, gmcpModule) {
 
 		payload.Stats = &GMCPCharModule_Payload_Stats{
-			Strength:   user.Character.Stats.Strength.ValueAdj,
-			Speed:      user.Character.Stats.Speed.ValueAdj,
-			Smarts:     user.Character.Stats.Smarts.ValueAdj,
-			Vitality:   user.Character.Stats.Vitality.ValueAdj,
-			Mysticism:  user.Character.Stats.Mysticism.ValueAdj,
-			Perception: user.Character.Stats.Perception.ValueAdj,
+			Strength:      user.Character.Stats.Strength.ValueAdj,
+			StrengthMod:   user.Character.StatMod(`strength`),
+			Speed:         user.Character.Stats.Speed.ValueAdj,
+			SpeedMod:      user.Character.StatMod(`speed`),
+			Smarts:        user.Character.Stats.Smarts.ValueAdj,
+			SmartsMod:     user.Character.StatMod(`smarts`),
+			Vitality:      user.Character.Stats.Vitality.ValueAdj,
+			VitalityMod:   user.Character.StatMod(`vitality`),
+			Mysticism:     user.Character.Stats.Mysticism.ValueAdj,
+			MysticismMod:  user.Character.StatMod(`mysticism`),
+			Perception:    user.Character.Stats.Perception.ValueAdj,
+			PerceptionMod: user.Character.StatMod(`perception`),
 		}
 
 		if !all {
@@ -793,12 +799,18 @@ func newInventory_Item(itm items.Item) GMCPCharModule_Payload_Inventory_Item {
 // Char.Stats
 // /////////////////
 type GMCPCharModule_Payload_Stats struct {
-	Strength   int `json:"strength,omitempty"`
-	Speed      int `json:"speed,omitempty"`
-	Smarts     int `json:"smarts,omitempty"`
-	Vitality   int `json:"vitality,omitempty"`
-	Mysticism  int `json:"mysticism,omitempty"`
-	Perception int `json:"perception,omitempty"`
+	Strength      int `json:"strength,omitempty"`
+	StrengthMod   int `json:"strengthmod,omitempty"`
+	Speed         int `json:"speed,omitempty"`
+	SpeedMod      int `json:"speedmod,omitempty"`
+	Smarts        int `json:"smarts,omitempty"`
+	SmartsMod     int `json:"smartsmod,omitempty"`
+	Vitality      int `json:"vitality,omitempty"`
+	VitalityMod   int `json:"vitalitymod,omitempty"`
+	Mysticism     int `json:"mysticism,omitempty"`
+	MysticismMod  int `json:"mysticismmod,omitempty"`
+	Perception    int `json:"perception,omitempty"`
+	PerceptionMod int `json:"perceptionmod,omitempty"`
 }
 
 // /////////////////

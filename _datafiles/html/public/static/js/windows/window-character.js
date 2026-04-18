@@ -231,6 +231,29 @@
             font-weight: bold;
         }
 
+        .cw-stat-mod {
+            font-size: 0.68em;
+            color: #7ab8a0;
+            font-weight: normal;
+            cursor: help;
+        }
+
+        #cw-stat-tooltip {
+            position: fixed;
+            z-index: 99999;
+            pointer-events: none;
+            background: #0d2e28;
+            border: 1px solid #1c6b60;
+            border-radius: 6px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.7);
+            padding: 6px 9px;
+            font-size: 0.75em;
+            color: #7ab8a0;
+            font-style: italic;
+            max-width: 200px;
+            display: none;
+        }
+
         /* ---- Equipment tooltip ---- */
         #cw-equip-tooltip {
             position: fixed;
@@ -730,6 +753,46 @@
     let hideTimer  = null;
     const rowItemData = new Map();
 
+    let statTooltip = null;
+    let statHideTimer = null;
+
+    function ensureStatTooltip() {
+        if (statTooltip) { return; }
+        statTooltip = document.createElement('div');
+        statTooltip.id = 'cw-stat-tooltip';
+        document.body.appendChild(statTooltip);
+    }
+
+    function showStatTooltip(el, text) {
+        ensureStatTooltip();
+        clearTimeout(statHideTimer);
+        statTooltip.textContent = text;
+        statTooltip.style.display = 'block';
+        positionStatTooltip(el);
+    }
+
+    function positionStatTooltip(el) {
+        if (!statTooltip) { return; }
+        const rect = el.getBoundingClientRect();
+        const ttW  = statTooltip.offsetWidth;
+        const ttH  = statTooltip.offsetHeight;
+        const vw   = window.innerWidth;
+        const vh   = window.innerHeight;
+        let left = rect.right + 8;
+        if (left + ttW > vw - 8) { left = rect.left - ttW - 8; }
+        left = Math.max(8, left);
+        let top = rect.top;
+        if (top + ttH > vh - 8) { top = vh - ttH - 8; }
+        top = Math.max(8, top);
+        statTooltip.style.left = left + 'px';
+        statTooltip.style.top  = top  + 'px';
+    }
+
+    function hideStatTooltip() {
+        if (!statTooltip) { return; }
+        statHideTimer = setTimeout(() => { statTooltip.style.display = 'none'; }, 80);
+    }
+
     function ensureTooltip() {
         if (tooltip) { return; }
         tooltip = document.createElement('div');
@@ -910,6 +973,7 @@
             '<div class="cw-stat-cell">' +
                 '<span class="cw-stat-abbr">' + d.abbr + '</span>' +
                 '<span class="cw-stat-num" id="cw-stat-' + d.key + '">—</span>' +
+                '<span class="cw-stat-mod" id="cw-stat-mod-' + d.key + '" style="display:none"></span>' +
             '</div>'
         ).join('');
         return '<div id="cw-stats-grid">' + cells + '</div>';
@@ -969,11 +1033,16 @@
         document.body.appendChild(el);
         makeTabSwitcher(el);
 
-        // Attach click listeners to stat cells
+        // Attach click listeners and mod tooltips to stat cells
         STAT_DEFS.forEach(d => {
-            const cell = el.querySelector('.cw-stat-cell:has(#cw-stat-' + d.key + ')');
+            const cell  = el.querySelector('.cw-stat-cell:has(#cw-stat-' + d.key + ')');
             if (cell) {
                 cell.addEventListener('click', () => Client.GMCPRequest('Help ' + d.key));
+            }
+            const modEl = el.querySelector('#cw-stat-mod-' + d.key);
+            if (modEl) {
+                modEl.addEventListener('mouseenter', () => showStatTooltip(modEl, 'How much of this stat is due to equipment, buffs and pets.'));
+                modEl.addEventListener('mouseleave', hideStatTooltip);
             }
         });
 
@@ -1065,6 +1134,17 @@
         STAT_DEFS.forEach(def => {
             const el = document.getElementById('cw-stat-' + def.key);
             if (el) { el.textContent = stats[def.key] || '—'; }
+
+            const mod   = stats[def.key + 'mod'];
+            const modEl = document.getElementById('cw-stat-mod-' + def.key);
+            if (modEl) {
+                if (mod) {
+                    modEl.textContent   = '(' + mod + ')';
+                    modEl.style.display = '';
+                } else {
+                    modEl.style.display = 'none';
+                }
+            }
         });
     }
 

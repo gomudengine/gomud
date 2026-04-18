@@ -147,12 +147,20 @@ func (g *GMCPWorldModule) buildWorldMap(user *users.UserRecord) []GMCPWorldMap_R
 					deltaX, deltaY, deltaZ = mapper.GetDelta(exitName)
 				}
 
+				exitV2Details := []string{}
+				if exitInfo.Secret {
+					exitV2Details = append(exitV2Details, `secret`)
+				}
+				if exitInfo.HasLock() {
+					exitV2Details = append(exitV2Details, `locked`)
+				}
+
 				entry.ExitsV2[exitName] = GMCPRoomModule_Payload_Contents_ExitInfo{
 					RoomId:  exitInfo.RoomId,
 					DeltaX:  deltaX,
 					DeltaY:  deltaY,
 					DeltaZ:  deltaZ,
-					Details: []string{},
+					Details: exitV2Details,
 				}
 			}
 
