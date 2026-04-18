@@ -85,26 +85,60 @@
         // Biome defaults (matched to biome symbol values)
         '~':  '#2a53f7',   // shore / water edge
         '≈':  '#0033cd',   // open water
-        '♣':  '#1a5c1a',   // forest
-        '♨':  '#3d5c1a',   // swamp
-        '❄':  '#a0c8e0',   // snow
-        '⌬':  '#4a3a2a',   // cave
-        '⩕':  '#6b5a3a',   // mountains
-        '▼':  '#7a6a4a',   // cliffs
-        '⌂':  '#7a5a2a',   // house
-        '*':  '#c8a050',   // desert
-        "'":  '#5a7a2a',   // farmland
+        '♣':  '#1a6b1a',   // forest — dark green
+        '♨':  '#4a6b20',   // swamp — murky green
+        '❄':  '#b8d8f0',   // snow — pale blue-white
+        '⌬':  '#5a4a38',   // cave — dark brown-grey
+        '⩕':  '#7a6a50',   // mountains — warm grey-brown
+        '▼':  '#8a7a5a',   // cliffs — tan
+        '⌂':  '#8a6a3a',   // house / building
+        '*':  '#d4aa55',   // desert — sandy gold
+        "'":  '#6a8a30',   // farmland — olive green
+        '=':  '#a07840',   // road — light brown
 
         // Common room-specific symbols
-        '$':  '#2a6a2a',   // shop
-        '%':  '#2a5a7a',   // trainer
-        '♜':  '#3a3a3a',   // wall
+        '$':  '#2a7a2a',   // shop
+        '%':  '#2a5a8a',   // trainer
+        '♜':  '#4a4a4a',   // wall
         '+':  '#5fb7ff',   // healer
         '•':  '#3a3a4a',   // generic / default biome dot
     };
 
     /** Fallback color for symbols not found in SYMBOL_COLORS. */
     var DEFAULT_ROOM_COLOR = '#3a3a4a';
+
+    /**
+     * Maps the GMCP `environment` field (biome name) to a map symbol when the
+     * room has no explicit `mapsymbol` set.
+     */
+    var ENVIRONMENT_SYMBOLS = {
+        'Forest':    '\u2663',
+        'Swamp':     '\u2668',
+        'Snow':      '\u2744',
+        'Cave':      '\u232c',
+        'Dungeon':   '\u232c',
+        'Mountains': '\u2a55',
+        'Cliffs':    '\u25bc',
+        'House':     '\u2302',
+        'Desert':    '*',
+        'Farmland':  "'",
+        'Road':      '=',
+        'Shore':     '~',
+        'Water':     '\u2248',
+    };
+
+    /**
+     * Return the best symbol for a room given its GMCP info object.
+     * Prefers the explicit mapsymbol; falls back to the environment name lookup;
+     * then falls back to the default dot.
+     */
+    function symbolForRoom(info) {
+        if (info.mapsymbol) { return info.mapsymbol; }
+        if (info.environment && ENVIRONMENT_SYMBOLS[info.environment]) {
+            return ENVIRONMENT_SYMBOLS[info.environment];
+        }
+        return '\u2022';
+    }
 
     /** Text color for symbol labels inside room squares. */
     var SYMBOL_TEXT_COLOR = '#e0e0e0';
@@ -307,9 +341,34 @@
     // -------------------------------------------------------------------------
     // Color lookup helper
     // -------------------------------------------------------------------------
-    function colorForSymbol(sym) {
-        if (!sym) { return DEFAULT_ROOM_COLOR; }
-        return SYMBOL_COLORS[sym] || DEFAULT_ROOM_COLOR;
+
+    /**
+     * Color lookup by biome/environment name.
+     * Used when a room has no mapsymbol, or its symbol has no entry in SYMBOL_COLORS.
+     */
+    var ENVIRONMENT_COLORS = {
+        'Forest':    '#1a6b1a',
+        'Swamp':     '#4a6b20',
+        'Snow':      '#b8d8f0',
+        'Cave':      '#5a4a38',
+        'Dungeon':   '#5a4a38',
+        'Mountains': '#7a6a50',
+        'Cliffs':    '#8a7a5a',
+        'House':     '#8a6a3a',
+        'Desert':    '#d4aa55',
+        'Farmland':  '#6a8a30',
+        'Road':      '#a07840',
+        'Shore':     '#2a53f7',
+        'Water':     '#0033cd',
+        'City':      '#5a5a6a',
+        'Fort':      '#5a5a6a',
+        'Land':      '#3a3a4a',
+    };
+
+    function colorForSymbol(sym, env) {
+        if (sym && SYMBOL_COLORS[sym]) { return SYMBOL_COLORS[sym]; }
+        if (env && ENVIRONMENT_COLORS[env]) { return ENVIRONMENT_COLORS[env]; }
+        return DEFAULT_ROOM_COLOR;
     }
 
     // -------------------------------------------------------------------------
@@ -528,7 +587,7 @@
         rooms.forEach(function (room, id) {
             var p         = gridToCanvas(room.x, room.y);
             var isCurrent = (id === currentRoomId);
-            var fillColor = isCurrent ? CURRENT_ROOM_COLOR : colorForSymbol(room.symbol);
+            var fillColor = isCurrent ? CURRENT_ROOM_COLOR : colorForSymbol(room.symbol, room.env);
             var rx        = p.px - half;
             var ry        = p.py - half;
 
@@ -573,9 +632,9 @@
     // Room and edge management
     // -------------------------------------------------------------------------
 
-    function addOrUpdateRoom(id, gx, gy, symbol) {
+    function addOrUpdateRoom(id, gx, gy, symbol, env) {
         var rc = roomCache[id];
-        rooms.set(id, { x: gx, y: gy, symbol: symbol || '•', hasUp: rc ? rc.hasUp : false, hasDown: rc ? rc.hasDown : false });
+        rooms.set(id, { x: gx, y: gy, symbol: symbol || '•', env: env || '', hasUp: rc ? rc.hasUp : false, hasDown: rc ? rc.hasDown : false });
     }
 
     function addEdge(idA, idB, locked, secret) {
@@ -639,7 +698,7 @@
             var r = roomCache[id];
             if (!r) { continue; }
 
-            addOrUpdateRoom(r.RoomId, r.x, r.y, r.symbol);
+            addOrUpdateRoom(r.RoomId, r.x, r.y, r.symbol, r.env);
 
             // Follow exits to connected rooms on the same z-plane
             if (Array.isArray(r.exits)) {
@@ -707,7 +766,7 @@
             var isZoneRoot = Array.isArray(info.details) && info.details.indexOf('root') !== -1;
             if (gx === 0 && gy === 0 && !isZoneRoot) { return; }
 
-            upsertRoomCache(id, zoneName, gx, gy, gz, info.mapsymbol || '•', info.exitsv2);
+            upsertRoomCache(id, zoneName, gx, gy, gz, symbolForRoom(info), info.environment || '', info.exitsv2);
         });
 
         // Rebuild the visible map for the current zone
@@ -726,7 +785,7 @@
      * destination is visited (in roomInfoStore) and dz === 0.  Otherwise it
      * becomes a stub.
      */
-    function upsertRoomCache(id, zoneName, gx, gy, gz, sym, exitsv2) {
+    function upsertRoomCache(id, zoneName, gx, gy, gz, sym, env, exitsv2) {
         var exitIds   = [];
         var exitStubs = [];
         var hasUp     = false;
@@ -766,7 +825,7 @@
             }
         }
 
-        roomCache[id] = { RoomId: id, zoneName: zoneName, x: gx, y: gy, z: gz, symbol: sym, exits: exitIds, stubs: exitStubs, hasUp: hasUp, hasDown: hasDown };
+        roomCache[id] = { RoomId: id, zoneName: zoneName, x: gx, y: gy, z: gz, symbol: sym, env: env, exits: exitIds, stubs: exitStubs, hasUp: hasUp, hasDown: hasDown };
     }
 
     // -------------------------------------------------------------------------
@@ -1060,15 +1119,14 @@
         var gx = parseInt(coords[1], 10);
         var gy = parseInt(coords[2], 10);
 
-        // Determine symbol: use room's own mapsymbol if set, else fall back to
-        // the biome symbol embedded in the maplegend/environment fields.
-        var sym = info.mapsymbol || '•';
+        var sym = symbolForRoom(info);
+        var env = info.environment || '';
 
         // Store GMCP info for tooltip use
         roomInfoStore.set(info.num, info);
 
         // Update the room cache entry for the current room.
-        upsertRoomCache(info.num, zoneName, gx, gy, gz, sym, info.exitsv2);
+        upsertRoomCache(info.num, zoneName, gx, gy, gz, sym, env, info.exitsv2);
 
         // If the player has moved to a different zone/z-plane, rebuild the
         // entire visible map via a cross-zone flood-fill.  This handles the
@@ -1078,7 +1136,7 @@
             replayZone(zoneKey);
         } else {
             // Same zone — incrementally add the current room and its edges.
-            addOrUpdateRoom(info.num, gx, gy, sym);
+            addOrUpdateRoom(info.num, gx, gy, sym, env);
 
             var rc = roomCache[info.num];
             if (rc) {
@@ -1087,7 +1145,7 @@
                         var destRc = roomCache[exit.num];
                         if (destRc) {
                             if (!rooms.has(exit.num)) {
-                                addOrUpdateRoom(exit.num, destRc.x, destRc.y, destRc.symbol);
+                                addOrUpdateRoom(exit.num, destRc.x, destRc.y, destRc.symbol, destRc.env);
                             }
                             addEdge(info.num, exit.num, exit.locked, exit.secret);
                         }
