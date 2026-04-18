@@ -14,6 +14,7 @@ static/js/fx.js                                  Visual effects library (FX glob
 static/js/triggers.js                            Text-trigger engine (Triggers global)
 static/js/windows/window-gametime.js             Time & Date window (left dock)
 static/js/windows/window-character.js            Character window (left dock)
+static/js/windows/window-gear.js                 Gear window (left dock)
 static/js/windows/window-vitals.js               Vitals window (left dock)
 static/js/windows/window-status.js               Worth window (left dock)
 static/js/windows/window-party.js                Party window (left dock)
@@ -37,7 +38,8 @@ one `<script>` tag in the appropriate dock comment block.
 | File | Title | Tabs | GMCP namespaces |
 |---|---|---|---|
 | `window-gametime.js` | Time & Date | — | `Gametime` |
-| `window-character.js` | Character | Overview, Backpack, Quests, Skills, Jobs, Effects | `Char.Info`, `Char.Stats`, `Char.Inventory`, `Char.Inventory.Backpack`, `Char.Quests`, `Char.Skills`, `Char.Jobs`, `Char.Affects`, `Char` |
+| `window-character.js` | Character | Overview, Quests, Skills, Jobs, Effects | `Char.Info`, `Char.Stats`, `Char.Quests`, `Char.Skills`, `Char.Jobs`, `Char.Affects`, `Char` |
+| `window-gear.js` | Gear | Worn, Backpack | `Char.Inventory`, `Char.Inventory.Backpack`, `Char` |
 | `window-vitals.js` | Vitals | — | `Char.Vitals`, `Char` |
 | `window-status.js` | Worth | — | `Char.Worth`, `Char` |
 | `window-party.js` | Party | — | `Party`, `Party.Vitals` |
