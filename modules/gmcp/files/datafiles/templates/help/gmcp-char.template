@@ -122,4 +122,19 @@ Sent when the player's pet status changes.
   <ansi fg="cyan">type</ansi>    <ansi fg="green">string</ansi>  - Pet species or type
   <ansi fg="cyan">hunger</ansi>  <ansi fg="green">string</ansi>  - Hunger state (e.g. "full")
 
+<ansi fg="yellow-bold">Char.Kills</ansi>
+Sent on login and updated whenever a mob or player kill or death is recorded.
+
+  <ansi fg="cyan">mob.total</ansi>           <ansi fg="yellow">number</ansi>  - Total number of mob kills
+  <ansi fg="cyan">mob.deaths</ansi>          <ansi fg="yellow">number</ansi>  - Total number of deaths caused by mobs
+  <ansi fg="cyan">mob.kd_ratio</ansi>        <ansi fg="yellow">number</ansi>  - Mob kill/death ratio
+  <ansi fg="cyan">mob.by_name</ansi>         <ansi fg="blue-bold">object</ansi>(<ansi fg="green">string</ansi>-><ansi fg="yellow">number</ansi>)  - Kill counts keyed by mob name
+  <ansi fg="cyan">mob.by_race</ansi>         <ansi fg="blue-bold">object</ansi>(<ansi fg="green">string</ansi>-><ansi fg="yellow">number</ansi>)  - Kill counts keyed by race name
+  <ansi fg="cyan">mob.by_area</ansi>         <ansi fg="blue-bold">object</ansi>(<ansi fg="green">string</ansi>-><ansi fg="yellow">number</ansi>)  - Kill counts keyed by zone/area name
+  <ansi fg="cyan">pvp.total</ansi>           <ansi fg="yellow">number</ansi>  - Total number of unique players killed
+  <ansi fg="cyan">pvp.deaths</ansi>          <ansi fg="yellow">number</ansi>  - Total number of PvP deaths
+  <ansi fg="cyan">pvp.kd_ratio</ansi>        <ansi fg="yellow">number</ansi>  - PvP kill/death ratio
+  <ansi fg="cyan">pvp.players</ansi>         <ansi fg="blue-bold">object</ansi>(<ansi fg="green">string</ansi>-><ansi fg="blue-bold">object</ansi>)  - Per-player kill entries keyed by character name
+  <ansi fg="cyan">pvp.players[n].count</ansi> <ansi fg="yellow">number</ansi>  - Number of times that player was killed
+
 <ansi fg="magenta-bold">See also:</ansi> <ansi fg="command">help gmcp</ansi>, <ansi fg="command">help gmcp-room</ansi>, <ansi fg="command">help gmcp-party</ansi>

@@ -79,6 +79,11 @@ func Suicide(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 	mobXP := mob.Character.XPTL(mob.Character.Level - 1)
 
+	killedByUsers := make([]int, 0, len(mob.Character.PlayerDamage))
+	for uId := range mob.Character.PlayerDamage {
+		killedByUsers = append(killedByUsers, uId)
+	}
+
 	events.AddToQueue(events.MobDeath{
 		MobId:         int(mob.MobId),
 		InstanceId:    mob.InstanceId,
@@ -86,6 +91,7 @@ func Suicide(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		CharacterName: mob.Character.Name,
 		Level:         mob.Character.Level,
 		PlayerDamage:  mob.Character.PlayerDamage,
+		KilledByUsers: killedByUsers,
 	})
 
 	xpVal := mobXP / 90

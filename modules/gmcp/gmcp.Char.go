@@ -13,6 +13,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/plugins"
 	"github.com/GoMudEngine/GoMud/internal/quests"
+	"github.com/GoMudEngine/GoMud/internal/races"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/users"
@@ -50,6 +51,9 @@ func init() {
 
 	events.RegisterListener(events.Quest{}, g.questProgressHandler, events.Last)
 
+	events.RegisterListener(events.MobDeath{}, g.killsChangedHandler)
+	events.RegisterListener(events.PlayerDeath{}, g.killsChangedHandler)
+
 }
 
 type GMCPCharModule struct {
@@ -80,6 +84,32 @@ func (g *GMCPCharModule) questProgressHandler(e events.Event) events.ListenerRet
 		UserId:     evt.UserId,
 		Identifier: `Char.Quests`,
 	})
+
+	return events.Continue
+}
+
+func (g *GMCPCharModule) killsChangedHandler(e events.Event) events.ListenerReturn {
+
+	var userIds []int
+
+	switch evt := e.(type) {
+	case events.MobDeath:
+		userIds = evt.KilledByUsers
+	case events.PlayerDeath:
+		userIds = []int{evt.UserId}
+	default:
+		return events.Continue
+	}
+
+	for _, userId := range userIds {
+		if userId == 0 {
+			continue
+		}
+		events.AddToQueue(GMCPCharUpdate{
+			UserId:     userId,
+			Identifier: `Char.Kills`,
+		})
+	}
 
 	return events.Continue
 }
@@ -663,6 +693,60 @@ func (g *GMCPCharModule) GetCharNode(user *users.UserRecord, gmcpModule string) 
 		}
 	}
 
+	if all || g.wantsGMCPPayload(`Char.Kills`, gmcpModule) {
+
+		mobKills := map[string]int{}
+		raceKills := map[string]int{}
+		areaKills := map[string]int{}
+		charKills := map[string]GMCPCharModule_Payload_Kills_PvpEntry{}
+
+		totalMobKills := 0
+		totalPvpKills := 0
+
+		for mid, kCt := range user.Character.KD.Kills {
+			if mobSpec := mobs.GetMobSpec(mobs.MobId(mid)); mobSpec != nil {
+				totalMobKills += kCt
+				mobKills[mobSpec.Character.Name] = mobKills[mobSpec.Character.Name] + kCt
+				if raceInfo := races.GetRace(mobSpec.Character.RaceId); raceInfo != nil {
+					raceKills[raceInfo.Name] = raceKills[raceInfo.Name] + kCt
+				}
+				areaKills[mobSpec.Zone] = areaKills[mobSpec.Zone] + kCt
+			}
+		}
+
+		for userIdNameStr, killCount := range user.Character.KD.PlayerKills {
+			parts := strings.Split(userIdNameStr, `:`)
+			if len(parts) == 2 {
+				charKills[parts[1]] = GMCPCharModule_Payload_Kills_PvpEntry{Count: killCount}
+			}
+			totalPvpKills++
+		}
+
+		mobKDRatio := user.Character.KD.GetMobKDRatio()
+		pvpKDRatio := user.Character.KD.GetPvpKDRatio()
+
+		payload.Kills = &GMCPCharModule_Payload_Kills{
+			Mob: GMCPCharModule_Payload_Kills_Section{
+				Total:   totalMobKills,
+				Deaths:  user.Character.KD.GetMobDeaths(),
+				KDRatio: mobKDRatio,
+				ByName:  mobKills,
+				ByRace:  raceKills,
+				ByArea:  areaKills,
+			},
+			Pvp: GMCPCharModule_Payload_Kills_PvpSection{
+				Total:   totalPvpKills,
+				Deaths:  user.Character.KD.GetPvpDeaths(),
+				KDRatio: pvpKDRatio,
+				Players: charKills,
+			},
+		}
+
+		if !all {
+			return payload.Kills, `Char.Kills`
+		}
+	}
+
 	// If we reached this point and Char wasn't requested, we have a problem.
 	if !all {
 		mudlog.Error(`gmcp.Char`, `error`, `Bad module requested`, `module`, gmcpModule)
@@ -701,6 +785,7 @@ type GMCPCharModule_Payload struct {
 	Pets      []GMCPCharModule_Payload_Pet             `json:"Pets,omitempty"`
 	Skills    []GMCPCharModule_Payload_Skill           `json:"Skills,omitempty"`
 	Jobs      []GMCPCharModule_Payload_Job             `json:"Jobs,omitempty"`
+	Kills     *GMCPCharModule_Payload_Kills            `json:"Kills,omitempty"`
 }
 
 // /////////////////
@@ -881,4 +966,32 @@ type GMCPCharModule_Payload_Job struct {
 	Name        string `json:"name"`
 	Completion  int    `json:"completion"`
 	Proficiency string `json:"proficiency"`
+}
+
+// /////////////////
+// Char.Kills
+// /////////////////
+type GMCPCharModule_Payload_Kills struct {
+	Mob GMCPCharModule_Payload_Kills_Section    `json:"mob"`
+	Pvp GMCPCharModule_Payload_Kills_PvpSection `json:"pvp"`
+}
+
+type GMCPCharModule_Payload_Kills_Section struct {
+	Total   int            `json:"total"`
+	Deaths  int            `json:"deaths"`
+	KDRatio float64        `json:"kd_ratio"`
+	ByName  map[string]int `json:"by_name"`
+	ByRace  map[string]int `json:"by_race"`
+	ByArea  map[string]int `json:"by_area"`
+}
+
+type GMCPCharModule_Payload_Kills_PvpSection struct {
+	Total   int                                          `json:"total"`
+	Deaths  int                                          `json:"deaths"`
+	KDRatio float64                                      `json:"kd_ratio"`
+	Players map[string]GMCPCharModule_Payload_Kills_PvpEntry `json:"players"`
+}
+
+type GMCPCharModule_Payload_Kills_PvpEntry struct {
+	Count int `json:"count"`
 }
