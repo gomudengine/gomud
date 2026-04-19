@@ -243,7 +243,7 @@ func handlePlayerCombat(evt events.NewRound) (affectedPlayerIds []int, affectedM
 								defMob.Character.CancelBuffsWithFlag(buffs.CancelIfCombat)
 
 								if defMob.Character.Health <= 0 {
-				defMob.Character.EndAggro()
+									defMob.Character.EndAggro()
 									events.AddToQueue(events.AggroChanged{MobInstanceId: defMob.InstanceId, RoomId: defMob.Character.RoomId})
 								} else if defMob.Character.Aggro == nil {
 									defMob.PreventIdle = true

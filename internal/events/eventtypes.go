@@ -280,13 +280,13 @@ type PlayerDeath struct {
 func (l PlayerDeath) Type() string { return `PlayerDeath` }
 
 type MobDeath struct {
-	MobId          int
-	InstanceId     int
-	RoomId         int
-	CharacterName  string
-	Level          int
-	PlayerDamage   map[int]int
-	KilledByUsers  []int // user IDs of players who contributed damage; empty if killed by non-players
+	MobId         int
+	InstanceId    int
+	RoomId        int
+	CharacterName string
+	Level         int
+	PlayerDamage  map[int]int
+	KilledByUsers []int // user IDs of players who contributed damage; empty if killed by non-players
 }
 
 func (l MobDeath) Type() string { return `MobDeath` }

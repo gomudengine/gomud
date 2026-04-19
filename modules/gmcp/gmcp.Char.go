@@ -986,9 +986,9 @@ type GMCPCharModule_Payload_Kills_Section struct {
 }
 
 type GMCPCharModule_Payload_Kills_PvpSection struct {
-	Total   int                                          `json:"total"`
-	Deaths  int                                          `json:"deaths"`
-	KDRatio float64                                      `json:"kd_ratio"`
+	Total   int                                              `json:"total"`
+	Deaths  int                                              `json:"deaths"`
+	KDRatio float64                                          `json:"kd_ratio"`
 	Players map[string]GMCPCharModule_Payload_Kills_PvpEntry `json:"players"`
 }
 
