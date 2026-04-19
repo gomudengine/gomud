@@ -91,6 +91,7 @@ type Room struct {
 	LongTermDataStore map[string]any                    `yaml:"longtermdatastore,omitempty"`         // Long term data store for the room
 	Mutators          mutators.MutatorList              `yaml:"mutators,omitempty"`                  // mutators this room spawns with.
 	Pvp               bool                              `yaml:"pvp,omitempty"`                       // if config pvp is set to `limited`, uses this value
+	Tags              []string                          `yaml:"tags,omitempty"`                      // short tags that can be added to rooms for any purpose (modules, scripting, etc)
 	// Unexported/private
 	players       []int                          // list of user IDs currently in the room
 	mobs          []int                          // list of mob instance IDs currently in the room. Does not get saved.

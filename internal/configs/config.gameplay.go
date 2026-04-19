@@ -9,6 +9,8 @@ type GamePlay struct {
 	AllowItemBuffRemoval ConfigBool `yaml:"AllowItemBuffRemoval"`
 	// Death related settings
 	Death GameplayDeath `yaml:"Death"`
+	// Party settings
+	Party GameplayParty `yaml:"Party"`
 
 	LivesStart     ConfigInt `yaml:"LivesStart"`     // Starting permadeath lives
 	LivesMax       ConfigInt `yaml:"LivesMax"`       // Maximum permadeath lives
@@ -30,6 +32,11 @@ type GamePlay struct {
 	MobConverseChance ConfigInt   `yaml:"MobConverseChance"` // Chance 1-100 of attempting to converse when idle
 }
 
+type GameplayParty struct {
+	MaxPlayerCount ConfigInt  `yaml:"MaxPlayerCount"` // Maximum number of players allowed in a party (0 = unlimited)
+	SameRoomOnly   ConfigBool `yaml:"SameRoomOnly"`   // Whether players must be in the same room to create/invite/join parties
+}
+
 type GameplayDeath struct {
 	EquipmentDropChance ConfigFloat  `yaml:"EquipmentDropChance"` // Chance a player will drop a given piece of equipment on death
 	AlwaysDropBackpack  ConfigBool   `yaml:"AlwaysDropBackpack"`  // If true, players will always drop their backpack items on death
@@ -41,6 +48,10 @@ type GameplayDeath struct {
 }
 
 func (g *GamePlay) Validate() {
+
+	if g.Party.MaxPlayerCount < 0 {
+		g.Party.MaxPlayerCount = 0
+	}
 
 	// Ignore AllowItemBuffRemoval
 	// Ignore OnDeathAlwaysDropBackpack

@@ -183,6 +183,7 @@ func main() {
 
 	// Register the plugin filesystem with the template system
 	templates.RegisterFS(plugins.GetPluginRegistry())
+	items.RegisterFS(plugins.GetPluginRegistry())
 	usercommands.AddFunctionExporter(plugins.GetPluginRegistry())
 
 	inputhandlers.AddIACHandler(plugins.GetPluginRegistry())

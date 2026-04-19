@@ -1,0 +1,8 @@
+itemid: 1040000
+value: 5
+hands: 0
+name: 6-sided die
+namesimple: die
+description: A small ivory cube with pips on each face. You could <ansi fg="command">roll</ansi> it.
+type: object
+subtype: mundane

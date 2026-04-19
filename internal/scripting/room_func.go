@@ -362,6 +362,33 @@ func (r ScriptRoom) RemoveTemporaryExit(exitNameSimple string, exitNameFancy str
 	return r.roomRecord.RemoveTemporaryExit(tmpExit)
 }
 
+func (r ScriptRoom) HasTag(tag string) bool {
+	for _, t := range r.roomRecord.Tags {
+		if t == tag {
+			return true
+		}
+	}
+	return false
+}
+
+func (r ScriptRoom) SetTag(tag string) {
+	for _, t := range r.roomRecord.Tags {
+		if t == tag {
+			return
+		}
+	}
+	r.roomRecord.Tags = append(r.roomRecord.Tags, tag)
+}
+
+func (r ScriptRoom) UnsetTag(tag string) {
+	for i, t := range r.roomRecord.Tags {
+		if t == tag {
+			r.roomRecord.Tags = append(r.roomRecord.Tags[:i], r.roomRecord.Tags[i+1:]...)
+			return
+		}
+	}
+}
+
 func (r ScriptRoom) HasMutator(mutName string) bool {
 	return r.roomRecord.Mutators.Has(mutName)
 }

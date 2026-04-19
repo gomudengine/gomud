@@ -1,0 +1,8 @@
+itemid: 1040005
+value: 10
+hands: 0
+name: deck of cards
+namesimple: deck
+description: A standard deck of fifty-two playing cards, worn soft at the corners. Someone has shuffled this a great many times. You could <ansi fg="command">draw</ansi> a card, <ansi fg="command">deal</ansi> to everyone in the room, or <ansi fg="command">shuffle</ansi> the deck.
+type: object
+subtype: mundane

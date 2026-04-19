@@ -43,3 +43,12 @@ func (p PluginFiles) Stat(name string) (fs.FileInfo, error) {
 	return nil, fs.ErrNotExist
 
 }
+
+// KnownPaths returns all file paths registered in this plugin's file system.
+func (p PluginFiles) KnownPaths() []string {
+	paths := make([]string, 0, len(p.filePaths))
+	for shortPath := range p.filePaths {
+		paths = append(paths, shortPath)
+	}
+	return paths
+}

@@ -1,0 +1,8 @@
+itemid: 1040002
+value: 25
+hands: 0
+name: tarot deck
+namesimple: deck
+description: A worn deck of tarot cards wrapped in faded black silk. The edges are soft from years of handling. You could <ansi fg="command">draw</ansi> a card, or <ansi fg="command">shuffle</ansi> the deck.
+type: object
+subtype: mundane

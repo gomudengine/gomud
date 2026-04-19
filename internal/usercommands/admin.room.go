@@ -112,6 +112,42 @@ func Room(rest string, user *users.UserRecord, liveRoom *rooms.Room, flags event
 		return true, nil
 	}
 
+	if roomCmd == `tag` || roomCmd == `tags` {
+
+		if !user.HasRolePermission(`room.tag`) {
+			user.SendText(`you do not have <ansi fg="command">room.tag</ansi> permission`)
+			return true, nil
+		}
+
+		if len(args) == 2 {
+			tag := strings.ToLower(args[1])
+
+			for i, t := range room.Tags {
+				if t == tag {
+					room.Tags = append(room.Tags[:i], room.Tags[i+1:]...)
+					rooms.SaveRoomTemplate(*room)
+					user.SendText(fmt.Sprintf(`Tag <ansi fg="yellow">%s</ansi> removed.`, tag))
+					return true, nil
+				}
+			}
+
+			room.Tags = append(room.Tags, tag)
+			rooms.SaveRoomTemplate(*room)
+			user.SendText(fmt.Sprintf(`Tag <ansi fg="yellow">%s</ansi> added.`, tag))
+			return true, nil
+		}
+
+		if len(room.Tags) == 0 {
+			user.SendText(`No tags set on this room.`)
+		} else {
+			user.SendText(`Room Tags:`)
+			for _, tag := range room.Tags {
+				user.SendText(fmt.Sprintf(`  <ansi fg="yellow">%s</ansi>`, tag))
+			}
+		}
+		return true, nil
+	}
+
 	if roomCmd == `noun` || roomCmd == `nouns` {
 
 		if !user.HasRolePermission(`room.nouns`) {

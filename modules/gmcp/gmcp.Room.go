@@ -36,6 +36,8 @@ func init() {
 	events.RegisterListener(events.RoomChange{}, g.roomChangeHandler)
 	events.RegisterListener(events.PlayerDespawn{}, g.despawnHandler)
 	events.RegisterListener(GMCPRoomUpdate{}, g.buildAndSendGMCPPayload)
+	events.RegisterListener(events.ItemOwnership{}, g.itemOwnershipHandler)
+	events.RegisterListener(events.AggroChanged{}, g.aggroChangedHandler)
 
 }
 
@@ -51,6 +53,65 @@ type GMCPRoomUpdate struct {
 }
 
 func (g GMCPRoomUpdate) Type() string { return `GMCPRoomUpdate` }
+
+func (g *GMCPRoomModule) itemOwnershipHandler(e events.Event) events.ListenerReturn {
+
+	evt, typeOk := e.(events.ItemOwnership)
+	if !typeOk {
+		return events.Continue
+	}
+
+	// Only care about player ownership changes — look up their room
+	if evt.UserId == 0 {
+		return events.Continue
+	}
+
+	user := users.GetByUserId(evt.UserId)
+	if user == nil {
+		return events.Continue
+	}
+
+	room := rooms.LoadRoom(user.Character.RoomId)
+	if room == nil {
+		return events.Continue
+	}
+
+	for _, uId := range room.GetPlayers() {
+		events.AddToQueue(GMCPRoomUpdate{
+			UserId:     uId,
+			Identifier: `Room.Info.Contents.Items`,
+		})
+	}
+
+	return events.Continue
+}
+
+func (g *GMCPRoomModule) aggroChangedHandler(e events.Event) events.ListenerReturn {
+
+	evt, typeOk := e.(events.AggroChanged)
+	if !typeOk {
+		return events.Continue
+	}
+
+	room := rooms.LoadRoom(evt.RoomId)
+	if room == nil {
+		return events.Continue
+	}
+
+	identifier := `Room.Info.Contents.Npcs`
+	if evt.UserId > 0 {
+		identifier = `Room.Info.Contents.Players`
+	}
+
+	for _, uId := range room.GetPlayers() {
+		events.AddToQueue(GMCPRoomUpdate{
+			UserId:     uId,
+			Identifier: identifier,
+		})
+	}
+
+	return events.Continue
+}
 
 func (g *GMCPRoomModule) despawnHandler(e events.Event) events.ListenerReturn {
 
@@ -443,6 +504,10 @@ func (g *GMCPRoomModule) GetRoomNode(user *users.UserRecord, gmcpModule string) 
 		}
 		if room.IsPvp() {
 			payload.Details = append(payload.Details, `pvp`)
+		}
+
+		for _, tag := range room.Tags {
+			payload.Details = append(payload.Details, tag)
 		}
 
 		// Indicate if this is an ephemeral room

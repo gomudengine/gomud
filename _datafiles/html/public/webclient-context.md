@@ -14,13 +14,14 @@ static/js/fx.js                                  Visual effects library (FX glob
 static/js/triggers.js                            Text-trigger engine (Triggers global)
 static/js/windows/window-gametime.js             Time & Date window (left dock)
 static/js/windows/window-character.js            Character window (left dock)
+static/js/windows/window-gear.js                 Gear window (left dock)
 static/js/windows/window-vitals.js               Vitals window (left dock)
-static/js/windows/window-status.js               Status window (left dock)
+static/js/windows/window-status.js               Worth window (left dock)
 static/js/windows/window-party.js                Party window (left dock)
 static/js/windows/window-map.js                  Map window (right dock)
+static/js/windows/window-room.js                 Room Info window (right dock)
 static/js/windows/window-online.js               Online Players window (right dock, off by default)
 static/js/windows/window-comm.js                 Communications window (right dock)
-static/js/windows/window-debug-log.js            Debug Log window (right dock)
 static/js/windows/window-modal.js                Help/content modal overlay (global, no dock)
 static/css/windows.css                           Shared dock/panel styles
 ```
@@ -38,9 +39,10 @@ one `<script>` tag in the appropriate dock comment block.
 | File | Title | Tabs | GMCP namespaces |
 |---|---|---|---|
 | `window-gametime.js` | Time & Date | — | `Gametime` |
-| `window-character.js` | Character | Overview, Backpack, Quests, Skills, Jobs | `Char.Info`, `Char.Stats`, `Char.Inventory`, `Char.Inventory.Backpack`, `Char.Quests`, `Char.Skills`, `Char.Jobs`, `Char` |
+| `window-character.js` | Character | Overview, Quests, Skills, Jobs, Effects | `Char.Info`, `Char.Stats`, `Char.Quests`, `Char.Skills`, `Char.Jobs`, `Char.Affects`, `Char` |
+| `window-gear.js` | Gear | Worn, Backpack | `Char.Inventory`, `Char.Inventory.Backpack`, `Char` |
 | `window-vitals.js` | Vitals | — | `Char.Vitals`, `Char` |
-| `window-status.js` | Status | Worth, Effects | `Char.Worth`, `Char.Affects`, `Char` |
+| `window-status.js` | Worth | — | `Char.Worth`, `Char` |
 | `window-party.js` | Party | — | `Party`, `Party.Vitals` |
 
 ### Right dock
@@ -48,9 +50,9 @@ one `<script>` tag in the appropriate dock comment block.
 | File | Title | Tabs | GMCP namespaces | Notes |
 |---|---|---|---|---|
 | `window-map.js` | Map | — | `Room`, `World` | `offOnLoad: false` |
+| `window-room.js` | Room Info | — | `Room.Info` | `offOnLoad: false` |
 | `window-online.js` | Online | — | `Game` | `offOnLoad: true` — hidden until user opens it |
 | `window-comm.js` | Communications | Say, Whisper, Party, Broadcasts | `Comm` | |
-| `window-debug-log.js` | Debug Log | — | `*` (all namespaces) | `offOnLoad: true` |
 
 ### Modal overlay
 
@@ -182,7 +184,7 @@ new VirtualWindow(id, {
 
 Setting `offOnLoad: true` initialises `_win` to `false`, so `VirtualWindows.openAll()`
 skips the window entirely. It will not open until the user explicitly opens it (e.g.
-via a terminal command). Use this for optional diagnostic windows like Debug Log.
+via a terminal command).
 
 The `factory()` function must:
 - Create the content DOM element
@@ -219,7 +221,7 @@ VirtualWindows.register({
 - Multiple modules may register for the same namespace — all matching handlers
   are called.
 - The special namespace `'*'` matches every incoming GMCP payload regardless of
-  name. Use it for catch-all handlers such as debug loggers.
+  name.
 - If a handler's associated `window` is closed (`_win === false`), it is
   skipped entirely.
 - Pass `window: null` for handlers that have no associated window (e.g. the
@@ -241,7 +243,10 @@ Client.SoundPlayer          // MP3Player instance (sound effects)
 Client.term                 // xterm.js Terminal instance
 Client.sendData(str)        // Send a string over the WebSocket; returns bool
 Client.SendInput(str)       // Send a command string to the server (alias for sendData)
-Client.GMCPRequest(ns)      // Ask the server to re-send a GMCP namespace (e.g. 'Room.Info')
+Client.GMCPRequest(ns, extra?)  // Ask the server to re-send a GMCP namespace; optional
+                                //   extra string is appended after a space (e.g.
+                                //   GMCPRequest('Suggestion', 'look ') sends
+                                //   !!GMCP(Suggestion look ))
 Client.GetGMCP(path)        // Read a value from GMCPStructs by dot-path (e.g. 'Char.Vitals')
 Client.getNetStats()        // Returns current network traffic counters (see below)
 Client.debugLog(msg)        // Log only when Client.debug === true
@@ -384,13 +389,9 @@ Commands offered depend on item type/subtype from the GMCP payload:
 
 ---
 
-## Status Window (window-status.js)
+## Worth Window (window-status.js)
 
-### Worth tab
-
-- **Skill Points** badge — clickable, sends `Help stat-train` GMCP request.
-- **Training Points** badge — clickable, sends `Help train` GMCP request.
-- Both badges highlight with `cursor: help`.
+Displays XP progress bar and gold (carried + bank). No tabs.
 
 ---
 
@@ -504,6 +505,49 @@ gmcpHandlers: ['Char.Worth', 'Char'],
 Always read from `Client.GMCPStructs` inside `onGMCP` rather than from the
 `body` argument. The store is the source of truth and is always current.
 
+### Inbound GMCP requests (client → server)
+
+The web client sends GMCP requests to the server using the `!!GMCP(...)` wire
+format via `Client.GMCPRequest(identifier, extraData?)`. The server dispatches
+these in `HandleWebGMCP()` in `modules/gmcp/gmcp.go`. Currently handled
+inbound identifiers:
+
+| Identifier | Extra data | Description |
+|---|---|---|
+| `Room` / `Room.*` | — | Request a room state refresh |
+| `Char` / `Char.*` | — | Request a character state refresh |
+| `Party` | — | Request a party state refresh |
+| `World` / `World.*` | — | Request a world state refresh |
+| `Help` | topic string | Open the help modal for a topic |
+| `Suggestion` | partial input text | Request tab-completion suggestions for the given text |
+
+The `Suggestion` identifier is special: its extra data is **not** trimmed of
+whitespace, because a trailing space is meaningful (e.g. `"look "` requests
+argument completions rather than command-name completions).
+
+### Tab-completion (`Suggestion` GMCP)
+
+The web client has built-in tab-completion that mirrors telnet behaviour:
+
+1. Pressing **Tab** sends `!!GMCP(Suggestion <typed-text>)` to the server.
+2. The server calls `suggestions.GetAutoComplete()` and returns a
+   `Suggestion` payload:
+   ```json
+   { "input": "look ", "suggestions": ["look glowing battleaxe", "look chest"] }
+   ```
+3. The client sets the input field to the first suggestion, with the appended
+   portion **selected** so it can be deleted with a single backspace.
+4. Pressing **Tab** again cycles to the next suggestion without a server
+   round-trip.
+5. Pressing **Space** while a suggestion is active accepts it and appends a
+   space, allowing the user to continue typing further arguments.
+6. Any other edit (typing, paste, arrow-history navigation) clears the
+   suggestion state.
+
+This is handled entirely inside `webclient-core.js` (`_tabSug` state object,
+`_tabSugApply()`, `_onSuggestionGMCP()`) and does not require any window
+module involvement.
+
 ---
 
 ## Dock Slot Behaviour
@@ -545,12 +589,13 @@ now empty by default; window modules add entries via `registerCommand`.
 ### Adding a keyboard shortcut
 
 ```js
-// Sends 'look' when the user presses Tab with an empty input field.
-Client.registerShortcut('Tab', 'look');
+// Sends 'map' when the user presses F11 with an empty input field.
+Client.registerShortcut('F11', 'map');
 ```
 
-The `code` value is a `KeyboardEvent.code` string (e.g. `'KeyM'`, `'Tab'`,
-`'F11'`). Shortcuts only fire when the command input field is empty.
+The `code` value is a `KeyboardEvent.code` string (e.g. `'KeyM'`, `'F11'`).
+Shortcuts only fire when the command input field is empty. `Tab` is reserved
+for tab-completion and cannot be used as a shortcut.
 
 ### Adding a comm channel tab
 

@@ -174,7 +174,7 @@ class DockSlot {
         const popoutBtn = document.createElement('span');
         popoutBtn.className   = 'dock-panel-popout';
         popoutBtn.title       = 'Pop out';
-        popoutBtn.textContent = this.side === 'left' ? '\u2197' : '\u2196';  // NE / NW arrow
+        popoutBtn.textContent = '⧉';
         popoutBtn.addEventListener('click', onPopout);
 
         titlebar.appendChild(titleSpan);
@@ -1168,10 +1168,10 @@ const Client = (() => {
     // Terminal
     // -----------------------------------------------------------------------
     const term = new window.Terminal({
-        cols: 80,
-        rows: 60,
+        cols:        80,
+        rows:        60,
         cursorBlink: true,
-        fontSize: 20,
+        fontSize:    20,
     });
     const fitAddon = new window.FitAddon.FitAddon();
     term.loadAddon(fitAddon);
@@ -1192,6 +1192,10 @@ const Client = (() => {
     let totalBytesReceived = 0;
     let totalBytesSent     = 0;
     const gmcpInBytes      = {};  // namespace -> bytes received
+    const gmcpInCount      = {};  // namespace -> number of payloads received
+    const gmcpOutBytes     = {};  // identifier -> bytes sent
+    const gmcpOutCount     = {};  // identifier -> number of payloads sent
+    const gmcpOutLast      = {};  // identifier -> last sent payload string
     let connectTime        = null; // Date of last successful connection
 
     // -----------------------------------------------------------------------
@@ -1242,9 +1246,15 @@ const Client = (() => {
     //
     // Request that the server send a GMCP payload.
     // Examples: Party, Room, Char
+    // If additional is provided it is appended after a space: GMCPRequest('Help', 'train') -> !!GMCP(Help train)
     //
-    function GMCPRequest(namespace) {
-        sendData(`!!GMCP(${namespace})`);
+    function GMCPRequest(identifier, additional) {
+        const payload = additional !== undefined ? identifier + ' ' + additional : identifier;
+        const msg = `!!GMCP(${payload})`;
+        gmcpOutBytes[identifier] = (gmcpOutBytes[identifier] || 0) + msg.length;
+        gmcpOutCount[identifier] = (gmcpOutCount[identifier] || 0) + 1;
+        gmcpOutLast[identifier]  = payload;
+        sendData(msg);
     }
 
     function sendData(dataToSend) {
@@ -1356,6 +1366,7 @@ const Client = (() => {
                 const gmcpNamespace = gmcpPayload.slice(0, jsonIndex).trim();
                 const gmcpBody      = JSON.parse(gmcpPayload.slice(jsonIndex).trim());
                 gmcpInBytes[gmcpNamespace] = (gmcpInBytes[gmcpNamespace] || 0) + event.data.length;
+                gmcpInCount[gmcpNamespace] = (gmcpInCount[gmcpNamespace] || 0) + 1;
                 _applyGMCPPayload(gmcpNamespace, gmcpBody);
                 VirtualWindows.handleGMCP(gmcpNamespace, gmcpBody);
                 return;
@@ -1387,6 +1398,10 @@ const Client = (() => {
             totalBytesReceived = 0;
             totalBytesSent     = 0;
             Object.keys(gmcpInBytes).forEach(k => delete gmcpInBytes[k]);
+            Object.keys(gmcpInCount).forEach(k => delete gmcpInCount[k]);
+            Object.keys(gmcpOutBytes).forEach(k => delete gmcpOutBytes[k]);
+            Object.keys(gmcpOutCount).forEach(k => delete gmcpOutCount[k]);
+            Object.keys(gmcpOutLast).forEach(k => delete gmcpOutLast[k]);
             connectTime = Date.now();
             VirtualWindows.setConnected(true);
         };
@@ -1643,7 +1658,11 @@ const Client = (() => {
         return {
             totalBytesSent,
             totalBytesReceived,
-            gmcpInBytes:  Object.assign({}, gmcpInBytes),
+            gmcpInBytes:   Object.assign({}, gmcpInBytes),
+            gmcpInCount:   Object.assign({}, gmcpInCount),
+            gmcpOutBytes:  Object.assign({}, gmcpOutBytes),
+            gmcpOutCount:  Object.assign({}, gmcpOutCount),
+            gmcpOutLast:   Object.assign({}, gmcpOutLast),
             connectTime,
         };
     }
@@ -1683,6 +1702,46 @@ const Client = (() => {
 
     function registerCommand(name, description, fn) {
         specialCommands[name] = { description, fn };
+    }
+
+    // -----------------------------------------------------------------------
+    // Tab-completion (web client autocomplete)
+    // -----------------------------------------------------------------------
+    const _tabSug = {
+        input:       '',   // the original typed text when tab was first pressed
+        suggestions: [],   // full completed strings returned by the server
+        index:       -1,   // which suggestion is currently displayed (-1 = none)
+    };
+
+    function _tabSugReset() {
+        _tabSug.input       = '';
+        _tabSug.suggestions = [];
+        _tabSug.index       = -1;
+    }
+
+    // Apply suggestion at _tabSug.index to the input field, selecting the
+    // appended portion so the user can backspace it away quickly.
+    function _tabSugApply() {
+        if (_tabSug.suggestions.length === 0) { return; }
+        const sug    = _tabSug.suggestions[_tabSug.index];
+        const prefix = _tabSug.input;
+        textInput.value = sug;
+        // Select only the suggested suffix so the user can see what was added
+        // and delete it with a single backspace.
+        if (sug.length > prefix.length) {
+            textInput.setSelectionRange(prefix.length, sug.length);
+        }
+    }
+
+    // Called from VirtualWindows.handleGMCP when the server sends Suggestion data.
+    function _onSuggestionGMCP(namespace, body) {
+        if (!body || !Array.isArray(body.suggestions)) { return; }
+        // Only act on the response if the input still matches what we sent.
+        if (body.input !== _tabSug.input) { return; }
+        if (body.suggestions.length === 0) { return; }
+        _tabSug.suggestions = body.suggestions;
+        _tabSug.index       = 0;
+        _tabSugApply();
     }
 
     // -----------------------------------------------------------------------
@@ -1731,6 +1790,39 @@ const Client = (() => {
 
         // Input keydown
         textInput.addEventListener('keydown', function(event) {
+        // Space while a suggestion is active: accept the suggestion and append
+        // a space so the user can keep typing (mirrors telnet behaviour).
+            if (event.key === ' ' && _tabSug.suggestions.length > 0) {
+                event.preventDefault();
+                const accepted = _tabSug.suggestions[_tabSug.index];
+                _tabSugReset();
+                textInput.value = accepted + ' ';
+                textInput.setSelectionRange(textInput.value.length, textInput.value.length);
+                return false;
+            }
+
+        // Tab: request or cycle autocomplete suggestions
+            if (event.key === 'Tab') {
+                event.preventDefault();
+                const currentText = textInput.value;
+                const selStart    = textInput.selectionStart;
+                // The confirmed typed prefix is everything before the selection.
+                const typedPrefix = currentText.substring(0, selStart);
+                // If we already have suggestions for this typed prefix, cycle them.
+                if (_tabSug.suggestions.length > 0 && _tabSug.input === typedPrefix) {
+                    _tabSug.index = (_tabSug.index + 1) % _tabSug.suggestions.length;
+                    _tabSugApply();
+                } else {
+                    // New request: use the typed prefix (excludes any selected suffix).
+                    // Fall back to the full value if there is no selection (cursor at end).
+                    const typed = typedPrefix || currentText;
+                    _tabSugReset();
+                    _tabSug.input = typed;
+                    GMCPRequest('Suggestion', typed);
+                }
+                return false;
+            }
+
             // F-key macros
             if (event.key.substring(0, 1) === 'F' && event.key.length === 2) {
                 sendData('=' + event.key.substring(1));
@@ -1740,10 +1832,12 @@ const Client = (() => {
 
             // Command history
             if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+                event.preventDefault();
                 historyPosition += (event.key === 'ArrowUp') ? 1 : -1;
-                if (historyPosition < 1) { historyPosition = 1; }
+                if (historyPosition < 0) { historyPosition = 0; }
                 if (historyPosition > commandHistory.length) { historyPosition = commandHistory.length; }
-                event.target.value = commandHistory[commandHistory.length - historyPosition];
+                event.target.value = historyPosition === 0 ? '' : commandHistory[commandHistory.length - historyPosition];
+                _tabSugReset();
                 return;
             }
 
@@ -1756,6 +1850,10 @@ const Client = (() => {
 
             // Enter
             if (event.key === 'Enter') {
+                // Accept any active suggestion before submitting
+                if (_tabSug.suggestions.length > 0) {
+                    _tabSugReset();
+                }
                 if (event.target.value !== '' && textInput.type !== 'password') {
                     commandHistory.push(event.target.value);
                     historyPosition = 0;
@@ -1778,6 +1876,12 @@ const Client = (() => {
                     term.writeln('Not connected to the server. Did you click the Connect button?');
                 }
             }
+        });
+
+        // Clear tab-completion state whenever the input value changes by means
+        // other than the tab handler (typing, paste, cut, etc.).
+        textInput.addEventListener('input', function() {
+            _tabSugReset();
         });
 
         // Volume sliders: load from localStorage
@@ -1830,6 +1934,14 @@ const Client = (() => {
         let longest = 0;
         for (const k in specialCommands) { if (k.length > longest) { longest = k.length; } }
         for (const k in specialCommands) { console.log('  ' + k.padEnd(longest) + ' - ' + specialCommands[k].description); }
+
+        // Register GMCP handler for tab-completion responses
+        VirtualWindows.register({
+            gmcpHandlers: ['Suggestion'],
+            onGMCP: function(namespace, body) {
+                _onSuggestionGMCP(namespace, body);
+            },
+        });
 
         // Open all registered virtual windows immediately so they are present
         // on page load rather than waiting for the first GMCP payload.

@@ -275,6 +275,11 @@ var mapHtml = GetMap(
 var questUsers = room.HasQuest("dragon-slayer");
 var missingQuest = room.MissingQuest("tutorial", userId);
 
+// Tag management
+room.HasTag("fishing");        // Check if tag is present
+room.SetTag("fishing");        // Add a tag
+room.UnsetTag("fishing");      // Remove a tag
+
 // Lock management
 room.IsLocked("north");
 room.SetLocked("north", true);

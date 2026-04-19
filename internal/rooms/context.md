@@ -11,6 +11,7 @@ The `internal/rooms` package is the core world management system for GoMud, hand
 - **Special room types**: Banks, storage rooms, character creation rooms, PvP areas
 - **Dynamic state**: Player/mob tracking, visitor history, temporary data storage
 - **Room features**: Containers, signs, skill training areas, spawn points
+- **Tags**: General-purpose string tags (`Tags []string`) for use by modules, scripts, and other systems. Managed at runtime via the `room tag` admin command or the `ScriptRoom.SetTag`/`UnsetTag`/`HasTag` scripting functions.
 
 ### Room Management System (`roommanager.go`)
 - **RoomManager**: Singleton manager for all room operations and caching
@@ -25,6 +26,8 @@ The `internal/rooms` package is the core world management system for GoMud, hand
 - **Environmental context**: Day/night cycles, lighting, biome effects
 - **User-specific views**: Personalized room information based on character state
 - **Room alerts**: Special notifications for banks, training, storage, etc.
+- **Tags**: The `Tags []string` field mirrors the room's tags and is available to templates and the `OnRoomLook` hook.
+- **OnGetDetails hook**: `util.Hook[RoomTemplateDetails]` fired at the end of `GetDetails`, allowing modules to modify the fully-populated details before they are returned to the caller (e.g. adding room alerts)
 
 ### Biome System (`biomes.go`)
 - **BiomeInfo**: Environmental definitions affecting room behavior

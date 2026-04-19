@@ -78,20 +78,27 @@ func readFile(path string) (b []byte, err error) {
 
 func Exists(name string) bool {
 
-	// First check registered file systems (plugins?)
-	path := util.FilePath(`templates`, `/`, name+`.template`)
-	for _, f := range fileSystems {
-		if fsFile, err := f.Open(path); err == nil {
-			fsFile.Close()
+	dataFiles := string(configs.GetFilePathsConfig().DataFiles)
+
+	for _, ext := range []string{`.md`, `.template`} {
+		path := util.FilePath(`templates`, `/`, name+ext)
+
+		// Check registered file systems (plugins?)
+		for _, f := range fileSystems {
+			if fsFile, err := f.Open(path); err == nil {
+				fsFile.Close()
+				return true
+			}
+		}
+
+		// Check datafiles
+		fullPath := util.FilePath(dataFiles, `/`, path)
+		if _, err := os.Stat(fullPath); err == nil {
 			return true
 		}
 	}
 
-	// Now check datafiles
-	var fullPath string = util.FilePath(string(configs.GetFilePathsConfig().DataFiles), `/`, path)
-	_, err := os.Stat(fullPath)
-
-	return err == nil
+	return false
 }
 
 // Configure a forced ansi flag setting

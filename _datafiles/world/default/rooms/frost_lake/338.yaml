@@ -24,3 +24,5 @@ spawninfo:
   respawnrate: 5 real minutes
 idlemessages:
 - "304"
+tags:
+- fishing

@@ -376,24 +376,27 @@ func (i *ItemSpec) AutoCalculateValue() {
 }
 
 func (i *ItemSpec) ItemFolder(baseonly ...bool) string {
-	folderName := ``
-	if i.ItemId >= 30000 {
-		folderName = `consumables-30000`
+	if i.ItemId >= 40000 {
+		return ``
+	} else if i.ItemId >= 30000 {
+		return `consumables-30000`
 	} else if i.ItemId >= 20000 {
-
 		if len(baseonly) > 0 && baseonly[0] {
-			folderName = `armor-20000`
-		} else {
-			folderName = `armor-20000/` + string(i.Type)
+			return `armor-20000`
 		}
-
+		return `armor-20000/` + string(i.Type)
 	} else if i.ItemId >= 10000 {
-		folderName = `weapons-10000`
-	} else {
-		folderName = `other-0`
+		return `weapons-10000`
 	}
+	return `other-0`
+}
 
-	return folderName
+func (i *ItemSpec) Filepath() string {
+	folder := i.ItemFolder()
+	if folder == `` {
+		return i.Filename()
+	}
+	return folder + `/` + i.Filename()
 }
 
 // Presumably to ensure the datafile hasn't messed something up.
@@ -427,16 +430,16 @@ func (i *ItemSpec) Validate() error {
 }
 
 func (i *ItemSpec) Filename() string {
-
 	filename := util.ConvertForFilename(i.Name)
 	return fmt.Sprintf("%d-%s.yaml", i.ItemId, filename)
 }
 
-func (i *ItemSpec) Filepath() string {
-	return i.ItemFolder() + `/` + i.Filename()
-}
-
 func (i ItemSpec) GetScript() string {
+
+	// Check plugin-registered scripts first.
+	if script := getPluginScript(i.ItemId); script != `` {
+		return script
+	}
 
 	scriptPath := i.GetScriptPath()
 
@@ -476,6 +479,9 @@ func LoadDataFiles() {
 	}
 
 	items = tmpItems
+
+	// Merge items from plugin file systems.
+	loadPluginItems(items)
 
 	tmpAttackMessages, err := fileloader.LoadAllFlatFiles[ItemSubType, *WeaponAttackMessageGroup](string(configs.GetFilePathsConfig().DataFiles) + `/combat-messages`)
 	if err != nil {

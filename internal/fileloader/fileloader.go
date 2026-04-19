@@ -26,6 +26,13 @@ type ReadableGroupFS interface {
 	AllFileSubSystems(yield func(fs.ReadFileFS) bool)
 }
 
+// PathLister is an optional interface that a sub-filesystem may implement
+// to enumerate all known file paths. Used by loaders that need to iterate
+// embedded files where directory walking is not supported.
+type PathLister interface {
+	KnownPaths() []string
+}
+
 type LoadableSimple interface {
 	Validate() error  // General validation (or none)
 	Filepath() string // Relative file path to some base directory - can include subfolders

@@ -17,3 +17,5 @@ exits:
     roomid: 333
 idlemessages:
 - "304"
+tags:
+- fishing

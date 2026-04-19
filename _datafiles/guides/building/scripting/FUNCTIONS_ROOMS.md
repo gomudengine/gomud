@@ -27,6 +27,9 @@
   - [RoomObject.SpawnMob(mobId int) Actor](#roomobjectspawnmobmobid-int-actor)
   - [RoomObject.AddTemporaryExit(exitNameSimple string, exitNameFancy string, exitRoomId int, expiresTimeString string) bool](#roomobjectaddtemporaryexitexitnamesimple-string-exitnamefancy-string-exitroomid-int-expirestimestring-string-bool)
   - [RoomObject.RemoveTemporaryExit(exitNameSimple string, exitNameFancy string, exitRoomId int) bool](#roomobjectremovetemporaryexitexitnamesimple-string-exitnamefancy-string-exitroomid-int-bool)
+  - [RoomObject.HasTag(tag string) bool](#roomobjecthastagstag-string-bool)
+  - [RoomObject.SetTag(tag string)](#roomobjectsettagtag-string)
+  - [RoomObject.UnsetTag(tag string)](#roomobjectunsettagtag-string)
   - [RoomObject.HasMutator(mutName string) bool](#roomobjecthasmutatormutname-string-bool)
   - [RoomObject.AddMutator(mutName string)](#roomobjectaddmutatormutname-string)
   - [RoomObject.RemoveMutator(mutName string)](#roomobjectremovemutatormutname-string)
@@ -242,6 +245,29 @@ _Note: all 3 parameters much match an existing temporary exit for it to be remov
 | exitNameFancy | Should be the simple name, but can have color tags. |
 | exitRoomId | The roomId the exit should lead to. |
 
+
+## [RoomObject.HasTag(tag string) bool](/internal/scripting/room_func.go)
+Returns true if the room has the specified tag.
+
+|  Argument | Explanation |
+| --- | --- |
+| tag | The tag to check for. |
+
+## [RoomObject.SetTag(tag string)](/internal/scripting/room_func.go)
+Adds a tag to the room.
+
+_Note: If the tag already exists this is ignored._
+
+|  Argument | Explanation |
+| --- | --- |
+| tag | The tag to add. |
+
+## [RoomObject.UnsetTag(tag string)](/internal/scripting/room_func.go)
+Removes a tag from the room.
+
+|  Argument | Explanation |
+| --- | --- |
+| tag | The tag to remove. |
 
 ## [RoomObject.HasMutator(mutName string) bool](/internal/scripting/room_func.go)
 Returns true if the room has the specified mutator

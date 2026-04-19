@@ -4,6 +4,19 @@
 
 The GoMud hooks system provides comprehensive event-driven game logic through a collection of 39 specialized event listeners that handle everything from combat rounds to quest progression. It serves as the primary integration layer between the event system and game mechanics, implementing core gameplay features like combat resolution, mob AI, player lifecycle management, and system maintenance tasks.
 
+> **Note:** This package (`internal/hooks`) contains *event listeners* - asynchronous, fire-and-forget handlers wired to the event queue. It is distinct from the synchronous `util.Hook[T]` callback chain described below, which is used when a caller needs to receive a modified return value.
+
+## Two Hook Concepts
+
+### 1. Event Listeners (`internal/hooks` package)
+Asynchronous, queue-based. Used when you want to *notify* that something happened. Handlers do not return values to the original caller. Registered via `events.RegisterListener`.
+
+### 2. Synchronous Data Hooks (`util.Hook[T]`)
+Synchronous, return-value-carrying callback chains. Used when a function needs to allow external code to *modify data* before it is returned. Defined as package-level variables on the packages that own the data. See `internal/util/hook.go`.
+
+Currently defined synchronous hooks:
+- **`rooms.OnGetDetails`** (`util.Hook[RoomTemplateDetails]`) - fired at the end of `rooms.GetDetails`, giving modules the opportunity to modify the fully-built room details (e.g. add room alerts) before they reach the caller.
+
 ## Architecture
 
 The hooks system is built around several key categories:
