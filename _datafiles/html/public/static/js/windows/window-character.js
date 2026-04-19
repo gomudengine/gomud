@@ -733,7 +733,7 @@
         STAT_DEFS.forEach(d => {
             const cell  = el.querySelector('.cw-stat-cell:has(#cw-stat-' + d.key + ')');
             if (cell) {
-                cell.addEventListener('click', () => Client.GMCPRequest('Help ' + d.key));
+                cell.addEventListener('click', () => Client.GMCPRequest('Help', d.key));
             }
             const modEl = el.querySelector('#cw-stat-mod-' + d.key);
             if (modEl) {
@@ -743,9 +743,9 @@
         });
 
         const spBadge = el.querySelector('#cw-badge-sp');
-        if (spBadge) { spBadge.addEventListener('click', () => Client.GMCPRequest('Help stat-train')); }
+        if (spBadge) { spBadge.addEventListener('click', () => Client.GMCPRequest('Help', 'stat-train')); }
         const tpBadge = el.querySelector('#cw-badge-tp');
-        if (tpBadge) { tpBadge.addEventListener('click', () => Client.GMCPRequest('Help train')); }
+        if (tpBadge) { tpBadge.addEventListener('click', () => Client.GMCPRequest('Help', 'train')); }
 
         return el;
     }
@@ -797,7 +797,7 @@
             raceSpan.className   = 'cw-char-race';
             raceSpan.textContent = info.race;
             raceSpan.addEventListener('click', () => {
-                Client.GMCPRequest('Help race ' + info.race.toLowerCase());
+                Client.GMCPRequest('Help', 'race ' + info.race.toLowerCase());
             });
             nameEl.appendChild(raceSpan);
         }
@@ -892,7 +892,7 @@
             }
 
             row.addEventListener('click', function() {
-                Client.GMCPRequest('Help ' + (skill.name || '').toLowerCase().replace(/\s+/g, '-'));
+                Client.GMCPRequest('Help', (skill.name || '').toLowerCase().replace(/\s+/g, '-'));
             });
             panel.appendChild(row);
         });
@@ -935,7 +935,7 @@
                 '</div>';
 
             item.addEventListener('click', function() {
-                Client.GMCPRequest('Help ' + (job.name || '').toLowerCase().replace(/\s+/g, '-'));
+                Client.GMCPRequest('Help', (job.name || '').toLowerCase().replace(/\s+/g, '-'));
             });
             panel.appendChild(item);
         });

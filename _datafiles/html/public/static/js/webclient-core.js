@@ -1193,6 +1193,9 @@ const Client = (() => {
     let totalBytesSent     = 0;
     const gmcpInBytes      = {};  // namespace -> bytes received
     const gmcpInCount      = {};  // namespace -> number of payloads received
+    const gmcpOutBytes     = {};  // identifier -> bytes sent
+    const gmcpOutCount     = {};  // identifier -> number of payloads sent
+    const gmcpOutLast      = {};  // identifier -> last sent payload string
     let connectTime        = null; // Date of last successful connection
 
     // -----------------------------------------------------------------------
@@ -1243,9 +1246,15 @@ const Client = (() => {
     //
     // Request that the server send a GMCP payload.
     // Examples: Party, Room, Char
+    // If additional is provided it is appended after a space: GMCPRequest('Help', 'train') -> !!GMCP(Help train)
     //
-    function GMCPRequest(namespace) {
-        sendData(`!!GMCP(${namespace})`);
+    function GMCPRequest(identifier, additional) {
+        const payload = additional !== undefined ? identifier + ' ' + additional : identifier;
+        const msg = `!!GMCP(${payload})`;
+        gmcpOutBytes[identifier] = (gmcpOutBytes[identifier] || 0) + msg.length;
+        gmcpOutCount[identifier] = (gmcpOutCount[identifier] || 0) + 1;
+        gmcpOutLast[identifier]  = payload;
+        sendData(msg);
     }
 
     function sendData(dataToSend) {
@@ -1390,6 +1399,9 @@ const Client = (() => {
             totalBytesSent     = 0;
             Object.keys(gmcpInBytes).forEach(k => delete gmcpInBytes[k]);
             Object.keys(gmcpInCount).forEach(k => delete gmcpInCount[k]);
+            Object.keys(gmcpOutBytes).forEach(k => delete gmcpOutBytes[k]);
+            Object.keys(gmcpOutCount).forEach(k => delete gmcpOutCount[k]);
+            Object.keys(gmcpOutLast).forEach(k => delete gmcpOutLast[k]);
             connectTime = Date.now();
             VirtualWindows.setConnected(true);
         };
@@ -1646,8 +1658,11 @@ const Client = (() => {
         return {
             totalBytesSent,
             totalBytesReceived,
-            gmcpInBytes:  Object.assign({}, gmcpInBytes),
-            gmcpInCount:  Object.assign({}, gmcpInCount),
+            gmcpInBytes:   Object.assign({}, gmcpInBytes),
+            gmcpInCount:   Object.assign({}, gmcpInCount),
+            gmcpOutBytes:  Object.assign({}, gmcpOutBytes),
+            gmcpOutCount:  Object.assign({}, gmcpOutCount),
+            gmcpOutLast:   Object.assign({}, gmcpOutLast),
             connectTime,
         };
     }

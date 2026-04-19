@@ -1002,6 +1002,7 @@
                         <div class="settings-section-title">Network</div>
                         <div id="stats-net-overall"></div>
                         <div id="stats-net-gmcp" style="margin-top:8px;"></div>
+                        <div id="stats-net-gmcp-out" style="margin-top:8px;"></div>
                     </div>
                 </div>
             </div>
@@ -1480,7 +1481,9 @@
         // -----------------------------------------------------------------------
         var _statsInterval = null;
         var _gmcpOpen      = false;   // is the GMCP In section expanded?
+        var _gmcpOutOpen   = false;   // is the GMCP Out section expanded?
         var _nsOpen        = {};      // which namespace payloads are expanded?
+        var _nsOutOpen     = {};      // which GMCP Out identifier payloads are expanded?
 
         function _fmtBytes(b) {
             if (b < 1024 * 1024) { return (b / 1024).toFixed(2) + ' KB'; }
@@ -1581,10 +1584,66 @@
             }
 
             gmcpEl.innerHTML = h;
+
+            // --- GMCP Out section ---
+            var gmcpOutEl = document.getElementById('stats-net-gmcp-out');
+            if (!gmcpOutEl) { return; }
+
+            var outList  = Object.keys(st.gmcpOutBytes || {}).sort();
+            var outTotal = outList.reduce(function(s, k) { return s + st.gmcpOutBytes[k]; }, 0);
+
+            var ho = '';
+            ho += '<div class="stats-gmcp-header" onclick="_statsToggleGmcpOut()">';
+            ho +=   '<span><span class="stats-gmcp-toggle">' + (_gmcpOutOpen ? '&#9660;' : '&#9654;') + '</span>GMCP Out</span>';
+            ho +=   '<div class="stats-row-right">';
+            ho +=     '<span class="stats-gmcp-total">' + _fmtBytes(outTotal) + '</span>';
+            ho +=     '<span class="stats-row-rate">' + _fmtRate(outTotal, sec) + '</span>';
+            ho +=   '</div>';
+            ho += '</div>';
+
+            if (_gmcpOutOpen) {
+                ho += '<div class="stats-gmcp-rows open">';
+                outList.forEach(function(id) {
+                    var bytes  = st.gmcpOutBytes[id];
+                    var count  = st.gmcpOutCount[id] || 0;
+                    var isOpen = !!_nsOutOpen[id];
+                    var safeId = id.replace(/"/g, '&quot;');
+                    ho += '<div>';
+                    ho +=   '<div class="stats-ns-row" onclick="_statsToggleNsOut(&quot;' + safeId + '&quot;)">';
+                    ho +=     '<span class="stats-row-label">';
+                    ho +=       '<span class="stats-gmcp-toggle">' + (isOpen ? '&#9660;' : '&#9654;') + '</span>';
+                    ho +=       id + '<span class="stats-ns-count">(' + count + ')</span>';
+                    ho +=     '</span>';
+                    ho +=     '<div class="stats-row-right">';
+                    ho +=       '<span class="stats-row-value">' + _fmtBytes(bytes) + '</span>';
+                    ho +=       '<span class="stats-row-rate">' + _fmtRate(bytes, sec) + '</span>';
+                    ho +=     '</div>';
+                    ho +=   '</div>';
+                    if (isOpen) {
+                        var last = (st.gmcpOutLast && st.gmcpOutLast[id]) || '(no data)';
+                        last = last.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                        ho += '<div class="stats-ns-payload open">' + last + '</div>';
+                    }
+                    ho += '</div>';
+                });
+                ho += '</div>';
+            }
+
+            gmcpOutEl.innerHTML = ho;
         }
 
         function _statsToggleGmcp() {
             _gmcpOpen = !_gmcpOpen;
+            renderStats();
+        }
+
+        function _statsToggleGmcpOut() {
+            _gmcpOutOpen = !_gmcpOutOpen;
+            renderStats();
+        }
+
+        function _statsToggleNsOut(id) {
+            _nsOutOpen[id] = !_nsOutOpen[id];
             renderStats();
         }
 

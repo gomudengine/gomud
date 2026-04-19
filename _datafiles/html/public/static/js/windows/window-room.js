@@ -470,7 +470,7 @@
                 badge.className   = 'rw-badge ' + d;
                 badge.textContent = BADGE_LABELS[d];
                 badge.style.cursor = 'help';
-                badge.addEventListener('click', function() { Client.GMCPRequest('Help ' + d); });
+                badge.addEventListener('click', function() { Client.GMCPRequest('Help', d); });
                 badgesEl.appendChild(badge);
             });
         }
