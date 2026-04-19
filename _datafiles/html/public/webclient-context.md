@@ -243,7 +243,10 @@ Client.SoundPlayer          // MP3Player instance (sound effects)
 Client.term                 // xterm.js Terminal instance
 Client.sendData(str)        // Send a string over the WebSocket; returns bool
 Client.SendInput(str)       // Send a command string to the server (alias for sendData)
-Client.GMCPRequest(ns)      // Ask the server to re-send a GMCP namespace (e.g. 'Room.Info')
+Client.GMCPRequest(ns, extra?)  // Ask the server to re-send a GMCP namespace; optional
+                                //   extra string is appended after a space (e.g.
+                                //   GMCPRequest('Suggestion', 'look ') sends
+                                //   !!GMCP(Suggestion look ))
 Client.GetGMCP(path)        // Read a value from GMCPStructs by dot-path (e.g. 'Char.Vitals')
 Client.getNetStats()        // Returns current network traffic counters (see below)
 Client.debugLog(msg)        // Log only when Client.debug === true
@@ -502,6 +505,49 @@ gmcpHandlers: ['Char.Worth', 'Char'],
 Always read from `Client.GMCPStructs` inside `onGMCP` rather than from the
 `body` argument. The store is the source of truth and is always current.
 
+### Inbound GMCP requests (client → server)
+
+The web client sends GMCP requests to the server using the `!!GMCP(...)` wire
+format via `Client.GMCPRequest(identifier, extraData?)`. The server dispatches
+these in `HandleWebGMCP()` in `modules/gmcp/gmcp.go`. Currently handled
+inbound identifiers:
+
+| Identifier | Extra data | Description |
+|---|---|---|
+| `Room` / `Room.*` | — | Request a room state refresh |
+| `Char` / `Char.*` | — | Request a character state refresh |
+| `Party` | — | Request a party state refresh |
+| `World` / `World.*` | — | Request a world state refresh |
+| `Help` | topic string | Open the help modal for a topic |
+| `Suggestion` | partial input text | Request tab-completion suggestions for the given text |
+
+The `Suggestion` identifier is special: its extra data is **not** trimmed of
+whitespace, because a trailing space is meaningful (e.g. `"look "` requests
+argument completions rather than command-name completions).
+
+### Tab-completion (`Suggestion` GMCP)
+
+The web client has built-in tab-completion that mirrors telnet behaviour:
+
+1. Pressing **Tab** sends `!!GMCP(Suggestion <typed-text>)` to the server.
+2. The server calls `suggestions.GetAutoComplete()` and returns a
+   `Suggestion` payload:
+   ```json
+   { "input": "look ", "suggestions": ["look glowing battleaxe", "look chest"] }
+   ```
+3. The client sets the input field to the first suggestion, with the appended
+   portion **selected** so it can be deleted with a single backspace.
+4. Pressing **Tab** again cycles to the next suggestion without a server
+   round-trip.
+5. Pressing **Space** while a suggestion is active accepts it and appends a
+   space, allowing the user to continue typing further arguments.
+6. Any other edit (typing, paste, arrow-history navigation) clears the
+   suggestion state.
+
+This is handled entirely inside `webclient-core.js` (`_tabSug` state object,
+`_tabSugApply()`, `_onSuggestionGMCP()`) and does not require any window
+module involvement.
+
 ---
 
 ## Dock Slot Behaviour
@@ -543,12 +589,13 @@ now empty by default; window modules add entries via `registerCommand`.
 ### Adding a keyboard shortcut
 
 ```js
-// Sends 'look' when the user presses Tab with an empty input field.
-Client.registerShortcut('Tab', 'look');
+// Sends 'map' when the user presses F11 with an empty input field.
+Client.registerShortcut('F11', 'map');
 ```
 
-The `code` value is a `KeyboardEvent.code` string (e.g. `'KeyM'`, `'Tab'`,
-`'F11'`). Shortcuts only fire when the command input field is empty.
+The `code` value is a `KeyboardEvent.code` string (e.g. `'KeyM'`, `'F11'`).
+Shortcuts only fire when the command input field is empty. `Tab` is reserved
+for tab-completion and cannot be used as a shortcut.
 
 ### Adding a comm channel tab
 
