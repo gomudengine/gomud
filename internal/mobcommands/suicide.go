@@ -123,6 +123,7 @@ func Suicide(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 				if user.Character.Aggro != nil {
 					if user.Character.Aggro.MobInstanceId == mob.InstanceId {
 						user.Character.Aggro = nil
+						events.AddToQueue(events.AggroChanged{UserId: user.UserId, RoomId: user.Character.RoomId})
 					}
 				}
 

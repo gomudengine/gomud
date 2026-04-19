@@ -469,6 +469,8 @@
                 const badge = document.createElement('span');
                 badge.className   = 'rw-badge ' + d;
                 badge.textContent = BADGE_LABELS[d];
+                badge.style.cursor = 'help';
+                badge.addEventListener('click', function() { Client.GMCPRequest('Help ' + d); });
                 badgesEl.appendChild(badge);
             });
         }
@@ -505,27 +507,35 @@
         // NPCs — look + attack (use id for targeting)
         const npcs = (room.Contents && room.Contents.Npcs) || [];
         setSection('npcs', npcs.map(function(c) {
+            const menuItems = [
+                { label: 'look '   + c.name, cmd: 'look '   + c.id },
+                { label: 'attack ' + c.name, cmd: 'attack ' + c.id },
+            ];
+            if (c.adjectives && c.adjectives.includes('shop')) {
+                menuItems.push({ label: 'list ' + c.name, cmd: 'list ' + c.id });
+            }
             return makeRow(c.name, {
                 aggro: c.aggro,
                 quest: c.quest_flag,
                 adj:   c.adjectives,
-                menuItems: [
-                    { label: 'look '   + c.name, cmd: 'look '   + c.id },
-                    { label: 'attack ' + c.name, cmd: 'attack ' + c.id },
-                ],
+                menuItems: menuItems,
             });
         }));
 
         // Players — look + attack (use id for targeting)
         const players = (room.Contents && room.Contents.Players) || [];
         setSection('players', players.map(function(c) {
+            const menuItems = [
+                { label: 'look '   + c.name, cmd: 'look '   + c.id },
+                { label: 'attack ' + c.name, cmd: 'attack ' + c.id },
+            ];
+            if (c.adjectives && c.adjectives.includes('shop')) {
+                menuItems.push({ label: 'list ' + c.name, cmd: 'list ' + c.id });
+            }
             return makeRow(c.name, {
                 aggro: c.aggro,
                 adj:   c.adjectives,
-                menuItems: [
-                    { label: 'look '   + c.name, cmd: 'look '   + c.id },
-                    { label: 'attack ' + c.name, cmd: 'attack ' + c.id },
-                ],
+                menuItems: menuItems,
             });
         }));
 
