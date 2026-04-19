@@ -15,73 +15,64 @@ func Consider(rest string, user *users.UserRecord, room *rooms.Room, flags event
 
 	args := util.SplitButRespectQuotes(rest)
 
-	// Looking AT something?
-	if len(args) > 0 {
-		lookAt := args[0]
-
-		//
-		// look for any mobs, players, npcs
-		//
-
-		playerId, mobId := room.FindByName(lookAt)
-		if playerId == user.UserId {
-			playerId = 0
-		}
-
-		if playerId > 0 || mobId > 0 {
-
-			ratio := 0.0
-
-			considerType := "mob"
-			considerName := "nobody"
-
-			if playerId > 0 {
-				u := users.GetByUserId(playerId)
-
-				p1 := combat.PowerRanking(*user.Character, *u.Character)
-				p2 := combat.PowerRanking(*u.Character, *user.Character)
-
-				ratio = p1 / p2
-				considerType = "user"
-				considerName = u.Character.Name
-
-			} else if mobId > 0 {
-
-				m := mobs.GetInstance(mobId)
-
-				p1 := combat.PowerRanking(*user.Character, m.Character)
-				p2 := combat.PowerRanking(m.Character, *user.Character)
-
-				ratio = p1 / p2
-				considerType = "mob"
-				considerName = m.Character.Name
-			}
-
-			prediction := `Unknown`
-			if ratio > 4 {
-				prediction = `<ansi fg="blue-bold">Very Favorable</ansi>`
-			} else if ratio > 3 {
-				prediction = `<ansi fg="green">Favorable</ansi>`
-			} else if ratio > 2 {
-				prediction = `<ansi fg="green">Good</ansi>`
-			} else if ratio > 1 {
-				prediction = `<ansi fg="yellow">Okay</ansi>`
-			} else if ratio > 0.5 {
-				prediction = `<ansi fg="red-bold">Bad</ansi>`
-			} else if ratio > 0 {
-				prediction = `<ansi fg="red-bold">Very Bad</ansi>`
-			} else {
-				prediction = `<ansi fg="red-bold">YOU WILL DIE</ansi>`
-			}
-
-			user.SendText(
-				fmt.Sprintf(`You consider <ansi fg="%sname">%s</ansi>...`, considerType, considerName),
-			)
-			user.SendText(
-				fmt.Sprintf(`It is estimated that your chances to kill <ansi fg="%sname">%s</ansi> are %s (%f)`, considerType, considerName, prediction, ratio),
-			)
-		}
+	if len(args) == 0 {
+		return true, nil
 	}
+
+	lookAt := args[0]
+
+	playerId, mobId := room.FindByName(lookAt)
+	if playerId == user.UserId {
+		playerId = 0
+	}
+
+	if playerId == 0 && mobId == 0 {
+		return true, nil
+	}
+
+	var odds float64
+	considerType := "mob"
+	considerName := "nobody"
+
+	if playerId > 0 {
+		u := users.GetByUserId(playerId)
+		odds = combat.CombatOdds(*user.Character, *u.Character)
+		considerType = "user"
+		considerName = u.Character.Name
+	} else {
+		m := mobs.GetInstance(mobId)
+		odds = combat.CombatOdds(*user.Character, m.Character)
+		considerType = "mob"
+		considerName = m.Character.Name
+	}
+
+	// odds is defRoundsToKill / atkRoundsToKill.
+	// > 1.0 means the player kills the target faster than the target kills the player.
+	// 1.0 is a dead-even fight.
+	prediction := `Unknown`
+	switch {
+	case odds >= 3.0:
+		prediction = `<ansi fg="blue-bold">Very Favorable</ansi>`
+	case odds >= 1.75:
+		prediction = `<ansi fg="green">Favorable</ansi>`
+	case odds >= 1.1:
+		prediction = `<ansi fg="green">Good</ansi>`
+	case odds >= 0.9:
+		prediction = `<ansi fg="yellow">Even</ansi>`
+	case odds >= 0.5:
+		prediction = `<ansi fg="red-bold">Bad</ansi>`
+	case odds > 0:
+		prediction = `<ansi fg="red-bold">Very Bad</ansi>`
+	default:
+		prediction = `<ansi fg="red-bold">YOU WILL DIE</ansi>`
+	}
+
+	user.SendText(
+		fmt.Sprintf(`You consider <ansi fg="%sname">%s</ansi>...`, considerType, considerName),
+	)
+	user.SendText(
+		fmt.Sprintf(`It is estimated that your chances to kill <ansi fg="%sname">%s</ansi> are %s`, considerType, considerName, prediction),
+	)
 
 	return true, nil
 }

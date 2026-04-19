@@ -27,7 +27,7 @@ The combat system is built around several key components:
 - Hit chance calculations based on speed statistics
 - Critical hit probability with level and stat modifiers
 - Damage reduction through defense statistics
-- Power ranking system for combat assessment
+- Combat odds assessment via expected DPS modeling
 - Alignment change calculations for PvP consequences
 
 ## Key Features
@@ -456,49 +456,22 @@ func addDirectionalTokens(sourceChar, targetChar characters.Character,
 
 ## Combat Calculations and Utilities
 
-### Power Ranking System
+### Combat Odds System
+
+`CombatOdds(atkChar, defChar)` returns the ratio of rounds-for-defender-to-kill-attacker divided by rounds-for-attacker-to-kill-defender. A value above `1.0` means the attacker wins faster; below `1.0` means the defender wins faster; `1.0` is an even fight.
+
+It is backed by `expectedDPS(attacker, defender)`, which computes deterministic expected damage per round by mirroring the live combat logic:
+- Attack count from speed differential (`ceil((atkSpd - defSpd) / 25)`, min 1) plus `StatMod("attacks")`
+- Weapon selection and dual-wield probability weights (0%, 50%, or 100% offhand contribution based on skill level; always 100% for dual claws)
+- Hit chance from `hitChance()`, clamped 5-95%, with dual-wield penalty on the offhand slot
+- Crit chance: `5 + round((Strength + Speed) / levelDiff)`, clamped to min 5%
+- Average dice damage: `N*(S+1)/2 + bonus`, with crit bonus added as `(dCount*dSides+dBonus) * critPct`
+- Defense reduction as expected value: `GetDefense() / 200` fraction of damage absorbed
+
 ```go
-// Calculate relative combat power between characters
-func PowerRanking(atkChar characters.Character, defChar characters.Character) float64 {
-    // Calculate potential damage output
-    attacks, dCount, dSides, dBonus, _ := atkChar.Equipment.Weapon.GetDiceRoll()
-    atkDmg := attacks * (dCount*dSides + dBonus)
-    
-    attacks, dCount, dSides, dBonus, _ = defChar.Equipment.Weapon.GetDiceRoll()
-    defDmg := attacks * (dCount*dSides + dBonus)
-    
-    pct := 0.0
-    
-    // Damage comparison (40% weight)
-    if defDmg == 0 {
-        pct += 0.4
-    } else {
-        pct += 0.4 * float64(atkDmg) / float64(defDmg)
-    }
-    
-    // Speed comparison (30% weight)
-    if defChar.Stats.Speed.ValueAdj == 0 {
-        pct += 0.3
-    } else {
-        pct += 0.3 * float64(atkChar.Stats.Speed.ValueAdj) / float64(defChar.Stats.Speed.ValueAdj)
-    }
-    
-    // Health comparison (20% weight)
-    if defChar.HealthMax.Value == 0 {
-        pct += 0.2
-    } else {
-        pct += 0.2 * float64(atkChar.HealthMax.Value) / float64(defChar.HealthMax.Value)
-    }
-    
-    // Defense comparison (10% weight)
-    if defChar.GetDefense() == 0 {
-        pct += 0.1
-    } else {
-        pct += 0.1 * float64(atkChar.GetDefense()) / float64(defChar.GetDefense())
-    }
-    
-    return pct
-}
+// Returns ratio of (rounds defender takes to kill attacker) / (rounds attacker takes to kill defender).
+// > 1.0 favors the attacker; < 1.0 favors the defender; 1.0 is even.
+func CombatOdds(atkChar characters.Character, defChar characters.Character) float64
 ```
 
 ### Taming Mechanics
@@ -734,15 +707,15 @@ if defender.Character.Health <= 0 {
 
 ### Combat Assessment
 ```go
-// Assess relative combat power
+// Assess relative combat odds
 player := users.GetByUserId(userId)
 mob := mobs.GetInstance(mobInstanceId)
 
-powerRatio := combat.PowerRanking(player.Character, mob.Character)
+odds := combat.CombatOdds(*player.Character, mob.Character)
 
-if powerRatio > 1.5 {
+if odds >= 1.75 {
     player.SendText("This should be an easy fight.")
-} else if powerRatio < 0.5 {
+} else if odds < 0.9 {
     player.SendText("This looks very dangerous!")
 } else {
     player.SendText("This should be a fair fight.")

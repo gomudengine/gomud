@@ -232,6 +232,7 @@ command-aliases:
   'rank front':       ['frontrank']
   'help about':       ['about']
   'set screenreader': ['screenreader']
+  'consider':         ['con']
   
   # Direction aliases
 direction-aliases:
