@@ -19,6 +19,7 @@ static/js/windows/window-vitals.js               Vitals window (left dock)
 static/js/windows/window-status.js               Worth window (left dock)
 static/js/windows/window-party.js                Party window (left dock)
 static/js/windows/window-map.js                  Map window (right dock)
+static/js/windows/window-room.js                 Room Info window (right dock)
 static/js/windows/window-online.js               Online Players window (right dock, off by default)
 static/js/windows/window-comm.js                 Communications window (right dock)
 static/js/windows/window-modal.js                Help/content modal overlay (global, no dock)
@@ -49,6 +50,7 @@ one `<script>` tag in the appropriate dock comment block.
 | File | Title | Tabs | GMCP namespaces | Notes |
 |---|---|---|---|---|
 | `window-map.js` | Map | — | `Room`, `World` | `offOnLoad: false` |
+| `window-room.js` | Room Info | — | `Room.Info` | `offOnLoad: false` |
 | `window-online.js` | Online | — | `Game` | `offOnLoad: true` — hidden until user opens it |
 | `window-comm.js` | Communications | Say, Whisper, Party, Broadcasts | `Comm` | |
 
