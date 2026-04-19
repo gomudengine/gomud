@@ -1832,10 +1832,11 @@ const Client = (() => {
 
             // Command history
             if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+                event.preventDefault();
                 historyPosition += (event.key === 'ArrowUp') ? 1 : -1;
-                if (historyPosition < 1) { historyPosition = 1; }
+                if (historyPosition < 0) { historyPosition = 0; }
                 if (historyPosition > commandHistory.length) { historyPosition = commandHistory.length; }
-                event.target.value = commandHistory[commandHistory.length - historyPosition];
+                event.target.value = historyPosition === 0 ? '' : commandHistory[commandHistory.length - historyPosition];
                 _tabSugReset();
                 return;
             }
