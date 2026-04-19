@@ -5,6 +5,7 @@ import (
 	"math"
 	"strings"
 
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/parties"
@@ -82,9 +83,25 @@ func Party(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 			return true, nil
 		}
 
-		invitePlayerId, mobInstId := room.FindByName(rest)
+		partyCfg := configs.GetGamePlayConfig().Party
 
-		if invitePlayerId == 0 && mobInstId == 0 {
+		if maxCount := int(partyCfg.MaxPlayerCount); maxCount > 0 {
+			if len(currentParty.UserIds)+len(currentParty.InviteUserIds) >= maxCount {
+				user.SendText(fmt.Sprintf(`Your party is full (%d/%d).`, len(currentParty.UserIds), maxCount))
+				return true, nil
+			}
+		}
+
+		var invitePlayerId int
+		if bool(partyCfg.SameRoomOnly) {
+			invitePlayerId, _ = room.FindByName(rest)
+		} else {
+			if u := users.GetByCharacterName(rest); u != nil {
+				invitePlayerId = u.UserId
+			}
+		}
+
+		if invitePlayerId == 0 {
 			user.SendText(fmt.Sprintf(`%s not found.`, rest))
 			return true, nil
 		}
@@ -124,6 +141,19 @@ func Party(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 	}
 
 	if partyCommand == `accept` || partyCommand == `join` {
+
+		if !currentParty.Invited(user.UserId) {
+			user.SendText(`You haven't accepted an invitation to the party.`)
+			return true, nil
+		}
+
+		if bool(configs.GetGamePlayConfig().Party.SameRoomOnly) {
+			leader := users.GetByUserId(currentParty.LeaderUserId)
+			if leader == nil || leader.Character.RoomId != user.Character.RoomId {
+				user.SendText(`You must be in the same room as the party leader to join.`)
+				return true, nil
+			}
+		}
 
 		if currentParty.AcceptInvite(user.UserId) {
 

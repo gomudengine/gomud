@@ -309,6 +309,16 @@ GamePlay:
   # - MobConverseChance -
   #   Chance in 100 that the mob will attempt to converse when idle.
   MobConverseChance: 3
+  # Party settings
+  Party:
+    # - MaxPlayerCount -
+    #   Maximum number of players allowed in a party.
+    #   Set to 0 for unlimited.
+    MaxPlayerCount: 0
+    # - SameRoomOnly -
+    #   If true, players must be in the same room to create, invite, or join a party.
+    #   If false, players can form and join parties from anywhere in the world.
+    SameRoomOnly: false
 
 ################################################################################
 #
