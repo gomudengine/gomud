@@ -662,13 +662,13 @@
         }
 
         function roomAtPoint(cx, cy) {
-            var half = (ROOM_SIZE * zoomScale) / 2, found = null;
-            rooms.forEach(function (room, id) {
+            var half = (ROOM_SIZE * zoomScale) / 2;
+            for (var [id, room] of rooms) {
                 var p = gridToCanvas(room.x, room.y);
                 if (cx >= p.px - half && cx <= p.px + half &&
-                    cy >= p.py - half && cy <= p.py + half) { found = id; }
-            });
-            return found;
+                    cy >= p.py - half && cy <= p.py + half) { return id; }
+            }
+            return null;
         }
 
         // -- DOM ---------------------------------------------------------------
