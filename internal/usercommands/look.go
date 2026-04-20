@@ -313,6 +313,12 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 	foundNoun, foundDesc := room.FindNoun(lookAt)
 	if len(foundNoun) > 0 {
 
+		// Nouns may be multi-line
+		finalNounDesc := []string{}
+		for _, descLine := range strings.Split(foundDesc, "\n") {
+			finalNounDesc = append(finalNounDesc, descLine)
+		}
+
 		user.SendText(``)
 
 		user.SendText(
@@ -329,8 +335,10 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 			}
 
 			if renderNouns && len(room.Nouns) > 0 {
-				for noun, _ := range room.Nouns {
-					foundDesc = strings.Replace(foundDesc, noun, `<ansi fg="noun">`+noun+`</ansi>`, 1)
+				for idx, descLine := range finalNounDesc {
+					for noun, _ := range room.Nouns {
+						finalNounDesc[idx] = strings.Replace(descLine, noun, `<ansi fg="noun">`+noun+`</ansi>`, 1)
+					}
 				}
 			}
 
@@ -340,7 +348,9 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 			)
 		}
 
-		user.SendText(foundDesc)
+		for _, outLine := range finalNounDesc {
+			user.SendText(outLine)
+		}
 
 		user.SendText(``)
 
