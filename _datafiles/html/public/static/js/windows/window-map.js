@@ -856,6 +856,7 @@
         var container = null;
         var rooms3d   = new Map();
         var edges3d   = new Map();
+        var bucketCache = null;
         var currentRoomId  = null;
         var camX = 0, camY = 0, camZ = 0;
         var easeStartX = 0, easeStartY = 0, easeStartZ = 0;
@@ -883,9 +884,9 @@
         }
 
         function darkenColor(hex, factor) {
-            var r = Math.round(parseInt(hex.slice(1, 3), 16) * factor);
-            var g = Math.round(parseInt(hex.slice(3, 5), 16) * factor);
-            var b = Math.round(parseInt(hex.slice(5, 7), 16) * factor);
+            var r = Math.min(255, Math.round(parseInt(hex.slice(1, 3), 16) * factor));
+            var g = Math.min(255, Math.round(parseInt(hex.slice(3, 5), 16) * factor));
+            var b = Math.min(255, Math.round(parseInt(hex.slice(5, 7), 16) * factor));
             return '#' + ('0' + r.toString(16)).slice(-2) +
                          ('0' + g.toString(16)).slice(-2) +
                          ('0' + b.toString(16)).slice(-2);
@@ -943,6 +944,7 @@
 
         function addRoom3d(id, gx, gy, gz, symbol, env) {
             rooms3d.set(id, { x: gx, y: gy, z: gz, symbol: symbol || '\u2022', env: env || '' });
+            bucketCache = null;
         }
 
         function addEdge3d(idA, idB, rA, rB) {
@@ -954,15 +956,51 @@
                 key = idB + '-' + idA;
                 dx = rA.x - rB.x; dy = rA.y - rB.y; dz = rA.z - rB.z;
             }
-            if (!edges3d.has(key)) { edges3d.set(key, { dx: dx, dy: dy, dz: dz }); }
+            if (!edges3d.has(key)) { edges3d.set(key, { dx: dx, dy: dy, dz: dz }); bucketCache = null; }
         }
 
         function resetMap3d() {
             rooms3d.clear(); edges3d.clear();
+            bucketCache = null;
             currentRoomId = null;
             panOffsetX = 0; panOffsetY = 0;
             dragActive = false;
             if (easeRafId !== null) { cancelAnimationFrame(easeRafId); easeRafId = null; }
+        }
+
+        function buildBucketCache() {
+            var zSet = new Set();
+            rooms3d.forEach(function (room) { zSet.add(room.z); });
+            var zLevels = Array.from(zSet).sort(function (a, b) { return a - b; });
+            var roomsByZ = {};
+            var sameZEdgesByZ = {};
+            var crossZUpEdgesByZ = {};
+            zLevels.forEach(function (z) {
+                roomsByZ[z] = [];
+                sameZEdgesByZ[z] = [];
+                crossZUpEdgesByZ[z] = [];
+            });
+            rooms3d.forEach(function (room, id) {
+                roomsByZ[room.z].push({ id: id, x: room.x, y: room.y, z: room.z,
+                                        symbol: room.symbol, env: room.env });
+            });
+            zLevels.forEach(function (z) {
+                roomsByZ[z].sort(function (a, b) { return (a.x + a.y) - (b.x + b.y); });
+            });
+            edges3d.forEach(function (edge, key) {
+                var parts = key.split('-');
+                var rA = rooms3d.get(parseInt(parts[0], 10));
+                var rB = rooms3d.get(parseInt(parts[1], 10));
+                if (!rA || !rB) { return; }
+                if (edge.dz === 0) {
+                    if (sameZEdgesByZ[rA.z]) { sameZEdgesByZ[rA.z].push({ edge: edge, rA: rA, rB: rB }); }
+                } else {
+                    var lowerZ = Math.min(rA.z, rB.z);
+                    if (crossZUpEdgesByZ[lowerZ]) { crossZUpEdgesByZ[lowerZ].push({ edge: edge, rA: rA, rB: rB }); }
+                }
+            });
+            bucketCache = { zLevels: zLevels, roomsByZ: roomsByZ,
+                            sameZEdgesByZ: sameZEdgesByZ, crossZUpEdgesByZ: crossZUpEdgesByZ };
         }
 
         function replayZone3d(startId) {
@@ -1051,44 +1089,11 @@
                 if (rB.z === drawZ && rA.z !== drawZ) { connectedToActive.add(parseInt(parts[0], 10)); }
             });
 
-            // Group rooms and edges by z-level, sorted lowest to highest.
-            var zSet = new Set();
-            rooms3d.forEach(function (room) { zSet.add(room.z); });
-            var zLevels = Array.from(zSet).sort(function (a, b) { return a - b; });
-
-            // Pre-bucket rooms and edges by z-level for efficient per-layer access.
-            var roomsByZ = {};
-            var sameZEdgesByZ = {};
-            var crossZUpEdgesByZ = {};
-            zLevels.forEach(function (z) {
-                roomsByZ[z] = [];
-                sameZEdgesByZ[z] = [];
-                crossZUpEdgesByZ[z] = [];
-            });
-            rooms3d.forEach(function (room, id) {
-                roomsByZ[room.z].push({ id: id, x: room.x, y: room.y, z: room.z,
-                                        symbol: room.symbol, env: room.env });
-            });
-            // Sort rooms within each layer by painter's order.
-            zLevels.forEach(function (z) {
-                roomsByZ[z].sort(function (a, b) {
-                    return (a.x + a.y) - (b.x + b.y);
-                });
-            });
-            edges3d.forEach(function (edge, key) {
-                var parts = key.split('-');
-                var rA = rooms3d.get(parseInt(parts[0], 10));
-                var rB = rooms3d.get(parseInt(parts[1], 10));
-                if (!rA || !rB) { return; }
-                if (edge.dz === 0) {
-                    // Same-z edge: bucket by its z-level.
-                    if (sameZEdgesByZ[rA.z]) { sameZEdgesByZ[rA.z].push({ edge: edge, rA: rA, rB: rB }); }
-                } else {
-                    // Cross-z edge: bucket by the lower z so it draws after the lower layer's tiles.
-                    var lowerZ = Math.min(rA.z, rB.z);
-                    if (crossZUpEdgesByZ[lowerZ]) { crossZUpEdgesByZ[lowerZ].push({ edge: edge, rA: rA, rB: rB }); }
-                }
-            });
+            if (!bucketCache) { buildBucketCache(); }
+            var zLevels         = bucketCache.zLevels;
+            var roomsByZ        = bucketCache.roomsByZ;
+            var sameZEdgesByZ   = bucketCache.sameZEdgesByZ;
+            var crossZUpEdgesByZ = bucketCache.crossZUpEdgesByZ;
 
             ctx.lineWidth = CONNECTION_WIDTH * zoomScale;
             ctx.lineCap   = 'round';
