@@ -63,6 +63,20 @@ The GoMud network layer provides a sophisticated, multi-protocol networking syst
   - Automatic connection health monitoring
   - Text masking for password input
 
+### SSH Protocol
+- **Port**: Configurable via `SSHPort` (0 to disable)
+- **Max Connections**: 50 (configurable via `MaxSSHConnections`)
+- **Authentication**: No client auth required (`NoClientAuth: true`)
+- **Host Key**: RSA/EC private key file configured via `SSHHostKeyFile`; SSH is disabled if not set
+- **Features**:
+  - Full SSH handshake and channel negotiation via `golang.org/x/crypto/ssh`
+  - Only `session` channel type accepted; others rejected
+  - `pty-req` handling: parses terminal dimensions (cols/rows) from payload
+  - `window-change` handling: live terminal resize updates to client settings
+  - Out-of-band requests (keepalive, etc.) silently discarded
+  - Same input handler chain and game integration as telnet
+  - Connection type reported as `ssh` in online info and Discord notifications
+
 ### HTTP/HTTPS Server
 - **HTTP Port**: 80 (configurable, 0 to disable)
 - **HTTPS Port**: 0 (disabled by default, requires certificates)
@@ -78,7 +92,7 @@ The GoMud network layer provides a sophisticated, multi-protocol networking syst
 ### Connection Lifecycle
 
 **Connection Establishment**:
-1. Accept incoming connection (telnet or WebSocket)
+1. Accept incoming connection (telnet, WebSocket, or SSH)
 2. Generate unique connection ID (atomic counter)
 3. Initialize connection details structure
 4. Set up input handler chain
@@ -103,7 +117,7 @@ The GoMud network layer provides a sophisticated, multi-protocol networking syst
 - Shared state map for handler communication
 - Handler-specific error handling and recovery
 
-**Standard Handler Chain** (Telnet):
+**Standard Handler Chain** (Telnet and SSH):
 1. **TelnetIACHandler**: Telnet protocol command processing
 2. **AnsiHandler**: ANSI escape sequence processing
 3. **CleanserInputHandler**: Input sanitization
@@ -118,6 +132,12 @@ The GoMud network layer provides a sophisticated, multi-protocol networking syst
 - Direct message processing
 - Text masking for password fields
 - Real-time input handling
+
+**SSH Processing**:
+- Same full handler chain as telnet
+- Terminal dimensions initialized from `pty-req` payload
+- Live resize via `window-change` channel requests
+- Reads/writes directly on the SSH channel
 
 ## Authentication and Security
 
@@ -151,6 +171,8 @@ Network:
   HttpPort: 80                  # Web server port
   HttpsPort: 0                  # HTTPS port (0 = disabled)
   HttpsRedirect: false          # Auto-redirect HTTP to HTTPS
+  SSHPort: 0                    # SSH port (0 = disabled)
+  MaxSSHConnections: 50         # Max SSH connections
   ZombieSeconds: 60             # Zombie connection timeout
   AfkSeconds: 1800              # AFK timeout
   TimeoutMods: false            # Timeout moderators/admins
@@ -165,6 +187,7 @@ FilePaths:
   AdminHtml: "_datafiles/html/admin"
   HttpsCertFile: ""             # TLS certificate
   HttpsKeyFile: ""              # TLS private key
+  SSHHostKeyFile: ""            # SSH host private key (required for SSH)
 ```
 
 ## Advanced Features
@@ -280,7 +303,7 @@ FilePaths:
 
 ### Server Startup Process
 1. **Configuration Loading**: Network settings validation
-2. **Port Binding**: Telnet and HTTP/HTTPS server startup
+2. **Port Binding**: Telnet, SSH, and HTTP/HTTPS server startup
 3. **Worker Initialization**: Input and main worker goroutines
 4. **Plugin Loading**: Network plugin initialization
 5. **Signal Handling**: Graceful shutdown signal registration
@@ -320,6 +343,13 @@ GoMud implements a sophisticated multi-stage input processing system that handle
    - `HistoryInputHandler`: Manages command history
    - `SystemCommandInputHandler`: Processes system commands (admin only)
    - `SignalHandler`: Handles terminal signals
+
+**SSH Flow**:
+1. TCP connection accepted; SSH handshake performed via `golang.org/x/crypto/ssh`
+2. Only `session` channels accepted
+3. `pty-req` and `window-change` channel requests handled for terminal sizing
+4. Same full input handler chain as telnet
+5. Reads/writes on `ssh.Channel`; connection tracked via `NewSSHConnectionDetails`
 
 **WebSocket Flow**:
 1. WebSocket message received
@@ -488,7 +518,7 @@ type Input struct {
 ### Integration Points
 
 #### Network Layer Integration
-- **Protocol Abstraction**: Same input flow for telnet and WebSocket
+- **Protocol Abstraction**: Same input flow for telnet, SSH, and WebSocket
 - **Handler Flexibility**: Configurable input handler chains
 - **Error Propagation**: Network errors propagated to game layer
 - **Connection State**: Input processing aware of connection state
