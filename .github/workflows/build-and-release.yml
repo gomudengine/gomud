@@ -43,8 +43,8 @@ jobs:
             echo "binary_version=${binary_version}"
             echo "release_tag=prerelease"
             echo "release_title=prerelease"
-            echo "datafiles_archive=gomud-ALL-datafiles-prerelease.zip"
-            echo "checksums_file=gomud-prerelease-SHA256SUMS.txt"
+            echo "datafiles_archive=gomud-ALL-datafiles.zip"
+            echo "checksums_file=SHA256SUMS.txt"
           } >> "$GITHUB_OUTPUT"
 
   build:
