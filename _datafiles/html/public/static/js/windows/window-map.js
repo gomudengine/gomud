@@ -844,7 +844,7 @@
         var ALPHA_CONNECTED = 0.30; // Opacity of rooms on inactive z-levels that have a direct connection to the active layer; higher = more visible cross-z neighbours
         var LAYER_OFFSET_X  = 0;   // Screen pixels to shift each z-level horizontally per level away from the active layer; increase to spread layers apart left/right
         var LAYER_OFFSET_Y  = 0;   // Screen pixels to shift each z-level vertically per level away from the active layer; increase to spread layers apart up/down
-        var CONNECTION_COLOR_SAME_Z  = '#7a4a1a'; // Color of lines connecting rooms on the same z-level; change to distinguish same-floor corridors
+        var CONNECTION_COLOR_SAME_Z  = '#ffffff'; // Color of lines connecting rooms on the same z-level; change to distinguish same-floor corridors
         var CONNECTION_COLOR_CROSS_Z = '#3a6b8a'; // Color of lines connecting rooms on different z-levels; change to make vertical connections stand out
         var CROSS_Z_OFFSET_X = 8;   // Horizontal pixel offset from tile center where cross-z connection lines attach; shift left/right to reposition the vertical passage indicator
         var CROSS_Z_OFFSET_Y = 0;   // Vertical pixel offset from tile center where cross-z connection lines attach; shift up/down to reposition the vertical passage indicator
