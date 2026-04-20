@@ -8,6 +8,7 @@ type FilePaths struct {
 	AdminHtml        ConfigString `yaml:"AdminHtml"`
 	HttpsCertFile    ConfigString `yaml:"HttpsCertFile"`
 	HttpsKeyFile     ConfigString `yaml:"HttpsKeyFile"`
+	SSHHostKeyFile   ConfigString `yaml:"SSHHostKeyFile"`
 	CarefulSaveFiles ConfigBool   `yaml:"CarefulSaveFiles"`
 }
 

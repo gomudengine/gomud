@@ -3,6 +3,7 @@ package web
 import (
 	"fmt"
 	"html"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -77,6 +78,15 @@ var (
 			return stringIn + strings.Repeat(padString, paddingLength)
 		},
 		"join": func(items []string, sep string) string { return strings.Join(items, sep) },
+		"activeTelnetPorts": func(ports []string) []string {
+			active := make([]string, 0, len(ports))
+			for _, p := range ports {
+				if n, err := strconv.Atoi(p); err == nil && n > 0 {
+					active = append(active, p)
+				}
+			}
+			return active
+		},
 		"lte":  func(a, b int) bool { return a <= b },
 		"gte":  func(a, b int) bool { return a >= b },
 		"lt":   func(a, b int) bool { return a < b },
@@ -101,6 +111,9 @@ var (
 			return strings.ToLower(str)
 		},
 		"now": func() int64 { return time.Now().UnixMilli() },
+		"sshEnabled": func(c configs.Config) bool {
+			return int(c.Network.SSHPort) > 0 && c.FilePaths.SSHHostKeyFile != ``
+		},
 		"getconfig": func() configs.Config {
 			return configs.GetConfig()
 		},

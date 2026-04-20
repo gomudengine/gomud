@@ -10,4 +10,5 @@ type OnlineInfo struct {
 	OnlineTimeStr string
 	IsAFK         bool
 	Role          string
+	ConnType      string
 }

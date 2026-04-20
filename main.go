@@ -35,6 +35,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/usercommands"
 	"github.com/GoMudEngine/GoMud/internal/version"
 	"github.com/gorilla/websocket"
+	"golang.org/x/crypto/ssh"
 
 	"github.com/GoMudEngine/GoMud/internal/mapper"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -294,7 +295,7 @@ func main() {
 
 	allServerListeners := make([]net.Listener, 0, len(c.Network.TelnetPort))
 	for _, port := range c.Network.TelnetPort {
-		if p, err := strconv.Atoi(port); err == nil {
+		if p, err := strconv.Atoi(port); err == nil && p > 0 {
 			if s := TelnetListenOnPort(``, p, &wg, int(c.Network.MaxTelnetConnections)); s != nil {
 				allServerListeners = append(allServerListeners, s)
 			}
@@ -303,6 +304,31 @@ func main() {
 
 	if c.Network.LocalPort > 0 {
 		TelnetListenOnPort(`127.0.0.1`, int(c.Network.LocalPort), &wg, 0)
+	}
+
+	if sshPort := int(c.Network.SSHPort); sshPort > 0 {
+		hostKeyPath := c.FilePaths.SSHHostKeyFile.String()
+		if hostKeyPath == `` {
+			mudlog.Error("SSH", "error", "SSHPort is set but SSHHostKeyFile is not configured; SSH disabled")
+		} else {
+			hostKeyBytes, err := os.ReadFile(hostKeyPath)
+			if err != nil {
+				mudlog.Error("SSH", "error", "failed to read SSH host key", "path", hostKeyPath, "details", err)
+			} else {
+				signer, err := ssh.ParsePrivateKey(hostKeyBytes)
+				if err != nil {
+					mudlog.Error("SSH", "error", "failed to parse SSH host key", "details", err)
+				} else {
+					sshConfig := &ssh.ServerConfig{
+						NoClientAuth: true,
+					}
+					sshConfig.AddHostKey(signer)
+					if s := SSHListenOnPort(sshPort, sshConfig, &wg, int(c.Network.MaxSSHConnections)); s != nil {
+						allServerListeners = append(allServerListeners, s)
+					}
+				}
+			}
+		}
 	}
 
 	go worldManager.InputWorker(workerShutdownChan, &wg)
@@ -1169,6 +1195,333 @@ func TelnetListenOnPort(hostname string, portNum int, wg *sync.WaitGroup, maxCon
 	}()
 
 	return server
+}
+
+func SSHListenOnPort(portNum int, sshConfig *ssh.ServerConfig, wg *sync.WaitGroup, maxConnections int) net.Listener {
+
+	server, err := net.Listen("tcp", fmt.Sprintf(":%d", portNum))
+	if err != nil {
+		mudlog.Error("Error creating SSH server", "error", err)
+		return nil
+	}
+
+	mudlog.Info("SSH", "status", "listening", "port", portNum)
+
+	go func() {
+		for {
+			conn, err := server.Accept()
+
+			if !serverAlive.Load() {
+				mudlog.Warn("SSH connections disabled.")
+				return
+			}
+
+			if err != nil {
+				mudlog.Warn("SSH connection error", "error", err)
+				continue
+			}
+
+			if maxConnections > 0 {
+				if connections.ActiveConnectionCount() >= maxConnections {
+					conn.Write([]byte("\n\n\n!!! Server is full. Try again later. !!!\n\n\n"))
+					conn.Close()
+					continue
+				}
+			}
+
+			wg.Add(1)
+			go handleSSHHandshake(conn, sshConfig, wg)
+		}
+	}()
+
+	return server
+}
+
+func handleSSHHandshake(conn net.Conn, sshConfig *ssh.ServerConfig, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	sshConn, chans, reqs, err := ssh.NewServerConn(conn, sshConfig)
+	if err != nil {
+		mudlog.Warn("SSH handshake failed", "remoteAddr", conn.RemoteAddr().String(), "error", err)
+		return
+	}
+	defer sshConn.Close()
+
+	// Discard all out-of-band requests (keepalive, etc.)
+	go ssh.DiscardRequests(reqs)
+
+	for newChan := range chans {
+		if newChan.ChannelType() != "session" {
+			newChan.Reject(ssh.UnknownChannelType, "unsupported channel type")
+			continue
+		}
+
+		ch, chanReqs, err := newChan.Accept()
+		if err != nil {
+			mudlog.Warn("SSH channel accept failed", "error", err)
+			return
+		}
+
+		wg.Add(1)
+		go handleSSHConnection(connections.AddSSH(ch, sshConn.RemoteAddr()), chanReqs, wg)
+	}
+}
+
+func handleSSHConnection(connDetails *connections.ConnectionDetails, reqs <-chan *ssh.Request, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	mudlog.Info("New SSH Connection", "connectionID", connDetails.ConnectionId(), "remoteAddr", connDetails.RemoteAddr().String())
+
+	// Handle SSH channel requests (pty-req, window-change, shell, exec, etc.)
+	// We run this in a goroutine so the read loop below can start immediately.
+	go func() {
+		for req := range reqs {
+			switch req.Type {
+			case "pty-req":
+				// Parse terminal dimensions from the pty-req payload.
+				// Payload: string term, uint32 cols, uint32 rows, uint32 width-px, uint32 height-px, string modes
+				if len(req.Payload) >= 12 {
+					// Skip the terminal name string: 4-byte length prefix + string bytes
+					nameLen := int(req.Payload[0])<<24 | int(req.Payload[1])<<16 | int(req.Payload[2])<<8 | int(req.Payload[3])
+					offset := 4 + nameLen
+					if offset+8 <= len(req.Payload) {
+						cols := uint32(req.Payload[offset])<<24 | uint32(req.Payload[offset+1])<<16 | uint32(req.Payload[offset+2])<<8 | uint32(req.Payload[offset+3])
+						rows := uint32(req.Payload[offset+4])<<24 | uint32(req.Payload[offset+5])<<16 | uint32(req.Payload[offset+6])<<8 | uint32(req.Payload[offset+7])
+						if cols > 0 && rows > 0 {
+							cs := connections.GetClientSettings(connDetails.ConnectionId())
+							cs.Display.ScreenWidth = cols
+							cs.Display.ScreenHeight = rows
+							connections.OverwriteClientSettings(connDetails.ConnectionId(), cs)
+						}
+					}
+				}
+				if req.WantReply {
+					req.Reply(true, nil)
+				}
+			case "window-change":
+				// Payload: uint32 cols, uint32 rows, uint32 width-px, uint32 height-px
+				if len(req.Payload) >= 8 {
+					cols := uint32(req.Payload[0])<<24 | uint32(req.Payload[1])<<16 | uint32(req.Payload[2])<<8 | uint32(req.Payload[3])
+					rows := uint32(req.Payload[4])<<24 | uint32(req.Payload[5])<<16 | uint32(req.Payload[6])<<8 | uint32(req.Payload[7])
+					if cols > 0 && rows > 0 {
+						cs := connections.GetClientSettings(connDetails.ConnectionId())
+						cs.Display.ScreenWidth = cols
+						cs.Display.ScreenHeight = rows
+						connections.OverwriteClientSettings(connDetails.ConnectionId(), cs)
+					}
+				}
+				if req.WantReply {
+					req.Reply(true, nil)
+				}
+			case "shell", "exec":
+				if req.WantReply {
+					req.Reply(true, nil)
+				}
+			default:
+				if req.WantReply {
+					req.Reply(false, nil)
+				}
+			}
+		}
+	}()
+
+	var sharedState map[string]any = make(map[string]any)
+
+	connDetails.AddInputHandler("AnsiHandler", inputhandlers.AnsiHandler)
+	connDetails.AddInputHandler("CleanserInputHandler", inputhandlers.CleanserInputHandler)
+	connDetails.AddInputHandler("TextPrefixHandler", inputhandlers.TextPrefixHandler)
+
+	loginHandler := inputhandlers.GetLoginPromptHandler()
+	connDetails.AddInputHandler("LoginPromptHandler", loginHandler)
+
+	plugins.OnNetConnect(connDetails)
+
+	if audioConfig := audio.GetFile(`intro`); audioConfig.FilePath != `` {
+		v := 100
+		if audioConfig.Volume > 0 && audioConfig.Volume <= 100 {
+			v = audioConfig.Volume
+		}
+		connections.SendTo(
+			term.MspCommand.BytesWithPayload([]byte("!!MUSIC("+audioConfig.FilePath+" V="+strconv.Itoa(v)+" L=-1 C=1)")),
+			connDetails.ConnectionId(),
+		)
+	}
+
+	splashTxt, _ := templates.Process("login/connect-splash", nil)
+	connections.SendTo([]byte(templates.AnsiParse(splashTxt)), connDetails.ConnectionId())
+
+	initialTriggerInput := &connections.ClientInput{
+		ConnectionId: connDetails.ConnectionId(),
+	}
+	loginHandler(initialTriggerInput, sharedState)
+
+	var userObject *users.UserRecord
+	var sug suggestions.Suggestions
+	lastInput := time.Now()
+	c := configs.GetConfig()
+
+	inputBuffer := make([]byte, connections.ReadBufferSize)
+	clientInput := &connections.ClientInput{
+		ConnectionId: connDetails.ConnectionId(),
+		DataIn:       []byte{},
+		Buffer:       make([]byte, 0, connections.ReadBufferSize),
+		EnterPressed: false,
+		Clipboard:    []byte{},
+		History:      connections.InputHistory{},
+	}
+
+	for {
+		clientInput.EnterPressed = false
+		clientInput.TabPressed = false
+		clientInput.BSPressed = false
+
+		n, err := connDetails.Read(inputBuffer)
+		if err != nil {
+			if userObject != nil {
+				userObject.EventLog.Add(`conn`, `Disconnected`)
+				if c.Network.ZombieSeconds > 0 {
+					connDetails.SetState(connections.Zombie)
+					worldManager.SendSetZombie(userObject.UserId, true)
+				} else {
+					worldManager.SendLeaveWorld(userObject.UserId)
+					worldManager.SendLogoutConnectionId(connDetails.ConnectionId())
+				}
+			}
+			mudlog.Warn("SSH", "connectionID", connDetails.ConnectionId(), "error", err)
+			connections.Remove(connDetails.ConnectionId())
+			break
+		}
+
+		if connDetails.InputDisabled() {
+			continue
+		}
+
+		clientInput.DataIn = inputBuffer[:n]
+		okContinue, lastHandlerName, err := connDetails.HandleInput(clientInput, sharedState)
+		if err != nil {
+			mudlog.Warn("InputHandler Error", "handler", lastHandlerName, "error", err)
+			continue
+		}
+
+		if !okContinue {
+			if userObject == nil {
+				continue
+			}
+
+			_, suggested := userObject.GetUnsentText()
+			redrawPrompt := false
+
+			if clientInput.TabPressed {
+				if sug.Count() < 1 {
+					sug.Set(worldManager.GetAutoComplete(userObject.UserId, string(clientInput.Buffer)))
+				}
+				if sug.Count() > 0 {
+					suggested = sug.Next()
+					userObject.SetUnsentText(string(clientInput.Buffer), suggested)
+					redrawPrompt = true
+				}
+			} else if clientInput.BSPressed {
+				userObject.SetUnsentText(string(clientInput.Buffer), ``)
+				if suggested != `` {
+					suggested = ``
+					sug.Clear()
+					redrawPrompt = true
+				}
+			} else {
+				if suggested != `` {
+					if len(clientInput.Buffer) > 0 && clientInput.Buffer[len(clientInput.Buffer)-1] == term.ASCII_SPACE {
+						clientInput.Buffer = append(clientInput.Buffer[0:len(clientInput.Buffer)-1], []byte(suggested)...)
+						clientInput.Buffer = append(clientInput.Buffer[0:len(clientInput.Buffer)], []byte(` `)...)
+						redrawPrompt = true
+						userObject.SetUnsentText(string(clientInput.Buffer), ``)
+						sug.Clear()
+					} else {
+						suggested = ``
+						sug.Clear()
+						userObject.SetUnsentText(string(clientInput.Buffer), suggested)
+						redrawPrompt = true
+					}
+				}
+				userObject.SetUnsentText(string(clientInput.Buffer), suggested)
+			}
+
+			if redrawPrompt {
+				pTxt := userObject.GetCommandPrompt()
+				connections.SendTo([]byte(templates.AnsiParse(pTxt)), clientInput.ConnectionId)
+			}
+			continue
+		}
+
+		if okContinue && lastHandlerName == "LoginPromptHandler" {
+			connections.SendTo(
+				term.MspCommand.BytesWithPayload([]byte("!!MUSIC(Off)")),
+				clientInput.ConnectionId,
+			)
+
+			if uo, exists := sharedState["UserObject"]; exists {
+				var ok bool
+				userObject, ok = uo.(*users.UserRecord)
+				if !ok {
+					mudlog.Error("UserObject type assertion failed", "connectionId", clientInput.ConnectionId)
+					connections.Remove(clientInput.ConnectionId)
+					break
+				}
+				delete(sharedState, "UserObject")
+			} else {
+				mudlog.Error("Login process completed but UserObject not found in sharedState", "connectionId", clientInput.ConnectionId)
+				connections.Remove(clientInput.ConnectionId)
+				break
+			}
+
+			connDetails.RemoveInputHandler("LoginPromptHandler")
+			connDetails.AddInputHandler("EchoInputHandler", inputhandlers.EchoInputHandler)
+			connDetails.AddInputHandler("HistoryInputHandler", inputhandlers.HistoryInputHandler)
+
+			if userObject.Role == users.RoleAdmin {
+				connDetails.AddInputHandler("SystemCommandInputHandler", inputhandlers.SystemCommandInputHandler)
+			}
+
+			connDetails.AddInputHandler("SignalHandler", inputhandlers.SignalHandler, "AnsiHandler")
+			connDetails.SetState(connections.LoggedIn)
+			worldManager.SendEnterWorld(userObject.UserId, userObject.Character.RoomId)
+			clientInput.Reset()
+			continue
+		}
+
+		if !okContinue {
+			if userObject == nil {
+				continue
+			}
+		}
+
+		if clientInput.EnterPressed {
+			c = configs.GetConfig()
+
+			if time.Since(lastInput) < time.Duration(c.Timing.TurnMs)*time.Millisecond {
+				clientInput.Reset()
+				userObject.SetUnsentText(``, ``)
+			} else {
+				_, suggested := userObject.GetUnsentText()
+				if len(suggested) > 0 {
+					clientInput.Buffer = append(clientInput.Buffer, []byte(suggested)...)
+					sug.Clear()
+					userObject.SetUnsentText(string(clientInput.Buffer), ``)
+					connections.SendTo([]byte(templates.AnsiParse(userObject.GetCommandPrompt())), clientInput.ConnectionId)
+				}
+
+				wi := WorldInput{
+					FromId:    userObject.UserId,
+					InputText: string(clientInput.Buffer),
+				}
+				worldManager.SendInput(wi)
+				clientInput.Reset()
+				userObject.SetUnsentText(``, ``)
+				lastInput = time.Now()
+			}
+
+			time.Sleep(time.Duration(10) * time.Millisecond)
+		}
+	}
 }
 
 func loadAllDataFiles(isReload bool) {

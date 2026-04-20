@@ -24,7 +24,7 @@ func Online(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 
 	if user.Role != users.RoleUser {
 		headers = append([]string{language.T(`UserId`)}, headers...)
-		headers = append(headers, []string{language.T(`Zone`), language.T(`RoomId`)}...)
+		headers = append(headers, []string{language.T(`Zone`), language.T(`RoomId`), language.T(`Conn Type`)}...)
 	}
 
 	allFormatting := [][]string{}
@@ -76,10 +76,10 @@ func Online(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 
 			if user.Role != users.RoleUser {
 				row = append([]string{strconv.Itoa(u.UserId)}, row...)
-				row = append(row, []string{u.Character.Zone, strconv.Itoa(u.Character.RoomId)}...)
+				row = append(row, []string{u.Character.Zone, strconv.Itoa(u.Character.RoomId), onlineInfo.ConnType}...)
 
 				formatting = append([]string{`<ansi fg="userid">%s</ansi>`}, formatting...)
-				formatting = append(formatting, []string{`<ansi fg="zone">%s</ansi>`, `<ansi fg="1">%s</ansi>`}...)
+				formatting = append(formatting, []string{`<ansi fg="zone">%s</ansi>`, `<ansi fg="1">%s</ansi>`, `<ansi fg="white">%s</ansi>`}...)
 			}
 
 			allFormatting = append(allFormatting, formatting)

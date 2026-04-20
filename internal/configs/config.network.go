@@ -7,6 +7,8 @@ type Network struct {
 	HttpPort             ConfigInt         `yaml:"HttpPort"`             // Port used for web requests
 	HttpsPort            ConfigInt         `yaml:"HttpsPort"`            // Port used for web https requests
 	HttpsRedirect        ConfigBool        `yaml:"HttpsRedirect"`        // If true, http traffic will be redirected to https
+	SSHPort              ConfigInt         `yaml:"SSHPort"`              // Port used for SSH connections (0 to disable)
+	MaxSSHConnections    ConfigInt         `yaml:"MaxSSHConnections"`    // Maximum number of SSH connections to accept
 	AfkSeconds           ConfigInt         `yaml:"AfkSeconds"`           // How long until a player is marked as afk?
 	MaxIdleSeconds       ConfigInt         `yaml:"MaxIdleSeconds"`       // How many seconds a player can go without a command in game before being kicked.
 	TimeoutMods          ConfigBool        `yaml:"TimeoutMods"`          // Whether to kick admin/mods when idle too long.
@@ -22,6 +24,14 @@ func (n *Network) Validate() {
 
 	if n.MaxTelnetConnections < 1 {
 		n.MaxTelnetConnections = 50 // default
+	}
+
+	if n.SSHPort < 0 {
+		n.SSHPort = 0
+	}
+
+	if n.MaxSSHConnections < 1 {
+		n.MaxSSHConnections = 50 // default
 	}
 
 	if n.HttpPort < 0 {

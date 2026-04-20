@@ -34,6 +34,10 @@ func HandlePlayerSpawn(e events.Event) events.ListenerReturn {
 
 	if connDetails.IsWebSocket() {
 		message += ` (via websocket)`
+	} else if connDetails.IsSSH() {
+		message += ` (via ssh)`
+	} else {
+		message += ` (via telnet)`
 	}
 
 	SendRichMessage(message, Green)
