@@ -21,6 +21,8 @@ jobs:
       binary_version: ${{ steps.meta.outputs.binary_version }}
       release_tag: ${{ steps.meta.outputs.release_tag }}
       release_title: ${{ steps.meta.outputs.release_title }}
+      release_notes_intro: ${{ steps.meta.outputs.release_notes_intro }}
+      release_notes_summary: ${{ steps.meta.outputs.release_notes_summary }}
       datafiles_archive: ${{ steps.meta.outputs.datafiles_archive }}
       checksums_file: ${{ steps.meta.outputs.checksums_file }}
     steps:
@@ -31,6 +33,8 @@ jobs:
       - name: Compute release metadata
         id: meta
         run: |
+          short_sha="$(printf '%s' "$GITHUB_SHA" | cut -c1-7)"
+          timestamp="$(date -u +'%Y%m%d%H%M%S')"
           binary_version="$(
             awk -F'"' '/^const VERSION = "/ { print $2; exit }' main.go
           )"
@@ -39,10 +43,27 @@ jobs:
             exit 1
           fi
 
+          if [ "$GITHUB_REF" = "refs/heads/master" ]; then
+            release_tag="prerelease"
+            release_title="prerelease"
+            release_notes_intro="Rolling prerelease build from \`master\`."
+            release_notes_summary="This release is replaced on each successful \
+          merge to \`master\`."
+          else
+            release_tag="pre-${timestamp}-${short_sha}"
+            release_title="$release_tag"
+            release_notes_intro="Manual prerelease build from \
+          \`${GITHUB_REF_NAME}\`."
+            release_notes_summary="This is an ad hoc prerelease for the \
+          selected ref and does not replace the rolling \`master\` prerelease."
+          fi
+
           {
             echo "binary_version=${binary_version}"
-            echo "release_tag=prerelease"
-            echo "release_title=prerelease"
+            echo "release_tag=${release_tag}"
+            echo "release_title=${release_title}"
+            echo "release_notes_intro=${release_notes_intro}"
+            echo "release_notes_summary=${release_notes_summary}"
             echo "datafiles_archive=gomud-ALL-datafiles.zip"
             echo "checksums_file=SHA256SUMS.txt"
           } >> "$GITHUB_OUTPUT"
@@ -115,6 +136,8 @@ jobs:
       RELEASE_TAG: ${{ needs.prep.outputs.release_tag }}
       RELEASE_TITLE: ${{ needs.prep.outputs.release_title }}
       BINARY_VERSION: ${{ needs.prep.outputs.binary_version }}
+      RELEASE_NOTES_INTRO: ${{ needs.prep.outputs.release_notes_intro }}
+      RELEASE_NOTES_SUMMARY: ${{ needs.prep.outputs.release_notes_summary }}
       DATAFILES_ARCHIVE: ${{ needs.prep.outputs.datafiles_archive }}
       CHECKSUMS_FILE: ${{ needs.prep.outputs.checksums_file }}
     steps:
@@ -150,49 +173,44 @@ jobs:
         run: |
           published_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
           cat > release-notes.md <<EOF
-          Rolling prerelease build from \`master\`.
+          ${RELEASE_NOTES_INTRO}
 
           - Version: \`${BINARY_VERSION}\`
           - Commit: \`${GITHUB_SHA}\`
           - Published: \`${published_at}\`
 
-          This release is replaced on each successful merge to \`master\`.
+          ${RELEASE_NOTES_SUMMARY}
           For permanent downloadable builds, use the numbered releases.
           EOF
 
-      - name: Replace rolling prerelease
+      - name: Create prerelease
         run: |
-          release_id="$(
-            gh release view "$RELEASE_TAG" \
-              --json databaseId \
-              --jq '.databaseId' \
-              2>/dev/null || true
-          )"
-          if [ -n "$release_id" ]; then
-            gh api \
-              -X DELETE \
-              -H "Accept: application/vnd.github+json" \
-              "repos/${GITHUB_REPOSITORY}/releases/${release_id}"
+          assets=(
+            bin/gomud-windows_x64.exe
+            bin/gomud-darwin_arm64
+            bin/gomud-darwin_x64
+            bin/gomud-linux_x64
+            bin/gomud-linux_arm5
+            "bin/$DATAFILES_ARCHIVE"
+            "bin/$CHECKSUMS_FILE"
+          )
+
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
+            gh release edit "$RELEASE_TAG" \
+              --title "$RELEASE_TITLE" \
+              --target "$GITHUB_SHA" \
+              --prerelease \
+              --latest=false \
+              --notes-file release-notes.md
+          else
+            gh release create "$RELEASE_TAG" \
+              "${assets[@]}" \
+              --title "$RELEASE_TITLE" \
+              --target "$GITHUB_SHA" \
+              --prerelease \
+              --latest=false \
+              --notes-file release-notes.md
           fi
-
-          gh api \
-            -X DELETE \
-            -H "Accept: application/vnd.github+json" \
-            "repos/${GITHUB_REPOSITORY}/git/refs/tags/${RELEASE_TAG}" \
-            >/dev/null 2>&1 || true
-
-          gh release create "$RELEASE_TAG" \
-            bin/gomud-windows_x64.exe \
-            bin/gomud-darwin_arm64 \
-            bin/gomud-darwin_x64 \
-            bin/gomud-linux_x64 \
-            bin/gomud-linux_arm5 \
-            "bin/$DATAFILES_ARCHIVE" \
-            "bin/$CHECKSUMS_FILE" \
-            --title "$RELEASE_TITLE" \
-            --target "$GITHUB_SHA" \
-            --prerelease \
-            --latest=false \
-            --notes-file release-notes.md
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
