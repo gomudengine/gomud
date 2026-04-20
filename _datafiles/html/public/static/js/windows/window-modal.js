@@ -1,5 +1,3 @@
-/* global Client, VirtualWindows, injectStyles, Terminal, FitAddon */
-
 /**
  * window-modal.js
  *

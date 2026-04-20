@@ -5,12 +5,14 @@ name: Notify Discord
   pull_request:
     types:
       - opened
+      - ready_for_review
 
 permissions:
   contents: read
 
 jobs:
   notify-discord:
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4

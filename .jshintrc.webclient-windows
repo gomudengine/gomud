@@ -1,0 +1,13 @@
+{
+  "extends": ".jshintrc",
+  "globals": {
+    "Client": false,
+    "FitAddon": false,
+    "injectStyles": false,
+    "ResizeObserver": false,
+    "Terminal": false,
+    "uiMenu": false,
+    "VirtualWindow": false,
+    "VirtualWindows": false
+  }
+}

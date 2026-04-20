@@ -1,4 +1,4 @@
-/* global MP3Player, Triggers, WinBox */
+/* global Triggers */
 
 /**
  * webclient-core.js

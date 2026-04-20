@@ -21,7 +21,42 @@ permissions:
   contents: read
 
 jobs:
-  lint:
+  detect-changes:
+    runs-on: ubuntu-24.04
+    outputs:
+      js_lint: >-
+        ${{ steps.filter.outputs.js_lint }}
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - id: filter
+        name: Detect JavaScript lint inputs
+        env:
+          BASE_REF: >-
+            ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_REF: ${{ github.sha }}
+        run: |
+          set -eu
+
+          if [ -z "${BASE_REF}" ] || \
+            [ "${BASE_REF}" = "0000000000000000000000000000000000000000" ]; then
+            BASE_REF="$(git rev-parse HEAD^)"
+          fi
+
+          changed_files="$(git diff --name-only "${BASE_REF}" "${HEAD_REF}")"
+          printf '%s\n' "${changed_files}"
+
+          if printf '%s\n' "${changed_files}" | \
+            grep -Eq '^(Makefile|\.jshintrc(\..*)?$|_datafiles/.*\.js$)'; then
+            echo "js_lint=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "js_lint=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  go-lint:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6.0.2
@@ -30,13 +65,23 @@ jobs:
 
       - uses: ./.github/actions/setup-go
 
+      - name: Run Go lint checks
+        run: make validate
+
+  js-lint:
+    runs-on: ubuntu-24.04
+    needs: detect-changes
+    if: >-
+      needs.detect-changes.outputs.js_lint == 'true'
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          persist-credentials: false
+
       - name: Set up Node.js
         uses: actions/setup-node@v5
         with:
           node-version: '22'
-
-      - name: Run Go lint checks
-        run: make validate
 
       - name: Run JavaScript lint checks
         run: make js-lint
