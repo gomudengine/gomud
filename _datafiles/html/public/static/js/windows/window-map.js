@@ -832,11 +832,11 @@
         var Z_STEP           = 50;   // Screen pixels of vertical separation per z-level at default spacing; increase to push layers further apart vertically
         var Z_SPACING_EXPONENT = 1.5; // Controls how aggressively z-layer separation grows as spacing increases; 1.0 = linear with spacing, 2.0 = quadratic (very dramatic), lower = subtler
         var CONNECTION_WIDTH = 2;    // Stroke width of lines connecting rooms; thicker = more visible corridors
-        var MAP_BG           = '#111';    // Canvas fill color behind all tiles; change to adjust overall contrast
+        var MAP_BG           = '#000000';    // Canvas fill color behind all tiles; change to adjust overall contrast
         var TILE_BORDER_COLOR = '#000000'; // Outline color drawn around each tile face; darker = crisper tile edges
         var TILE_BORDER_WIDTH = 0.8;  // Stroke width of tile outlines; higher = bolder edges, can obscure small tiles at low zoom
         var SIDE_DARKEN       = 0.55; // Brightness multiplier for the left and right block faces; lower = darker sides, stronger 3D illusion
-        var SYMBOL_FONT_SIZE  = 10;   // Font size of the symbol character on each tile; larger = more readable but may overflow the tile face
+        var SYMBOL_FONT_SIZE  = 11;   // Font size of the symbol character on each tile; larger = more readable but may overflow the tile face
         var SPACING_STEP = 1.25; // Multiplier applied per spacing button click; higher = bigger jumps between spacing levels
         var SPACING_MIN  = 0.6;  // Minimum spacing scale; lower values compress rooms closer together until tiles overlap
         var SPACING_MAX  = 4.0;  // Maximum spacing scale; higher values spread rooms and z-layers further apart
