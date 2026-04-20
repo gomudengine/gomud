@@ -296,6 +296,18 @@ func (g *GMCPModule) HandleWebGMCP(connectionId uint64, webGMCP []byte) bool {
 			return true
 		}
 
+		if strings.HasPrefix(identifier, `Game`) {
+			for _, user := range users.GetAllActiveUsers() {
+				if user.ConnectionId() == connectionId {
+					events.AddToQueue(GMCPGameRequest{
+						UserId: user.UserId,
+					})
+					break
+				}
+			}
+			return true
+		}
+
 		if identifier == `Suggestion` {
 			for _, user := range users.GetAllActiveUsers() {
 				if user.ConnectionId() == connectionId {
