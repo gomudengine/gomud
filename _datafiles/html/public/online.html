@@ -13,6 +13,7 @@
                 <th>Profession</th>
                 <th>Time Online</th>
                 <th>Role</th>
+                <th>Conn Type</th>
             </tr>
             {{range $index, $uInfo := .STATS.OnlineUsers}}
             <tr>
@@ -23,6 +24,7 @@
                 <td align="center">{{ $uInfo.Profession }}</td>
                 <td align="center">{{ $uInfo.OnlineTimeStr }}{{ if $uInfo.IsAFK }} (AFK){{end}}</td>
                 <td align="center">{{ $uInfo.Role }}</td>
+                <td align="center">{{ $uInfo.ConnType }}</td>
             </tr>
             {{end}}
         </table>

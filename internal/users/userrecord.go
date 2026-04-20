@@ -643,6 +643,15 @@ func (u *UserRecord) GetOnlineInfo() OnlineInfo {
 		isAfk = true
 	}
 
+	connType := `telnet`
+	if cd := connections.Get(u.connectionId); cd != nil {
+		if cd.IsWebSocket() {
+			connType = `websocket`
+		} else if cd.IsSSH() {
+			connType = `ssh`
+		}
+	}
+
 	return OnlineInfo{
 		u.Username,
 		u.Character.Name,
@@ -653,6 +662,7 @@ func (u *UserRecord) GetOnlineInfo() OnlineInfo {
 		timeStr,
 		isAfk,
 		u.Role,
+		connType,
 	}
 }
 

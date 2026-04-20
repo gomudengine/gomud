@@ -11,6 +11,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/term"
 	"github.com/gorilla/websocket"
+	"golang.org/x/crypto/ssh"
 )
 
 type ConnectState uint32
@@ -118,6 +119,8 @@ type ConnectionDetails struct {
 	conn              net.Conn
 	wsConn            *websocket.Conn
 	wsLock            sync.Mutex
+	sshChannel        ssh.Channel
+	sshRemoteAddr     net.Addr
 	handlerMutex      sync.Mutex
 	inputHandlerNames []string
 	inputHandlers     []InputHandler
@@ -128,21 +131,22 @@ type ConnectionDetails struct {
 
 func (cd *ConnectionDetails) IsLocal() bool {
 
-	remoteAddrStr := ``
+	var remoteAddrStr string
 
-	if cd.wsConn == nil {
+	if cd.sshChannel != nil {
+		remoteAddrStr = cd.sshRemoteAddr.String()
+	} else if cd.wsConn != nil {
+		remoteAddrStr = cd.wsConn.RemoteAddr().String()
+	} else {
 		// Unix sockets are always local
 		if _, ok := cd.conn.(*net.UnixConn); ok {
 			return true
 		}
 		remoteAddrStr = cd.conn.RemoteAddr().String()
-	} else {
-		remoteAddrStr = cd.wsConn.RemoteAddr().String()
 	}
 
 	host, _, err := net.SplitHostPort(remoteAddrStr)
 	if err != nil {
-		// e.g. not “host:port” syntax
 		return false
 	}
 
@@ -155,6 +159,10 @@ func (cd *ConnectionDetails) IsLocal() bool {
 
 func (cd *ConnectionDetails) IsWebSocket() bool {
 	return cd.wsConn != nil
+}
+
+func (cd *ConnectionDetails) IsSSH() bool {
+	return cd.sshChannel != nil
 }
 
 // If HandleInput receives an error, we shouldn't pass input to the game logic
@@ -172,10 +180,6 @@ func (cd *ConnectionDetails) HandleInput(ci *ClientInput, handlerState map[strin
 	for i, inputHandler := range cd.inputHandlers {
 		lastHandler = cd.inputHandlerNames[i]
 		if runNextHandler := inputHandler(ci, handlerState); !runNextHandler {
-			// If it's the last one in the chain, ignore any aborts
-			// if i == handlerCt-1 {
-			// 	return false, lastHandler, nil
-			// }
 			return false, lastHandler, nil
 		}
 	}
@@ -221,12 +225,16 @@ func (cd *ConnectionDetails) Write(p []byte) (n int, err error) {
 		return 0, nil
 	}
 
+	if cd.sshChannel != nil {
+		return cd.sshChannel.Write(p)
+	}
+
 	if cd.wsConn != nil {
 		cd.wsLock.Lock()
 		defer cd.wsLock.Unlock()
 
 		// If this isn't caught and avoided, lots of stuff goes wrong.
-		// Websocket client complains, disconnects, error is rasised: close 1002 (protocol error): Invalid UTF-8 in text frame
+		// Websocket client complains, disconnects, error is raised: close 1002 (protocol error): Invalid UTF-8 in text frame
 		// Then a panic ensues as the server tries to write to a socket that's nil.
 		// TODO: Investigate cleaning up this condition better.
 		if p[0] == term.TELNET_IAC {
@@ -246,8 +254,11 @@ func (cd *ConnectionDetails) Write(p []byte) (n int, err error) {
 
 func (cd *ConnectionDetails) Read(p []byte) (n int, err error) {
 
+	if cd.sshChannel != nil {
+		return cd.sshChannel.Read(p)
+	}
+
 	if cd.wsConn != nil {
-		// read the bytes and then copy them into p
 		_, message, err := cd.wsConn.ReadMessage()
 		if err != nil {
 			return 0, err
@@ -264,6 +275,11 @@ func (cd *ConnectionDetails) Close() {
 		cd.heartbeat.stop()
 	}
 
+	if cd.sshChannel != nil {
+		cd.sshChannel.Close()
+		return
+	}
+
 	if cd.wsConn != nil {
 		cd.wsConn.Close()
 		return
@@ -272,6 +288,9 @@ func (cd *ConnectionDetails) Close() {
 }
 
 func (cd *ConnectionDetails) RemoteAddr() net.Addr {
+	if cd.sshChannel != nil {
+		return cd.sshRemoteAddr
+	}
 	if cd.wsConn != nil {
 		return cd.wsConn.RemoteAddr()
 	}
@@ -310,9 +329,8 @@ func NewConnectionDetails(connId ConnectionId, c net.Conn, wsC *websocket.Conn, 
 		conn:          c,
 		wsConn:        wsC,
 		wsLock:        sync.Mutex{},
-		// Track client settings
 		clientSettings: ClientSettings{
-			Display: DisplaySettings{ScreenWidth: 80, ScreenHeight: 40}, // Default to 80x40
+			Display: DisplaySettings{ScreenWidth: 80, ScreenHeight: 40},
 		},
 	}
 
@@ -325,4 +343,17 @@ func NewConnectionDetails(connId ConnectionId, c net.Conn, wsC *websocket.Conn, 
 	}
 
 	return cd
+}
+
+func NewSSHConnectionDetails(connId ConnectionId, ch ssh.Channel, remoteAddr net.Addr) *ConnectionDetails {
+	return &ConnectionDetails{
+		state:         Login,
+		connectionId:  connId,
+		inputDisabled: false,
+		sshChannel:    ch,
+		sshRemoteAddr: remoteAddr,
+		clientSettings: ClientSettings{
+			Display: DisplaySettings{ScreenWidth: 80, ScreenHeight: 40},
+		},
+	}
 }

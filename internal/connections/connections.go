@@ -8,6 +8,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/gorilla/websocket"
+	"golang.org/x/crypto/ssh"
 )
 
 const ReadBufferSize = 1024
@@ -52,12 +53,29 @@ func Add(conn net.Conn, wsConn *websocket.Conn) *ConnectionDetails {
 		connectCounter,
 		conn,
 		wsConn,
-		nil, // use default settings for now TODO: add into overall config pattern?
+		nil,
 	)
 
 	netConnections[connDetails.ConnectionId()] = connDetails
 
-	// return the unique ID to find this connection later
+	return connDetails
+}
+
+func AddSSH(ch ssh.Channel, remoteAddr net.Addr) *ConnectionDetails {
+
+	lock.Lock()
+	defer lock.Unlock()
+
+	connectCounter++
+
+	connDetails := NewSSHConnectionDetails(
+		connectCounter,
+		ch,
+		remoteAddr,
+	)
+
+	netConnections[connDetails.ConnectionId()] = connDetails
+
 	return connDetails
 }
 

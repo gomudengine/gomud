@@ -6,8 +6,16 @@
     </a>
   </div>
   <p>&nbsp;</p>
+  {{ $telnetPorts := activeTelnetPorts .CONFIG.Network.TelnetPort }}
+  {{ if gt (len $telnetPorts) 0 }}
   <div class="underlay">
-    <h3>Telnet Port{{ if gt (len .CONFIG.Network.TelnetPort) 1 }}s{{end}}: {{ join .CONFIG.Network.TelnetPort ", " }}</h3>
+    <h3>Telnet Port{{ if gt (len $telnetPorts) 1 }}s{{end}}: {{ join $telnetPorts ", " }}</h3>
   </div>
+  {{ end }}
+  {{ if sshEnabled .CONFIG }}
+  <div class="underlay">
+    <h3>SSH Port: {{ .CONFIG.Network.SSHPort }}</h3>
+  </div>
+  {{ end }}
 
 {{template "footer" .}}

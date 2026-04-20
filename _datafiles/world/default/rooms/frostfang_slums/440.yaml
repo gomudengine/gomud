@@ -15,3 +15,5 @@ exits:
     roomid: 439
   south:
     roomid: 441
+  west:
+    roomid: 1005
