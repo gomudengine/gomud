@@ -1052,11 +1052,9 @@
             });
 
             // Group rooms and edges by z-level, sorted lowest to highest.
-            var zLevels = [];
-            rooms3d.forEach(function (room) {
-                if (zLevels.indexOf(room.z) === -1) { zLevels.push(room.z); }
-            });
-            zLevels.sort(function (a, b) { return a - b; });
+            var zSet = new Set();
+            rooms3d.forEach(function (room) { zSet.add(room.z); });
+            var zLevels = Array.from(zSet).sort(function (a, b) { return a - b; });
 
             // Pre-bucket rooms and edges by z-level for efficient per-layer access.
             var roomsByZ = {};
@@ -1300,11 +1298,7 @@
 
         function updateZButtons() {
             if (!zLevelsEl) { return; }
-            var levels = [];
-            rooms3d.forEach(function (room) {
-                if (levels.indexOf(room.z) === -1) { levels.push(room.z); }
-            });
-            levels.sort(function (a, b) { return b - a; });
+            var levels = Array.from(new Set(Array.from(rooms3d.values()).map(function (r) { return r.z; }))).sort(function (a, b) { return b - a; });
 
             zLevelsEl.innerHTML = '';
             if (levels.length <= 1) { zLevelsEl.style.display = 'none'; return; }
