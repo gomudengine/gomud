@@ -1,0 +1,11 @@
+################################################################################
+# If modified, these settings will be copied into your config overrides
+# folder under `Modules.zombiemode`:
+#
+# Modules:
+#   zombiemode:
+#     Enabled: true
+################################################################################
+# - Enabled -
+#   Set to false to disable zombie mode server-wide.
+Enabled: true
