@@ -38,7 +38,7 @@ func (m *ZombieModule) zombieCommand(rest string, user *users.UserRecord, room *
 			user.SendText(`Zombie mode is already active.`)
 			return true, nil
 		}
-		m.active[user.UserId] = zombieRuntime{HomeRoom: user.Character.RoomId}
+		m.active[user.UserId] = zombieRuntime{HomeRoom: user.Character.RoomId, Stats: newZombieStats()}
 		user.Character.SetAdjective(`zombie`, true)
 		user.SendText(`<ansi fg="yellow">Zombie mode activated. Send any input to wake up.</ansi>`)
 		room.SendText(fmt.Sprintf(`<ansi fg="username">%s</ansi>'s eyes glaze over...`, user.Character.Name), user.UserId)
