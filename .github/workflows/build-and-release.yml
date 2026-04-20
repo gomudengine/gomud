@@ -140,6 +140,7 @@ jobs:
       RELEASE_NOTES_SUMMARY: ${{ needs.prep.outputs.release_notes_summary }}
       DATAFILES_ARCHIVE: ${{ needs.prep.outputs.datafiles_archive }}
       CHECKSUMS_FILE: ${{ needs.prep.outputs.checksums_file }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v6.0.2
         with:
@@ -237,5 +238,3 @@ jobs:
               --latest=false \
               --notes-file release-notes.md
           fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
