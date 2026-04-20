@@ -1687,24 +1687,6 @@ const Client = (() => {
     }
 
     // -----------------------------------------------------------------------
-    // Terminal commands
-    //
-    // Window modules may call Client.registerCommand(name, description, fn)
-    // to add their own !commands processed before sending to the server.
-    // fn receives the full input string and returns true if it handled it.
-    // -----------------------------------------------------------------------
-    // -----------------------------------------------------------------------
-    // GMCP debug mode removed
-    // -----------------------------------------------------------------------
-
-    const specialCommands = {
-    };
-
-    function registerCommand(name, description, fn) {
-        specialCommands[name] = { description, fn };
-    }
-
-    // -----------------------------------------------------------------------
     // Tab-completion (web client autocomplete)
     // -----------------------------------------------------------------------
     const _tabSug = {
@@ -1862,14 +1844,6 @@ const Client = (() => {
                     }
                 }
 
-                const cmd = specialCommands[event.target.value];
-                if (cmd) {
-                    if (cmd.fn(event.target.value)) {
-                        event.target.value = '';
-                        return;
-                    }
-                }
-
                 if (sendData(event.target.value)) {
                     event.target.value = '';
                 } else {
@@ -1929,12 +1903,6 @@ const Client = (() => {
             muteIcon.textContent = '🔊';
         }
 
-        // Log available commands to console
-        console.log('%cterminal commands:', 'font-weight:bold;');
-        let longest = 0;
-        for (const k in specialCommands) { if (k.length > longest) { longest = k.length; } }
-        for (const k in specialCommands) { console.log('  ' + k.padEnd(longest) + ' - ' + specialCommands[k].description); }
-
         // Register GMCP handler for tab-completion responses
         VirtualWindows.register({
             gmcpHandlers: ['Suggestion'],
@@ -1981,7 +1949,6 @@ const Client = (() => {
         set debug(v)       { debugOutput = !!v; },
 
         // Extension points for window modules
-        registerCommand,
         registerShortcut,
 
         // Functions called from HTML event handlers

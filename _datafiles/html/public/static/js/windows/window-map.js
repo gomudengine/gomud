@@ -724,9 +724,8 @@
             });
             canvas.addEventListener('wheel', function (e) {
                 e.preventDefault();
-                zoomScale = e.deltaY < 0
-                    ? Math.min(ZOOM_MAX, zoomScale * ZOOM_STEP)
-                    : Math.max(ZOOM_MIN, zoomScale / ZOOM_STEP);
+                var factor = Math.pow(ZOOM_STEP, e.deltaY * 0.002);
+                zoomScale = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoomScale / factor));
                 render();
             }, { passive: false });
 
@@ -838,7 +837,7 @@
         var SIDE_DARKEN       = 0.55;
         var SYMBOL_FONT_SIZE  = 10;
         var SPACING_STEP = 1.25;
-        var SPACING_MIN  = 0.4;
+        var SPACING_MIN  = 0.6;
         var SPACING_MAX  = 4.0;
 
         // -- State -------------------------------------------------------------
@@ -863,7 +862,7 @@
 
         var spacingScale = (function () {
             var saved = parseFloat(localStorage.getItem('map3d.spacingScale'));
-            return (isFinite(saved) && saved >= SPACING_MIN && saved <= SPACING_MAX) ? saved : 1.0;
+            return (isFinite(saved) && saved >= SPACING_MIN && saved <= SPACING_MAX) ? saved : SPACING_MIN;
         }());
 
         // -- Helpers -----------------------------------------------------------
@@ -884,7 +883,7 @@
 
         function isoProject(gx, gy, gz) {
             var step = TILE_HW * GRID_STEP_XY * spacingScale * zoomScale;
-            var zs   = Z_STEP  * spacingScale * zoomScale;
+            var zs   = Z_STEP  * spacingScale * spacingScale * zoomScale;
             var midX = Math.floor(canvas.width  / 2);
             var midY = Math.floor(canvas.height / 2);
             var relX = gx - camX - panOffsetX;
@@ -1155,9 +1154,8 @@
             });
             canvas.addEventListener('wheel', function (e) {
                 e.preventDefault();
-                zoomScale = e.deltaY < 0
-                    ? Math.min(ZOOM_MAX, zoomScale * ZOOM_STEP)
-                    : Math.max(ZOOM_MIN, zoomScale / ZOOM_STEP);
+                var factor = Math.pow(ZOOM_STEP, e.deltaY * 0.002);
+                zoomScale = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoomScale / factor));
                 render();
             }, { passive: false });
 
