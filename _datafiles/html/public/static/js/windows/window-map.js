@@ -288,7 +288,7 @@
         '    flex-direction: column;',
         '    width: 100%;',
         '    height: 100%;',
-        '    background: #1e1e1e;',
+        '    background: #111;',
         '}',
         '#map-tab-bar {',
         '    display: flex;',
@@ -387,6 +387,31 @@
         '    cursor: pointer;',
         '}',
         '.map-controls button:hover { background: rgba(0,0,0,0.8); color: #fff; }',
+        '.map-controls button.active { background: rgba(28,107,96,0.7); color: #dffbd1; border-color: #1c6b60; }',
+        '.map-z-levels {',
+        '    position: absolute;',
+        '    top: 34px;',
+        '    right: 6px;',
+        '    display: flex;',
+        '    flex-direction: column;',
+        '    align-items: center;',
+        '    gap: 2px;',
+        '    z-index: 10;',
+        '}',
+        '.map-z-levels button {',
+        '    width: 22px; height: 22px;',
+        '    padding: 0;',
+        '    font-size: 10px;',
+        '    line-height: 1;',
+        '    background: rgba(0,0,0,0.55);',
+        '    color: #ccc;',
+        '    border: 1px solid #555;',
+        '    border-radius: 3px;',
+        '    cursor: pointer;',
+        '    font-family: monospace;',
+        '}',
+        '.map-z-levels button:hover { background: rgba(0,0,0,0.8); color: #fff; }',
+        '.map-z-levels button.active { background: rgba(28,107,96,0.7); color: #dffbd1; border-color: #1c6b60; }',
     ].join('\n'));
 
     // =========================================================================
@@ -402,7 +427,7 @@
         var CONNECTION_WIDTH = 4;
         var ROOM_BORDER_WIDTH = 1.5;
         var SYMBOL_FONT_SIZE  = 14;
-        var MAP_BACKGROUND    = '#2b2b2b';
+        var MAP_BACKGROUND    = '#111';
         var ROOM_BORDER_COLOR = '#000000';
 
         // -- State -------------------------------------------------------------
@@ -807,7 +832,7 @@
         var GRID_STEP_XY    = 1.6;
         var Z_STEP          = 120;
         var CONNECTION_WIDTH = 2;
-        var MAP_BG           = '#1e1e2e';
+        var MAP_BG           = '#111';
         var TILE_BORDER_COLOR = '#000000';
         var TILE_BORDER_WIDTH = 0.8;
         var SIDE_DARKEN       = 0.55;
@@ -832,8 +857,9 @@
         var dragStartPxX = 0, dragStartPxY = 0;
         var dragStartPanX = 0, dragStartPanY = 0;
         var zoomScale    = 1.0;
-        var hoveredZ     = null;
+        var activeZ       = null;
         var currentRoomKey = '';
+        var zLevelsEl    = null;
 
         var spacingScale = (function () {
             var saved = parseFloat(localStorage.getItem('map3d.spacingScale'));
@@ -1010,7 +1036,7 @@
 
             var playerZ = (currentRoomId !== null && rooms3d.has(currentRoomId))
                 ? rooms3d.get(currentRoomId).z : (camZ | 0);
-            var activeZ = (hoveredZ !== null) ? hoveredZ : playerZ;
+            var drawZ = (activeZ !== null) ? activeZ : playerZ;
 
             ctx.strokeStyle = CONNECTION_COLOR;
             ctx.lineWidth   = CONNECTION_WIDTH * zoomScale;
@@ -1021,7 +1047,7 @@
                 var rA = rooms3d.get(parseInt(parts[0], 10));
                 var rB = rooms3d.get(parseInt(parts[1], 10));
                 if (!rA || !rB) { return; }
-                var zDiff = Math.max(Math.abs(rA.z - activeZ), Math.abs(rB.z - activeZ));
+                var zDiff = Math.max(Math.abs(rA.z - drawZ), Math.abs(rB.z - drawZ));
                 ctx.globalAlpha = zDiff === 0 ? 1.0 : 0.25;
                 var pA = isoProject(rA.x, rA.y, rA.z);
                 var pB = isoProject(rB.x, rB.y, rB.z);
@@ -1040,17 +1066,26 @@
             list.forEach(function (item) {
                 var isCurrent = (item.id === currentRoomId);
                 var topColor  = isCurrent ? CURRENT_ROOM_COLOR : colorForSymbol(item.symbol, item.env);
-                ctx.globalAlpha = Math.abs(item.z - activeZ) === 0 ? 1.0 : 0.25;
+                ctx.globalAlpha = Math.abs(item.z - drawZ) === 0 ? 1.0 : 0.25;
                 drawTile(item.x, item.y, item.z, topColor, isCurrent, item.symbol);
             });
             ctx.globalAlpha = 1.0;
         }
 
+        function getActiveZ() {
+            if (activeZ !== null) { return activeZ; }
+            return (currentRoomId !== null && rooms3d.has(currentRoomId))
+                ? rooms3d.get(currentRoomId).z : (camZ | 0);
+        }
+
         function roomAtPoint(cx, cy) {
             var step = TILE_HW * GRID_STEP_XY * spacingScale * zoomScale;
             var hw = step, hh = step / 2, found = null;
+            var targetZ = getActiveZ();
             var list = [];
-            rooms3d.forEach(function (room, id) { list.push({ id: id, x: room.x, y: room.y, z: room.z }); });
+            rooms3d.forEach(function (room, id) {
+                if (room.z === targetZ) { list.push({ id: id, x: room.x, y: room.y, z: room.z }); }
+            });
             list.sort(function (a, b) { return (b.x + b.y - b.z * 2) - (a.x + a.y - a.z * 2); });
             for (var i = 0; i < list.length; i++) {
                 var item = list[i];
@@ -1074,7 +1109,6 @@
 
             canvas.addEventListener('mouseleave', function () {
                 hideTooltip();
-                if (hoveredZ !== null) { hoveredZ = null; render(); }
                 if (dragActive) { dragActive = false; canvas.style.cursor = ''; }
             });
             canvas.addEventListener('mousedown', function (e) {
@@ -1098,12 +1132,8 @@
                 if (info) {
                     clearTimeout(tooltipHideTimer);
                     showTooltip(e.clientX, e.clientY, info, true);
-                    var hRoom = rooms3d.get(id);
-                    var newZ  = (hRoom && hRoom.z !== null) ? hRoom.z : null;
-                    if (newZ !== hoveredZ) { hoveredZ = newZ; render(); }
                 } else {
                     hideTooltip();
-                    if (hoveredZ !== null) { hoveredZ = null; render(); }
                 }
             });
             canvas.addEventListener('mouseup', function (e) {
@@ -1134,6 +1164,20 @@
             var controls = document.createElement('div');
             controls.className = 'map-controls';
 
+            var btnSpacingDown = document.createElement('button');
+            btnSpacingDown.textContent = '\u2193'; btnSpacingDown.title = 'Decrease spacing';
+            btnSpacingDown.addEventListener('click', function () {
+                spacingScale = Math.max(SPACING_MIN, spacingScale / SPACING_STEP);
+                localStorage.setItem('map3d.spacingScale', spacingScale); render();
+            });
+            var btnSpacingUp = document.createElement('button');
+            btnSpacingUp.textContent = '\u2191'; btnSpacingUp.title = 'Increase spacing';
+            btnSpacingUp.addEventListener('click', function () {
+                spacingScale = Math.min(SPACING_MAX, spacingScale * SPACING_STEP);
+                localStorage.setItem('map3d.spacingScale', spacingScale); render();
+            });
+            var sep = document.createElement('span');
+            sep.className = 'ctrl-sep';
             var btnZoomOut = document.createElement('button');
             btnZoomOut.textContent = '\u2212'; btnZoomOut.title = 'Zoom out';
             btnZoomOut.addEventListener('click', function () {
@@ -1144,30 +1188,52 @@
             btnZoomIn.addEventListener('click', function () {
                 zoomScale = Math.min(ZOOM_MAX, zoomScale * ZOOM_STEP); render();
             });
-            var sep = document.createElement('span');
-            sep.className = 'ctrl-sep';
-            var btnSpacingOut = document.createElement('button');
-            btnSpacingOut.textContent = '\u2212'; btnSpacingOut.title = 'Decrease spacing';
-            btnSpacingOut.addEventListener('click', function () {
-                spacingScale = Math.max(SPACING_MIN, spacingScale / SPACING_STEP);
-                localStorage.setItem('map3d.spacingScale', spacingScale); render();
-            });
-            var btnSpacingIn = document.createElement('button');
-            btnSpacingIn.textContent = '+'; btnSpacingIn.title = 'Increase spacing';
-            btnSpacingIn.addEventListener('click', function () {
-                spacingScale = Math.min(SPACING_MAX, spacingScale * SPACING_STEP);
-                localStorage.setItem('map3d.spacingScale', spacingScale); render();
-            });
 
+            controls.appendChild(btnSpacingDown);
+            controls.appendChild(btnSpacingUp);
+            controls.appendChild(sep);
             controls.appendChild(btnZoomOut);
             controls.appendChild(btnZoomIn);
-            controls.appendChild(sep);
-            controls.appendChild(btnSpacingOut);
-            controls.appendChild(btnSpacingIn);
             wrap.appendChild(controls);
+
+            zLevelsEl = document.createElement('div');
+            zLevelsEl.className = 'map-z-levels';
+            zLevelsEl.style.display = 'none';
+            wrap.appendChild(zLevelsEl);
 
             container = wrap;
             return wrap;
+        }
+
+        function updateZButtons() {
+            if (!zLevelsEl) { return; }
+            var levels = [];
+            rooms3d.forEach(function (room) {
+                if (levels.indexOf(room.z) === -1) { levels.push(room.z); }
+            });
+            levels.sort(function (a, b) { return b - a; });
+
+            zLevelsEl.innerHTML = '';
+            if (levels.length <= 1) { zLevelsEl.style.display = 'none'; return; }
+
+            var playerZ = (currentRoomId !== null && rooms3d.has(currentRoomId))
+                ? rooms3d.get(currentRoomId).z : null;
+            var currentActiveZ = (activeZ !== null) ? activeZ : playerZ;
+
+            levels.forEach(function (z) {
+                var btn = document.createElement('button');
+                btn.textContent = z;
+                btn.title = 'Z level ' + z;
+                if (z === currentActiveZ) { btn.classList.add('active'); }
+                btn.addEventListener('click', function () {
+                    activeZ = z;
+                    updateZButtons();
+                    render();
+                });
+                zLevelsEl.appendChild(btn);
+            });
+
+            zLevelsEl.style.display = 'flex';
         }
 
         function onActivate() {
@@ -1182,6 +1248,7 @@
                 replayZone3d(savedId);
                 currentRoomId = savedId;
             }
+            updateZButtons();
             render();
         }
 
@@ -1208,6 +1275,8 @@
                 }
             }
             currentRoomId = info.num;
+            activeZ = gz;
+            updateZButtons();
             setCameraTarget(gx, gy, gz);
         }
 
@@ -1224,6 +1293,7 @@
             onWorldMap:          onWorldMap,
             onRoomUpdate:        onRoomUpdate,
             setupResizeObserver: setupResizeObserver,
+            updateZButtons:      updateZButtons,
         };
 
     }());
@@ -1307,7 +1377,7 @@
             return {
                 title:      'Map',
                 mount:      el,
-                background: '#1e1e1e',
+                background: '#111',
                 border:     1,
                 x:          'right',
                 y:          66,
