@@ -20,16 +20,16 @@
     // Shared constants
     // =========================================================================
 
-    var ZOOM_STEP = 1.25;
-    var ZOOM_MIN  = 0.25;
-    var ZOOM_MAX  = 4.0;
+    var ZOOM_STEP = 1.25;  // How much each zoom button click scales the view; higher = bigger jumps per click
+    var ZOOM_MIN  = 0.25;  // Furthest out the user can zoom; lower = more of the map visible but smaller rooms
+    var ZOOM_MAX  = 4.0;   // Closest in the user can zoom; higher = larger rooms but less of the map visible
 
-    var CENTER_EASE_DURATION = 0.2;
+    var CENTER_EASE_DURATION = 0.2; // How long (seconds) the camera takes to pan to a new room; 0 = instant snap, higher = slower slide
 
-    var CONNECTION_COLOR        = '#7a4a1a';
-    var CURRENT_ROOM_COLOR      = '#c20000';
-    var CURRENT_ROOM_TEXT_COLOR = '#ffffff';
-    var SYMBOL_TEXT_COLOR       = '#e0e0e0';
+    var CONNECTION_COLOR        = '#7a4a1a'; // Color of the lines drawn between connected rooms; change to make corridors more or less visible
+    var CURRENT_ROOM_COLOR      = '#c20000'; // Fill color of the room the player is currently in; change to adjust how much it stands out
+    var CURRENT_ROOM_TEXT_COLOR = '#ffffff'; // Symbol character color inside the current room; should contrast with CURRENT_ROOM_COLOR
+    var SYMBOL_TEXT_COLOR       = '#e0e0e0'; // Symbol character color inside all non-current rooms; lower contrast = subtler symbols
 
     var SYMBOL_COLORS = {
         '~':  '#2a53f7',   // shore / water edge
@@ -421,14 +421,14 @@
     var view2d = (function () {
 
         // -- Constants ---------------------------------------------------------
-        var ROOM_SIZE        = 28;
-        var ROOM_GAP         = 14;
-        var BASE_STEP        = ROOM_SIZE + ROOM_GAP;
-        var CONNECTION_WIDTH = 4;
-        var ROOM_BORDER_WIDTH = 1.5;
-        var SYMBOL_FONT_SIZE  = 14;
-        var MAP_BACKGROUND    = '#111';
-        var ROOM_BORDER_COLOR = '#000000';
+        var ROOM_SIZE        = 28;   // Pixel side length of each room square; larger = bigger rooms, fewer fit on screen
+        var ROOM_GAP         = 14;   // Pixel gap between adjacent room squares; larger = more space between rooms, map spreads out
+        var BASE_STEP        = ROOM_SIZE + ROOM_GAP; // Derived: center-to-center grid distance; do not edit directly
+        var CONNECTION_WIDTH = 4;    // Stroke width of corridor lines; thicker = more visible connections, can obscure small rooms
+        var ROOM_BORDER_WIDTH = 1.5; // Stroke width of the outline drawn around each room square; higher = bolder room edges
+        var SYMBOL_FONT_SIZE  = 14;  // Font size of the symbol character drawn inside each room; larger = more readable but may overflow small rooms
+        var MAP_BACKGROUND    = '#111';    // Canvas fill color behind all rooms; change to adjust overall map contrast
+        var ROOM_BORDER_COLOR = '#000000'; // Outline color drawn around each room square; darker = crisper separation between rooms
 
         // -- State -------------------------------------------------------------
         var canvas        = null;
@@ -825,20 +825,20 @@
     var view3d = (function () {
 
         // -- Constants ---------------------------------------------------------
-        var TILE_HW         = 20;
-        var TILE_HH         = 10;
-        var TILE_DEPTH      = 7;
-        var GRID_STEP_XY    = 1.6;
-        var Z_STEP          = 120;
-        var CONNECTION_WIDTH = 2;
-        var MAP_BG           = '#111';
-        var TILE_BORDER_COLOR = '#000000';
-        var TILE_BORDER_WIDTH = 0.8;
-        var SIDE_DARKEN       = 0.55;
-        var SYMBOL_FONT_SIZE  = 10;
-        var SPACING_STEP = 1.25;
-        var SPACING_MIN  = 0.6;
-        var SPACING_MAX  = 4.0;
+        var TILE_HW          = 20;   // Half-width of a tile diamond in px; larger = wider tiles, more horizontal spread
+        var TILE_HH          = 10;   // Half-height of a tile diamond in px; larger = taller diamonds, more vertical compression
+        var TILE_DEPTH       = 7;    // Height of the visible block side below the tile face; larger = taller 3D extrusion
+        var GRID_STEP_XY     = 1.6;  // Spacing multiplier between adjacent XY grid positions relative to TILE_HW; increase to spread rooms apart horizontally, decrease to compress them
+        var Z_STEP           = 50;   // Screen pixels of vertical separation per z-level at default spacing; increase to push layers further apart vertically
+        var CONNECTION_WIDTH = 2;    // Stroke width of lines connecting rooms; thicker = more visible corridors
+        var MAP_BG           = '#111';    // Canvas fill color behind all tiles; change to adjust overall contrast
+        var TILE_BORDER_COLOR = '#000000'; // Outline color drawn around each tile face; darker = crisper tile edges
+        var TILE_BORDER_WIDTH = 0.8;  // Stroke width of tile outlines; higher = bolder edges, can obscure small tiles at low zoom
+        var SIDE_DARKEN       = 0.55; // Brightness multiplier for the left and right block faces; lower = darker sides, stronger 3D illusion
+        var SYMBOL_FONT_SIZE  = 10;   // Font size of the symbol character on each tile; larger = more readable but may overflow the tile face
+        var SPACING_STEP = 1.25; // Multiplier applied per spacing button click; higher = bigger jumps between spacing levels
+        var SPACING_MIN  = 0.6;  // Minimum spacing scale; lower values compress rooms closer together until tiles overlap
+        var SPACING_MAX  = 4.0;  // Maximum spacing scale; higher values spread rooms and z-layers further apart
 
         // -- State -------------------------------------------------------------
         var canvas    = null;
@@ -883,7 +883,7 @@
 
         function isoProject(gx, gy, gz) {
             var step = TILE_HW * GRID_STEP_XY * spacingScale * zoomScale;
-            var zs   = Z_STEP  * spacingScale * spacingScale * zoomScale;
+            var zs   = Z_STEP  * spacingScale * zoomScale;
             var midX = Math.floor(canvas.width  / 2);
             var midY = Math.floor(canvas.height / 2);
             var relX = gx - camX - panOffsetX;
@@ -1046,7 +1046,7 @@
                 var rA = rooms3d.get(parseInt(parts[0], 10));
                 var rB = rooms3d.get(parseInt(parts[1], 10));
                 if (!rA || !rB) { return; }
-                var zDiff = Math.max(Math.abs(rA.z - drawZ), Math.abs(rB.z - drawZ));
+                var zDiff = Math.min(Math.abs(rA.z - drawZ), Math.abs(rB.z - drawZ));
                 ctx.globalAlpha = zDiff === 0 ? 1.0 : 0.25;
                 var pA = isoProject(rA.x, rA.y, rA.z);
                 var pB = isoProject(rB.x, rB.y, rB.z);
