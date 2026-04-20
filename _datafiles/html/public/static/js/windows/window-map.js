@@ -831,6 +831,10 @@
         var GRID_STEP_XY     = 1.6;  // Spacing multiplier between adjacent XY grid positions relative to TILE_HW; increase to spread rooms apart horizontally, decrease to compress them
         var Z_STEP           = 50;   // Screen pixels of vertical separation per z-level at default spacing; increase to push layers further apart vertically
         var CONNECTION_WIDTH = 2;    // Stroke width of lines connecting rooms; thicker = more visible corridors
+        var CONNECTION_COLOR_SAME_Z  = '#7a4a1a'; // Color of lines connecting rooms on the same z-level; change to distinguish same-floor corridors
+        var CONNECTION_COLOR_CROSS_Z = '#3a6b8a'; // Color of lines connecting rooms on different z-levels; change to make vertical connections stand out
+        var CROSS_Z_OFFSET_X = 8;  // Horizontal pixel offset from tile center where cross-z connection lines attach; shift left/right to reposition the vertical passage indicator
+        var CROSS_Z_OFFSET_Y = 0; // Vertical pixel offset from tile center where cross-z connection lines attach; shift up/down to reposition the vertical passage indicator
         var MAP_BG           = '#111';    // Canvas fill color behind all tiles; change to adjust overall contrast
         var TILE_BORDER_COLOR = '#000000'; // Outline color drawn around each tile face; darker = crisper tile edges
         var TILE_BORDER_WIDTH = 0.8;  // Stroke width of tile outlines; higher = bolder edges, can obscure small tiles at low zoom
@@ -839,6 +843,10 @@
         var SPACING_STEP = 1.25; // Multiplier applied per spacing button click; higher = bigger jumps between spacing levels
         var SPACING_MIN  = 0.6;  // Minimum spacing scale; lower values compress rooms closer together until tiles overlap
         var SPACING_MAX  = 4.0;  // Maximum spacing scale; higher values spread rooms and z-layers further apart
+        var ALPHA_INACTIVE  = 0.15; // Opacity of rooms and edges on z-levels other than the active one; lower = more faded
+        var ALPHA_CONNECTED = 0.45; // Opacity of rooms on inactive z-levels that have a direct connection to the active layer; higher = more visible cross-z neighbours
+        var LAYER_OFFSET_X  = 0;   // Screen pixels to shift each z-level horizontally per level away from the active layer; increase to spread layers apart left/right
+        var LAYER_OFFSET_Y  = 0;   // Screen pixels to shift each z-level vertically per level away from the active layer; increase to spread layers apart up/down
 
         // -- State -------------------------------------------------------------
         var canvas    = null;
@@ -881,17 +889,18 @@
                          ('0' + b.toString(16)).slice(-2);
         }
 
-        function isoProject(gx, gy, gz) {
+        function isoProject(gx, gy, gz, drawZ) {
             var step = TILE_HW * GRID_STEP_XY * spacingScale * zoomScale;
-            var zs   = Z_STEP  * spacingScale * zoomScale;
+            var zs   = Z_STEP  * spacingScale * spacingScale * zoomScale;
             var midX = Math.floor(canvas.width  / 2);
             var midY = Math.floor(canvas.height / 2);
             var relX = gx - camX - panOffsetX;
             var relY = gy - camY - panOffsetY;
             var relZ = gz - camZ;
+            var layerDiff = (drawZ !== undefined) ? (gz - drawZ) : 0;
             return {
-                sx: midX + (relX - relY) * step,
-                sy: midY + (relX + relY) * (step / 2) - relZ * zs,
+                sx: midX + (relX - relY) * step + layerDiff * LAYER_OFFSET_X * zoomScale,
+                sy: midY + (relX + relY) * (step / 2) - relZ * zs + layerDiff * LAYER_OFFSET_Y * zoomScale,
             };
         }
 
@@ -981,12 +990,12 @@
         }
 
         // -- Rendering ---------------------------------------------------------
-        function drawTile(gx, gy, gz, topColor, isCurrent, symbol) {
+        function drawTile(gx, gy, gz, topColor, isCurrent, symbol, drawZ) {
             var hw  = TILE_HW    * zoomScale;
             var hh  = TILE_HH    * zoomScale;
             var dep = TILE_DEPTH * zoomScale;
             var bw  = TILE_BORDER_WIDTH * zoomScale;
-            var p   = isoProject(gx, gy, gz);
+            var p   = isoProject(gx, gy, gz, drawZ);
             var sx  = p.sx, sy = p.sy;
             var leftColor  = darkenColor(topColor, SIDE_DARKEN * 0.8);
             var rightColor = darkenColor(topColor, SIDE_DARKEN);
@@ -1037,7 +1046,17 @@
                 ? rooms3d.get(currentRoomId).z : (camZ | 0);
             var drawZ = (activeZ !== null) ? activeZ : playerZ;
 
-            ctx.strokeStyle = CONNECTION_COLOR;
+            // Build a set of room IDs on other z-levels that connect directly to the active layer.
+            var connectedToActive = new Set();
+            edges3d.forEach(function (edge, key) {
+                if (edge.dz === 0) { return; }
+                var parts = key.split('-');
+                var rA = rooms3d.get(parseInt(parts[0], 10));
+                var rB = rooms3d.get(parseInt(parts[1], 10));
+                if (!rA || !rB) { return; }
+                if (rA.z === drawZ && rB.z !== drawZ) { connectedToActive.add(parseInt(parts[1], 10)); }
+                if (rB.z === drawZ && rA.z !== drawZ) { connectedToActive.add(parseInt(parts[0], 10)); }
+            });
             ctx.lineWidth   = CONNECTION_WIDTH * zoomScale;
             ctx.lineCap     = 'round';
 
@@ -1047,12 +1066,14 @@
                 var rB = rooms3d.get(parseInt(parts[1], 10));
                 if (!rA || !rB) { return; }
                 var zDiff = Math.min(Math.abs(rA.z - drawZ), Math.abs(rB.z - drawZ));
-                ctx.globalAlpha = zDiff === 0 ? 1.0 : 0.25;
-                var pA = isoProject(rA.x, rA.y, rA.z);
-                var pB = isoProject(rB.x, rB.y, rB.z);
+                ctx.globalAlpha = zDiff === 0 ? 1.0 : ALPHA_INACTIVE;
+                ctx.strokeStyle = edge.dz !== 0 ? CONNECTION_COLOR_CROSS_Z : CONNECTION_COLOR_SAME_Z;
+                var pA = isoProject(rA.x, rA.y, rA.z, drawZ);
+                var pB = isoProject(rB.x, rB.y, rB.z, drawZ);
                 var startPt, endPt;
                 if (edge.dz !== 0) {
-                    startPt = pA; endPt = pB;
+                    startPt = { sx: pA.sx + CROSS_Z_OFFSET_X * zoomScale, sy: pA.sy + CROSS_Z_OFFSET_Y * zoomScale };
+                    endPt   = { sx: pB.sx + CROSS_Z_OFFSET_X * zoomScale, sy: pB.sy + CROSS_Z_OFFSET_Y * zoomScale };
                 } else {
                     startPt = tileAttachPoint(pA.sx, pA.sy,  edge.dx,  edge.dy);
                     endPt   = tileAttachPoint(pB.sx, pB.sy, -edge.dx, -edge.dy);
@@ -1065,8 +1086,9 @@
             list.forEach(function (item) {
                 var isCurrent = (item.id === currentRoomId);
                 var topColor  = isCurrent ? CURRENT_ROOM_COLOR : colorForSymbol(item.symbol, item.env);
-                ctx.globalAlpha = Math.abs(item.z - drawZ) === 0 ? 1.0 : 0.25;
-                drawTile(item.x, item.y, item.z, topColor, isCurrent, item.symbol);
+                var onActive  = Math.abs(item.z - drawZ) === 0;
+                ctx.globalAlpha = onActive ? 1.0 : (connectedToActive.has(item.id) ? ALPHA_CONNECTED : ALPHA_INACTIVE);
+                drawTile(item.x, item.y, item.z, topColor, isCurrent, item.symbol, drawZ);
             });
             ctx.globalAlpha = 1.0;
         }
