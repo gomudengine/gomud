@@ -1,0 +1,43 @@
+################################################################################
+# If modified, these settings will be copied into your config overrides
+# folder under `Modules.gambling`:
+#
+# Modules:
+#   gambling:
+#     SlotCost: 25
+#     ClawCost: 100
+#     ClawWinChance: 10
+#     ClawPrizeCoin: 2
+#     ClawPrizeBottle: 8
+#     ClawPrizeTarot: 10
+#     ClawPrizeCards: 20
+#     ClawPrize8Ball: 30
+#     ClawPrizeDie: 30
+################################################################################
+# - SlotCost -
+#   The number of gold coins required to play the slot machine once.
+SlotCost: 25
+# - ClawCost -
+#   The number of gold coins required to play the claw machine once.
+ClawCost: 100
+# - ClawWinChance -
+#   The percentage chance (1-100) of winning a prize on the claw machine.
+ClawWinChance: 10
+# - ClawPrizeCoin -
+#   Relative weight for the lucky coin prize. Set to 0 to remove from the pool.
+ClawPrizeCoin: 2
+# - ClawPrizeBottle -
+#   Relative weight for the empty bottle prize. Set to 0 to remove from the pool.
+ClawPrizeBottle: 8
+# - ClawPrizeTarot -
+#   Relative weight for the tarot deck prize. Set to 0 to remove from the pool.
+ClawPrizeTarot: 10
+# - ClawPrizeCards -
+#   Relative weight for the deck of cards prize. Set to 0 to remove from the pool.
+ClawPrizeCards: 20
+# - ClawPrize8Ball -
+#   Relative weight for the magic 8-ball prize. Set to 0 to remove from the pool.
+ClawPrize8Ball: 30
+# - ClawPrizeDie -
+#   Relative weight for the 6-sided die prize. Set to 0 to remove from the pool.
+ClawPrizeDie: 30

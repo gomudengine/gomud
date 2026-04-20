@@ -60,10 +60,6 @@ internal/                  # Core engine packages (Go internal convention)
 └── [30+ other packages]  # Modular architecture with clear separation
 
 modules/                   # Plugin system for extending functionality
-├── gmcp/                 # Generic MUD Communication Protocol
-├── auctions/             # Player auction system
-├── follow/               # Player following mechanics
-└── [other modules]       # Extensible module architecture
 
 provisioning/             # Docker deployment configuration
 ```

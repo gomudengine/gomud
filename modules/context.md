@@ -38,61 +38,6 @@ The GoMud modules system provides a powerful plugin architecture that allows for
 - **File overlay system**: Plugin files can override core game files
 - **Data file integration**: Plugin data files are merged with core data files
 
-### Module Implementations (`modules/`)
-
-#### **GMCP Module** (`modules/gmcp/`)
-**Generic MUD Communication Protocol implementation**
-- **Multi-component architecture**: Separate components for Char, Comm, Game, Mudlet, Party, Room
-- **Real-time data sync**: Character stats, room information, party status to MUD clients
-- **Client integration**: Mudlet-specific features including mapping and UI components
-- **Telnet protocol handling**: IAC command processing for GMCP negotiation
-- **Discord integration**: Status updates and message bridging
-- **Event-driven updates**: Responds to character changes, room changes, party updates
-
-#### **Auctions Module** (`modules/auctions/`)
-**Player auction system**
-- **Auction management**: Start, bid, and end auction functionality
-- **Event-driven processing**: Uses NewRound events for auction timing
-- **Template system**: Custom templates for auction notifications
-- **State persistence**: Saves auction history and current auction state
-- **User command integration**: Adds `auction` command for player interaction
-- **Broadcast integration**: Auction updates sent to all players
-
-#### **Follow Module** (`modules/follow/`)
-**Player and mob following mechanics**
-- **Follow relationships**: Track who follows whom with limits and restrictions
-- **Event integration**: Responds to room changes, player/mob deaths, party updates
-- **AI integration**: Idle mob handlers for following behavior
-- **Scripting functions**: Exposes follow functions to JavaScript runtime
-- **State management**: Persistent follow relationships across server restarts
-- **Party integration**: Following behavior integrates with party system
-
-#### **Leaderboards Module** (`modules/leaderboards/`)
-**Player statistics and rankings**
-- **Web interface**: Custom web page showing player rankings
-- **Data collection**: Tracks various player statistics over time
-- **Periodic updates**: Uses NewRound events to update statistics
-- **Persistent storage**: Saves leaderboard data between server restarts
-- **Navigation integration**: Adds leaderboards link to web interface
-
-#### **Time Module** (`modules/time/`)
-**Game time display functionality**
-- **Simple command**: Adds `time` command to display current game time
-- **Template integration**: Uses help system for command documentation
-- **Minimal example**: Demonstrates basic plugin functionality
-
-#### **Cleanup Module** (`modules/cleanup/`)
-**World cleanup and maintenance**
-- **Cleanup commands**: `bury` and `trash` commands for removing items/corpses
-- **World maintenance**: Automated cleanup of abandoned items and corpses
-- **Configuration**: Configurable cleanup intervals and rules
-
-#### **Web Help Module** (`modules/webhelp/`)
-**Web-based help system**
-- **Help browser**: Web interface for browsing game help files
-- **Search functionality**: Search through help topics via web interface
-- **Template system**: Custom HTML templates for help display
-
 ## Event System Integration
 
 ### **Event-Driven Architecture**
@@ -323,6 +268,7 @@ The engine provides numerous hooks for module integration:
 - **GMCP**: Essential for modern MUD clients
 - **Auctions**: Player economy features
 - **Follow**: Social and AI mechanics
+- **Gambling**: Gambling items and room-based slot machines
 - **Leaderboards**: Player engagement and competition
 - **Time**: Basic utility functionality
 - **Cleanup**: World maintenance
