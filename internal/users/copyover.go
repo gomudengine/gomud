@@ -17,8 +17,8 @@ import (
 type userEntry struct {
 	UserId       int                      `json:"user_id"`
 	ConnectionId connections.ConnectionId `json:"connection_id"`
-	IsZombie     bool                     `json:"is_zombie"`
-	ZombieTurn   uint64                   `json:"zombie_turn,omitempty"`
+	IsLinkDead   bool                     `json:"is_link_dead"`
+	LinkDeadTurn uint64                   `json:"link_dead_turn,omitempty"`
 }
 
 type usersState struct {
@@ -36,17 +36,17 @@ func (u *usersCopyoverContributor) CopyoverSave(enc *copyover.Encoder) error {
 
 	for userId, user := range userManager.Users {
 		connId := userManager.UserConnections[userId]
-		isZombie := false
-		zombieTurn := uint64(0)
-		if turn, ok := userManager.ZombieConnections[connId]; ok {
-			isZombie = true
-			zombieTurn = turn
+		isLinkDead := false
+		linkDeadTurn := uint64(0)
+		if turn, ok := userManager.LinkDeadConnections[connId]; ok {
+			isLinkDead = true
+			linkDeadTurn = turn
 		}
 		state.Entries = append(state.Entries, userEntry{
 			UserId:       userId,
 			ConnectionId: connId,
-			IsZombie:     isZombie,
-			ZombieTurn:   zombieTurn,
+			IsLinkDead:   isLinkDead,
+			LinkDeadTurn: linkDeadTurn,
 		})
 		_ = user
 	}
@@ -76,8 +76,8 @@ func (u *usersCopyoverContributor) CopyoverRestore(dec *copyover.Decoder) error 
 		userManager.Connections[user.connectionId] = user.UserId
 		userManager.UserConnections[user.UserId] = user.connectionId
 
-		if entry.IsZombie {
-			userManager.ZombieConnections[user.connectionId] = entry.ZombieTurn
+		if entry.IsLinkDead {
+			userManager.LinkDeadConnections[user.connectionId] = entry.LinkDeadTurn
 		}
 	}
 

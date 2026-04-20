@@ -35,9 +35,9 @@ func HandleLeave(e events.Event) events.ListenerReturn {
 
 	connId := user.ConnectionId()
 
-	// Remove any zombie tracking for the user since they've been despawned from the world.
-	if users.IsZombieConnection(connId) {
-		users.RemoveZombieUser(evt.UserId)
+	// Remove any link-dead tracking for the user since they've been despawned from the world.
+	if users.IsLinkDeadConnection(connId) {
+		users.RemoveLinkDeadUser(evt.UserId)
 	}
 
 	room := rooms.LoadRoom(user.Character.RoomId)

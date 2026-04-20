@@ -19,7 +19,7 @@ type ConnectState uint32
 const (
 	Login ConnectState = iota
 	LoggedIn
-	Zombie
+	LinkDead
 	MaxHistory = 10
 )
 

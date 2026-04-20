@@ -137,16 +137,10 @@ plugin := &Plugin{
     Name:        "MyPlugin",
     Version:     "1.0.0",
     Description: "Example plugin functionality",
-    FileSystem:  myPluginFS, // embed.FS or other fs.ReadFileFS
+    FileSystem:  myPluginFS,
     Callbacks: PluginCallbacks{
-        LoadCallback: func() error {
-            // Initialize plugin
-            return nil
-        },
-        CommandCallback: func(cmdName string) usercommands.UserCommand {
-            // Return custom commands
-            return myCommands[cmdName]
-        },
+        LoadCallback:    func() error { ... },
+        CommandCallback: func(cmdName string) usercommands.UserCommand { ... },
     },
 }
 

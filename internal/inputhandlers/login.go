@@ -39,7 +39,7 @@ func FinalizeLoginOrCreate(results map[string]string, sharedState map[string]any
 				tplTxt, _ := templates.Process("goodbye", nil)
 				connections.SendTo([]byte(templates.AnsiParse(tplTxt)), existingConnectionId)
 
-				users.SetZombieUser(userid)
+				users.SetLinkDeadUser(userid)
 				connections.Kick(existingConnectionId, fmt.Sprintf(`Duplicate login (ip: %s)`, connDetails.RemoteAddr()))
 
 			}

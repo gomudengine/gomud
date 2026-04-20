@@ -11,7 +11,7 @@ The configuration system is built around a centralized `Config` struct with seve
 ### Core Components
 
 **Configuration Structure:**
-- Hierarchical configuration organized into logical subsections (Server, Network, GamePlay, etc.)
+- Hierarchical configuration organized into logical subsections
 - Type-safe configuration values using custom types (`ConfigString`, `ConfigInt`, `ConfigBool`, etc.)
 - Automatic validation and default value enforcement
 - Thread-safe access with read-write mutex protection
@@ -19,435 +19,270 @@ The configuration system is built around a centralized `Config` struct with seve
 **Override System:**
 - Runtime configuration overrides stored separately from base configuration
 - Dot-notation path support for nested configuration access
-- Persistent override storage in YAML format
+- Persistent override storage in YAML format (path: `{DataFiles}/config-overrides.yaml` or `$CONFIG_PATH`)
 - Automatic path correction and fuzzy matching for configuration keys
 
 **Type System:**
 - Custom configuration types with string conversion and validation
-- Special `ConfigSecret` type that redacts sensitive values in output
-- Automatic type inference and conversion from string values
+- Special `ConfigSecret` type that redacts sensitive values in output (`*** REDACTED ***`)
+- Automatic type inference and conversion from string values via `StringToConfigValue`
 - Support for complex types including slices and nested structures
 
 **Validation Framework:**
-- Per-subsection validation with range checking and defaults
+- Per-subsection `Validate()` methods with range checking and defaults
 - Locked configuration properties that cannot be changed at runtime
 - Banned name patterns for user input validation
 - Environment variable integration with automatic assignment
 
-## Key Features
+## Config Struct
 
-### 1. **Type-Safe Configuration**
-- Custom configuration types prevent type errors and provide consistent interfaces
-- Automatic validation and range checking for all configuration values
-- Support for integers, floats, booleans, strings, slices, and secret values
-- Type inference from string input for dynamic configuration updates
-
-### 2. **Hierarchical Structure**
-- Logical organization into subsections (Server, Network, GamePlay, FilePaths, etc.)
-- Dot-notation access for nested configuration properties
-- Automatic path resolution and correction for typos or partial matches
-- Flattening and unflattening of nested structures for override management
-
-### 3. **Runtime Configuration Management**
-- Live configuration updates without server restart
-- Persistent override storage separate from base configuration
-- Thread-safe configuration access with mutex protection
-- Configuration change validation and rollback on errors
-
-### 4. **Security Features**
-- `ConfigSecret` type automatically redacts sensitive values in logs and output
-- Environment variable support for secure credential injection
-- Locked configuration properties to prevent unauthorized changes
-- Validation of user input against banned patterns
-
-### 5. **Override System**
-- Dot-notation configuration overrides (e.g., `Server.MaxCPUCores`)
-- Persistent storage of overrides in separate YAML file
-- Automatic path correction and fuzzy matching
-- Override precedence over base configuration values
+```go
+type Config struct {
+    Server       Server
+    Memory       Memory
+    LootGoblin   LootGoblin
+    Timing       Timing
+    FilePaths    FilePaths
+    GamePlay     GamePlay
+    Integrations Integrations
+    TextFormats  TextFormats
+    Translation  Translation
+    Network      Network
+    Scripting    Scripting
+    SpecialRooms SpecialRooms
+    Validation   Validation
+    Roles        Roles
+    Modules      Modules
+}
+```
 
 ## Configuration Subsections
 
 ### Server Configuration
-```yaml
-Server:
-  MudName: "My MUD Server"
-  CurrentVersion: "1.0.0"
-  Seed: "random-seed-value"        # ConfigSecret type
-  MaxCPUCores: 4
-  OnLoginCommands: ["look", "who"]
-  Motd: "Welcome to the game!"
-  NextRoomId: 1000
-  Locked: ["Seed"]                 # Locked properties
+```go
+type Server struct {
+    MudName         ConfigString      // Name of the MUD
+    CurrentVersion  ConfigString      // Current version string
+    Seed            ConfigSecret      // Seed for content generation (redacted in output)
+    MaxCPUCores     ConfigInt         // CPU cores for multi-core operations
+    OnLoginCommands ConfigSliceString // Commands run on user login
+    Motd            ConfigString      // Message of the day
+    NextRoomId      ConfigInt         // Next room ID for room creation
+    Locked          ConfigSliceString // Config properties locked from runtime changes
+}
 ```
 
 ### Network Configuration
-```yaml
-Network:
-  MaxTelnetConnections: 50
-  TelnetPort: ["4000", "4001"]
-  LocalPort: 4002
-  HttpPort: 80
-  HttpsPort: 443
-  HttpsRedirect: true
-  AfkSeconds: 300
-  MaxIdleSeconds: 1800
-  TimeoutMods: false
-  ZombieSeconds: 60
-  LogoutRounds: 10
+```go
+type Network struct {
+    MaxTelnetConnections ConfigInt         // Max telnet connections (default 50)
+    TelnetPort           ConfigSliceString // One or more telnet ports
+    LocalPort            ConfigInt         // Localhost-only admin port
+    HttpPort             ConfigInt         // HTTP port (0 to disable)
+    HttpsPort            ConfigInt         // HTTPS port (0 to disable)
+    HttpsRedirect        ConfigBool        // Redirect HTTP to HTTPS
+    SSHPort              ConfigInt         // SSH port (0 to disable)
+    MaxSSHConnections    ConfigInt         // Max SSH connections (default 50)
+    AfkSeconds           ConfigInt         // Seconds until AFK
+    MaxIdleSeconds       ConfigInt         // Seconds before idle kick
+    TimeoutMods          ConfigBool        // Whether to timeout admins/mods
+    LinkDeadSeconds      ConfigInt         // Link-dead reconnect window
+    LogoutRounds         ConfigInt         // Rounds of meditation required to log out
+}
 ```
 
 ### GamePlay Configuration
-```yaml
-GamePlay:
-  AllowItemBuffRemoval: true
-  Death:
-    PermaDeath: false
-    CorpseDecayRounds: 100
-  LivesStart: 3
-  LivesMax: 10
-  LivesOnLevelUp: 1
-  PricePerLife: 1000
-  ShopRestockRate: "1h"
-  ContainerSizeMax: 50
-  MaxAltCharacters: 5
-  ConsistentAttackMessages: true
-  PVP: "limited"                   # enabled, disabled, limited, off
-  PVPMinimumLevel: 10
-  XPScale: 100.0
-  MobConverseChance: 25
+```go
+type GamePlay struct {
+    AllowItemBuffRemoval     ConfigBool
+    Death                    GameplayDeath
+    Party                    GameplayParty
+    LivesStart               ConfigInt    // Starting permadeath lives
+    LivesMax                 ConfigInt    // Maximum permadeath lives
+    LivesOnLevelUp           ConfigInt    // Lives gained on level up
+    PricePerLife             ConfigInt    // Gold cost to buy a life
+    ShopRestockRate          ConfigString // Default shop restock duration (e.g. "6 hours")
+    ContainerSizeMax         ConfigInt    // Max items in a container
+    MaxAltCharacters         ConfigInt    // Max alt characters per account
+    ConsistentAttackMessages ConfigBool
+    PVP                      ConfigString // "enabled", "disabled", "limited"
+    PVPMinimumLevel          ConfigInt
+    XPScale                  ConfigFloat  // XP difficulty multiplier (default 100)
+    MobConverseChance        ConfigInt    // 0-100 chance of mob conversing when idle
+}
+
+type GameplayDeath struct {
+    EquipmentDropChance ConfigFloat  // 0.0-1.0 chance to drop equipment on death
+    AlwaysDropBackpack  ConfigBool
+    XPPenalty           ConfigString // "none", "level", "10%", "25%", etc.
+    ProtectionLevels    ConfigInt    // Levels protected from death penalties
+    PermaDeath          ConfigBool
+    CorpsesEnabled      ConfigBool
+    CorpseDecayTime     ConfigString // Duration string (e.g. "1 hour")
+}
+
+type GameplayParty struct {
+    MaxPlayerCount ConfigInt  // 0 = unlimited
+    SameRoomOnly   ConfigBool
+}
 ```
 
 ### File Paths Configuration
-```yaml
-FilePaths:
-  DataFiles: "_datafiles"
-  PublicHtml: "_datafiles/html/public"
-  AdminHtml: "_datafiles/html/admin"
-  HttpsCertFile: "cert.pem"
-  HttpsKeyFile: "key.pem"
-  WebCDNLocation: "/static"
-  CarefulSaveFiles: true
+```go
+type FilePaths struct {
+    WebDomain        ConfigString // Web domain name
+    WebCDNLocation   ConfigString // Optional CDN for static files
+    DataFiles        ConfigString // Path to data files (default "_datafiles/world/default")
+    PublicHtml       ConfigString // Public HTML directory
+    AdminHtml        ConfigString // Admin HTML directory
+    HttpsCertFile    ConfigString // TLS certificate path
+    HttpsKeyFile     ConfigString // TLS private key path
+    SSHHostKeyFile   ConfigString // SSH host private key (required for SSH)
+    CarefulSaveFiles ConfigBool   // Write to .new file then rename
+}
+```
+
+### Timing Configuration
+```go
+type Timing struct {
+    TurnMs            ConfigInt // Milliseconds per turn (default 100, min 10)
+    RoundSeconds      ConfigInt // Seconds per round (default 4)
+    RoundsPerAutoSave ConfigInt // Rounds between auto-saves (default 900)
+    RoundsPerDay      ConfigInt // Rounds per in-game day (default 20)
+    NightHours        ConfigInt // Hours of night (0-24)
+}
+
+// Helper methods (calculated and cached on Validate):
+func (e Timing) TurnsPerRound() int
+func (e Timing) TurnsPerAutoSave() int
+func (e Timing) TurnsPerSecond() int
+func (e Timing) SecondsToRounds(seconds int) int
+func (e Timing) SecondsToTurns(seconds int) int
+func (e Timing) MinutesToRounds(minutes int) int
+func (e Timing) MinutesToTurns(minutes int) int
+func (e Timing) RoundsToSeconds(rounds int) int
+```
+
+### Validation Configuration
+```go
+type Validation struct {
+    NameSizeMin      ConfigInt         // Min name length
+    NameSizeMax      ConfigInt         // Max name length (max 80)
+    PasswordSizeMin  ConfigInt         // Min password length
+    PasswordSizeMax  ConfigInt         // Max password length
+    NameRejectRegex  ConfigString      // Regex names must match
+    NameRejectReason ConfigString      // Reason shown when name rejected
+    EmailOnJoin      ConfigString      // "required", "optional", or "none"
+    BannedNames      ConfigSliceString // Wildcard patterns for banned names
+}
 ```
 
 ## Configuration Types
 
-### Basic Types
 ```go
-type ConfigInt int           // Integer values with validation
-type ConfigUInt64 uint64     // Unsigned 64-bit integers
-type ConfigString string     // String values
-type ConfigSecret string     // Automatically redacted strings
-type ConfigFloat float64     // Floating-point values
-type ConfigBool bool         // Boolean values
-type ConfigSliceString []string  // String arrays
-```
+type ConfigInt         int
+type ConfigUInt64      uint64
+type ConfigString      string
+type ConfigSecret      string     // String() returns "*** REDACTED ***"
+type ConfigFloat       float64
+type ConfigBool        bool
+type ConfigSliceString []string
 
-### Type Interface
-```go
 type ConfigValue interface {
-    String() string    // String representation
-    Set(string) error  // Set value from string
+    String() string
+    Set(string) error
 }
 ```
 
-### Secret Type Behavior
-```go
-// ConfigSecret automatically redacts in output
-func (c ConfigSecret) String() string {
-    return `*** REDACTED ***`
-}
-
-// Access actual value through helper function
-func GetSecret(v ConfigSecret) string {
-    return string(v)
-}
-```
+`ConfigSecret` hides its value in all string representations. Use `configs.GetSecret(v ConfigSecret) string` to access the raw value.
 
 ## Configuration Access Patterns
 
 ### Reading Configuration
 ```go
-// Get complete configuration
 config := configs.GetConfig()
-
-// Access subsections
-serverConfig := configs.GetServerConfig()
+serverConfig  := configs.GetServerConfig()
 networkConfig := configs.GetNetworkConfig()
 gameplayConfig := configs.GetGamePlayConfig()
-
-// Access specific values
-mudName := config.Server.MudName.String()
-maxConnections := int(config.Network.MaxTelnetConnections)
-pvpEnabled := config.GamePlay.PVP.String() == "enabled"
+timingConfig  := configs.GetTimingConfig()
+filePathsConfig := configs.GetFilePathsConfig()
+validationConfig := configs.GetValidationConfig()
+rolesConfig   := configs.GetRolesConfig()
 ```
 
 ### Setting Configuration Values
 ```go
-// Set configuration value by dot path
-err := configs.SetVal("Server.MudName", "New Server Name")
+// Set by dot-path; validates, persists to override file, and reloads
+err := configs.SetVal("Server.MudName", "New Name")
 err := configs.SetVal("Network.HttpPort", "8080")
 err := configs.SetVal("GamePlay.PVP", "enabled")
-
-// Configuration is automatically validated and saved
-if err != nil {
-    log.Printf("Configuration error: %v", err)
-}
 ```
 
-### Environment Variable Integration
+### Dot-Notation and Path Resolution
 ```go
-// Configuration fields can be populated from environment variables
-type Server struct {
-    DatabaseURL ConfigSecret `yaml:"DatabaseURL" env:"DATABASE_URL"`
-    APIKey      ConfigSecret `yaml:"APIKey" env:"API_KEY"`
-}
-
-// Values are automatically loaded from environment on startup
-```
-
-## Override System
-
-### Override File Format
-```yaml
-# config-overrides.yaml
-Server:
-  MudName: "Development Server"
-  MaxCPUCores: 8
-Network:
-  HttpPort: 8080
-  HttpsPort: 8443
-GamePlay:
-  PVP: "enabled"
-  XPScale: 150.0
-```
-
-### Dot-Notation Access
-```go
-// All configuration paths support dot notation
+// All config paths support dot notation
 allConfig := config.AllConfigData()
-// Returns map with keys like:
-// "Server.MudName" -> "My MUD Server"
-// "Network.HttpPort" -> 80
-// "GamePlay.PVP" -> "limited"
+// Returns map with keys like "Server.MudName", "Network.HttpPort", etc.
 
-// Set values using dot notation
-configs.SetVal("Server.MudName", "New Name")
-configs.SetVal("GamePlay.Death.PermaDeath", "true")
-```
-
-### Path Resolution and Correction
-```go
-// Automatic path correction for typos
+// Fuzzy path lookup (case-insensitive, partial match)
 fullPath, typeName := configs.FindFullPath("mudname")
 // Returns: "Server.MudName", "configs.ConfigString"
-
-fullPath, typeName := configs.FindFullPath("httpport")
-// Returns: "Network.HttpPort", "configs.ConfigInt"
-
-// Supports partial matches and case-insensitive lookup
 ```
+
+### Override System
+```go
+// Programmatically add overrides (e.g. from module config)
+err := configs.AddOverlayOverrides(map[string]any{
+    "Server.MudName": configs.ConfigString("Dev Server"),
+})
+
+// Get current overrides
+overrides := configs.GetOverrides()
+
+// Flatten/unflatten helpers
+flat := configs.Flatten(nestedMap)
+```
+
+### Reload Configuration
+```go
+err := configs.ReloadConfig()
+```
+
+Reads `_datafiles/config.yaml`, applies overrides from `{DataFiles}/config-overrides.yaml` (or `$CONFIG_PATH`), applies environment variables, and validates.
 
 ## Validation System
 
-### Per-Subsection Validation
-```go
-func (s *Server) Validate() {
-    if s.Seed == `` {
-        s.Seed = `Mud` // default value
-    }
-    
-    if s.MaxCPUCores < 0 {
-        s.MaxCPUCores = 0 // enforce minimum
-    }
-}
-
-func (n *Network) Validate() {
-    if n.MaxTelnetConnections < 1 {
-        n.MaxTelnetConnections = 50 // default
-    }
-    
-    if n.HttpPort < 0 {
-        n.HttpPort = 0 // disable if negative
-    }
-}
-```
+Each subsection has a `Validate()` method enforcing defaults and ranges. The top-level `Config.Validate()` calls all subsection validators and caches computed values (e.g. `seedInt`, timing calculations).
 
 ### Banned Name Validation
 ```go
-// Check if a name matches banned patterns
 bannedPattern, isBanned := config.IsBannedName("testname")
-if isBanned {
-    return fmt.Errorf("Name matches banned pattern: %s", bannedPattern)
-}
 ```
+Uses wildcard matching against `Validation.BannedNames`.
 
 ### Locked Configuration Properties
 ```go
-// Some properties cannot be changed at runtime
-func isEditAllowed(configPath string) bool {
-    serverConfig := configs.GetServerConfig()
-    for _, lockedPath := range serverConfig.Locked {
-        if configPath == lockedPath {
-            return false
-        }
-    }
-    return true
-}
+// Properties listed in Server.Locked cannot be changed via SetVal at runtime
+Server:
+  Locked: ["Seed"]
 ```
 
-## Configuration Loading and Persistence
-
-### Startup Process
-1. **Load Base Configuration**: Read `_datafiles/config.yaml`
-2. **Load Overrides**: Read `config-overrides.yaml` if it exists
-3. **Apply Environment Variables**: Set values from environment
-4. **Validate Configuration**: Run all validation functions
-5. **Build Lookup Tables**: Create path and type lookup maps
-
-### Runtime Updates
+## PVP Constants
 ```go
-// Configuration changes are immediately persisted
-err := configs.SetVal("Server.MudName", "New Name")
-// This automatically:
-// 1. Validates the new value
-// 2. Updates the override file
-// 3. Reloads the configuration
-// 4. Validates the complete configuration
-```
-
-### Configuration Reload
-```go
-// Reload configuration from files
-err := configs.ReloadConfig()
-if err != nil {
-    log.Printf("Failed to reload config: %v", err)
-}
-```
-
-## Integration Examples
-
-### User Command Integration
-```go
-// Server configuration command
-func server_Config(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
-    args := util.SplitButRespectQuotes(rest)
-    
-    if len(args) >= 2 {
-        configName := strings.ToLower(args[0])
-        configValue := strings.Join(args[1:], ` `)
-        
-        if err := configs.SetVal(configName, configValue); err != nil {
-            user.SendText(fmt.Sprintf("Config error: %s=%s (%s)", configName, configValue, err))
-            return true, nil
-        }
-        
-        user.SendText(fmt.Sprintf("Configuration updated: %s=%s", configName, configValue))
-        return true, nil
-    }
-    
-    // Show current configuration
-    allConfigData := configs.GetConfig().AllConfigData()
-    // Display configuration options...
-}
-```
-
-### Web Interface Integration
-```go
-// Template access to configuration
-templateData := map[string]any{
-    "CONFIG": configs.GetConfig(),
-    "STATS":  GetStats(),
-}
-
-// In templates:
-// {{.CONFIG.Server.MudName}}
-// {{.CONFIG.Network.HttpPort}}
-// {{.CONFIG.GamePlay.PVP}}
-```
-
-### Plugin Configuration
-```go
-// Plugin-specific configuration
-func (p *PluginConfig) Set(name string, val any) {
-    configs.SetVal(fmt.Sprintf(`Modules.%s.%s`, p.pluginName, name), fmt.Sprintf(`%v`, val))
-}
-
-func (p *PluginConfig) Get(name string) any {
-    m := configs.Flatten(configs.GetModulesConfig())
-    return m[fmt.Sprintf(`%s.%s`, p.pluginName, name)]
-}
+const (
+    PVPEnabled  = "enabled"
+    PVPDisabled = "disabled"
+    PVPOff      = "off"      // normalized to "disabled" on Validate
+    PVPLimited  = "limited"
+)
 ```
 
 ## Performance Considerations
 
-### Configuration Caching
-- Configuration is cached in memory with read-write mutex protection
-- Changes trigger validation and persistence but don't require full reload
-- Lookup tables provide O(1) access to configuration paths and types
-
-### Thread Safety
-```go
-var configDataLock sync.RWMutex
-
-func GetConfig() Config {
-    configDataLock.RLock()
-    defer configDataLock.RUnlock()
-    
-    if !configData.validated {
-        configData.Validate()
-    }
-    return configData
-}
-```
-
-### Validation Optimization
-- Validation only runs when configuration changes
-- Cached validation state prevents redundant validation calls
-- Subsection validation allows targeted updates
-
-## Security Features
-
-### Secret Management
-```go
-// Secrets are automatically redacted in logs and output
-type Server struct {
-    DatabasePassword ConfigSecret `yaml:"DatabasePassword" env:"DB_PASSWORD"`
-    APIKey          ConfigSecret `yaml:"APIKey" env:"API_KEY"`
-}
-
-// Access actual values securely
-dbPassword := configs.GetSecret(config.Server.DatabasePassword)
-```
-
-### Configuration Locking
-```go
-// Prevent runtime changes to sensitive configuration
-Server:
-  Locked: ["Seed", "DatabasePassword", "APIKey"]
-```
-
-### Input Validation
-```go
-// Validate user input against banned patterns
-Validation:
-  BannedNames: ["admin*", "root", "system", "*test*"]
-```
-
-## Error Handling and Logging
-
-### Configuration Errors
-- Type conversion errors with detailed messages
-- Path resolution errors with suggestions for correct paths
-- Validation errors with specific constraint information
-- File I/O errors with full context
-
-### Logging Integration
-```go
-// Configuration changes are logged
-mudlog.Info("SetVal", "path", propertyPath, "value", newVal, "success", true)
-mudlog.Error("SetVal", "path", propertyPath, "error", err)
-```
+- Configuration is cached in memory with `sync.RWMutex` protection
+- `validated` flag prevents redundant validation calls
+- Key/type lookup tables (`keyLookups`, `typeLookups`) provide O(1) path resolution after initial build
+- Timing helper values (`turnsPerRound`, etc.) are pre-calculated and cached on `Validate()`
 
 ## Dependencies
 
@@ -457,47 +292,3 @@ mudlog.Error("SetVal", "path", propertyPath, "error", err)
 - `sync` - Thread-safe access control
 - `reflect` - Dynamic configuration introspection
 - `os` - Environment variable access and file operations
-
-## Usage Examples
-
-### Dynamic Configuration Updates
-```go
-// Update server settings at runtime
-configs.SetVal("Server.MudName", "Production Server")
-configs.SetVal("Network.MaxTelnetConnections", "100")
-configs.SetVal("GamePlay.XPScale", "75.0")
-
-// Changes are immediately validated and persisted
-```
-
-### Configuration Validation
-```go
-// Custom validation in subsections
-func (g *GamePlay) Validate() {
-    if g.XPScale <= 0 {
-        g.XPScale = 100.0 // default
-    }
-    
-    if g.PVP != "enabled" && g.PVP != "disabled" && g.PVP != "limited" {
-        g.PVP = "limited" // default
-    }
-    
-    if g.MaxAltCharacters < 0 {
-        g.MaxAltCharacters = 5 // default
-    }
-}
-```
-
-### Environment Variable Integration
-```go
-// Automatic environment variable loading
-os.Setenv("DATABASE_URL", "postgres://localhost/muddb")
-os.Setenv("API_KEY", "secret-api-key")
-
-// Configuration automatically loads these values
-config := configs.GetConfig()
-dbURL := configs.GetSecret(config.Server.DatabaseURL)
-apiKey := configs.GetSecret(config.Server.APIKey)
-```
-
-This configuration system provides a robust foundation for managing all aspects of GoMud server configuration with type safety, validation, security, and runtime flexibility.

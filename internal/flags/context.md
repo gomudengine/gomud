@@ -69,10 +69,7 @@ The `internal/flags` package provides command-line argument processing for the G
 
 ### Integration in Main
 ```go
-func main() {
-    flags.HandleFlags("v1.2.3")
-    // Continue with normal server startup if no utility flags were used
-}
+func main()
 ```
 
 ## Port Search Functionality

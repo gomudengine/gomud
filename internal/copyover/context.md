@@ -122,28 +122,11 @@ type myState struct {
 ```go
 type myContributor struct{}
 
-func (m *myContributor) CopyoverName() string { return "mypackage" }
+func (m *myContributor) CopyoverName() string
+func (m *myContributor) CopyoverSave(enc *copyover.Encoder) error
+func (m *myContributor) CopyoverRestore(dec *copyover.Decoder) error
 
-func (m *myContributor) CopyoverSave(enc *copyover.Encoder) error {
-    return enc.WriteSection(m.CopyoverName(), myState{
-        Counter: currentCounter,
-        Label:   currentLabel,
-    })
-}
-
-func (m *myContributor) CopyoverRestore(dec *copyover.Decoder) error {
-    var state myState
-    if err := dec.ReadSection(m.CopyoverName(), &state); err != nil {
-        return err
-    }
-    currentCounter = state.Counter
-    currentLabel   = state.Label
-    return nil
-}
-
-func CopyoverContributor() copyover.Contributor {
-    return &myContributor{}
-}
+func CopyoverContributor() copyover.Contributor
 ```
 
 Convention: place this in a file named `copyover.go` inside your package, and

@@ -44,7 +44,7 @@ type World struct {
 	enterWorldUserId   chan [2]int
 	leaveWorldUserId   chan int
 	logoutConnectionId chan connections.ConnectionId
-	zombieFlag         chan [2]int
+	linkDeadFlag       chan [2]int
 	//
 	eventRequeue          []events.Event
 	userInputEventTracker map[int]struct{}
@@ -59,7 +59,7 @@ func NewWorld(osSignalChan chan os.Signal) *World {
 		enterWorldUserId:   make(chan [2]int),
 		leaveWorldUserId:   make(chan int),
 		logoutConnectionId: make(chan connections.ConnectionId),
-		zombieFlag:         make(chan [2]int),
+		linkDeadFlag:       make(chan [2]int),
 		//
 		eventRequeue:          []events.Event{},
 		userInputEventTracker: map[int]struct{}{},
@@ -257,11 +257,11 @@ func (w *World) SendLogoutConnectionId(connId connections.ConnectionId) {
 	w.logoutConnectionId <- connId
 }
 
-func (w *World) SendSetZombie(userId int, on bool) {
+func (w *World) SendSetLinkDead(userId int, on bool) {
 	if on {
-		w.zombieFlag <- [2]int{userId, 1}
+		w.linkDeadFlag <- [2]int{userId, 1}
 	} else {
-		w.zombieFlag <- [2]int{userId, 0}
+		w.linkDeadFlag <- [2]int{userId, 0}
 	}
 }
 
@@ -292,10 +292,10 @@ func (w *World) enterWorld(userId int, roomId int) {
 
 /*
 users can be:
-Disconnected	+ OutWorld (no presence)	No record in connections.netConnections or users.ZombieConnections	| user object in room
+Disconnected	+ OutWorld (no presence)	No record in connections.netConnections or users.LinkDeadConnections	| user object in room
 Connected		+ OutWorld (logging in) 	Has record in connections.netConnections 							| user object in room
-Connected		+ InWorld  (non-zombie) 	No record in users.ZombieConnections								| no zombie flag		| user object in room
-Disconnected	+ InWorld  (zombie)			Has record in users.ZombieConnections 								| has zombie flag		| user object in room
+Connected		+ InWorld  (non-link-dead)	No record in users.LinkDeadConnections								| no link-dead flag		| user object in room
+Disconnected	+ InWorld  (link-dead)			Has record in users.LinkDeadConnections 								| has link-dead flag		| user object in room
 */
 
 func (w *World) GetAutoComplete(userId int, inputText string) []string {
@@ -435,11 +435,11 @@ loop:
 			w.logOutUserByConnectionId(logoutConnectionId)
 			util.UnlockMud()
 
-		case zombieFlag := <-w.zombieFlag: //  [2]int
-			if zombieFlag[1] == 1 {
+		case linkDeadFlag := <-w.linkDeadFlag: //  [2]int
+			if linkDeadFlag[1] == 1 {
 
 				util.LockMud()
-				users.SetZombieUser(zombieFlag[0])
+				users.SetLinkDeadUser(linkDeadFlag[0])
 				util.UnlockMud()
 
 			}
@@ -663,7 +663,7 @@ func (w *World) UpdateStats() {
 	web.UpdateStats(s)
 }
 
-// Force disconnect a user (Makes them a zombie)
+// Force disconnect a user (Makes them linkdead)
 func (w *World) Kick(userId int, reason string) {
 
 	user := users.GetByUserId(userId)
@@ -671,7 +671,7 @@ func (w *World) Kick(userId int, reason string) {
 		return
 	}
 
-	users.SetZombieUser(userId)
+	users.SetLinkDeadUser(userId)
 	user.EventLog.Add(`conn`, fmt.Sprintf(`Kicked (%s)`, reason))
 
 	connections.Kick(user.ConnectionId(), reason)

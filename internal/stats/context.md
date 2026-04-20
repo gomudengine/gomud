@@ -84,57 +84,19 @@ const (
 ### Level-Based Progression
 ```go
 // Calculate automatic stat gains for a given level
-func (si *StatInfo) GainsForLevel(level int) int {
-    if level < 1 {
-        level = 1
-    }
-    
-    // Racial base scaling: (level-1) * 1/3 * racial_base
-    levelScale := float64(level-1) * BaseModFactor
-    basePoints := int(levelScale * float64(si.Base))
-    
-    // Natural progression: level * 1/2 (free points)
-    freeStatPoints := int(float64(level) * NaturalGainsModFactor)
-    
-    return basePoints + freeStatPoints
-}
+func (si *StatInfo) GainsForLevel(level int) int
 ```
 
 ### Complete Stat Recalculation
 ```go
 // Recalculate all stat components for current level
-func (si *StatInfo) Recalculate(level int) {
-    // Calculate racial component
-    si.Racial = si.GainsForLevel(level)
-    
-    // Sum all components
-    si.Value = si.Racial + si.Training + si.Mods
-    
-    // Apply diminishing returns for values over 100
-    si.ValueAdj = si.Value
-    if si.ValueAdj >= 105 {
-        overage := si.ValueAdj - 100
-        // Square root scaling: 100 + sqrt(overage) * 2
-        si.ValueAdj = 100 + int(math.Round(math.Sqrt(float64(overage))*2))
-    }
-}
+func (si *StatInfo) Recalculate(level int)
 ```
 
 ### Modifier Management
 ```go
 // Set equipment and effect modifiers
-func (si *StatInfo) SetMod(mod ...int) {
-    if len(mod) == 0 {
-        si.Mods = 0 // Clear all modifiers
-        return
-    }
-    
-    // Sum all provided modifiers
-    si.Mods = 0
-    for _, m := range mod {
-        si.Mods += m
-    }
-}
+func (si *StatInfo) SetMod(mod ...int)
 ```
 
 ## Progression Mathematics
@@ -264,47 +226,13 @@ balanced.Stats.Perception.Training = 20
 ### Dynamic Stat Modification
 ```go
 // Apply equipment bonuses
-func ApplyEquipmentBonuses(character *Character) {
-    // Reset all modifiers
-    character.Stats.Strength.SetMod()
-    character.Stats.Speed.SetMod()
-    // ... reset all stats
-    
-    // Apply equipment bonuses
-    for _, item := range character.Equipment.GetAllEquipped() {
-        if item.StatMod("strength") != 0 {
-            currentMod := character.Stats.Strength.Mods
-            character.Stats.Strength.SetMod(currentMod + item.StatMod("strength"))
-        }
-        // ... apply all stat modifications
-    }
-    
-    // Apply buff/spell effects
-    strengthBuff := character.Buffs.StatMod("strength")
-    if strengthBuff != 0 {
-        currentMod := character.Stats.Strength.Mods
-        character.Stats.Strength.SetMod(currentMod + strengthBuff)
-    }
-    
-    // Recalculate all stats
-    character.Stats.Strength.Recalculate(character.Level)
-    character.Stats.Speed.Recalculate(character.Level)
-    // ... recalculate all stats
-}
+func ApplyEquipmentBonuses(character *Character)
 ```
 
 ### Temporary Stat Changes
 ```go
 // Spell effect example: Bull's Strength (+10 Strength for 30 rounds)
-func CastBullsStrength(caster *Character, target *Character) {
-    // Add temporary modifier
-    currentMod := target.Stats.Strength.Mods
-    target.Stats.Strength.SetMod(currentMod + 10)
-    target.Stats.Strength.Recalculate(target.Level)
-    
-    // Apply buff for duration tracking
-    target.Buffs.AddBuff(bullsStrengthBuffId, false)
-}
+func CastBullsStrength(caster *Character, target *Character)
 ```
 
 ## Integration Patterns
@@ -339,110 +267,27 @@ func CastBullsStrength(caster *Character, target *Character) {
 ### Character Creation
 ```go
 // Create new character with racial stats
-func CreateCharacter(raceId int) *Character {
-    character := &Character{
-        Level: 1,
-        Stats: GetRacialStats(raceId), // Base racial statistics
-    }
-    
-    // Calculate initial stat values
-    character.Stats.Strength.Recalculate(character.Level)
-    character.Stats.Speed.Recalculate(character.Level)
-    character.Stats.Smarts.Recalculate(character.Level)
-    character.Stats.Vitality.Recalculate(character.Level)
-    character.Stats.Mysticism.Recalculate(character.Level)
-    character.Stats.Perception.Recalculate(character.Level)
-    
-    return character
-}
+func CreateCharacter(raceId int) *Character
 ```
 
 ### Training Point Allocation
 ```go
 // Spend training points on a stat
-func TrainStat(character *Character, statName string, points int) error {
-    if character.TrainingPoints < points {
-        return errors.New("insufficient training points")
-    }
-    
-    switch statName {
-    case "strength":
-        character.Stats.Strength.Training += points
-        character.Stats.Strength.Recalculate(character.Level)
-    case "speed":
-        character.Stats.Speed.Training += points
-        character.Stats.Speed.Recalculate(character.Level)
-    // ... handle all stats
-    }
-    
-    character.TrainingPoints -= points
-    return nil
-}
+func TrainStat(character *Character, statName string, points int) error
 ```
 
 ### Level Up Processing
 ```go
 // Handle character level increase
-func LevelUp(character *Character) {
-    character.Level++
-    
-    // Recalculate all stats for new level
-    character.Stats.Strength.Recalculate(character.Level)
-    character.Stats.Speed.Recalculate(character.Level)
-    character.Stats.Smarts.Recalculate(character.Level)
-    character.Stats.Vitality.Recalculate(character.Level)
-    character.Stats.Mysticism.Recalculate(character.Level)
-    character.Stats.Perception.Recalculate(character.Level)
-    
-    // Grant training points for allocation
-    character.TrainingPoints += 5 // Example: 5 points per level
-    
-    // Update derived values
-    character.HealthMax.Value = CalculateMaxHealth(character)
-    character.ManaMax.Value = CalculateMaxMana(character)
-}
+func LevelUp(character *Character)
 ```
 
 ### Equipment Change Handling
 ```go
 // Update stats when equipment changes
-func EquipItem(character *Character, item *Item) {
-    // Add item to equipment
-    character.Equipment.Equip(item)
-    
-    // Recalculate stats with new equipment bonuses
-    ApplyAllModifiers(character)
-}
+func EquipItem(character *Character, item *Item)
 
-func ApplyAllModifiers(character *Character) {
-    // Clear existing modifiers
-    character.Stats.Strength.SetMod()
-    character.Stats.Speed.SetMod()
-    // ... clear all stats
-    
-    // Apply equipment modifiers
-    totalStrengthMod := 0
-    totalSpeedMod := 0
-    // ... initialize all stat totals
-    
-    for _, item := range character.Equipment.GetAllEquipped() {
-        totalStrengthMod += item.StatMod("strength")
-        totalSpeedMod += item.StatMod("speed")
-        // ... sum all stat modifications
-    }
-    
-    // Apply buff modifiers
-    totalStrengthMod += character.Buffs.StatMod("strength")
-    totalSpeedMod += character.Buffs.StatMod("speed")
-    // ... add all buff modifications
-    
-    // Set final modifiers and recalculate
-    character.Stats.Strength.SetMod(totalStrengthMod)
-    character.Stats.Strength.Recalculate(character.Level)
-    character.Stats.Speed.SetMod(totalSpeedMod)
-    character.Stats.Speed.Recalculate(character.Level)
-    // ... apply to all stats
-}
+func ApplyAllModifiers(character *Character)
 ```
 
 ## Dependencies

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The GoMud users system provides comprehensive user account management with support for authentication, character association, connection tracking, item storage, messaging, and configuration management. It features a sophisticated indexing system for fast user lookups, zombie connection handling, role-based permissions, and persistent user data storage with YAML serialization.
+The GoMud users system provides comprehensive user account management with support for authentication, character association, connection tracking, item storage, messaging, and configuration management. It features a sophisticated indexing system for fast user lookups, link-dead connection handling, role-based permissions, and persistent user data storage with YAML serialization.
 
 ## Architecture
 
@@ -13,7 +13,7 @@ The users system is built around several key components:
 **User Management:**
 - Active user tracking with connection mapping
 - Role-based permission system (guest, user, admin)
-- Zombie connection handling for graceful disconnections
+- Link-dead connection handling for graceful disconnections
 - Thread-safe user operations with proper cleanup
 
 **User Index System:**
@@ -37,10 +37,10 @@ The users system is built around several key components:
 ## Key Features
 
 ### 1. **Comprehensive User Management**
-- **Authentication**: Password hashing and validation
+- **Authentication**: bcrypt password hashing with migration from legacy SHA256 hashes
 - **Role System**: Guest, user, and admin roles with permissions
 - **Connection Tracking**: Real-time user connection mapping
-- **Zombie Handling**: Graceful disconnection and cleanup
+- **Link-Dead Handling**: Graceful disconnection and cleanup
 
 ### 2. **High-Performance Index System**
 - **Binary Index**: Fast username lookups with O(log n) performance
@@ -56,9 +56,12 @@ The users system is built around several key components:
 
 ### 4. **Advanced Features**
 - **Screen Reader Support**: Accessibility features for visually impaired users
-- **Audio Integration**: Music and sound effect tracking
+- **Audio Integration**: Music and sound effect tracking via `PlayMusic`/`PlaySound`
 - **Tip System**: Tutorial completion tracking
 - **Temporary Data**: Session-based data storage for scripting
+- **Alt Characters**: Support for multiple characters per account via `SwapToAlt`
+- **Wimpy System**: Auto-flee at configurable health percentage via `WimpyCheck`
+- **Connection Type Tracking**: Telnet, WebSocket, and SSH connection type reported in `OnlineInfo`
 
 ## User Structure
 
@@ -68,7 +71,7 @@ type UserRecord struct {
     UserId         int                   // Unique user identifier
     Role           string                // Permission role (guest/user/admin)
     Username       string                // Login username
-    Password       string                // Hashed password
+    Password       string                // bcrypt-hashed password
     Joined         time.Time             // Account creation date
     Macros         map[string]string     // User-defined command macros
     Aliases        map[string]string     // Command aliases and shortcuts
@@ -81,7 +84,7 @@ type UserRecord struct {
     ScreenReader   bool                  // Accessibility mode
     EmailAddress   string                // Contact email (optional)
     TipsComplete   map[string]bool       // Tutorial completion tracking
-    
+
     // Runtime fields (not persisted)
     EventLog       UserLog               // Session event logging
     LastMusic      string                // Audio state tracking
@@ -92,7 +95,7 @@ type UserRecord struct {
     lastInputRound uint64                // Last input round number
     tempDataStore  map[string]any        // Temporary session data
     activePrompt   *prompt.Prompt        // Current prompt state
-    isZombie       bool                  // Zombie connection flag
+    isLinkDead     bool                  // Link-dead connection flag
     inputBlocked   bool                  // Input processing control
 }
 ```
@@ -100,11 +103,11 @@ type UserRecord struct {
 ### Active Users Management
 ```go
 type ActiveUsers struct {
-    Users             map[int]*UserRecord                 // userId -> UserRecord
-    Usernames         map[string]int                      // username -> userId
-    Connections       map[connections.ConnectionId]int    // connectionId -> userId
-    UserConnections   map[int]connections.ConnectionId    // userId -> connectionId
-    ZombieConnections map[connections.ConnectionId]uint64 // connectionId -> zombie turn
+    Users               map[int]*UserRecord                 // userId -> UserRecord
+    Usernames           map[string]int                      // username -> userId
+    Connections         map[connections.ConnectionId]int    // connectionId -> userId
+    UserConnections     map[int]connections.ConnectionId    // userId -> connectionId
+    LinkDeadConnections map[connections.ConnectionId]uint64 // connectionId -> turn they became link-dead
 }
 ```
 
@@ -126,182 +129,66 @@ type IndexUserRecord struct {
 }
 ```
 
-### Index Operations
-```go
-// Create new index from scratch
-func (idx *UserIndex) Create() error {
-    idx.Delete() // Remove existing index
-    
-    f, err := os.Create(idx.Filename)
-    if err != nil {
-        return err
-    }
-    defer f.Close()
-    
-    // Write header
-    idx.metaData = IndexMetaData{
-        MetaDataSize: FixedHeaderTotalLength,
-        IndexVersion: IndexVersion,
-        RecordCount:  0,
-        RecordSize:   IndexRecordSizeV1,
-    }
-    
-    headerBytes, err := idx.metaData.Format()
-    if err != nil {
-        return err
-    }
-    
-    return f.Write(headerBytes)
-}
-
-// Fast username lookup
-func (idx *UserIndex) GetByUsername(username string) (int, error) {
-    if !idx.Exists() {
-        return 0, ErrIndexMissing
-    }
-    
-    if len(username) > 79 {
-        return 0, ErrSearchNameTooLong
-    }
-    
-    f, err := os.Open(idx.Filename)
-    if err != nil {
-        return 0, err
-    }
-    defer f.Close()
-    
-    // Skip header
-    f.Seek(int64(idx.metaData.MetaDataSize), 0)
-    
-    // Binary search through fixed-width records
-    for i := uint64(0); i < idx.metaData.RecordCount; i++ {
-        var record IndexUserRecord
-        if err := binary.Read(f, binary.LittleEndian, &record); err != nil {
-            return 0, err
-        }
-        
-        // Read terminator
-        var terminator byte
-        binary.Read(f, binary.LittleEndian, &terminator)
-        
-        recordUsername := strings.TrimRight(string(record.Username[:]), "\x00")
-        if strings.EqualFold(recordUsername, username) {
-            return int(record.UserID), nil
-        }
-    }
-    
-    return 0, ErrNotFound
-}
-```
-
 ## User Management Operations
 
 ### User Creation and Authentication
 ```go
 // Create new user record
-func NewUserRecord(userId int, connectionId uint64) *UserRecord {
-    c := configs.GetGamePlayConfig()
-    
-    u := &UserRecord{
-        connectionId:   connectionId,
-        UserId:         userId,
-        Role:           RoleUser,
-        Username:       "",
-        Password:       "",
-        Macros:         make(map[string]string),
-        Character:      characters.New(),
-        ConfigOptions:  map[string]any{},
-        Joined:         time.Now(),
-        connectionTime: time.Now(),
-        tempDataStore:  make(map[string]any),
-        EventLog:       UserLog{},
-    }
-    
-    // Set extra lives for permadeath mode
-    if c.Death.PermaDeath {
-        u.Character.ExtraLives = int(c.LivesStart)
-    }
-    
-    return u
-}
+func NewUserRecord(userId int, connectionId uint64) *UserRecord
 
-// Password validation with multiple formats
-func (u *UserRecord) PasswordMatches(input string) bool {
-    // Direct match (legacy)
-    if input == u.Password {
-        return true
-    }
-    
-    // Hashed match (current)
-    if u.Password == util.Hash(input) {
-        return true
-    }
-    
-    return false
-}
+// Password validation: tries bcrypt first, then migrates legacy SHA256 hashes to bcrypt
+func (u *UserRecord) PasswordMatches(input string) bool
+
+// Set password (bcrypt-hashes the provided value)
+func (u *UserRecord) SetPassword(pw string) error
 ```
 
 ### Connection Management
 ```go
 // Get connection ID for user
-func GetConnectionId(userId int) connections.ConnectionId {
-    if user, ok := userManager.Users[userId]; ok {
-        return user.connectionId
-    }
-    return 0
-}
+func GetConnectionId(userId int) connections.ConnectionId
 
 // Get multiple connection IDs
-func GetConnectionIds(userIds []int) []connections.ConnectionId {
-    connectionIds := make([]connections.ConnectionId, 0, len(userIds))
-    for _, userId := range userIds {
-        if user, ok := userManager.Users[userId]; ok {
-            connectionIds = append(connectionIds, user.connectionId)
-        }
-    }
-    return connectionIds
-}
+func GetConnectionIds(userIds []int) []connections.ConnectionId
 
-// Get all active users
-func GetAllActiveUsers() []*UserRecord {
-    ret := []*UserRecord{}
-    for _, user := range userManager.Users {
-        ret = append(ret, user)
-    }
-    return ret
-}
+// Get all active (non-link-dead) users
+func GetAllActiveUsers() []*UserRecord
+
+// Get all online user IDs (including link-dead)
+func GetOnlineUserIds() []int
 ```
 
-### Zombie Connection Handling
+### Link-Dead Connection Handling
 ```go
-// Mark user as zombie (disconnected but not cleaned up)
-func RemoveZombieUser(userId int) {
-    if u := userManager.Users[userId]; u != nil {
-        u.Character.SetAdjective("zombie", false)
-    }
-    if connId, ok := userManager.UserConnections[userId]; ok {
-        delete(userManager.ZombieConnections, connId)
-    }
-}
+// Mark user as link-dead
+func SetLinkDeadUser(userId int)
 
-// Check if connection is zombie
-func IsZombieConnection(connectionId connections.ConnectionId) bool {
-    _, ok := userManager.ZombieConnections[connectionId]
-    return ok
-}
+// Clear link-dead status for a user
+func RemoveLinkDeadUser(userId int)
 
-// Get expired zombie connections for cleanup
-func GetExpiredZombies(expirationTurn uint64) []int {
-    expiredUsers := make([]int, 0)
-    
-    for connectionId, zombieTurn := range userManager.ZombieConnections {
-        if zombieTurn < expirationTurn {
-            expiredUsers = append(expiredUsers, userManager.Connections[connectionId])
-        }
-    }
-    
-    return expiredUsers
-}
+// Remove a link-dead connection entry directly
+func RemoveLinkDeadConnection(connectionId connections.ConnectionId)
+
+// Check if connection is link-dead
+func IsLinkDeadConnection(connectionId connections.ConnectionId) bool
+
+// Get expired link-dead users for cleanup
+func GetExpiredLinkDeadUsers(expirationTurn uint64) []int
+```
+
+### Login / Logout
+```go
+// Log in a user (handles link-dead reconnect)
+func LoginUser(user *UserRecord, connectionId connections.ConnectionId) (*UserRecord, string, error)
+
+// Log in a user reconnecting after a copyover
+func CopyoverReconnectUser(user *UserRecord, connectionId connections.ConnectionId) (*UserRecord, string, error)
+
+// Log out a user by connection ID (saves data and cleans up maps)
+func LogOutUserByConnectionId(connectionId connections.ConnectionId) error
+
+// Create a brand-new user account
+func CreateUser(u *UserRecord) error
 ```
 
 ## Storage Systems
@@ -312,44 +199,9 @@ type Storage struct {
     Items []items.Item // Personal item storage
 }
 
-// Find item by name with fuzzy matching
-func (s *Storage) FindItem(itemName string) (items.Item, bool) {
-    if itemName == "" {
-        return items.Item{}, false
-    }
-    
-    closeMatchItem, matchItem := items.FindMatchIn(itemName, s.Items...)
-    
-    if matchItem.ItemId != 0 {
-        return matchItem, true
-    }
-    
-    if closeMatchItem.ItemId != 0 {
-        return closeMatchItem, true
-    }
-    
-    return items.Item{}, false
-}
-
-// Add item to storage
-func (s *Storage) AddItem(i items.Item) bool {
-    if i.ItemId < 1 {
-        return false
-    }
-    s.Items = append(s.Items, i)
-    return true
-}
-
-// Remove specific item instance
-func (s *Storage) RemoveItem(i items.Item) bool {
-    for j := len(s.Items) - 1; j >= 0; j-- {
-        if s.Items[j].Equals(i) {
-            s.Items = append(s.Items[:j], s.Items[j+1:]...)
-            return true
-        }
-    }
-    return false
-}
+func (s *Storage) FindItem(itemName string) (items.Item, bool)
+func (s *Storage) AddItem(i items.Item) bool
+func (s *Storage) RemoveItem(i items.Item) bool
 ```
 
 ### Inbox Messaging System
@@ -366,93 +218,37 @@ type Message struct {
     DateSent   time.Time   // Timestamp
 }
 
-// Add message to inbox (newest first)
-func (i *Inbox) Add(msg Message) {
-    msg.DateSent = time.Now()
-    
-    newInbox := &Inbox{msg}
-    
-    if i == nil {
-        (*i) = *newInbox
-        return
-    }
-    
-    // Prepend new message
-    (*i) = append(*newInbox, (*i)...)
-}
-
-// Count read/unread messages
-func (i *Inbox) CountRead() int {
-    ct := 0
-    for _, msg := range *i {
-        if msg.Read {
-            ct++
-        }
-    }
-    return ct
-}
-
-func (i *Inbox) CountUnread() int {
-    ct := 0
-    for _, msg := range *i {
-        if !msg.Read {
-            ct++
-        }
-    }
-    return ct
-}
+func (i *Inbox) Add(msg Message)
+func (i *Inbox) CountRead() int
+func (i *Inbox) CountUnread() int
 ```
 
 ## User Data Management
 
 ### Temporary Data Storage
 ```go
-// Set temporary session data
-func (u *UserRecord) SetTempData(key string, value any) {
-    if u.tempDataStore == nil {
-        u.tempDataStore = make(map[string]any)
-    }
-    
-    if value == nil {
-        delete(u.tempDataStore, key)
-        return
-    }
-    
-    u.tempDataStore[key] = value
-}
-
-// Get temporary session data
-func (u *UserRecord) GetTempData(key string) any {
-    if u.tempDataStore == nil {
-        u.tempDataStore = make(map[string]any)
-    }
-    
-    if value, ok := u.tempDataStore[key]; ok {
-        return value
-    }
-    
-    return nil
-}
+func (u *UserRecord) SetTempData(key string, value any)
+func (u *UserRecord) GetTempData(key string) any
 ```
 
-### Configuration Management
+### Configuration Options
 ```go
-// Get client display settings
-func (u *UserRecord) ClientSettings() connections.ClientSettings {
-    return connections.GetClientSettings(u.connectionId)
-}
+func (u *UserRecord) SetConfigOption(key string, value any)
+func (u *UserRecord) GetConfigOption(key string) any
 
-// Configuration options stored in ConfigOptions map
-// Examples:
-// - "auto_attack": bool
-// - "brief_mode": bool
-// - "color_enabled": bool
-// - "sound_enabled": bool
+// Client display settings (screen width/height, MSP, etc.)
+func (u *UserRecord) ClientSettings() connections.ClientSettings
+```
+
+### Unsent Text (prompt redraw support)
+```go
+func (u *UserRecord) SetUnsentText(t string, suggest string)
+func (u *UserRecord) GetUnsentText() (unsent string, suggestion string)
 ```
 
 ## Online User Information
 
-### Online Status Tracking
+### OnlineInfo Structure
 ```go
 type OnlineInfo struct {
     Username      string // Login username
@@ -461,17 +257,19 @@ type OnlineInfo struct {
     Alignment     string // Character alignment
     Profession    string // Character profession
     OnlineTime    int64  // Seconds online
-    OnlineTimeStr string // Formatted time string
+    OnlineTimeStr string // Formatted time string (e.g. "2h30m")
     IsAFK         bool   // Away from keyboard status
     Role          string // User role (guest/user/admin)
+    ConnType      string // Connection type: "telnet", "websocket", or "ssh"
 }
 ```
+
+`ConnType` is determined at runtime from the underlying `ConnectionDetails` via `cd.IsWebSocket()` / `cd.IsSSH()`.
 
 ## Integration Patterns
 
 ### Character System Integration
 ```go
-// Users have associated characters
 - user.Character                                          // Full character data
 - user.Character.Name                                    // Character name
 - user.Character.Level                                   // Character progression
@@ -483,137 +281,68 @@ type OnlineInfo struct {
 
 ### Connection System Integration
 ```go
-// Users map to network connections
 - user.connectionId                // Current connection
 - connections.GetClientSettings()  // Display preferences
 - connections.SendTo()             // Send messages to user
+- connections.Get(id).IsSSH()      // Detect SSH connection type
 ```
 
 ### Prompt System Integration
 ```go
-// Users can have active prompts
 - user.activePrompt               // Current prompt state
 - user.inputBlocked               // Input processing control
-- prompt.Ask()                    // Interactive prompts
+- user.StartPrompt(cmd, rest)     // Start or reuse a prompt
+- user.GetPrompt()                // Retrieve current prompt
+- user.ClearPrompt()              // Clear active prompt
 ```
 
 ### Event System Integration
 ```go
-// Users participate in game events
 - events.AddToQueue()             // Queue user actions
 - user.EventLog                   // Track user events
 - user.lastInputRound             // Input timing
+- user.Command(inputTxt)          // Queue a command for the user
+- user.CommandFlagged(inputTxt, flags) // Queue a command with event flags
+- user.SendText(txt)              // Queue a Message event to the user
+- user.AddBuff(buffId, source)    // Queue a Buff event for the user
+- user.GrantXP(amt, source)       // Grant XP and fire LevelUp events if needed
 ```
 
 ## Usage Examples
 
 ### User Authentication
 ```go
-// Authenticate user login
-username := "player1"
-password := "secretpass"
-
-// Look up user by username
-userId, err := userIndex.GetByUsername(username)
+user, err := users.LoadUser(username)
 if err != nil {
     return errors.New("user not found")
 }
-
-// Load user record
-user, err := LoadUser(userId)
-if err != nil {
-    return err
-}
-
-// Verify password
 if !user.PasswordMatches(password) {
     return errors.New("invalid password")
 }
-
 // User authenticated successfully
-fmt.Printf("Welcome back, %s!\n", user.Username)
-```
-
-### User Management
-```go
-// Create new user
-connectionId := uint64(12345)
-userId := getNextUserId()
-
-user := users.NewUserRecord(userId, connectionId)
-user.Username = "newplayer"
-user.Password = util.Hash("password123")
-user.Character.Name = "NewPlayer"
-
-// Save user
-if err := user.Save(); err != nil {
-    return err
-}
-
-// Add to active users
-userManager.Users[userId] = user
-userManager.Usernames[user.Username] = userId
-userManager.Connections[connectionId] = userId
-userManager.UserConnections[userId] = connectionId
-```
-
-### Item Storage Operations
-```go
-// Store item in user's personal storage
-sword := items.New(101) // Create sword item
-if user.ItemStorage.AddItem(sword) {
-    user.SendText("Item stored successfully.")
-}
-
-// Retrieve item from storage
-storedItem, found := user.ItemStorage.FindItem("sword")
-if found {
-    user.Character.GiveItem(storedItem)
-    user.ItemStorage.RemoveItem(storedItem)
-    user.SendText("Item retrieved from storage.")
-}
-```
-
-### Messaging System
-```go
-// Send message with attachment
-message := users.Message{
-    FromUserId: senderUserId,
-    FromName:   sender.Character.Name,
-    Message:    "Here's that sword I promised you!",
-    Item:       &sword,
-    Gold:       100,
-    Read:       false,
-}
-
-recipient.Inbox.Add(message)
-recipient.SendText("You have a new message!")
-
-// Check unread messages
-unreadCount := recipient.Inbox.CountUnread()
-if unreadCount > 0 {
-    recipient.SendText(fmt.Sprintf("You have %d unread messages.", unreadCount))
-}
 ```
 
 ### Zombie Connection Cleanup
 ```go
-// Handle disconnected users
 currentTurn := util.GetTurnCount()
-expirationTurn := currentTurn - 100 // 100 turns ago
+expirationTurn := currentTurn - linkDeadTurns
 
-expiredZombies := users.GetExpiredZombies(expirationTurn)
-for _, userId := range expiredZombies {
+expiredUsers := users.GetExpiredLinkDeadUsers(expirationTurn)
+for _, userId := range expiredUsers {
     user := users.GetByUserId(userId)
     if user != nil {
-        // Save user data
         user.Save()
-        
-        // Remove from active users
-        users.RemoveUser(userId)
-        
-        fmt.Printf("Cleaned up zombie user: %s\n", user.Username)
+        users.LogOutUserByConnectionId(user.ConnectionId())
     }
+}
+```
+
+### Alt Character Swap
+```go
+if user.SwapToAlt("AltName") {
+    user.SendText("Swapped to alt character.")
+} else {
+    user.SendText("Alt character not found.")
 }
 ```
 
@@ -626,6 +355,7 @@ for _, userId := range expiredZombies {
 - `internal/prompt` - Interactive prompt system for user input
 - `internal/util` - Utility functions for hashing, file operations, and validation
 - `internal/mudlog` - Logging system for user events and debugging
+- `internal/audio` - Audio file lookup for MSP sound/music events
+- `internal/skills` - Profession lookup for online info display
+- `golang.org/x/crypto/bcrypt` - Secure password hashing
 - `gopkg.in/yaml.v2` - YAML serialization for user data persistence
-
-This comprehensive users system provides robust user account management with authentication, connection tracking, data persistence, messaging, and seamless integration with all game systems while maintaining high performance through efficient indexing and caching.

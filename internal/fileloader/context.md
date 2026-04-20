@@ -150,8 +150,8 @@ type ConfigData struct {
     Value int   `yaml:"value"`
 }
 
-func (c ConfigData) Validate() error { return nil }
-func (c ConfigData) Filepath() string { return "config.yaml" }
+func (c ConfigData) Validate() error
+func (c ConfigData) Filepath() string
 
 config, err := fileloader.LoadFlatFile[ConfigData]("/path/to/config.yaml")
 ```
@@ -163,9 +163,9 @@ type ItemData struct {
     Name   string `yaml:"name"`
 }
 
-func (i ItemData) Id() int { return i.ItemId }
-func (i ItemData) Validate() error { return nil }
-func (i ItemData) Filepath() string { return fmt.Sprintf("items/%d.yaml", i.ItemId) }
+func (i ItemData) Id() int
+func (i ItemData) Validate() error
+func (i ItemData) Filepath() string
 
 items, err := fileloader.LoadAllFlatFiles[int, ItemData]("/path/to/items/")
 ```

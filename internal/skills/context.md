@@ -54,18 +54,10 @@ The skills system is built around several key components:
 type SkillTag string
 
 // Hierarchical skill identification with subtag support
-func (s SkillTag) String(subtag ...string) string {
-    result := string(s)
-    if len(subtag) > 0 {
-        result += ":" + strings.Join(subtag, ":")
-    }
-    return result
-}
+func (s SkillTag) String(subtag ...string) string
 
 // Create skill subtags for specialized abilities
-func (s SkillTag) Sub(subtag string) SkillTag {
-    return SkillTag(string(s) + subtag)
-}
+func (s SkillTag) Sub(subtag string) SkillTag
 ```
 
 ### Core Skills Enumeration
@@ -126,91 +118,13 @@ type ProfessionRank struct {
 }
 
 // Calculate profession rankings based on skill investments
-func GetProfessionRanks(allRanks map[string]int) []ProfessionRank {
-    professionList := []ProfessionRank{}
-    
-    for professionName, skills := range Professions {
-        ranking := ProfessionRank{Profession: professionName}
-        
-        for _, skillName := range skills {
-            skillLevel := 0
-            if rankVal, ok := allRanks[string(skillName)]; ok {
-                skillLevel = rankVal
-            }
-            
-            // Cap at level 4
-            if skillLevel > 4 {
-                skillLevel = 4
-            }
-            
-            // Calculate cumulative cost: 1+2+3+4 = 10 points max per skill
-            totalSkill := (skillLevel * (skillLevel + 1)) / 2
-            
-            ranking.PointsToMax += 10.0 // Maximum 10 points per skill
-            ranking.TotalPointsSpent += float64(totalSkill)
-            ranking.Skills = append(ranking.Skills, string(skillName))
-        }
-        
-        ranking.Completion = ranking.TotalPointsSpent / ranking.PointsToMax
-        ranking.ExperienceTitle = GetExperienceLevel(ranking.Completion)
-        
-        professionList = append(professionList, ranking)
-    }
-    
-    return professionList
-}
+func GetProfessionRanks(allRanks map[string]int) []ProfessionRank
 ```
 
 ### Dynamic Profession Assignment
 ```go
 // Determine primary profession based on highest completion
-func GetProfession(allRanks map[string]int) string {
-    rankData := GetProfessionRanks(allRanks)
-    
-    var highestCompletion float64 = 0
-    chosenProfessions := []string{}
-    experienceName := ""
-    
-    // Find highest completion percentage
-    for _, pRank := range rankData {
-        if pRank.Completion == 0 {
-            continue
-        }
-        
-        if pRank.Completion > highestCompletion {
-            highestCompletion = pRank.Completion
-            chosenProfessions = []string{}
-        }
-        
-        if pRank.Completion == highestCompletion {
-            experienceName = pRank.ExperienceTitle
-            chosenProfessions = append(chosenProfessions, pRank.Profession)
-        }
-    }
-    
-    // Handle special cases
-    if len(chosenProfessions) < 1 {
-        return "scrub" // No skill investment
-    }
-    
-    if len(experienceName) > 0 {
-        experienceName = experienceName + " "
-    }
-    
-    // Demigod status for mastering all professions
-    if len(chosenProfessions) == len(Professions) {
-        return experienceName + "demigod"
-    }
-    
-    // Limit display to 3 professions
-    extra := ""
-    if len(chosenProfessions) > 3 {
-        chosenProfessions = chosenProfessions[0:3]
-        extra = " (and more)"
-    }
-    
-    return experienceName + strings.Join(chosenProfessions, "/") + extra
-}
+func GetProfession(allRanks map[string]int) string
 ```
 
 ## Experience Level System
@@ -218,25 +132,7 @@ func GetProfession(allRanks map[string]int) string {
 ### Experience Title Calculation
 ```go
 // Convert completion percentage to experience title
-func GetExperienceLevel(percentage float64) string {
-    if percentage >= 0.9 { // ~90% completion (avg level 4)
-        return "expert"
-    }
-    
-    if percentage >= 0.6 { // ~60% completion (avg level 3)
-        return "journeyman"
-    }
-    
-    if percentage >= 0.3 { // ~30% completion (avg level 2)
-        return "apprentice"
-    }
-    
-    if percentage >= 0.1 { // ~10% completion (avg level 1)
-        return "novice"
-    }
-    
-    return "scrub" // No meaningful investment
-}
+func GetExperienceLevel(percentage float64) string
 ```
 
 ### Progression Philosophy
@@ -258,39 +154,16 @@ This creates meaningful choices:
 ### Skill Validation
 ```go
 // Check if skill exists in the system
-func SkillExists(sk string) bool {
-    for _, skTag := range allSkillNames {
-        if sk == string(skTag) {
-            return true
-        }
-    }
-    return false
-}
+func SkillExists(sk string) bool
 
 // Get all available skill names
-func GetAllSkillNames() []SkillTag {
-    return append([]SkillTag{}, allSkillNames...)
-}
+func GetAllSkillNames() []SkillTag
 ```
 
 ### Skill Discovery and Initialization
 ```go
 // Automatic skill discovery from profession definitions
-func init() {
-    skillNameSet := map[SkillTag]struct{}{}
-    
-    // Extract unique skills from all professions
-    for _, skills := range Professions {
-        for _, skillName := range skills {
-            if _, ok := skillNameSet[skillName]; ok {
-                continue // Skip duplicates
-            }
-            
-            skillNameSet[skillName] = struct{}{}
-            allSkillNames = append(allSkillNames, skillName)
-        }
-    }
-}
+func init()
 ```
 
 ## Skill Training Locations
@@ -435,19 +308,7 @@ fmt.Printf("Specialized skill: %s\n", specializedSkill.String())
 ### Training Cost Calculation
 ```go
 // Calculate cost to train skill to specific level
-func calculateTrainingCost(currentLevel, targetLevel int) int {
-    cost := 0
-    for level := currentLevel + 1; level <= targetLevel; level++ {
-        cost += level // Level 1=1pt, Level 2=2pts, etc.
-    }
-    return cost
-}
-
-// Examples:
-// Level 0 → 1: 1 point
-// Level 0 → 2: 3 points (1+2)
-// Level 0 → 4: 10 points (1+2+3+4)
-// Level 2 → 4: 7 points (3+4)
+func calculateTrainingCost(currentLevel, targetLevel int) int
 ```
 
 ### Profession Specialization Strategies

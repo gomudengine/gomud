@@ -459,9 +459,9 @@ func resumeRestoredConnection(connDetails *connections.ConnectionDetails, userOb
 		if err != nil {
 			userObject.EventLog.Add(`conn`, `Disconnected`)
 
-			if c.Network.ZombieSeconds > 0 {
-				connDetails.SetState(connections.Zombie)
-				worldManager.SendSetZombie(userObject.UserId, true)
+			if c.Network.LinkDeadSeconds > 0 {
+				connDetails.SetState(connections.LinkDead)
+				worldManager.SendSetLinkDead(userObject.UserId, true)
 			} else {
 				worldManager.SendLeaveWorld(userObject.UserId)
 				worldManager.SendLogoutConnectionId(connDetails.ConnectionId())
@@ -695,15 +695,15 @@ func handleTelnetConnection(connDetails *connections.ConnectionDetails, wg *sync
 		n, err := connDetails.Read(inputBuffer)
 		if err != nil {
 
-			// If failed to read from the connection, switch to zombie state
+			// If failed to read from the connection, switch to linkdead state
 			if userObject != nil {
 
 				userObject.EventLog.Add(`conn`, `Disconnected`)
 
-				if c.Network.ZombieSeconds > 0 {
+				if c.Network.LinkDeadSeconds > 0 {
 
-					connDetails.SetState(connections.Zombie)
-					worldManager.SendSetZombie(userObject.UserId, true)
+					connDetails.SetState(connections.LinkDead)
+					worldManager.SendSetLinkDead(userObject.UserId, true)
 
 				} else {
 
@@ -992,15 +992,15 @@ func HandleWebSocketConnection(conn *websocket.Conn) {
 
 		if err != nil {
 
-			// If failed to read from the connection, switch to zombie state
+			// If failed to read from the connection, switch to linkdead state
 			if userObject != nil {
 
 				userObject.EventLog.Add(`conn`, `Disconnected`)
 
-				if c.Network.ZombieSeconds > 0 {
+				if c.Network.LinkDeadSeconds > 0 {
 
-					connDetails.SetState(connections.Zombie)
-					worldManager.SendSetZombie(userObject.UserId, true)
+					connDetails.SetState(connections.LinkDead)
+					worldManager.SendSetLinkDead(userObject.UserId, true)
 
 				} else {
 
@@ -1379,9 +1379,9 @@ func handleSSHConnection(connDetails *connections.ConnectionDetails, reqs <-chan
 		if err != nil {
 			if userObject != nil {
 				userObject.EventLog.Add(`conn`, `Disconnected`)
-				if c.Network.ZombieSeconds > 0 {
-					connDetails.SetState(connections.Zombie)
-					worldManager.SendSetZombie(userObject.UserId, true)
+				if c.Network.LinkDeadSeconds > 0 {
+					connDetails.SetState(connections.LinkDead)
+					worldManager.SendSetLinkDead(userObject.UserId, true)
 				} else {
 					worldManager.SendLeaveWorld(userObject.UserId)
 					worldManager.SendLogoutConnectionId(connDetails.ConnectionId())

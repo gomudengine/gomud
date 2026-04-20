@@ -97,74 +97,16 @@ type QuestReward struct {
 const QuestTokenSeparator = "-"
 
 // Convert quest ID and step to token format
-func PartsToToken(questId int, questStep string) string {
-    return fmt.Sprintf("%d%s%s", questId, QuestTokenSeparator, questStep)
-}
+func PartsToToken(questId int, questStep string) string
 
 // Parse token into quest ID and step
-func TokenToParts(questToken string) (questId int, questStep string) {
-    parts := strings.Split(questToken, QuestTokenSeparator)
-    questId, _ = strconv.Atoi(parts[0])
-    
-    if len(parts) > 1 {
-        questStep = parts[1]
-    } else {
-        questStep = "start" // Default to start step
-    }
-    
-    return questId, questStep
-}
+func TokenToParts(questToken string) (questId int, questStep string)
 ```
 
 ### Quest Progress Validation
 ```go
 // Check if next token represents valid progression from current token
-func IsTokenAfter(currentToken string, nextToken string) bool {
-    currentId, currentStep := TokenToParts(currentToken)
-    nextId, nextStep := TokenToParts(nextToken)
-    
-    // No current progress - can only start quests
-    if currentStep == "" {
-        if nextStep == "start" {
-            return true
-        } else if nextStep == "end" {
-            // Single-step quest can be completed immediately
-            if questInfo := GetQuest(nextToken); questInfo != nil {
-                if len(questInfo.Steps) == 1 {
-                    return true
-                }
-            }
-        }
-        return false
-    }
-    
-    // Must be same quest and different step
-    if currentId != nextId || currentStep == nextStep {
-        return false
-    }
-    
-    // Validate step progression
-    questInfo := GetQuest(currentToken)
-    if questInfo == nil {
-        return false
-    }
-    
-    // Find current step and check if next step follows
-    result := false
-    startLooking := false
-    
-    for _, step := range questInfo.Steps {
-        if step.Id == currentStep {
-            startLooking = true
-        }
-        if startLooking && step.Id == nextStep {
-            result = true
-            break
-        }
-    }
-    
-    return result
-}
+func IsTokenAfter(currentToken string, nextToken string) bool
 ```
 
 ## Quest Discovery and Management
@@ -172,60 +114,16 @@ func IsTokenAfter(currentToken string, nextToken string) bool {
 ### Quest Retrieval
 ```go
 // Get quest by token (validates step existence)
-func GetQuest(questToken string) *Quest {
-    questId, questStep := TokenToParts(questToken)
-    
-    quest := quests[questId]
-    if quest == nil {
-        return nil
-    }
-    
-    // Special case: return full quest info
-    if questStep == "all+" {
-        return quest
-    }
-    
-    // Validate step exists in quest
-    stepIsValid := true
-    if len(questStep) > 0 {
-        stepIsValid = false
-        for _, step := range quest.Steps {
-            if step.Id == questStep {
-                stepIsValid = true
-                break
-            }
-        }
-    }
-    
-    if stepIsValid {
-        return quest
-    }
-    
-    return nil
-}
+func GetQuest(questToken string) *Quest
 
 // Get all available quests (returns copies)
-func GetAllQuests() []Quest {
-    ret := []Quest{}
-    for _, q := range quests {
-        ret = append(ret, *q)
-    }
-    return ret
-}
+func GetAllQuests() []Quest
 ```
 
 ### Quest Statistics
 ```go
 // Get count of quests (optionally including secret quests)
-func GetQuestCt(includeSecret bool) int {
-    ret := 0
-    for _, q := range quests {
-        if includeSecret || !q.Secret {
-            ret++
-        }
-    }
-    return ret
-}
+func GetQuestCt(includeSecret bool) int
 ```
 
 ## File Management and Validation
@@ -233,46 +131,22 @@ func GetQuestCt(includeSecret bool) int {
 ### Quest File Operations
 ```go
 // Generate filename for quest
-func (r *Quest) Filename() string {
-    filename := util.ConvertForFilename(r.Name)
-    return fmt.Sprintf("%d-%s.yaml", r.Id(), filename)
-}
+func (r *Quest) Filename() string
 
 // Get file path for quest
-func (r *Quest) Filepath() string {
-    return r.Filename()
-}
+func (r *Quest) Filepath() string
 
 // Get unique identifier
-func (r *Quest) Id() int {
-    return r.QuestId
-}
+func (r *Quest) Id() int
 
 // Validate quest configuration
-func (r *Quest) Validate() error {
-    return nil // Placeholder for validation logic
-}
+func (r *Quest) Validate() error
 ```
 
 ### Data Loading
 ```go
 // Load all quest files from data directory
-func LoadDataFiles() {
-    start := time.Now()
-    
-    tmpQuests, err := fileloader.LoadAllFlatFiles[int, *Quest](
-        configs.GetFilePathsConfig().DataFiles.String() + "/quests"
-    )
-    if err != nil {
-        panic(err)
-    }
-    
-    quests = tmpQuests
-    
-    mudlog.Info("quests.LoadDataFiles()", 
-        "loadedCount", len(quests), 
-        "Time Taken", time.Since(start))
-}
+func LoadDataFiles()
 ```
 
 ## Quest Progression Patterns
@@ -473,57 +347,7 @@ if quest != nil {
 ### Reward Distribution
 ```go
 // Distribute quest completion rewards
-func distributeRewards(character *characters.Character, rewards QuestReward) {
-    // Gold reward
-    if rewards.Gold > 0 {
-        character.Gold += rewards.Gold
-    }
-    
-    // Experience reward
-    if rewards.Experience > 0 {
-        character.Experience += rewards.Experience
-    }
-    
-    // Item reward
-    if rewards.ItemId > 0 {
-        item := items.New(rewards.ItemId)
-        character.GiveItem(item)
-    }
-    
-    // Skill reward
-    if rewards.SkillInfo != "" {
-        parts := strings.Split(rewards.SkillInfo, ":")
-        if len(parts) == 2 {
-            skillId := parts[0]
-            level, _ := strconv.Atoi(parts[1])
-            character.SetSkillLevel(skillId, level)
-        }
-    }
-    
-    // Buff reward
-    if rewards.BuffId > 0 {
-        character.Buffs.AddBuff(rewards.BuffId, false)
-    }
-    
-    // Chained quest reward
-    if rewards.QuestId != "" {
-        character.AddQuestFlag(rewards.QuestId)
-    }
-    
-    // Teleportation reward
-    if rewards.RoomId > 0 {
-        character.RoomId = rewards.RoomId
-    }
-    
-    // Messages
-    if rewards.PlayerMessage != "" {
-        user.SendText(rewards.PlayerMessage)
-    }
-    
-    if rewards.RoomMessage != "" {
-        room.SendText(rewards.RoomMessage, user)
-    }
-}
+func distributeRewards(character *characters.Character, rewards QuestReward)
 ```
 
 ### Quest Statistics

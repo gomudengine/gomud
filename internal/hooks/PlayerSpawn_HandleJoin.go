@@ -31,7 +31,7 @@ func HandleJoin(e events.Event) events.ListenerReturn {
 
 	user.EventLog.Add(`conn`, fmt.Sprintf(`<ansi fg="username">%s</ansi> entered the world`, user.Character.Name))
 
-	users.RemoveZombieUser(evt.UserId)
+	users.RemoveLinkDeadUser(evt.UserId)
 
 	room := rooms.LoadRoom(user.Character.RoomId)
 	sendResetMessage := false

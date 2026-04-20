@@ -194,23 +194,8 @@ type WebPlugin interface {
 web.SetWebPlugin(plugins.GetPluginRegistry())
 
 // Plugin implementation
-func (p *MyPlugin) NavLinks() map[string]string {
-    return map[string]string{
-        "My Feature": "/myplugin/dashboard",
-        "Settings":   "/myplugin/config",
-    }
-}
-
-func (p *MyPlugin) WebRequest(r *http.Request) (string, map[string]any, bool) {
-    if strings.HasPrefix(r.URL.Path, "/myplugin/") {
-        html := "<h1>Custom Plugin Page</h1>"
-        data := map[string]any{
-            "PluginData": "Custom content",
-        }
-        return html, data, true
-    }
-    return "", nil, false
-}
+func (p *MyPlugin) NavLinks() map[string]string
+func (p *MyPlugin) WebRequest(r *http.Request) (string, map[string]any, bool)
 ```
 
 ## Security Implementation
@@ -225,13 +210,7 @@ func (p *MyPlugin) WebRequest(r *http.Request) (string, map[string]any, bool) {
 ### Game State Protection
 ```go
 // All admin operations wrapped with mutex
-func RunWithMUDLocked(next http.HandlerFunc) http.HandlerFunc {
-    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        util.LockMud()
-        defer util.UnlockMud()
-        next.ServeHTTP(w, r)
-    })
-}
+func RunWithMUDLocked(next http.HandlerFunc) http.HandlerFunc
 ```
 
 ## Configuration and Setup
@@ -397,35 +376,8 @@ mudlog.Info("Web",
 
 ### Plugin Web Integration
 ```go
-func (p *MyPlugin) WebRequest(r *http.Request) (string, map[string]any, bool) {
-    switch r.URL.Path {
-    case "/myplugin/dashboard":
-        return p.renderDashboard(r)
-    case "/myplugin/api/data":
-        return p.handleAPIRequest(r)
-    }
-    return "", nil, false
-}
-
-func (p *MyPlugin) renderDashboard(r *http.Request) (string, map[string]any, bool) {
-    html := `
-    {{template "_header.html" .}}
-    <h1>{{.PLUGIN_NAME}} Dashboard</h1>
-    <div class="plugin-content">
-        {{range .PLUGIN_ITEMS}}
-        <div class="item">{{.Name}}: {{.Value}}</div>
-        {{end}}
-    </div>
-    {{template "_footer.html" .}}
-    `
-    
-    data := map[string]any{
-        "PLUGIN_NAME":  "My Custom Plugin",
-        "PLUGIN_ITEMS": p.getPluginData(),
-    }
-    
-    return html, data, true
-}
+func (p *MyPlugin) WebRequest(r *http.Request) (string, map[string]any, bool)
+func (p *MyPlugin) renderDashboard(r *http.Request) (string, map[string]any, bool)
 ```
 
 This web system provides a robust foundation for both player-facing web interfaces and comprehensive administrative tools, with strong security, plugin extensibility, and real-time game integration capabilities.

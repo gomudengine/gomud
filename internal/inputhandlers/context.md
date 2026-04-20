@@ -178,13 +178,7 @@ if strings.HasPrefix(input, "/") {
 ### Input Validation
 ```go
 // Custom validation function
-func validateEmail(input string, results map[string]string) (string, error) {
-    input = strings.TrimSpace(input)
-    if _, err := mail.ParseAddress(input); err != nil {
-        return "", errors.New("invalid email format")
-    }
-    return input, nil
-}
+func validateEmail(input string, results map[string]string) (string, error)
 ```
 
 ## Integration Points

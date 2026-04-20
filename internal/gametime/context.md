@@ -92,30 +92,7 @@ type GameDate struct {
 ### Time Display and Formatting
 ```go
 // Standard time display with color coding
-func (gd GameDate) String(symbolOnly ...bool) string {
-    dayNight := "day"
-    if gd.Night {
-        dayNight = "night"
-    } else {
-        // Check for dusk transition
-        hoursLeft := int(math.Abs(float64(gd.Hour24) - float64(gd.NightStart)))
-        if hoursLeft < 3 {
-            dayNight = "day-dusk"
-        }
-    }
-    
-    // Symbol-only display for compact representation
-    if len(symbolOnly) > 0 && symbolOnly[0] {
-        if gd.Night {
-            return `<ansi fg="night">☾</ansi>`
-        }
-        return fmt.Sprintf(`<ansi fg="%s">☀️</ansi>`, dayNight)
-    }
-    
-    // Full time display with color coding
-    return fmt.Sprintf("<ansi fg=\"%s\">%d:%02d%s</ansi>", 
-                      dayNight, gd.Hour, gd.Minute, gd.AmPm)
-}
+func (gd GameDate) String(symbolOnly ...bool) string
 ```
 
 ## Time Period System
@@ -129,42 +106,16 @@ type RoundTimer struct {
 }
 
 // Check if timer has expired
-func (r RoundTimer) Expired() bool {
-    if r.Period == "" || r.RoundStart == 0 {
-        return true
-    }
-    
-    // Lazy load GameDate if not cached
-    if r.gd.RoundNumber == 0 {
-        r.gd = GetDate(r.RoundStart)
-    }
-    
-    // Check if current round exceeds timer expiration
-    return r.gd.AddPeriod(r.Period) < util.GetRoundCount()
-}
+func (r RoundTimer) Expired() bool
 ```
 
 ### Period String Processing
 ```go
 // Add time period to current date
-func (gd GameDate) AddPeriod(period string) uint64 {
-    // Parse period strings like:
-    // "1 day", "3 hours", "2 weeks", "30 minutes"
-    
-    // Implementation converts period to rounds based on:
-    // - Game configuration for rounds per day/hour
-    // - Calendar structure for days/weeks/months
-    // - Returns new round number after period addition
-    
-    return newRoundNumber
-}
+func (gd GameDate) AddPeriod(period string) uint64
 
 // Get the last occurrence of a specific period
-func GetLastPeriod(period string, currentRound uint64) uint64 {
-    // Find the most recent round when specified period occurred
-    // Useful for events like "last sunset", "last midnight"
-    return lastOccurrenceRound
-}
+func GetLastPeriod(period string, currentRound uint64) uint64
 ```
 
 ## Calendar and Month System
@@ -187,40 +138,15 @@ var monthNames = []string{
 }
 
 // Get month name by number (1-12)
-func MonthName(month int) string {
-    month-- // Convert to 0-based index
-    return monthNames[month%len(monthNames)]
-}
+func MonthName(month int) string
 ```
 
 ### Date Calculation and Caching
 ```go
-var roundDateCache = map[uint64]GameDate{}
-
 // Get GameDate for specific round with caching
-func GetDate(roundNumber uint64) GameDate {
-    if cached, exists := roundDateCache[roundNumber]; exists {
-        return cached
-    }
-    
-    // Calculate new GameDate
-    gd := calculateGameDate(roundNumber)
-    
-    // Cache for future lookups
-    roundDateCache[roundNumber] = gd
-    
-    return gd
-}
+func GetDate(roundNumber uint64) GameDate
 
-func calculateGameDate(roundNumber uint64) GameDate {
-    // Complex calculation involving:
-    // - Rounds per day configuration
-    // - Calendar math for year/month/day
-    // - Time of day calculation
-    // - Day/night cycle determination
-    
-    return gameDate
-}
+func calculateGameDate(roundNumber uint64) GameDate
 ```
 
 ## Zodiac System
@@ -229,36 +155,17 @@ func calculateGameDate(roundNumber uint64) GameDate {
 ```go
 var zodiacAnimals = []string{
     // Real animals
-    "Aardvark", "Albatross", "Alligator", "Alpaca", "Ant", "Antelope",
-    "Baboon", "Badger", "Bear", "Beaver", "Bee", "Beetle", "Bison",
-    "Boar", "Buffalo", "Butterfly", "Camel", "Cat", "Cheetah", "Chicken",
-    
+    "Aardvark", "Albatross", "Alligator", ...
     // Fantasy creatures
-    "Amphiptere", "Basilisk", "Centaur", "Cerberus", "Chimera", "Cockatrice",
-    "Cyclops", "Dragon", "Dryad", "Fairy", "Firebird", "Gargoyle", "Griffin",
-    "Harpy", "Hippogriff", "Hydra", "Ifrit", "Jabberwocky", "Kraken", "Lamia",
-    "Leviathan", "Manticore", "Medusa", "Mermaid", "Minotaur", "Naga", "Nymph",
-    "Ogre", "Pegasus", "Phoenix", "Pixie", "Poltergeist", "Questing Beast", "Roc",
-    
+    "Amphiptere", "Basilisk", "Centaur", ...
     // And 190+ more creatures...
 }
 
 // Get zodiac animal for specific year
-func GetZodiac(year int) string {
-    if !randomized {
-        randomizeZodiac()
-    }
-    return zodiacAnimals[year%len(zodiacAnimals)]
-}
+func GetZodiac(year int) string
 
 // Seeded randomization for consistent server-wide zodiac order
-func randomizeZodiac() {
-    r := rand.New(rand.NewSource(configs.GetConfig().SeedInt()))
-    r.Shuffle(len(zodiacAnimals), func(i, j int) { 
-        zodiacAnimals[i], zodiacAnimals[j] = zodiacAnimals[j], zodiacAnimals[i] 
-    })
-    randomized = true
-}
+func randomizeZodiac()
 ```
 
 ## Time Manipulation and Events
@@ -266,64 +173,19 @@ func randomizeZodiac() {
 ### Day/Night Cycle Control
 ```go
 // Jump to next night period
-func SetToNight(roundAdjustment ...int) {
-    // Find last sunset
-    dayRound := GetLastPeriod("sunset", util.GetRoundCount())
-    
-    // Apply optional round adjustment
-    if len(roundAdjustment) > 0 {
-        if roundAdjustment[0] < 0 {
-            dayRound -= uint64(-1 * roundAdjustment[0])
-        } else {
-            dayRound += uint64(roundAdjustment[0])
-        }
-    }
-    
-    // Advance to next night and update game time
-    gd := GetDate(dayRound).Add(0, 1, 0) // Add 1 day
-    util.SetRoundCount(gd.RoundNumber)
-}
+func SetToNight(roundAdjustment ...int)
 
 // Jump to next day period
-func SetToDay(roundAdjustment ...int) {
-    // Find last sunrise
-    nightRound := GetLastPeriod("sunrise", util.GetRoundCount())
-    
-    // Apply adjustment and advance time
-    if len(roundAdjustment) > 0 {
-        nightRound += uint64(roundAdjustment[0])
-    }
-    
-    gd := GetDate(nightRound).Add(0, 1, 0)
-    util.SetRoundCount(gd.RoundNumber)
-}
+func SetToDay(roundAdjustment ...int)
 ```
 
 ### Time-Based Event Integration
 ```go
 // Check for day/night transitions
-func CheckDayNightTransition(previousRound, currentRound uint64) (bool, string) {
-    prevDate := GetDate(previousRound)
-    currDate := GetDate(currentRound)
-    
-    // Detect transitions
-    if !prevDate.Night && currDate.Night {
-        return true, "sunset"
-    } else if prevDate.Night && !currDate.Night {
-        return true, "sunrise"
-    }
-    
-    return false, ""
-}
+func CheckDayNightTransition(previousRound, currentRound uint64) (bool, string)
 
 // Schedule time-based events
-func ScheduleTimeEvent(eventType string, targetTime GameDate) {
-    events.AddToQueue(events.TimeEvent{
-        EventType:   eventType,
-        TargetRound: targetTime.RoundNumber,
-        GameDate:    targetTime,
-    })
-}
+func ScheduleTimeEvent(eventType string, targetTime GameDate)
 ```
 
 ## Integration Patterns
@@ -441,20 +303,9 @@ if gameDate.Night {
 ### Administrative Time Control
 ```go
 // Admin command to set time
-func AdminSetNight() {
-    gametime.SetToNight()
-    broadcastMessage("An administrator has brought forth the night!")
-}
-
-func AdminSetDay() {
-    gametime.SetToDay()
-    broadcastMessage("An administrator has summoned the dawn!")
-}
-
-// Set specific time with adjustment
-func AdminSetTime(adjustment int) {
-    gametime.SetToNight(adjustment) // Set to night with round offset
-}
+func AdminSetNight()
+func AdminSetDay()
+func AdminSetTime(adjustment int)
 ```
 
 ## Dependencies
