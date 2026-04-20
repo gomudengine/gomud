@@ -87,9 +87,9 @@ var (
 			}
 			return active
 		},
-		"lte":  func(a, b int) bool { return a <= b },
-		"gte":  func(a, b int) bool { return a >= b },
-		"lt":   func(a, b int) bool { return a < b },
+		"lte": func(a, b int) bool { return a <= b },
+		"gte": func(a, b int) bool { return a >= b },
+		"lt":  func(a, b int) bool { return a < b },
 		//"gt":   func(a, b int) bool { return a > b },
 		"uc":  func(s string) string { return strings.Title(s) },
 		"lc":  func(s string) string { return strings.ToLower(s) },
