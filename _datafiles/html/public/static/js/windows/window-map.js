@@ -830,11 +830,8 @@
         var TILE_DEPTH       = 7;    // Height of the visible block side below the tile face; larger = taller 3D extrusion
         var GRID_STEP_XY     = 1.6;  // Spacing multiplier between adjacent XY grid positions relative to TILE_HW; increase to spread rooms apart horizontally, decrease to compress them
         var Z_STEP           = 50;   // Screen pixels of vertical separation per z-level at default spacing; increase to push layers further apart vertically
+        var Z_SPACING_EXPONENT = 1.5; // Controls how aggressively z-layer separation grows as spacing increases; 1.0 = linear with spacing, 2.0 = quadratic (very dramatic), lower = subtler
         var CONNECTION_WIDTH = 2;    // Stroke width of lines connecting rooms; thicker = more visible corridors
-        var CONNECTION_COLOR_SAME_Z  = '#7a4a1a'; // Color of lines connecting rooms on the same z-level; change to distinguish same-floor corridors
-        var CONNECTION_COLOR_CROSS_Z = '#3a6b8a'; // Color of lines connecting rooms on different z-levels; change to make vertical connections stand out
-        var CROSS_Z_OFFSET_X = 8;  // Horizontal pixel offset from tile center where cross-z connection lines attach; shift left/right to reposition the vertical passage indicator
-        var CROSS_Z_OFFSET_Y = 0; // Vertical pixel offset from tile center where cross-z connection lines attach; shift up/down to reposition the vertical passage indicator
         var MAP_BG           = '#111';    // Canvas fill color behind all tiles; change to adjust overall contrast
         var TILE_BORDER_COLOR = '#000000'; // Outline color drawn around each tile face; darker = crisper tile edges
         var TILE_BORDER_WIDTH = 0.8;  // Stroke width of tile outlines; higher = bolder edges, can obscure small tiles at low zoom
@@ -843,10 +840,15 @@
         var SPACING_STEP = 1.25; // Multiplier applied per spacing button click; higher = bigger jumps between spacing levels
         var SPACING_MIN  = 0.6;  // Minimum spacing scale; lower values compress rooms closer together until tiles overlap
         var SPACING_MAX  = 4.0;  // Maximum spacing scale; higher values spread rooms and z-layers further apart
-        var ALPHA_INACTIVE  = 0.15; // Opacity of rooms and edges on z-levels other than the active one; lower = more faded
-        var ALPHA_CONNECTED = 0.15; // Opacity of rooms on inactive z-levels that have a direct connection to the active layer; higher = more visible cross-z neighbours
+        var ALPHA_INACTIVE  = 0.0; // Opacity of rooms and edges on z-levels other than the active one; lower = more faded
+        var ALPHA_CONNECTED = 0.30; // Opacity of rooms on inactive z-levels that have a direct connection to the active layer; higher = more visible cross-z neighbours
         var LAYER_OFFSET_X  = 0;   // Screen pixels to shift each z-level horizontally per level away from the active layer; increase to spread layers apart left/right
         var LAYER_OFFSET_Y  = 0;   // Screen pixels to shift each z-level vertically per level away from the active layer; increase to spread layers apart up/down
+        var CONNECTION_COLOR_SAME_Z  = '#7a4a1a'; // Color of lines connecting rooms on the same z-level; change to distinguish same-floor corridors
+        var CONNECTION_COLOR_CROSS_Z = '#3a6b8a'; // Color of lines connecting rooms on different z-levels; change to make vertical connections stand out
+        var CROSS_Z_OFFSET_X = 8;   // Horizontal pixel offset from tile center where cross-z connection lines attach; shift left/right to reposition the vertical passage indicator
+        var CROSS_Z_OFFSET_Y = 0;   // Vertical pixel offset from tile center where cross-z connection lines attach; shift up/down to reposition the vertical passage indicator
+        var CROSS_Z_ARROW_SIZE = 6; // Size of the arrowhead drawn on cross-z connection lines in px at zoom 1; larger = more prominent direction indicator
 
         // -- State -------------------------------------------------------------
         var canvas    = null;
@@ -891,7 +893,7 @@
 
         function isoProject(gx, gy, gz, drawZ) {
             var step = TILE_HW * GRID_STEP_XY * spacingScale * zoomScale;
-            var zs   = Z_STEP  * spacingScale * spacingScale * zoomScale;
+            var zs   = Z_STEP  * Math.pow(spacingScale, Z_SPACING_EXPONENT) * zoomScale;
             var midX = Math.floor(canvas.width  / 2);
             var midY = Math.floor(canvas.height / 2);
             var relX = gx - camX - panOffsetX;
@@ -1106,6 +1108,29 @@
                 }
                 ctx.beginPath(); ctx.moveTo(startPt.sx, startPt.sy);
                 ctx.lineTo(endPt.sx, endPt.sy); ctx.stroke();
+
+                if (e.edge.dz !== 0) {
+                    var dx = endPt.sx - startPt.sx;
+                    var dy = endPt.sy - startPt.sy;
+                    var len = Math.sqrt(dx * dx + dy * dy);
+                    if (len > 0) {
+                        var ux = dx / len, uy = dy / len;
+                        var as = CROSS_Z_ARROW_SIZE * zoomScale;
+                        ctx.fillStyle = ctx.strokeStyle;
+                        // Arrowhead at endPt pointing away from startPt.
+                        ctx.beginPath();
+                        ctx.moveTo(endPt.sx, endPt.sy);
+                        ctx.lineTo(endPt.sx - ux * as - uy * as, endPt.sy - uy * as + ux * as);
+                        ctx.lineTo(endPt.sx - ux * as + uy * as, endPt.sy - uy * as - ux * as);
+                        ctx.closePath(); ctx.fill();
+                        // Arrowhead at startPt pointing away from endPt.
+                        ctx.beginPath();
+                        ctx.moveTo(startPt.sx, startPt.sy);
+                        ctx.lineTo(startPt.sx + ux * as - uy * as, startPt.sy + uy * as + ux * as);
+                        ctx.lineTo(startPt.sx + ux * as + uy * as, startPt.sy + uy * as - ux * as);
+                        ctx.closePath(); ctx.fill();
+                    }
+                }
             }
 
             // Draw each z-level in order: same-z edges, then tiles, then cross-z-up edges.
