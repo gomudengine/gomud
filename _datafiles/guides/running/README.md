@@ -1,6 +1,9 @@
 # Getting Running on Various Platforms
 
-These guides assume you want to build from the source. You can also download the latest package and run the appropriate pre-compiled binary for your platform from the [releases section](https://github.com/GoMudEngine/GoMud/releases) of the repo.
+These guides assume you want to build from the source. You can also download a
+pre-compiled package from the [releases section](https://github.com/GoMudEngine/GoMud/releases)
+of the repo. Use the rolling `prerelease` entry for the latest `master` build,
+or choose a numbered release for a permanent versioned build.
 
 - [Raspberry PI Zero 2W](RASPBERRY-PI.md)
 - [Running via Docker](DOCKER.md)
@@ -9,7 +12,11 @@ These guides assume you want to build from the source. You can also download the
 
 # Quick Start
 
-You can download the latest release from the [releases page](https://github.com/GoMudEngine/GoMud/releases), unzip it and run the binary to get started, or if you prefer to build it yourself, follow the instructions below.
+You can download a build from the [releases page](https://github.com/GoMudEngine/GoMud/releases),
+unzip it and run the binary to get started, or if you prefer to build it
+yourself, follow the instructions below. Use `prerelease` for the newest
+`master` build, or a numbered release if you want a stable version you can
+return to later.
 
 A youtube playlist to getting started has been set up here:
 

@@ -6,11 +6,6 @@ name: Release
     branches:
       - master
   workflow_dispatch:
-    inputs:
-      release_label:
-        description: Optional prerelease label suffix, e.g. test or rc
-        required: false
-        type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -25,6 +20,7 @@ jobs:
     outputs:
       binary_version: ${{ steps.meta.outputs.binary_version }}
       release_tag: ${{ steps.meta.outputs.release_tag }}
+      release_title: ${{ steps.meta.outputs.release_title }}
       datafiles_archive: ${{ steps.meta.outputs.datafiles_archive }}
       checksums_file: ${{ steps.meta.outputs.checksums_file }}
     steps:
@@ -34,8 +30,6 @@ jobs:
 
       - name: Compute release metadata
         id: meta
-        env:
-          RELEASE_LABEL: ${{ inputs.release_label }}
         run: |
           binary_version="$(
             awk -F'"' '/^const VERSION = "/ { print $2; exit }' main.go
@@ -45,24 +39,12 @@ jobs:
             exit 1
           fi
 
-          release_stamp="$(date -u +%Y%m%d%H%M%S)"
-          release_tag="pre-${release_stamp}-${GITHUB_SHA::7}"
-          release_label="${RELEASE_LABEL:-}"
-          if [ -n "$release_label" ]; then
-            case "$release_label" in
-              *[!A-Za-z0-9._-]*)
-                echo "release_label must match [A-Za-z0-9._-]+" >&2
-                exit 1
-                ;;
-            esac
-            release_tag="${release_tag}-${release_label}"
-          fi
-
           {
             echo "binary_version=${binary_version}"
-            echo "release_tag=${release_tag}"
-            echo "datafiles_archive=gomud-ALL-datafiles-${release_tag}.zip"
-            echo "checksums_file=gomud-${release_tag}-SHA256SUMS.txt"
+            echo "release_tag=prerelease"
+            echo "release_title=prerelease"
+            echo "datafiles_archive=gomud-ALL-datafiles-prerelease.zip"
+            echo "checksums_file=gomud-prerelease-SHA256SUMS.txt"
           } >> "$GITHUB_OUTPUT"
 
   build:
@@ -131,6 +113,8 @@ jobs:
       - build
     env:
       RELEASE_TAG: ${{ needs.prep.outputs.release_tag }}
+      RELEASE_TITLE: ${{ needs.prep.outputs.release_title }}
+      BINARY_VERSION: ${{ needs.prep.outputs.binary_version }}
       DATAFILES_ARCHIVE: ${{ needs.prep.outputs.datafiles_archive }}
       CHECKSUMS_FILE: ${{ needs.prep.outputs.checksums_file }}
     steps:
@@ -162,8 +146,41 @@ jobs:
             "${{ env.DATAFILES_ARCHIVE }}" \
             > "${{ env.CHECKSUMS_FILE }}"
 
-      - name: Release with notes
+      - name: Write release notes
         run: |
+          published_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          cat > release-notes.md <<EOF
+          Rolling prerelease build from \`master\`.
+
+          - Version: \`${BINARY_VERSION}\`
+          - Commit: \`${GITHUB_SHA}\`
+          - Published: \`${published_at}\`
+
+          This release is replaced on each successful merge to \`master\`.
+          For permanent downloadable builds, use the numbered releases.
+          EOF
+
+      - name: Replace rolling prerelease
+        run: |
+          release_id="$(
+            gh release view "$RELEASE_TAG" \
+              --json databaseId \
+              --jq '.databaseId' \
+              2>/dev/null || true
+          )"
+          if [ -n "$release_id" ]; then
+            gh api \
+              -X DELETE \
+              -H "Accept: application/vnd.github+json" \
+              "repos/${GITHUB_REPOSITORY}/releases/${release_id}"
+          fi
+
+          gh api \
+            -X DELETE \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${GITHUB_REPOSITORY}/git/refs/tags/${RELEASE_TAG}" \
+            >/dev/null 2>&1 || true
+
           gh release create "$RELEASE_TAG" \
             bin/gomud-windows_x64.exe \
             bin/gomud-darwin_arm64 \
@@ -172,10 +189,10 @@ jobs:
             bin/gomud-linux_arm5 \
             "bin/$DATAFILES_ARCHIVE" \
             "bin/$CHECKSUMS_FILE" \
-            --title "$RELEASE_TAG" \
+            --title "$RELEASE_TITLE" \
             --target "$GITHUB_SHA" \
             --prerelease \
             --latest=false \
-            --generate-notes
+            --notes-file release-notes.md
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
