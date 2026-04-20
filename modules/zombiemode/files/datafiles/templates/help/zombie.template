@@ -1,0 +1,57 @@
+<ansi fg="black-bold">.:</ansi> <ansi fg="magenta">Help for the <ansi fg="command">zombie</ansi> command.</ansi>
+
+The <ansi fg="command">zombie</ansi> command lets you enter auto-play mode. While active, your character
+acts on its own according to your configured behaviors. Any input you send
+will immediately wake you up and execute that command normally.
+
+<ansi fg="yellow">Usage:</ansi>
+
+  <ansi fg="command">zombie</ansi>
+    Display your current zombie configuration and active status.
+
+  <ansi fg="command">zombie start</ansi>
+    Enter zombie mode. Your character will begin acting autonomously.
+
+  <ansi fg="command">zombie set combat <name></ansi>
+    Add a mob name to attack. Use <ansi fg="command">*</ansi> or <ansi fg="command">all</ansi> to attack any mob.
+
+  <ansi fg="command">zombie unset combat <name></ansi>
+    Remove a mob name. Omit the name or use <ansi fg="command">all</ansi> to clear all combat targets.
+
+  <ansi fg="command">zombie set roam <radius></ansi>
+    Set the roam radius (integer). The zombie will wander within this many
+    rooms of your starting position.
+
+  <ansi fg="command">zombie unset roam</ansi>
+    Disable roaming.
+
+  <ansi fg="command">zombie set rest <percent></ansi>
+    Set the HP percentage floor (1-99). When your HP drops below this
+    threshold, the zombie will stop acting (or flee if in combat).
+
+  <ansi fg="command">zombie unset rest</ansi>
+    Disable the rest threshold.
+
+  <ansi fg="command">zombie set loot <name></ansi>
+    Add an item name to pick up. Use <ansi fg="command">*</ansi> or <ansi fg="command">all</ansi> to loot everything.
+
+  <ansi fg="command">zombie unset loot <name></ansi>
+    Remove a loot target. Omit the name or use <ansi fg="command">all</ansi> to clear all loot targets.
+
+  <ansi fg="command">zombie save <name></ansi>
+    Save your current configuration as a named profile.
+
+  <ansi fg="command">zombie load <name></ansi>
+    Load a previously saved profile into your active configuration.
+
+  <ansi fg="command">zombie list</ansi>
+    List all saved profile names.
+
+<ansi fg="yellow">Behavior priority (each round):</ansi>
+
+  1. Rest check - stop (or flee) if HP is below threshold
+  2. Continue attacking current target
+  3. Attack a matching mob in the room
+  4. Loot matching items or gold from the floor
+  5. Roam to a random nearby room (within radius)
+  6. Idle - occasionally emote
