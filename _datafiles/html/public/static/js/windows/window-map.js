@@ -844,7 +844,7 @@
         var SPACING_MIN  = 0.6;  // Minimum spacing scale; lower values compress rooms closer together until tiles overlap
         var SPACING_MAX  = 4.0;  // Maximum spacing scale; higher values spread rooms and z-layers further apart
         var ALPHA_INACTIVE  = 0.15; // Opacity of rooms and edges on z-levels other than the active one; lower = more faded
-        var ALPHA_CONNECTED = 0.45; // Opacity of rooms on inactive z-levels that have a direct connection to the active layer; higher = more visible cross-z neighbours
+        var ALPHA_CONNECTED = 0.15; // Opacity of rooms on inactive z-levels that have a direct connection to the active layer; higher = more visible cross-z neighbours
         var LAYER_OFFSET_X  = 0;   // Screen pixels to shift each z-level horizontally per level away from the active layer; increase to spread layers apart left/right
         var LAYER_OFFSET_Y  = 0;   // Screen pixels to shift each z-level vertically per level away from the active layer; increase to spread layers apart up/down
 
@@ -1033,15 +1033,6 @@
             ctx.fillStyle = MAP_BG; ctx.fillRect(0, 0, canvas.width, canvas.height);
             if (rooms3d.size === 0) { return; }
 
-            var list = [];
-            rooms3d.forEach(function (room, id) {
-                list.push({ id: id, x: room.x, y: room.y, z: room.z,
-                            symbol: room.symbol, env: room.env });
-            });
-            list.sort(function (a, b) {
-                return (a.x + a.y - a.z * 2) - (b.x + b.y - b.z * 2);
-            });
-
             var playerZ = (currentRoomId !== null && rooms3d.has(currentRoomId))
                 ? rooms3d.get(currentRoomId).z : (camZ | 0);
             var drawZ = (activeZ !== null) ? activeZ : playerZ;
@@ -1057,39 +1048,96 @@
                 if (rA.z === drawZ && rB.z !== drawZ) { connectedToActive.add(parseInt(parts[1], 10)); }
                 if (rB.z === drawZ && rA.z !== drawZ) { connectedToActive.add(parseInt(parts[0], 10)); }
             });
-            ctx.lineWidth   = CONNECTION_WIDTH * zoomScale;
-            ctx.lineCap     = 'round';
 
+            // Group rooms and edges by z-level, sorted lowest to highest.
+            var zLevels = [];
+            rooms3d.forEach(function (room) {
+                if (zLevels.indexOf(room.z) === -1) { zLevels.push(room.z); }
+            });
+            zLevels.sort(function (a, b) { return a - b; });
+
+            // Pre-bucket rooms and edges by z-level for efficient per-layer access.
+            var roomsByZ = {};
+            var sameZEdgesByZ = {};
+            var crossZUpEdgesByZ = {};
+            zLevels.forEach(function (z) {
+                roomsByZ[z] = [];
+                sameZEdgesByZ[z] = [];
+                crossZUpEdgesByZ[z] = [];
+            });
+            rooms3d.forEach(function (room, id) {
+                roomsByZ[room.z].push({ id: id, x: room.x, y: room.y, z: room.z,
+                                        symbol: room.symbol, env: room.env });
+            });
+            // Sort rooms within each layer by painter's order.
+            zLevels.forEach(function (z) {
+                roomsByZ[z].sort(function (a, b) {
+                    return (a.x + a.y) - (b.x + b.y);
+                });
+            });
             edges3d.forEach(function (edge, key) {
                 var parts = key.split('-');
                 var rA = rooms3d.get(parseInt(parts[0], 10));
                 var rB = rooms3d.get(parseInt(parts[1], 10));
                 if (!rA || !rB) { return; }
-                var zDiff = Math.min(Math.abs(rA.z - drawZ), Math.abs(rB.z - drawZ));
-                ctx.globalAlpha = zDiff === 0 ? 1.0 : ALPHA_INACTIVE;
-                ctx.strokeStyle = edge.dz !== 0 ? CONNECTION_COLOR_CROSS_Z : CONNECTION_COLOR_SAME_Z;
-                var pA = isoProject(rA.x, rA.y, rA.z, drawZ);
-                var pB = isoProject(rB.x, rB.y, rB.z, drawZ);
+                if (edge.dz === 0) {
+                    // Same-z edge: bucket by its z-level.
+                    if (sameZEdgesByZ[rA.z]) { sameZEdgesByZ[rA.z].push({ edge: edge, rA: rA, rB: rB }); }
+                } else {
+                    // Cross-z edge: bucket by the lower z so it draws after the lower layer's tiles.
+                    var lowerZ = Math.min(rA.z, rB.z);
+                    if (crossZUpEdgesByZ[lowerZ]) { crossZUpEdgesByZ[lowerZ].push({ edge: edge, rA: rA, rB: rB }); }
+                }
+            });
+
+            ctx.lineWidth = CONNECTION_WIDTH * zoomScale;
+            ctx.lineCap   = 'round';
+
+            function drawEdge(e) {
+                var pA = isoProject(e.rA.x, e.rA.y, e.rA.z, drawZ);
+                var pB = isoProject(e.rB.x, e.rB.y, e.rB.z, drawZ);
                 var startPt, endPt;
-                if (edge.dz !== 0) {
+                if (e.edge.dz !== 0) {
                     startPt = { sx: pA.sx + CROSS_Z_OFFSET_X * zoomScale, sy: pA.sy + CROSS_Z_OFFSET_Y * zoomScale };
                     endPt   = { sx: pB.sx + CROSS_Z_OFFSET_X * zoomScale, sy: pB.sy + CROSS_Z_OFFSET_Y * zoomScale };
                 } else {
-                    startPt = tileAttachPoint(pA.sx, pA.sy,  edge.dx,  edge.dy);
-                    endPt   = tileAttachPoint(pB.sx, pB.sy, -edge.dx, -edge.dy);
+                    startPt = tileAttachPoint(pA.sx, pA.sy,  e.edge.dx,  e.edge.dy);
+                    endPt   = tileAttachPoint(pB.sx, pB.sy, -e.edge.dx, -e.edge.dy);
                 }
                 ctx.beginPath(); ctx.moveTo(startPt.sx, startPt.sy);
                 ctx.lineTo(endPt.sx, endPt.sy); ctx.stroke();
-            });
-            ctx.globalAlpha = 1.0;
+            }
 
-            list.forEach(function (item) {
-                var isCurrent = (item.id === currentRoomId);
-                var topColor  = isCurrent ? CURRENT_ROOM_COLOR : colorForSymbol(item.symbol, item.env);
-                var onActive  = Math.abs(item.z - drawZ) === 0;
-                ctx.globalAlpha = onActive ? 1.0 : (connectedToActive.has(item.id) ? ALPHA_CONNECTED : ALPHA_INACTIVE);
-                drawTile(item.x, item.y, item.z, topColor, isCurrent, item.symbol, drawZ);
+            // Draw each z-level in order: same-z edges, then tiles, then cross-z-up edges.
+            zLevels.forEach(function (z) {
+                var zDiffFromActive = Math.abs(z - drawZ);
+                var baseAlpha = zDiffFromActive === 0 ? 1.0 : ALPHA_INACTIVE;
+
+                // 1. Same-z edges for this layer.
+                ctx.strokeStyle = CONNECTION_COLOR_SAME_Z;
+                sameZEdgesByZ[z].forEach(function (e) {
+                    ctx.globalAlpha = baseAlpha;
+                    drawEdge(e);
+                });
+
+                // 2. Tiles for this layer.
+                roomsByZ[z].forEach(function (item) {
+                    var isCurrent = (item.id === currentRoomId);
+                    var topColor  = isCurrent ? CURRENT_ROOM_COLOR : colorForSymbol(item.symbol, item.env);
+                    var onActive  = zDiffFromActive === 0;
+                    ctx.globalAlpha = onActive ? 1.0 : (connectedToActive.has(item.id) ? ALPHA_CONNECTED : ALPHA_INACTIVE);
+                    drawTile(item.x, item.y, item.z, topColor, isCurrent, item.symbol, drawZ);
+                });
+
+                // 3. Cross-z-up edges leaving this layer (drawn over this layer's tiles, under the next).
+                ctx.strokeStyle = CONNECTION_COLOR_CROSS_Z;
+                crossZUpEdgesByZ[z].forEach(function (e) {
+                    var zDiff = Math.min(Math.abs(e.rA.z - drawZ), Math.abs(e.rB.z - drawZ));
+                    ctx.globalAlpha = zDiff === 0 ? 1.0 : ALPHA_INACTIVE;
+                    drawEdge(e);
+                });
             });
+
             ctx.globalAlpha = 1.0;
         }
 
