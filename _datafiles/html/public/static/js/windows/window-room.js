@@ -1,5 +1,3 @@
-/* global Client, VirtualWindow, VirtualWindows, injectStyles, uiMenu */
-
 /**
  * window-room.js
  *
@@ -422,7 +420,7 @@
         if (opts.locked) {
             const icon = document.createElement('span');
             icon.className   = 'rw-icon locked';
-            icon.textContent = '\u{1f512}';
+            icon.textContent = '\ud83d\udd12';
             icon.title       = opts.hasKey ? 'locked (have key)' : opts.hasCombo ? 'locked (have combo)' : 'locked';
             row.appendChild(icon);
         }

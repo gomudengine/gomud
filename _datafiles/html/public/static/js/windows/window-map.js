@@ -1,5 +1,3 @@
-/* global Client, ResizeObserver, VirtualWindow, VirtualWindows, injectStyles, uiMenu */
-
 /**
  * window-map.js
  *

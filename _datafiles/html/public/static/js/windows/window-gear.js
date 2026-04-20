@@ -1,5 +1,3 @@
-/* global Client, VirtualWindow, VirtualWindows, injectStyles, uiMenu */
-
 /**
  * window-gear.js
  *

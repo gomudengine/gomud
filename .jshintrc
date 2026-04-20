@@ -3,6 +3,12 @@
   "browser": true,
   "devel": true,
   "sub": true,
+  "globals": {
+    "MP3Player": false,
+    "Terminal": false,
+    "FitAddon": false,
+    "WinBox": false
+  },
   "-W014": true,
   "-W083": true,
   "-W097": true
