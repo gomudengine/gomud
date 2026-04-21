@@ -1,30 +1,229 @@
-# GoMud Web Client — Developer Context
+# GoMud Public Web Interface — Developer Context
 
-This document describes the architecture of the web client and explains how to
-create new virtual windows that respond to GMCP payloads.
+This document describes all files under `_datafiles/html/public/`, covering the
+shared page shell, the public-facing HTML pages, and the full web client
+architecture including GMCP-driven virtual windows.
 
 ---
 
-## File Map
+## Directory Overview
 
 ```
-webclient-pure.html                               Page shell, layout, settings modal, init bridge
-static/js/webclient-core.js                      Core infrastructure (loaded first)
-static/js/fx.js                                  Visual effects library (FX global)
-static/js/triggers.js                            Text-trigger engine (Triggers global)
-static/js/windows/window-gametime.js             Time & Date window (left dock)
-static/js/windows/window-character.js            Character window (left dock)
-static/js/windows/window-gear.js                 Gear window (left dock)
-static/js/windows/window-vitals.js               Vitals window (left dock)
-static/js/windows/window-status.js               Worth window (left dock)
-static/js/windows/window-party.js                Party window (left dock)
-static/js/windows/window-map.js                  Map window (right dock)
-static/js/windows/window-room.js                 Room Info window (right dock)
-static/js/windows/window-online.js               Online Players window (right dock, off by default)
-static/js/windows/window-comm.js                 Communications window (right dock)
-static/js/windows/window-modal.js                Help/content modal overlay (global, no dock)
-static/css/windows.css                           Shared dock/panel styles
+_datafiles/html/public/
+  _header.html              Shared Go template: <html>, <head>, <header>, <nav>
+  _footer.html              Shared Go template: <footer>, </body>, </html>
+  index.html                Homepage — play button, telnet/SSH port listing
+  online.html               Online player list page
+  viewconfig.html           Public server config viewer (filtered)
+  webclient.html            Wrapper page that embeds webclient-pure.html in an iframe
+  webclient-pure.html       Full-screen web client shell (standalone, no header/footer)
+  404.html                  Custom 404 error page
+  static/css/gomud.css      Shared site-wide CSS (variables, layout, nav, tables)
+  static/css/windows.css    Shared dock/panel styles (web client only)
+  static/css/xterm.css      xterm.js terminal stylesheet
+  static/js/mp3.js          MP3Player class (music and sound effect playback)
+  static/js/winbox.bundle.min.js  WinBox.js v0.2.82 — floating window library
+  static/js/xterm.4.19.0.js      xterm.js terminal emulator
+  static/js/xterm-addon-fit.js   xterm.js FitAddon
+  static/js/webclient-core.js    Core web client infrastructure (loaded first)
+  static/js/fx.js                Visual effects library (FX global)
+  static/js/triggers.js          Text-trigger engine (Triggers global)
+  static/js/windows/window-gametime.js    Time & Date window (left dock)
+  static/js/windows/window-character.js  Character window (left dock)
+  static/js/windows/window-gear.js       Gear window (left dock)
+  static/js/windows/window-vitals.js     Vitals window (left dock)
+  static/js/windows/window-status.js     Worth window (left dock)
+  static/js/windows/window-party.js      Party window (left dock)
+  static/js/windows/window-killstats.js  Kill Stats window (left dock)
+  static/js/windows/window-map.js        Map window (right dock)
+  static/js/windows/window-room.js       Room Info window (right dock)
+  static/js/windows/window-online.js     Online Players window (right dock, off by default)
+  static/js/windows/window-comm.js       Communications window (right dock)
+  static/js/windows/window-modal.js      Help/content modal overlay (global, no dock)
+  static/audio/music/                    Background music MP3 files
+  static/audio/sound/                    Sound effect MP3 files (combat, movement, other)
+  static/images/                         Site images (favicon, background, logo, play button)
 ```
+
+---
+
+## Shared Page Shell
+
+### `_header.html` and `_footer.html`
+
+All public pages (except `webclient-pure.html`) are Go templates that begin with
+`{{template "header" .}}` and end with `{{template "footer" .}}`. These two
+include files define the full HTML document frame.
+
+**`_header.html`** emits:
+- `<!DOCTYPE html>` through `<body>` with the `Press Start 2P` Google Font
+- A CSS variable `--background-image` pointing to `web_bg.png` via
+  `{{ .CONFIG.FilePaths.WebCDNLocation }}` so the CDN path is honoured
+- A `<link>` to `static/css/gomud.css`
+- `<header>` containing the MUD name as a branded button linking to `/`
+- `<nav>` that iterates `.NAV` to render navigation links, highlighting the
+  active page with `class="selected"`. When on `/webclient` it also renders a
+  hide-header-footer icon link (`⛶`).
+- Opening `<div id="content-container">` with `data-path` set to `.PATH`
+
+**`_footer.html`** emits:
+- Closing `</div>` for `content-container`
+- `<footer>` with a GoMud attribution link
+- `toggleMenu()` script for mobile nav
+- `</body></html>`
+
+### `static/css/gomud.css`
+
+Site-wide stylesheet shared by all public pages. Defines:
+- CSS custom properties (color palette, table colors) on `:root`
+- Base `body` layout (flex column, background image, Press Start 2P font)
+- `header`, `nav`, `.nav-container`, `.gomud-btn` styles
+- Mobile-responsive nav (`@media max-width: 768px`) with hamburger toggle
+- `.content-container`, `.overlay`, `.underlay` content area classes
+- `.play-button` for the homepage play image
+- `footer` and `table` / `th` / `td` styles
+
+The background image URL is injected as a CSS variable from `_header.html` so
+that `WebCDNLocation` is respected.
+
+---
+
+## Public Pages
+
+### `index.html` — Homepage
+
+Displays a centered play button image (`btn_play.png`) linking to `/webclient`.
+Below the button, shows the active telnet port(s) and SSH port (if enabled),
+each in an `.underlay` box. Uses the `activeTelnetPorts` and `sshEnabled`
+template functions.
+
+**Template data used:** `.CONFIG.FilePaths.WebCDNLocation`,
+`.CONFIG.Network.TelnetPort`, `.CONFIG.Network.SSHPort`
+
+### `online.html` — Online Players
+
+Shows a table of all currently online users. Columns: #, Character, Level,
+Alignment, Profession, Time Online (with AFK indicator), Role, Conn Type.
+Displays "None." when no players are online.
+
+**Template data used:** `.STATS.OnlineUsers` (slice of `users.OnlineInfo`)
+
+### `viewconfig.html` — Server Config Viewer
+
+Displays a filtered table of server configuration key/value pairs. Sensitive
+and internal keys are excluded via arguments to `.CONFIG.AllConfigData`:
+banned names, seed, file paths, ports, mob config, and several other internal
+keys are all stripped before rendering.
+
+**Template data used:** `.CONFIG.AllConfigData(...)`
+
+### `404.html` — Error Page
+
+Minimal error page rendered by the web server when a requested file is not
+found. Displays "Error 404: File not found." inside an `.underlay` box.
+
+### `webclient.html` — Web Client Wrapper
+
+A thin shell page that embeds `webclient-pure.html` in a full-size `<iframe>`.
+JavaScript resizes the iframe to fill the `content-container` on load and
+resize, accounting for scrollbar width. A `beforeunload` handler prompts the
+user before navigating away ("Leave/Disconnect from the MUD?").
+
+This page is served at `/webclient` and is the URL linked from the homepage
+play button and the navigation bar.
+
+---
+
+## Static Assets
+
+### `static/js/mp3.js` — MP3Player
+
+Defines the `MP3Player` class used by the web client for both background music
+(`Client.MusicPlayer`) and sound effects (`Client.SoundPlayer`).
+
+```js
+new MP3Player(allowMultiple = false)
+```
+
+| Method | Description |
+|---|---|
+| `play(url, loop, volume)` | Play a URL; stops any current track unless `allowMultiple` |
+| `pause(url)` | Pause a specific URL |
+| `stop(url)` | Pause and rewind a specific URL |
+| `stopAll()` | Stop and rewind all active audio |
+| `setVolume(url, level)` | Set volume (0-1) for a cached URL |
+| `setGlobalVolume(level)` | Set volume on all currently playing audio |
+| `setLoop(url, loop)` | Toggle looping for a cached URL |
+| `isPlaying(url)` | Returns true if the URL is currently playing |
+| `getCurrentTime(url)` | Returns playback position in seconds |
+| `getDuration(url)` | Returns total duration in seconds |
+
+Audio elements are cached by URL so re-playing the same file reuses the
+existing `Audio` object.
+
+### `static/js/winbox.bundle.min.js` — WinBox.js
+
+WinBox.js v0.2.82 (Apache-2.0). Provides the floating window functionality
+used by `VirtualWindow` when a panel is undocked from a dock slot.
+
+### `static/audio/`
+
+MP3 files served to the web client for MSP (MUD Sound Protocol) playback.
+
+**`static/audio/music/`** — background music tracks triggered by room/zone:
+
+| File | Zone/Context |
+|---|---|
+| `intro.mp3` | Login / intro screen |
+| `goodbye.mp3` | Logout |
+| `frostfang.mp3` | Frostfang town |
+| `frostfang-slums.mp3` | Frostfang slums |
+| `frostfire-inn.mp3` | Frostfire Inn |
+| `frost-lake.mp3` | Frost Lake area |
+| `dark-forest.mp3` | Dark Forest |
+| `catacombs.mp3` | Catacombs |
+| `mirror-caves.mp3` | Mirror Caves |
+| `mystarion.mp3` | Mystarion |
+| `stormshards.mp3` | Stormshards |
+| `sun-anvil.mp3` | Sun Anvil |
+| `whispering-wastes.mp3` | Whispering Wastes |
+| `_TODO*.mp3` | Placeholder tracks not yet assigned to zones |
+
+**`static/audio/sound/`** — sound effects by category:
+
+| Path | Effect |
+|---|---|
+| `combat/hit-self.mp3` | Player takes a hit |
+| `combat/hit-other.mp3` | Someone else takes a hit |
+| `combat/miss1.mp3`, `miss2.mp3` | Attack misses |
+| `combat/heal1.mp3`, `heal2.mp3` | Healing |
+| `combat/explosion1.mp3`, `explosion2.mp3` | Explosions / area spells |
+| `combat/downed-self.mp3` | Player is downed |
+| `combat/downed-other.mp3` | Someone else is downed |
+| `movement/room-enter.mp3` | Entering a room |
+| `movement/room-exit.mp3` | Leaving a room |
+| `movement/runaway.mp3` | Fleeing combat |
+| `environment/wind.mp3` | Ambient wind |
+| `other/buy.mp3` | Purchasing an item |
+| `other/change.mp3` | Generic change/equip |
+| `other/levelup.mp3` | Level up |
+
+### `static/images/`
+
+| File | Purpose |
+|---|---|
+| `favicon.ico` | Browser tab icon |
+| `gomud.png` | GoMud logo |
+| `web_bg.png` | Full-page background image (used via CSS variable in `_header.html`) |
+| `btn_play.png` | Play button image on the homepage |
+
+---
+
+## Web Client
+
+The web client is a full-screen terminal emulator with GMCP-driven side panels.
+It is served at `/webclient-pure.html` (standalone) and embedded at
+`/webclient` via `webclient.html`.
 
 `webclient-pure.html` is a Go template. All static asset paths must be prefixed
 with `{{ .CONFIG.FilePaths.WebCDNLocation }}`. To add a new window module, add
@@ -53,6 +252,7 @@ one `<script>` tag in the appropriate dock comment block.
 | `window-room.js` | Room Info | — | `Room.Info` | `offOnLoad: false` |
 | `window-online.js` | Online | — | `Game` | `offOnLoad: true` — hidden until user opens it |
 | `window-comm.js` | Communications | Say, Whisper, Party, Broadcasts | `Comm` | |
+| `window-killstats.js` | Kill Stats | Mobs, Races, Areas, PvP | `Char.Kills`, `Char` | `offOnLoad: true` — hidden until user opens it |
 
 ### Modal overlay
 
@@ -240,6 +440,7 @@ Client.GMCPStructs          // Object tree of all received GMCP data
 Client.sliderValues         // Current volume levels by category key
 Client.MusicPlayer          // MP3Player instance (background music)
 Client.SoundPlayer          // MP3Player instance (sound effects)
+Client.resetVolumeControls()  // Reset all category sliders and per-sound overrides to defaults
 Client.term                 // xterm.js Terminal instance
 Client.sendData(str)        // Send a string over the WebSocket; returns bool
 Client.SendInput(str)       // Send a command string to the server (alias for sendData)
@@ -306,12 +507,21 @@ if (info && info.role === 'admin') {
 The settings modal has tabs managed by the inline `<script>` in
 `webclient-pure.html`. Tabs: **Volume**, **Windows**, **Triggers**, **Stats**.
 
+### Volume tab
+
+Contains:
+- **Mute All Sound** toggle switch on the left, **Reset** button right-justified on the same row.
+- One collapsible **category block** per audio category (`music`, `combat sounds`, `movement sounds`, `environment sounds`, `other sounds`). Clicking the arrow or label expands/collapses the block.
+- Inside each expanded category: a sub-row per sound URL that has been played in that category, each with its own volume slider (0-100, applied as a multiplier of the category level). Per-sound overrides and the list of played sounds are both persisted to `localStorage` (`soundHistory`, `soundVolumeOverrides`) so they survive page reloads.
+- **Reset** clears all category sliders back to 75, removes all per-sound overrides, and unchecks mute.
+
 ### Stats tab
 
 Displays live network traffic stats, refreshed every 500ms while the tab is
 visible. Powered by `Client.getNetStats()`. Contains:
 
-- **Connected for** — elapsed time since last WebSocket connect
+- **Connected for** — elapsed time since last WebSocket connect (in the header row)
+- **Reset** button — right-justified in the same header row as "Network" and the uptime display
 - **Sent / Received** — total bytes with per-second rate
 - **GMCP In** — collapsible section showing bytes received per GMCP namespace
 

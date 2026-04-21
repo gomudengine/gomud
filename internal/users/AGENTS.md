@@ -25,7 +25,6 @@ The users system is built around several key components:
 **User Storage:**
 - YAML-based persistent user data storage
 - Item storage system for player belongings
-- Inbox messaging system with attachments
 - Configuration options and customization settings
 
 **Connection Integration:**
@@ -51,9 +50,8 @@ The users system is built around several key components:
 ### 3. **Rich User Data Model**
 - **Character Integration**: Full character system association
 - **Item Storage**: Personal item storage separate from inventory
-- **Messaging System**: Inbox with item and gold attachments
 - **Customization**: Macros, aliases, and configuration options
-
+SendMudMail
 ### 4. **Advanced Features**
 - **Screen Reader Support**: Accessibility features for visually impaired users
 - **Audio Integration**: Music and sound effect tracking via `PlayMusic`/`PlaySound`
@@ -204,24 +202,9 @@ func (s *Storage) AddItem(i items.Item) bool
 func (s *Storage) RemoveItem(i items.Item) bool
 ```
 
-### Inbox Messaging System
-```go
-type Inbox []Message
+### Migration Helper
 
-type Message struct {
-    FromUserId int         // Sender user ID
-    FromName   string      // Sender display name
-    Message    string      // Message content
-    Item       *items.Item // Attached item (optional)
-    Gold       int         // Attached gold amount
-    Read       bool        // Read status
-    DateSent   time.Time   // Timestamp
-}
-
-func (i *Inbox) Add(msg Message)
-func (i *Inbox) CountRead() int
-func (i *Inbox) CountUnread() int
-```
+`MigrateInbox(userId int) []LegacyMessage` reads any `inbox:` data from a user's YAML file written by a previous server version, before the mudmail module took ownership of inbox data. Called once per user on their first `PlayerSpawn` after upgrading. `LegacyMessage` mirrors the old message struct for unmarshalling only.
 
 ## User Data Management
 
@@ -240,7 +223,7 @@ func (u *UserRecord) GetConfigOption(key string) any
 func (u *UserRecord) ClientSettings() connections.ClientSettings
 ```
 
-### Unsent Text (prompt redraw support)
+### Unsent Text (prompt redraw support)SendMudMail
 ```go
 func (u *UserRecord) SetUnsentText(t string, suggest string)
 func (u *UserRecord) GetUnsentText() (unsent string, suggestion string)

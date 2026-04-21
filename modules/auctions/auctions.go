@@ -13,6 +13,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/plugins"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/templates"
+	"github.com/GoMudEngine/GoMud/internal/usercommands"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
@@ -377,23 +378,10 @@ func (mod *AuctionsModule) newRoundHandler(e events.Event) events.ListenerReturn
 
 				msg := fmt.Sprintf(`You won the auction for the <ansi fg="item">%s</ansi> while you were offline.`, auctionNow.ItemData.DisplayName())
 
-				users.SearchOfflineUsers(func(u *users.UserRecord) bool {
-					if u.UserId == auctionNow.HighestBidUserId {
-						user = u
-						return false
+				if sendInbox, ok := usercommands.GetExportedFunction(`SendMudMail`); ok {
+					if sendInboxFunc, ok := sendInbox.(func(int, string, string, int, *items.Item)); ok {
+						sendInboxFunc(auctionNow.HighestBidUserId, `Auction System`, msg, 0, &auctionNow.ItemData)
 					}
-					return true
-				})
-
-				if user != nil {
-					user.Inbox.Add(
-						users.Message{
-							FromName: `Auction System`,
-							Message:  msg,
-							Item:     &auctionNow.ItemData,
-						},
-					)
-					users.SaveUser(*user)
 				}
 
 			}
@@ -415,24 +403,10 @@ func (mod *AuctionsModule) newRoundHandler(e events.Event) events.ListenerReturn
 
 					msg := fmt.Sprintf(`Your auction of the <ansi fg="item">%s</ansi> has ended while you were offline. The highest bid was made by <ansi fg="username">%s</ansi> for <ansi fg="gold">%d gold</ansi>.`, auctionNow.ItemData.DisplayName(), auctionNow.HighestBidderName, auctionNow.HighestBid)
 
-					users.SearchOfflineUsers(func(u *users.UserRecord) bool {
-						if u.UserId == auctionNow.SellerUserId {
-							sellerUser = u
-							return false
+					if sendInbox, ok := usercommands.GetExportedFunction(`SendMudMail`); ok {
+						if sendInboxFunc, ok := sendInbox.(func(int, string, string, int, *items.Item)); ok {
+							sendInboxFunc(auctionNow.SellerUserId, `Auction System`, msg, auctionNow.HighestBid, nil)
 						}
-						return true
-					})
-
-					if sellerUser != nil {
-						sellerUser.Inbox.Add(
-							users.Message{
-								FromName: `Auction System`,
-								Message:  msg,
-								Gold:     auctionNow.HighestBid,
-								Item:     &auctionNow.ItemData,
-							},
-						)
-						users.SaveUser(*sellerUser)
 					}
 
 				}

@@ -86,7 +86,6 @@ var (
 		`keyring`:     {KeyRing, true, false},
 		`killstats`:   {Killstats, true, false},
 		`history`:     {History, true, false},
-		`inbox`:       {Inbox, true, false},
 		`inspect`:     {Inspect, false, false},
 		`inventory`:   {Inventory, true, false},
 		`item`:        {Item, true, true}, // Admin only
@@ -100,7 +99,6 @@ var (
 		`mob`:         {Mob, true, true},    // Admin only
 		`modify`:      {Modify, true, true}, // Admin only
 		`motd`:        {Motd, true, false},
-		`mudmail`:     {Mudmail, true, true}, // Admin only
 		`mute`:        {Mute, true, true},
 		`noop`:        {Noop, true, false},
 		`offer`:       {Offer, false, false},
