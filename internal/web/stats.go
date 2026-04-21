@@ -7,13 +7,13 @@ import (
 )
 
 type Stats struct {
-	OnlineUsers        []users.OnlineInfo
-	TelnetPorts        []int
-	WebSocketPort      int
-	SSHPort            int
-	TelnetConnections  int
+	OnlineUsers          []users.OnlineInfo
+	TelnetPorts          []int
+	WebSocketPort        int
+	SSHPort              int
+	TelnetConnections    int
 	WebSocketConnections int
-	SSHConnections     int
+	SSHConnections       int
 }
 
 var (
