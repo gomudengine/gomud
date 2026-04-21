@@ -249,6 +249,7 @@ Client.GMCPRequest(ns, extra?)  // Ask the server to re-send a GMCP namespace; o
                                 //   !!GMCP(Suggestion look ))
 Client.GetGMCP(path)        // Read a value from GMCPStructs by dot-path (e.g. 'Char.Vitals')
 Client.getNetStats()        // Returns current network traffic counters (see below)
+Client.resetNetStats()      // Zeroes all network traffic counters (sent, received, GMCP in/out)
 Client.debugLog(msg)        // Log only when Client.debug === true
 Client.debug                // get/set — enable verbose logging from console
 Client.registerCommand(name, description, fn)   // Add a !terminal command

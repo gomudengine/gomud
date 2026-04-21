@@ -775,13 +775,42 @@
         }
 
         /* Stats tab */
+        .stats-network-header {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .stats-network-header .settings-section-title {
+            margin-bottom: 0;
+        }
+
         .stats-uptime {
             font-size: 11px;
             font-family: Arial, sans-serif;
             color: #3ad4b8;
-            margin-bottom: 8px;
-            padding-bottom: 6px;
-            border-bottom: 1px solid #0f3333;
+        }
+
+        #stats-reset-btn {
+            margin-top: 6px;
+            margin-bottom: 10px;
+            padding: 5px 12px;
+            background: #0d2e28;
+            border: 1px solid #1c6b60;
+            border-radius: 4px;
+            color: #7ab8a0;
+            font-size: 11px;
+            font-family: Arial, sans-serif;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: background 0.15s, color 0.15s;
+        }
+
+        #stats-reset-btn:hover {
+            background: #1c6b60;
+            color: #dffbd1;
         }
 
         .stats-row {
@@ -999,7 +1028,11 @@
                 </div>
                 <div class="settings-tab-panel" id="tab-stats">
                     <div class="settings-section">
-                        <div class="settings-section-title">Network</div>
+                        <div class="stats-network-header">
+                            <div class="settings-section-title">Network</div>
+                            <div id="stats-uptime-header" class="stats-uptime"></div>
+                        </div>
+                        <button id="stats-reset-btn" onclick="_statsReset()">Reset</button>
                         <div id="stats-net-overall"></div>
                         <div id="stats-net-gmcp" style="margin-top:8px;"></div>
                         <div id="stats-net-gmcp-out" style="margin-top:8px;"></div>
@@ -1479,9 +1512,10 @@
         // -----------------------------------------------------------------------
         // Stats tab
         // -----------------------------------------------------------------------
-        var _statsInterval = null;
-        var _gmcpOpen      = false;   // is the GMCP In section expanded?
-        var _gmcpOutOpen   = false;   // is the GMCP Out section expanded?
+        var _statsInterval  = null;
+        var _statsResetTime = null;   // Date.now() when stats were last reset (null = use connectTime)
+        var _gmcpOpen       = false;  // is the GMCP In section expanded?
+        var _gmcpOutOpen    = false;  // is the GMCP Out section expanded?
         var _nsOpen        = {};      // which namespace payloads are expanded?
         var _nsOutOpen     = {};      // which GMCP Out identifier payloads are expanded?
 
@@ -1515,18 +1549,36 @@
             return cur;
         }
 
+        function _statsReset() {
+            if (typeof Client !== 'undefined' && Client.resetNetStats) {
+                Client.resetNetStats();
+            }
+            _statsResetTime = Date.now();
+            renderStats();
+        }
+
         function renderStats() {
             if (typeof Client === 'undefined' || !Client.getNetStats) { return; }
             var st  = Client.getNetStats();
             var now = Date.now();
-            var ms  = (st.connectTime && st.connectTime > 0) ? (now - st.connectTime) : 0;
+            var connectMs = (st.connectTime && st.connectTime > 0) ? (now - st.connectTime) : 0;
+            var startTime = Math.max(
+                _statsResetTime !== null ? _statsResetTime : 0,
+                st.connectTime  || 0
+            );
+            var ms  = startTime > 0 ? (now - startTime) : 0;
             var sec = ms / 1000;
+
+            // --- Uptime in header ---
+            var uptimeEl = document.getElementById('stats-uptime-header');
+            if (uptimeEl) {
+                uptimeEl.textContent = 'Connected for ' + (connectMs > 0 ? _fmtUptime(connectMs) : 'not connected');
+            }
 
             // --- Overall section ---
             var overall = document.getElementById('stats-net-overall');
             if (overall) {
                 overall.innerHTML =
-                    '<div class="stats-uptime">Connected for ' + (ms > 0 ? _fmtUptime(ms) : 'not connected') + '</div>' +
                     '<div class="stats-row"><span class="stats-row-label">Sent</span><div class="stats-row-right"><span class="stats-row-value">' + _fmtBytes(st.totalBytesSent) + '</span><span class="stats-row-rate">' + _fmtRate(st.totalBytesSent, sec) + '</span></div></div>' +
                     '<div class="stats-row"><span class="stats-row-label">Received</span><div class="stats-row-right"><span class="stats-row-value">' + _fmtBytes(st.totalBytesReceived) + '</span><span class="stats-row-rate">' + _fmtRate(st.totalBytesReceived, sec) + '</span></div></div>';
             }

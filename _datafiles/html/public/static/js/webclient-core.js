@@ -1667,6 +1667,16 @@ const Client = (() => {
         };
     }
 
+    function resetNetStats() {
+        totalBytesReceived = 0;
+        totalBytesSent     = 0;
+        Object.keys(gmcpInBytes).forEach(k  => delete gmcpInBytes[k]);
+        Object.keys(gmcpInCount).forEach(k  => delete gmcpInCount[k]);
+        Object.keys(gmcpOutBytes).forEach(k => delete gmcpOutBytes[k]);
+        Object.keys(gmcpOutCount).forEach(k => delete gmcpOutCount[k]);
+        Object.keys(gmcpOutLast).forEach(k  => delete gmcpOutLast[k]);
+    }
+
     // -----------------------------------------------------------------------
     // Keyboard shortcuts
     //
@@ -1964,5 +1974,6 @@ const Client = (() => {
         GMCPRequest,
         GetGMCP,
         getNetStats,
+        resetNetStats,
     };
 })();
