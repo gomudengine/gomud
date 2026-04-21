@@ -108,6 +108,8 @@ For a guided HTTPS setup process, run:
 make https-setup
 ```
 
+The helper does not edit the bundled base config directly.
+It can PATCH a running GoMud server through `/admin/api/v1/config`, or print a `config-overrides.yaml` snippet for manual save, and it offers manual certificate, automatic Let's Encrypt, or HTTP-only modes.
 ### Automatic HTTPS
 
 GoMud can now obtain and renew Let's Encrypt certificates itself for simple single-server installs.

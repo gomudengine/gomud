@@ -11,8 +11,10 @@ import (
 
 const sampleHTTPSConfig = `FilePaths:
   DataFiles: _datafiles/world/default
+  WebDomain: "localhost"
   HttpsCertFile: "server.crt"
   HttpsKeyFile: "server.key"
+  HttpsEmail: ""
 Network:
   HttpPort: 8080
   HttpsPort: 8443
@@ -54,7 +56,7 @@ func TestHTTPSSetupHTTPOnlySnippetClearsHTTPS(t *testing.T) {
 	configPath := writeHTTPSSetupTempConfig(t, sampleHTTPSConfig)
 
 	input := strings.Join([]string{
-		"2",
+		"3",
 		"8080",
 		"2",
 		"",
@@ -74,7 +76,7 @@ func TestHTTPSSetupUsesConfigPathAsOverrideTarget(t *testing.T) {
 	overridePath := filepath.Join(t.TempDir(), "custom-overrides.yaml")
 
 	input := strings.Join([]string{
-		"2",
+		"3",
 		"8080",
 		"2",
 		"",
@@ -158,7 +160,7 @@ func TestHTTPSSetupIgnoresConfigPathWhenItTargetsBundledConfig(t *testing.T) {
 	configPath := writeHTTPSSetupTempConfig(t, sampleHTTPSConfig)
 
 	input := strings.Join([]string{
-		"2",
+		"3",
 		"8080",
 		"2",
 		"",
@@ -224,6 +226,75 @@ func TestHTTPSSetupCanPatchRunningServer(t *testing.T) {
 	}
 }
 
+func TestHTTPSSetupAutoModePrintsLetsEncryptOverrideSnippet(t *testing.T) {
+	configPath := writeHTTPSSetupTempConfig(t, sampleHTTPSConfig)
+
+	input := strings.Join([]string{
+		"2",
+		"play.example.com",
+		"ops@example.com",
+		"2",
+		"",
+	}, "\n")
+
+	output := runHTTPSSetup(t, configPath, input, nil)
+	if !strings.Contains(output, "WebDomain: play.example.com") {
+		t.Fatalf("https-setup output did not show selected hostname:\n%s", output)
+	}
+	if !strings.Contains(output, "HttpsEmail: ops@example.com") {
+		t.Fatalf("https-setup output did not show selected email:\n%s", output)
+	}
+	if !strings.Contains(output, "WebDomain: \"play.example.com\"") {
+		t.Fatalf("https-setup output did not include WebDomain override:\n%s", output)
+	}
+	if !strings.Contains(output, "HttpPort: 80") || !strings.Contains(output, "HttpsPort: 443") {
+		t.Fatalf("https-setup output did not set standard ports for auto mode:\n%s", output)
+	}
+	if !strings.Contains(output, "HttpsRedirect: true") {
+		t.Fatalf("https-setup output did not enable redirect for auto mode:\n%s", output)
+	}
+}
+
+func TestHTTPSSetupAutoModeRejectsLocalhost(t *testing.T) {
+	configPath := writeHTTPSSetupTempConfig(t, sampleHTTPSConfig)
+
+	input := strings.Join([]string{
+		"2",
+		"localhost",
+		"",
+	}, "\n")
+
+	output, err := runHTTPSSetupExpectError(t, configPath, input, nil)
+	if err == nil {
+		t.Fatalf("https-setup.sh unexpectedly succeeded for localhost")
+	}
+	if !strings.Contains(output, "Automatic HTTPS requires a public hostname") {
+		t.Fatalf("https-setup.sh output did not explain invalid hostname:\n%s", output)
+	}
+
+	updated := readHTTPSSetupConfig(t, configPath)
+	if updated != sampleHTTPSConfig {
+		t.Fatalf("https-setup config changed after invalid auto mode input:\n%s", updated)
+	}
+}
+
+func TestHTTPSSetupAutoModeNormalizesPastedHostname(t *testing.T) {
+	configPath := writeHTTPSSetupTempConfig(t, sampleHTTPSConfig)
+
+	input := strings.Join([]string{
+		"2",
+		"https://Play.Example.com/",
+		"",
+		"2",
+		"",
+	}, "\n")
+
+	output := runHTTPSSetup(t, configPath, input, nil)
+	if !strings.Contains(output, "WebDomain: \"play.example.com\"") {
+		t.Fatalf("https-setup output did not normalize pasted hostname:\n%s", output)
+	}
+}
+
 func TestHTTPSSetupPreservesBundledConfigPermissions(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("POSIX file modes are not stable on Windows")
@@ -235,7 +306,7 @@ func TestHTTPSSetupPreservesBundledConfigPermissions(t *testing.T) {
 	}
 
 	input := strings.Join([]string{
-		"2",
+		"3",
 		"8080",
 		"2",
 		"",
@@ -278,6 +349,23 @@ func readHTTPSSetupConfig(t *testing.T, configPath string) string {
 func runHTTPSSetup(t *testing.T, configPath string, input string, extraEnv map[string]string) string {
 	t.Helper()
 
+	output, err := runHTTPSSetupCommand(t, configPath, input, extraEnv)
+	if err != nil {
+		t.Fatalf("https-setup.sh failed: %v\n%s", err, output)
+	}
+
+	return output
+}
+
+func runHTTPSSetupExpectError(t *testing.T, configPath string, input string, extraEnv map[string]string) (string, error) {
+	t.Helper()
+
+	return runHTTPSSetupCommand(t, configPath, input, extraEnv)
+}
+
+func runHTTPSSetupCommand(t *testing.T, configPath string, input string, extraEnv map[string]string) (string, error) {
+	t.Helper()
+
 	scriptDir, err := os.Getwd()
 	if err != nil {
 		t.Fatalf("os.Getwd() error = %v", err)
@@ -296,9 +384,5 @@ func runHTTPSSetup(t *testing.T, configPath string, input string, extraEnv map[s
 	cmd.Stdin = strings.NewReader(input)
 
 	output, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("https-setup.sh failed: %v\n%s", err, output)
-	}
-
-	return string(output)
+	return string(output), err
 }

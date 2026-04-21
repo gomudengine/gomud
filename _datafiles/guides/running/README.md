@@ -47,6 +47,7 @@ For a guided config update, run:
 
 The helper does not edit the bundled base config directly.
 It can PATCH a running GoMud server through `/admin/api/v1/config`, or print a `config-overrides.yaml` snippet for manual save.
+It can configure manual certificate files, automatic Let's Encrypt, or HTTP-only mode.
 
 1. Get a certificate and private key for the hostname players will use.
 2. Set `FilePaths.HttpsCertFile` to the certificate path.
