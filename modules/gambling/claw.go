@@ -198,9 +198,8 @@ func (g *GamblingModule) playClaw(user *users.UserRecord, room *rooms.Room) {
 	)
 }
 
-// clawMachineNounDesc returns the noun description shown when a player types
-// "look claw machine" in a room with the claw machine tag.
-func (g *GamblingModule) clawMachineNounDesc(room *rooms.Room) string {
+// clawMachineNounDesc returns the description shown when a player looks at the claw machine.
+func (g *GamblingModule) clawMachineNounDesc() string {
 
 	cost := defaultClawCost
 	if v, ok := g.plug.Config.Get(`ClawCost`).(int); ok && v > 0 {

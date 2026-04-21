@@ -2,6 +2,7 @@ package gambling
 
 import (
 	"embed"
+	"fmt"
 	"io/fs"
 	"strings"
 
@@ -12,7 +13,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
-	lru "github.com/hashicorp/golang-lru/v2"
 )
 
 var (
@@ -35,7 +35,6 @@ func init() {
 		plug:  plugins.New(`gambling`, `1.0`),
 		state: SlotState{Jackpot: 0},
 	}
-	g.roomCache, _ = lru.New[int, struct{}](256)
 
 	if err := g.plug.AttachFileSystem(files); err != nil {
 		panic(err)
@@ -69,81 +68,93 @@ func init() {
 	rooms.OnRoomLook.Register(g.onRoomLook)
 	rooms.OnRoomLook.Register(g.onRoomLookClaw)
 
-	// Inject gambling nouns when players enter or spawn in tagged rooms.
-	// This ensures "look slot machine" and "look claw machine" are resolved
-	// synchronously by the core look command rather than falling through to
-	// "Look at what???".
-	events.RegisterListener(events.RoomChange{}, g.onRoomChange)
-	events.RegisterListener(events.PlayerSpawn{}, g.onPlayerSpawn)
+	// Intercept "look" commands before the engine processes them so that
+	// "look slot machine" and "look claw machine" are handled directly by
+	// the module without requiring nouns to be injected into room state.
+	events.RegisterListener(events.Input{}, g.onLookInput, events.First)
 }
 
-// refreshRoomNouns evicts the room from the cache and immediately re-injects
-// updated noun descriptions, so changes (e.g. jackpot) are visible without
-// requiring players to leave and re-enter the room.
-func (g *GamblingModule) refreshRoomNouns(room *rooms.Room) {
-	g.roomCache.Remove(room.RoomId)
-	g.ensureRoomNouns(room)
+// parseLookTarget extracts the target string from a look command input, stripping
+// the leading "at " and "the " prefixes that the core look command also strips.
+// Returns an empty string if the input is not a look command or has no target.
+func parseLookTarget(inputText string) string {
+	lower := strings.ToLower(strings.TrimSpace(inputText))
+
+	cmd, rest, _ := strings.Cut(lower, " ")
+	if cmd != `look` && cmd != `l` {
+		return ""
+	}
+
+	rest = strings.TrimSpace(rest)
+	if strings.HasPrefix(rest, `at `) {
+		rest = rest[3:]
+	}
+	if strings.HasPrefix(rest, `the `) {
+		rest = rest[4:]
+	}
+	return strings.TrimSpace(rest)
 }
 
-// ensureRoomNouns injects gambling fixture nouns into the room's Nouns map so
-// that "look slot machine", "look slots", and "look claw machine" are handled
-// synchronously by the core look command rather than falling through to
-// "Look at what???". Results are cached by room ID so the tag scan and map
-// writes only happen once per room per server session.
-func (g *GamblingModule) ensureRoomNouns(room *rooms.Room) {
-	if _, already := g.roomCache.Get(room.RoomId); already {
-		return
-	}
-
-	if room.Nouns == nil {
-		room.Nouns = make(map[string]string)
-	}
-
-	if roomHasSlots(room) {
-		room.Nouns[`slot machine`] = g.slotMachineNounDesc(room)
-		room.Nouns[`slots`] = `:slot machine`
-	}
-
-	if roomHasClaw(room) {
-		room.Nouns[`claw machine`] = g.clawMachineNounDesc(room)
-		room.Nouns[`claw`] = `:claw machine`
-	}
-
-	g.roomCache.Add(room.RoomId, struct{}{})
-}
-
-// onRoomChange injects gambling nouns whenever a player enters a tagged room.
-func (g *GamblingModule) onRoomChange(e events.Event) events.ListenerReturn {
-	evt, ok := e.(events.RoomChange)
+// onLookInput intercepts look commands directed at gambling fixtures before the
+// engine's look handler runs. If the target matches a fixture present in the
+// room, it sends the description directly and cancels the event so the engine
+// does not process it further.
+func (g *GamblingModule) onLookInput(e events.Event) events.ListenerReturn {
+	evt, ok := e.(events.Input)
 	if !ok || evt.UserId == 0 {
 		return events.Continue
 	}
-	if room := rooms.LoadRoom(evt.ToRoomId); room != nil {
-		g.ensureRoomNouns(room)
+
+	target := parseLookTarget(evt.InputText)
+	if target == "" {
+		return events.Continue
 	}
+
+	user := users.GetByUserId(evt.UserId)
+	if user == nil {
+		return events.Continue
+	}
+
+	room := rooms.LoadRoom(user.Character.RoomId)
+	if room == nil {
+		return events.Continue
+	}
+
+	if _, c := util.FindMatchIn(target, `slot machine`, `slots`, `slot`); c != `` && roomHasSlots(room) {
+		g.sendLookDescription(user, room, `slot machine`, g.slotMachineNounDesc())
+		return events.Cancel
+	}
+
+	if _, c := util.FindMatchIn(target, `claw machine`, `claw`); c != `` && roomHasClaw(room) {
+		g.sendLookDescription(user, room, `claw machine`, g.clawMachineNounDesc())
+		return events.Cancel
+	}
+
 	return events.Continue
 }
 
-// onPlayerSpawn injects gambling nouns for players who log in inside a tagged room.
-func (g *GamblingModule) onPlayerSpawn(e events.Event) events.ListenerReturn {
-	evt, ok := e.(events.PlayerSpawn)
-	if !ok {
-		return events.Continue
+// sendLookDescription sends a noun look response matching the framing used by
+// the core look command: blank line, "You look at the <noun>:", blank line,
+// description lines, blank line. Also broadcasts the examine message to the room.
+func (g *GamblingModule) sendLookDescription(user *users.UserRecord, room *rooms.Room, noun, desc string) {
+	user.SendText(``)
+	user.SendText(fmt.Sprintf(`You look at the <ansi fg="noun">%s</ansi>:`, noun))
+	user.SendText(``)
+	for _, line := range strings.Split(desc, "\n") {
+		user.SendText(line)
 	}
-	if room := rooms.LoadRoom(evt.RoomId); room != nil {
-		g.ensureRoomNouns(room)
-	}
-	return events.Continue
+	user.SendText(``)
+
+	room.SendText(
+		fmt.Sprintf(`<ansi fg="username">%s</ansi> is examining the <ansi fg="noun">%s</ansi>.`, user.Character.Name, noun),
+		user.UserId,
+	)
 }
 
 // GamblingModule holds module-level state for the gambling plugin.
 type GamblingModule struct {
 	plug  *plugins.Plugin
 	state SlotState
-	// roomCache tracks room IDs whose gambling nouns have already been injected,
-	// so ensureRoomNouns skips work on every subsequent player movement through
-	// rooms that were already processed.
-	roomCache *lru.Cache[int, struct{}]
 }
 
 func (g *GamblingModule) load() {

@@ -171,7 +171,6 @@ func (g *GamblingModule) playSlots(user *users.UserRecord, room *rooms.Room) {
 		g.state.Jackpot = minJackpot(cost)
 	}
 	slotMu.Unlock()
-	g.refreshRoomNouns(room)
 
 	events.AddToQueue(events.EquipmentChange{
 		UserId:     user.UserId,
@@ -205,7 +204,6 @@ func (g *GamblingModule) playSlots(user *users.UserRecord, room *rooms.Room) {
 		}
 		g.state.Jackpot = 0
 		slotMu.Unlock()
-		g.refreshRoomNouns(room)
 
 		user.Character.Gold += prize
 		events.AddToQueue(events.EquipmentChange{
@@ -213,7 +211,7 @@ func (g *GamblingModule) playSlots(user *users.UserRecord, room *rooms.Room) {
 			GoldChange: prize,
 		})
 
-		g.maybeUpdateBiggestWin(prize, user.Character.Name, room)
+		g.maybeUpdateBiggestWin(prize, user.Character.Name)
 
 		banner := jackpotBanner()
 
@@ -249,7 +247,7 @@ func (g *GamblingModule) playSlots(user *users.UserRecord, room *rooms.Room) {
 			GoldChange: prize,
 		})
 
-		g.maybeUpdateBiggestWin(prize, user.Character.Name, room)
+		g.maybeUpdateBiggestWin(prize, user.Character.Name)
 
 		user.SendText(reelLine)
 		user.SendText(term.CRLFStr)
@@ -299,24 +297,18 @@ func slotPayoutTable() string {
 	return sb.String()
 }
 
-// maybeUpdateBiggestWin records a new biggest win if prize exceeds the current record,
-// then clears the room cache so the noun description is refreshed.
-func (g *GamblingModule) maybeUpdateBiggestWin(prize int, name string, room *rooms.Room) {
+// maybeUpdateBiggestWin records a new biggest win if prize exceeds the current record.
+func (g *GamblingModule) maybeUpdateBiggestWin(prize int, name string) {
 	slotMu.Lock()
-	updated := prize > g.state.BiggestWin
-	if updated {
+	if prize > g.state.BiggestWin {
 		g.state.BiggestWin = prize
 		g.state.BiggestWinName = name
 	}
 	slotMu.Unlock()
-	if updated {
-		g.refreshRoomNouns(room)
-	}
 }
 
-// slotMachineNounDesc returns the noun description shown when a player types
-// "look slot machine" in a room with the slots tag.
-func (g *GamblingModule) slotMachineNounDesc(room *rooms.Room) string {
+// slotMachineNounDesc returns the description shown when a player looks at the slot machine.
+func (g *GamblingModule) slotMachineNounDesc() string {
 	cost := defaultCost
 	if v, ok := g.plug.Config.Get(`SlotCost`).(int); ok && v > 0 {
 		cost = v
