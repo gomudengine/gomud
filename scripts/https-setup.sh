@@ -113,6 +113,9 @@ override_snippet=""
 printf 'Interactive HTTPS setup\n'
 printf 'Bundled base config: %s\n' "$CONFIG_FILE"
 printf 'Override target: %s\n\n' "$override_file"
+printf 'This helper no longer edits the bundled base config directly.\n'
+printf 'It can PATCH a running GoMud server or print a config-overrides snippet for manual save.\n'
+printf 'Either path still requires a GoMud restart before listener changes take effect.\n\n'
 
 printf 'Choose HTTPS mode:\n'
 printf '  1) Manual certificate files\n'
@@ -333,8 +336,7 @@ case "$apply_selection" in
 		-H 'Content-Type: application/json' \
 		-X PATCH \
 		--data "{$config_updates}" \
-		"$admin_base_url/admin/api/v1/config"
-	then
+		"$admin_base_url/admin/api/v1/config"; then
 		printf '\nFailed to apply settings through the admin API.\n' >&2
 		printf 'Fallback: save the following override snippet to %s and restart GoMud:\n\n' "$override_file" >&2
 		printf '%s\n' "$override_snippet" >&2
@@ -346,14 +348,17 @@ case "$apply_selection" in
 	case "$mode_selection" in
 	1)
 		printf '  1. Confirm %s and %s exist and are readable.\n' "$https_cert_file" "$https_key_file"
-		printf '  2. Restart GoMud only if your deployment requires it, then open https://your-domain:%s/.\n' "$https_port"
+		printf '  2. Restart GoMud so it rebinds the updated HTTP/HTTPS listeners.\n'
+		printf '  3. Open https://your-domain:%s/.\n' "$https_port"
 		;;
 	2)
 		printf '  1. Confirm %s resolves to this server and ports 80/443 are reachable.\n' "$web_domain"
-		printf '  2. Review /admin/https/ if certificate issuance needs troubleshooting.\n'
+		printf '  2. Restart GoMud so it rebinds the updated HTTP/HTTPS listeners.\n'
+		printf '  3. Review /admin/https/ if certificate issuance needs troubleshooting.\n'
 		;;
 	3)
-		printf '  1. Restart GoMud only if your deployment requires it, then connect over plain HTTP on port %s.\n' "$http_port"
+		printf '  1. Restart GoMud so it rebinds the updated HTTP/HTTPS listeners.\n'
+		printf '  2. Connect over plain HTTP on port %s.\n' "$http_port"
 		;;
 	esac
 	;;

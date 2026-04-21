@@ -110,11 +110,13 @@ make https-setup
 
 The helper does not edit the bundled base config directly.
 It can PATCH a running GoMud server through `/admin/api/v1/config`, or print a `config-overrides.yaml` snippet for manual save, and it offers manual certificate, automatic Let's Encrypt, or HTTP-only modes.
+Either path still requires a GoMud restart before listener changes take effect.
 ### Automatic HTTPS
 
 GoMud can now obtain and renew Let's Encrypt certificates itself for simple single-server installs.
 
 - Run `make https-setup` and choose `Automatic Let's Encrypt`, then either PATCH the running server or save the printed override snippet.
+- Restart GoMud after applying the settings so the updated HTTP/HTTPS listeners are created.
 - Set `FilePaths.WebDomain` to your public DNS name.
 - Leave `FilePaths.HttpsCertFile` and `FilePaths.HttpsKeyFile` empty unless you want to supply your own certificate files.
 - Set `Network.HttpPort` to `80` and `Network.HttpsPort` to `443`.

@@ -207,6 +207,9 @@ func TestHTTPSSetupCanPatchRunningServer(t *testing.T) {
 	if !strings.Contains(output, "HTTPS setup applied through the admin API.") {
 		t.Fatalf("https-setup output did not confirm API patch:\n%s", output)
 	}
+	if !strings.Contains(output, "Restart GoMud so it rebinds the updated HTTP/HTTPS listeners.") {
+		t.Fatalf("https-setup output did not require restart after API patch:\n%s", output)
+	}
 
 	logBytes, err := os.ReadFile(curlLog)
 	if err != nil {
@@ -223,6 +226,38 @@ func TestHTTPSSetupCanPatchRunningServer(t *testing.T) {
 	updated := readHTTPSSetupConfig(t, configPath)
 	if updated != sampleHTTPSConfig {
 		t.Fatalf("https-setup changed bundled config unexpectedly:\n%s", updated)
+	}
+}
+
+func TestHTTPSSetupAutoModeAPIApplyRequiresRestart(t *testing.T) {
+	configPath := writeHTTPSSetupTempConfig(t, sampleHTTPSConfig)
+	curlDir := t.TempDir()
+	curlLog := filepath.Join(curlDir, "curl.log")
+	curlStub := filepath.Join(curlDir, "curl-stub.sh")
+	curlScript := "#!/usr/bin/env sh\nprintf '%s\\n' \"$@\" >\"" + curlLog + "\"\nexit 0\n"
+	if err := os.WriteFile(curlStub, []byte(curlScript), 0o755); err != nil {
+		t.Fatalf("os.WriteFile() error = %v", err)
+	}
+
+	input := strings.Join([]string{
+		"2",
+		"play.example.com",
+		"ops@example.com",
+		"1",
+		"http://localhost/",
+		"admin",
+		"password",
+		"",
+	}, "\n")
+
+	output := runHTTPSSetup(t, configPath, input, map[string]string{
+		"CURL_BIN": curlStub,
+	})
+	if !strings.Contains(output, "Restart GoMud so it rebinds the updated HTTP/HTTPS listeners.") {
+		t.Fatalf("https-setup auto API output did not require restart:\n%s", output)
+	}
+	if !strings.Contains(output, "Review /admin/https/ if certificate issuance needs troubleshooting.") {
+		t.Fatalf("https-setup auto API output did not keep HTTPS troubleshooting guidance:\n%s", output)
 	}
 }
 
