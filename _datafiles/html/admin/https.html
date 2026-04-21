@@ -1,0 +1,95 @@
+{{template "header" .}}
+{{$status := .httpsStatus}}
+{{$probeHost := httpsDiagnosticHost $status.Host}}
+
+<style>
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #555; margin-bottom: 2rem; font-size: 0.95rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+    .card { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 1.25rem; }
+    .card h2 { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; color: #666; margin-bottom: 0.75rem; }
+    .kv { display: grid; grid-template-columns: auto 1fr; gap: 0.45rem 0.75rem; font-size: 0.92rem; }
+    .kv dt { font-weight: 700; color: #1a1a2e; }
+    .kv dd { color: #444; }
+    .list { padding-left: 1.2rem; color: #333; }
+    .list li + li { margin-top: 0.45rem; }
+    .mono { background: #1a1a2e; color: #c9d1d9; font-family: monospace; font-size: 0.84rem; padding: 0.85rem 1rem; border-radius: 5px; white-space: pre-wrap; overflow-x: auto; line-height: 1.55; }
+    .empty { color: #666; font-style: italic; }
+</style>
+
+<h1>HTTPS Status</h1>
+<p class="subtitle">{{$status.Summary}}</p>
+
+<div class="grid">
+    <section class="card">
+        <h2>Current Mode</h2>
+        <dl class="kv">
+            <dt>Mode</dt>
+            <dd>{{$status.Mode}}</dd>
+            <dt>Hostname</dt>
+            <dd>{{if $status.Host}}{{$status.Host}}{{else}}Not set{{end}}</dd>
+            <dt>HTTP Port</dt>
+            <dd>{{$status.HttpPort}}</dd>
+            <dt>HTTPS Port</dt>
+            <dd>{{$status.HttpsPort}}</dd>
+            <dt>Redirect Enabled</dt>
+            <dd>{{$status.RedirectEnabled}}</dd>
+            <dt>Email Configured</dt>
+            <dd>{{$status.EmailConfigured}}</dd>
+            {{if $status.CacheDir}}<dt>Cache Directory</dt><dd>{{$status.CacheDir}}</dd>{{end}}
+            {{if $status.CertFile}}<dt>Certificate File</dt><dd>{{$status.CertFile}}</dd>{{end}}
+            {{if $status.KeyFile}}<dt>Private Key File</dt><dd>{{$status.KeyFile}}</dd>{{end}}
+            {{if $status.Issuer}}<dt>Issuer</dt><dd>{{$status.Issuer}}</dd>{{end}}
+            {{if $status.ExpiresAt}}<dt>Expires At</dt><dd>{{$status.ExpiresAt}}</dd>{{end}}
+            {{if $status.ExpiresAt}}<dt>Days Remaining</dt><dd>{{$status.DaysRemaining}}</dd>{{end}}
+            {{if $status.CertificateHost}}<dt>Certificate CN</dt><dd>{{$status.CertificateHost}}</dd>{{end}}
+            {{if $status.CertificateDNS}}<dt>Certificate DNS</dt><dd>{{range $i, $name := $status.CertificateDNS}}{{if $i}}, {{end}}{{$name}}{{end}}</dd>{{end}}
+        </dl>
+    </section>
+
+    <section class="card">
+        <h2>What GoMud Checked</h2>
+        {{if $status.Checks}}
+        <ul class="list">
+            {{range $status.Checks}}<li>{{.}}</li>{{end}}
+        </ul>
+        {{else}}
+        <p class="empty">No HTTPS checks have been recorded yet.</p>
+        {{end}}
+    </section>
+</div>
+
+<div class="grid">
+    <section class="card">
+        <h2>Next Steps</h2>
+        {{if $status.NextSteps}}
+        <ol class="list">
+            {{range $status.NextSteps}}<li>{{.}}</li>{{end}}
+        </ol>
+        {{else}}
+        <p class="empty">No action is currently required.</p>
+        {{end}}
+    </section>
+
+    <section class="card">
+        <h2>Last Error</h2>
+        {{if $status.LastError}}
+        <pre class="mono">{{$status.LastError}}</pre>
+        {{else}}
+        <p class="empty">No HTTPS errors have been recorded.</p>
+        {{end}}
+    </section>
+</div>
+
+<section class="card">
+    <h2>Useful Commands</h2>
+    {{if httpsUsesExampleHost $status.Host}}
+    <p class="subtitle">Replace <code>{{$probeHost}}</code> with your public hostname before testing automatic HTTPS.</p>
+    {{end}}
+    <pre class="mono">ss -ltnp | rg ':80|:443'
+dig +short {{$probeHost}}
+curl -I http://{{$probeHost}}/
+curl -vk https://{{$probeHost}}/</pre>
+</section>
+
+{{template "footer" .}}
