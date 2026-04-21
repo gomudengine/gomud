@@ -76,7 +76,7 @@
             <div class="api-body">
                 <p>Returns the full server configuration as a flat dot-path key/value map. Secrets are redacted.</p>
                 <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
-     <span class="str">http://localhost/admin/api/v1/config</span></div>
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/config</span></div>
                 <div class="response-examples">
                     <details class="resp-entry">
                         <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
@@ -108,7 +108,7 @@
      <span class="flag">-X</span> PATCH \
      <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
      <span class="flag">-d</span> <span class="str">'{ "Server.MudName": "My MUD" }'</span> \
-     <span class="str">http://localhost/admin/api/v1/config</span></div>
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/config</span></div>
                 <div class="response-examples">
                     <details class="resp-entry">
                         <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
