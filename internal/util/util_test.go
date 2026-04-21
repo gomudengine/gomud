@@ -547,7 +547,7 @@ func TestFindMatchIn(t *testing.T) {
 		{"exact match #2", "sword#2", expected{"", "SHINING SWORD"}},
 		{"partial match", "HELM", expected{"", "HELMET"}},
 		{"partial but not first item", "G", expected{"", "GEM"}},
-		{"contains fallback", "iel", expected{"", "SHIELD"}}, // if logic tries "contains"
+		{"contains fallback", "shie", expected{"", "SHIELD"}}, // "shie" is a prefix of the word "shield"
 		{"helmet partial #2", "helm#2", expected{"", "HELMET"}},
 	}
 
@@ -573,8 +573,8 @@ func TestStringMatch(t *testing.T) {
 		{"exact", "sword", "sword", false, true, true},
 		{"partial prefix", "sw", "sword", false, true, false},
 		{"no match prefix", "abc", "sword", false, false, false},
-		{"contains partial", "wor", "sword", true, true, false},
-		{"contains full", "sword", "MYswordX", true, true, false}, // because "sword" is fully matched inside
+		{"contains partial", "wor", "sword", true, false, false},
+		{"contains full", "sword", "MYswordX", true, false, false}, // "sword" is not a prefix of the single word "myswordx"
 		{"case mismatch", "SWORD", "sword", false, true, true},
 	}
 	for _, tt := range tests {
