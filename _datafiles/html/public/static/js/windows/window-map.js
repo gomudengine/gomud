@@ -1006,7 +1006,13 @@
         function replayZone3d(startId) {
             resetMap3d();
             if (!roomCache[startId]) { return; }
-            var visited = {}, queue = [startId];
+            var startRoom = roomCache[startId];
+            var zoneKey = startRoom.zoneName;
+            var visited = {}, queue = [];
+            for (var rid in roomCache) {
+                var rc = roomCache[rid];
+                if (rc.zoneName === zoneKey) { queue.push(parseInt(rid, 10)); }
+            }
             while (queue.length > 0) {
                 var id = queue.shift();
                 if (visited[id]) { continue; }
