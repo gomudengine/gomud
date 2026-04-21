@@ -638,7 +638,16 @@ func (w *World) UpdateStats() {
 	c := configs.GetNetworkConfig()
 
 	for _, u := range users.GetAllActiveUsers() {
-		s.OnlineUsers = append(s.OnlineUsers, u.GetOnlineInfo())
+		info := u.GetOnlineInfo()
+		s.OnlineUsers = append(s.OnlineUsers, info)
+		switch info.ConnType {
+		case "websocket":
+			s.WebSocketConnections++
+		case "ssh":
+			s.SSHConnections++
+		default:
+			s.TelnetConnections++
+		}
 	}
 
 	sort.Slice(s.OnlineUsers, func(i, j int) bool {
@@ -659,6 +668,7 @@ func (w *World) UpdateStats() {
 	}
 
 	s.WebSocketPort = int(c.HttpPort)
+	s.SSHPort = int(c.SSHPort)
 
 	web.UpdateStats(s)
 }

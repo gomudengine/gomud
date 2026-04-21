@@ -7,15 +7,20 @@ import (
 )
 
 type Stats struct {
-	OnlineUsers   []users.OnlineInfo
-	TelnetPorts   []int
-	WebSocketPort int
+	OnlineUsers        []users.OnlineInfo
+	TelnetPorts        []int
+	WebSocketPort      int
+	SSHPort            int
+	TelnetConnections  int
+	WebSocketConnections int
+	SSHConnections     int
 }
 
 var (
 	statsLock   = sync.RWMutex{}
 	serverStats = Stats{
 		WebSocketPort: 0,
+		SSHPort:       0,
 		OnlineUsers:   []users.OnlineInfo{},
 		TelnetPorts:   []int{},
 	}
@@ -39,6 +44,10 @@ func UpdateStats(s Stats) {
 
 func (s *Stats) Reset() {
 	s.WebSocketPort = 0
+	s.SSHPort = 0
 	s.OnlineUsers = []users.OnlineInfo{}
 	s.TelnetPorts = []int{}
+	s.TelnetConnections = 0
+	s.WebSocketConnections = 0
+	s.SSHConnections = 0
 }

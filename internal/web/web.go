@@ -25,6 +25,11 @@ var (
 	httpServer  *http.Server
 	httpsServer *http.Server
 
+	// internalMux is the single ServeMux used by both the live HTTP servers and
+	// the in-process InternalRequest dispatcher. All routes must be registered
+	// on this mux rather than http.DefaultServeMux.
+	internalMux = http.NewServeMux()
+
 	upgrader = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true
@@ -240,15 +245,15 @@ func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn)) {
 	// Routing
 	// Basic homepage
 
-	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+	internalMux.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		r.URL.Path = `/static/images/favicon.ico`
 		serveTemplate(w, r)
 	})
 
-	http.HandleFunc("/", serveTemplate)
+	internalMux.HandleFunc("/", serveTemplate)
 
 	// websocket upgrade
-	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+	internalMux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
@@ -260,58 +265,7 @@ func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn)) {
 		webSocketHandler(conn)
 	})
 
-	http.Handle("GET /admin/static/", RunWithMUDLocked(
-		doBasicAuth(
-			handlerToHandlerFunc(
-				http.StripPrefix("/admin/static/", http.FileServer(http.Dir(configs.GetFilePathsConfig().AdminHtml.String()+"/static"))),
-			),
-		),
-	))
-
-	// Admin tools
-	http.HandleFunc("GET /admin/", RunWithMUDLocked(
-		doBasicAuth(adminIndex),
-	))
-
-	// Item Admin
-	http.HandleFunc("GET /admin/items/", RunWithMUDLocked(
-		doBasicAuth(itemsIndex),
-	))
-	http.HandleFunc("GET /admin/items/itemdata/", RunWithMUDLocked(
-		doBasicAuth(itemData),
-	))
-
-	// Race Admin
-	http.HandleFunc("GET /admin/races/", RunWithMUDLocked(
-		doBasicAuth(racesIndex)),
-	)
-	http.HandleFunc("GET /admin/races/racedata/", RunWithMUDLocked(
-		doBasicAuth(raceData)),
-	)
-
-	// Mob Admin
-	http.HandleFunc("GET /admin/mobs/", RunWithMUDLocked(
-		doBasicAuth(mobsIndex),
-	))
-	http.HandleFunc("GET /admin/mobs/mobdata/", RunWithMUDLocked(
-		doBasicAuth(mobData),
-	))
-
-	// Mutator Admin
-	http.HandleFunc("GET /admin/mutators/", RunWithMUDLocked(
-		doBasicAuth(mutatorsIndex),
-	))
-	http.HandleFunc("GET /admin/mutators/mutatordata/", RunWithMUDLocked(
-		doBasicAuth(mutatorData),
-	))
-
-	// Room Admin
-	http.HandleFunc("GET /admin/rooms/", RunWithMUDLocked(
-		doBasicAuth(roomsIndex),
-	))
-	http.HandleFunc("GET /admin/rooms/roomdata/", RunWithMUDLocked(
-		doBasicAuth(roomData),
-	))
+	registerAdminRoutes(internalMux)
 
 	//
 	// Https server start up
@@ -348,6 +302,7 @@ func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn)) {
 					httpsServer = &http.Server{
 						Addr:      fmt.Sprintf(`:%d`, networkConfig.HttpsPort),
 						TLSConfig: tlsConfig,
+						Handler:   internalMux,
 					}
 
 					mudlog.Info("HTTPS", "stage", "Starting https server", "port", networkConfig.HttpsPort)
@@ -369,7 +324,8 @@ func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn)) {
 	if networkConfig.HttpPort > 0 {
 
 		httpServer = &http.Server{
-			Addr: fmt.Sprintf(`:%d`, networkConfig.HttpPort),
+			Addr:    fmt.Sprintf(`:%d`, networkConfig.HttpPort),
+			Handler: internalMux,
 		}
 
 		if networkConfig.HttpsRedirect {
@@ -426,14 +382,17 @@ func buildHTTPSRedirectTarget(host string, httpsPort int, requestURI string) str
 	return fmt.Sprintf("https://%s:%d%s", host, httpsPort, requestURI)
 }
 
-// This wraps the handler functiojn with a game lock (mutex) to keep the mud from
-// Concurrently accessing the same memory
+// RunWithMUDLocked wraps a handler with the game mutex. Internal requests
+// (dispatched via InternalRequest) skip locking because the caller is
+// responsible for holding the lock when required.
 func RunWithMUDLocked(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
+		if IsInternalRequest(r) {
+			next.ServeHTTP(w, r)
+			return
+		}
 		util.LockMud()
 		defer util.UnlockMud()
-
 		next.ServeHTTP(w, r)
 	})
 }

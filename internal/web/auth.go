@@ -21,6 +21,11 @@ func handlerToHandlerFunc(h http.Handler) http.HandlerFunc {
 func doBasicAuth(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
+		if IsInternalRequest(r) {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		authHeader := r.Header.Get("Authorization")
 
 		if t, ok := authCache[authHeader]; ok {
