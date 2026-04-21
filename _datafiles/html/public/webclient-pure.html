@@ -313,6 +313,122 @@
             gap: 6px;
         }
 
+        /* Sound category blocks */
+        .sound-category-block {
+            margin-bottom: 6px;
+        }
+
+        .sound-category-header {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-bottom: 2px;
+        }
+
+        .sound-category-arrow {
+            font-size: 8px;
+            color: #3ad4b8;
+            width: 12px;
+            text-align: center;
+            flex-shrink: 0;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .sound-category-label {
+            color: #ccc;
+            width: 118px;
+            font-size: 13px;
+            font-family: Arial, sans-serif;
+            cursor: pointer;
+            user-select: none;
+            flex-shrink: 0;
+        }
+
+        .sound-category-header input[type="range"] {
+            flex: 1;
+            margin: 0 8px;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 4px;
+            border-radius: 2px;
+            background: #555;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .sound-category-header input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #1c6b60;
+            cursor: pointer;
+            border: 2px solid #3ad4b8;
+        }
+
+        .sound-category-header input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #1c6b60;
+            cursor: pointer;
+            border: 2px solid #3ad4b8;
+        }
+
+        /* Per-sound sub-rows */
+        .sound-list {
+            padding-left: 16px;
+            border-left: 1px solid #0f3333;
+            margin-left: 6px;
+            margin-bottom: 4px;
+        }
+
+        .sound-sub-row {
+            margin-bottom: 4px;
+        }
+
+        .sound-sub-label {
+            color: #7ab8a0;
+            width: 118px;
+            font-size: 11px;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            cursor: default;
+        }
+
+        .sound-list-empty {
+            padding: 4px 0 4px 4px;
+            font-size: 11px;
+            font-family: Arial, sans-serif;
+            color: #555;
+            font-style: italic;
+        }
+
+        /* Volume reset button */
+        #volume-reset-btn {
+            padding: 4px 10px;
+            background: #0d2e28;
+            border: 1px solid #1c6b60;
+            border-radius: 4px;
+            color: #7ab8a0;
+            font-size: 11px;
+            font-family: Arial, sans-serif;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: background 0.15s, color 0.15s;
+            flex-shrink: 0;
+        }
+
+        #volume-reset-btn:hover {
+            background: #1c6b60;
+            color: #dffbd1;
+        }
+
         /* Toggle switch */
         .toggle-switch {
             position: relative;
@@ -780,6 +896,7 @@
             align-items: baseline;
             justify-content: space-between;
             margin-bottom: 10px;
+            gap: 8px;
         }
 
         .stats-network-header .settings-section-title {
@@ -793,8 +910,6 @@
         }
 
         #stats-reset-btn {
-            margin-top: 6px;
-            margin-bottom: 10px;
             padding: 5px 12px;
             background: #0d2e28;
             border: 1px solid #1c6b60;
@@ -806,6 +921,8 @@
             text-transform: uppercase;
             letter-spacing: 0.05em;
             transition: background 0.15s, color 0.15s;
+            margin-left: auto;
+            display: block;
         }
 
         #stats-reset-btn:hover {
@@ -982,6 +1099,7 @@
                                 </span>
                                 <span id="mute-icon">&#128266;</span> Mute All Sound
                             </label>
+                            <button id="volume-reset-btn" onclick="resetVolumeControls()" style="margin-left:auto;">Reset</button>
                         </div>
                         <div id="sliders-container"></div>
                     </div>
@@ -1031,8 +1149,8 @@
                         <div class="stats-network-header">
                             <div class="settings-section-title">Network</div>
                             <div id="stats-uptime-header" class="stats-uptime"></div>
+                            <button id="stats-reset-btn" onclick="_statsReset()">Reset</button>
                         </div>
-                        <button id="stats-reset-btn" onclick="_statsReset()">Reset</button>
                         <div id="stats-net-overall"></div>
                         <div id="stats-net-gmcp" style="margin-top:8px;"></div>
                         <div id="stats-net-gmcp-out" style="margin-top:8px;"></div>
@@ -1051,10 +1169,11 @@
     <script>
         // Bridge HTML attribute event handlers to the Client namespace.
         // HTML onload/onclick attributes require globally-scoped functions.
-        function init()          { Client.init(); }
-        function toggleMenu()    { Client.toggleMenu(); }
-        function toggleMuteAll() { Client.toggleMuteAll(); }
-        function resetLayout()   { Client.resetLayout(); }
+        function init()                  { Client.init(); }
+        function toggleMenu()            { Client.toggleMenu(); }
+        function toggleMuteAll()         { Client.toggleMuteAll(); }
+        function resetLayout()           { Client.resetLayout(); }
+        function resetVolumeControls()   { Client.resetVolumeControls(); }
 
         // Tab switching for the settings modal
         document.addEventListener('DOMContentLoaded', function() {
@@ -1450,23 +1569,32 @@
             // (handled in the tab-click listener below)
 
             // Restart the stats interval if the modal is reopened with Stats already active.
+            // Also restart the volume interval if Volume tab is active.
             var observer = new MutationObserver(function() {
-                var backdrop = document.getElementById('settings-backdrop');
-                var isOpen   = backdrop.classList.contains('open');
-                var statsTab = document.getElementById('tab-stats');
+                var backdrop  = document.getElementById('settings-backdrop');
+                var isOpen    = backdrop.classList.contains('open');
+                var statsTab  = document.getElementById('tab-stats');
+                var volumeTab = document.getElementById('tab-volume');
                 if (isOpen && statsTab && statsTab.classList.contains('active')) {
                     renderStats();
                     if (!_statsInterval) {
                         _statsInterval = setInterval(renderStats, 500);
                     }
-                } else if (!isOpen) {
-                    if (_statsInterval) { clearInterval(_statsInterval); _statsInterval = null; }
+                }
+                if (isOpen && volumeTab && volumeTab.classList.contains('active')) {
+                    if (!_volumeInterval) {
+                        _volumeInterval = setInterval(_refreshVolumeIfChanged, 500);
+                    }
+                }
+                if (!isOpen) {
+                    if (_statsInterval)  { clearInterval(_statsInterval);  _statsInterval  = null; }
+                    if (_volumeInterval) { clearInterval(_volumeInterval); _volumeInterval = null; }
                 }
             });
             observer.observe(document.getElementById('settings-backdrop'), { attributes: true, attributeFilter: ['class'] });
 
             // Re-render the trigger list each time the Triggers tab is activated.
-            // Start/stop the stats live-update when the Stats tab is activated.
+            // Start/stop the stats and volume live-updates when their tabs are activated.
             tabBar.addEventListener('click', function(e) {
                 var btn = e.target.closest('.settings-tab-btn');
                 if (!btn) { return; }
@@ -1496,16 +1624,28 @@
                         _statsInterval = null;
                     }
                 }
+                if (btn.dataset.tab === 'tab-volume') {
+                    if (!_volumeInterval) {
+                        _volumeInterval = setInterval(_refreshVolumeIfChanged, 500);
+                    }
+                } else {
+                    if (_volumeInterval) {
+                        clearInterval(_volumeInterval);
+                        _volumeInterval = null;
+                    }
+                }
             });
 
-            // Stop the stats interval when the settings modal closes.
+            // Stop both intervals when the settings modal closes.
             document.getElementById('settings-backdrop').addEventListener('click', function(e) {
                 if (e.target === this) {
-                    if (_statsInterval) { clearInterval(_statsInterval); _statsInterval = null; }
+                    if (_statsInterval)  { clearInterval(_statsInterval);  _statsInterval  = null; }
+                    if (_volumeInterval) { clearInterval(_volumeInterval); _volumeInterval = null; }
                 }
             });
             document.getElementById('settings-close').addEventListener('click', function() {
-                if (_statsInterval) { clearInterval(_statsInterval); _statsInterval = null; }
+                if (_statsInterval)  { clearInterval(_statsInterval);  _statsInterval  = null; }
+                if (_volumeInterval) { clearInterval(_volumeInterval); _volumeInterval = null; }
             });
         });
 
@@ -1518,6 +1658,21 @@
         var _gmcpOutOpen    = false;  // is the GMCP Out section expanded?
         var _nsOpen        = {};      // which namespace payloads are expanded?
         var _nsOutOpen     = {};      // which GMCP Out identifier payloads are expanded?
+
+        // -----------------------------------------------------------------------
+        // Volume tab polling
+        // -----------------------------------------------------------------------
+        var _volumeInterval         = null;
+        var _volumeLastFingerprint  = -1;
+
+        function _refreshVolumeIfChanged() {
+            if (typeof Client === 'undefined' || !Client.soundHistoryFingerprint) { return; }
+            var fp = Client.soundHistoryFingerprint();
+            if (fp !== _volumeLastFingerprint) {
+                _volumeLastFingerprint = fp;
+                Client.buildSliders();
+            }
+        }
 
         function _fmtBytes(b) {
             if (b < 1024 * 1024) { return (b / 1024).toFixed(2) + ' KB'; }

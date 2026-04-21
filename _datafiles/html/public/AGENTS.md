@@ -440,6 +440,7 @@ Client.GMCPStructs          // Object tree of all received GMCP data
 Client.sliderValues         // Current volume levels by category key
 Client.MusicPlayer          // MP3Player instance (background music)
 Client.SoundPlayer          // MP3Player instance (sound effects)
+Client.resetVolumeControls()  // Reset all category sliders and per-sound overrides to defaults
 Client.term                 // xterm.js Terminal instance
 Client.sendData(str)        // Send a string over the WebSocket; returns bool
 Client.SendInput(str)       // Send a command string to the server (alias for sendData)
@@ -506,12 +507,21 @@ if (info && info.role === 'admin') {
 The settings modal has tabs managed by the inline `<script>` in
 `webclient-pure.html`. Tabs: **Volume**, **Windows**, **Triggers**, **Stats**.
 
+### Volume tab
+
+Contains:
+- **Mute All Sound** toggle switch on the left, **Reset** button right-justified on the same row.
+- One collapsible **category block** per audio category (`music`, `combat sounds`, `movement sounds`, `environment sounds`, `other sounds`). Clicking the arrow or label expands/collapses the block.
+- Inside each expanded category: a sub-row per sound URL that has been played in that category, each with its own volume slider (0-100, applied as a multiplier of the category level). Per-sound overrides and the list of played sounds are both persisted to `localStorage` (`soundHistory`, `soundVolumeOverrides`) so they survive page reloads.
+- **Reset** clears all category sliders back to 75, removes all per-sound overrides, and unchecks mute.
+
 ### Stats tab
 
 Displays live network traffic stats, refreshed every 500ms while the tab is
 visible. Powered by `Client.getNetStats()`. Contains:
 
-- **Connected for** — elapsed time since last WebSocket connect
+- **Connected for** — elapsed time since last WebSocket connect (in the header row)
+- **Reset** button — right-justified in the same header row as "Network" and the uptime display
 - **Sent / Received** — total bytes with per-second rate
 - **GMCP In** — collapsible section showing bytes received per GMCP namespace
 
