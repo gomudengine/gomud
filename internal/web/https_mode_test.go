@@ -234,8 +234,8 @@ func TestMarkAutoHTTPSHTTPFailure(t *testing.T) {
 
 	markAutoHTTPSHTTPFailure(&status, errors.New("listen tcp :80: bind: permission denied"))
 
-	if status.HttpsEnabled {
-		t.Fatalf("markAutoHTTPSHTTPFailure() left HttpsEnabled true")
+	if !status.HttpsEnabled {
+		t.Fatalf("markAutoHTTPSHTTPFailure() disabled HTTPS even though the HTTPS listener can stay up")
 	}
 	if status.RedirectEnabled {
 		t.Fatalf("markAutoHTTPSHTTPFailure() left RedirectEnabled true")
@@ -243,7 +243,7 @@ func TestMarkAutoHTTPSHTTPFailure(t *testing.T) {
 	if status.LastError != "listen tcp :80: bind: permission denied" {
 		t.Fatalf("markAutoHTTPSHTTPFailure() LastError = %q", status.LastError)
 	}
-	if status.Summary != "Automatic HTTPS is configured, but the required HTTP listener is unavailable because startup failed." {
+	if status.Summary != "Automatic HTTPS is serving cached certificates, but the required HTTP listener is unavailable for ACME challenges and redirects." {
 		t.Fatalf("markAutoHTTPSHTTPFailure() Summary = %q", status.Summary)
 	}
 	if !containsString(status.Checks, "Automatic HTTPS requires a working HTTP listener for ACME challenges and redirects.") {

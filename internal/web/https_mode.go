@@ -347,9 +347,8 @@ func markAutoHTTPSHTTPFailure(status *HTTPSStatus, err error) {
 	}
 
 	status.LastError = err.Error()
-	status.HttpsEnabled = false
 	status.RedirectEnabled = false
-	status.Summary = "Automatic HTTPS is configured, but the required HTTP listener is unavailable because startup failed."
+	status.Summary = "Automatic HTTPS is serving cached certificates, but the required HTTP listener is unavailable for ACME challenges and redirects."
 
 	startupCheck := "Automatic HTTPS requires a working HTTP listener for ACME challenges and redirects."
 	if !containsString(status.Checks, startupCheck) {
