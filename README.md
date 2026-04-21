@@ -120,6 +120,7 @@ It can PATCH a running GoMud server through `/admin/api/v1/config`, or print a `
 
 GoMud can now obtain and renew Let's Encrypt certificates itself for simple single-server installs.
 
+- Run `make https-setup` and choose `Automatic Let's Encrypt`, then either PATCH the running server or save the printed override snippet.
 - Set `FilePaths.WebDomain` to your public DNS name.
 - Leave `FilePaths.HttpsCertFile` and `FilePaths.HttpsKeyFile` empty unless you want to supply your own certificate files.
 - Set `Network.HttpPort` to `80` and `Network.HttpsPort` to `443`.
