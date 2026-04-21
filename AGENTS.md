@@ -27,45 +27,6 @@ GoMud is an open source Multi-user Dungeon (MUD) game engine and server written 
 - Telnet server for classic MUD client connections
 - HTTP/HTTPS web server for browser-based access
 
-## Project Structure
-
-```
-_datafiles/                 # Game world data and configuration files
-├── config.yaml            # Main server configuration (22K+ lines of settings)
-├── guides/                 # Documentation for players, builders, and operators
-├── html/                   # Web interface templates and static assets
-│   ├── admin/             # Administrative web interface (HTMX-based)
-│   └── public/            # Public web client and assets
-├── localize/              # Translation files (en.yaml, zh.yaml)
-├── sample-scripts/        # Example JavaScript scripts for spells and mobs
-└── world/default/         # Default game world content
-    ├── biomes/            # Environment definitions
-    ├── buffs/             # Status effects with JS logic
-    ├── conversations/     # NPC dialogue trees
-    ├── items/             # Game items (weapons, armor, consumables)
-    ├── mobs/              # Non-player characters with AI scripts
-    ├── quests/            # Quest definitions and progression
-    ├── races/             # Character races and stats
-    └── rooms/             # Game world locations and connections
-
-cmd/generate/              # Code generation utilities
-internal/                  # Core engine packages (Go internal convention)
-├── characters/           # Player/NPC character system
-├── rooms/                # Room management and world state
-├── usercommands/         # Player command implementations
-├── mobcommands/          # NPC AI command system
-├── scripting/            # JavaScript runtime integration
-├── web/                  # HTTP server and admin interface
-├── configs/              # Configuration management
-└── [30+ other packages]  # Modular architecture with clear separation
-
-modules/                   # Plugin system for extending functionality
-
-provisioning/             # Docker deployment configuration
-```
-
-## Development Workflow
-
 **Essential Commands:**
 
 ```bash
@@ -217,6 +178,8 @@ make client               # Connect telnet client to Docker instance
 
 ## Code Context Documentation
 
+### Web Client Frontend
+- **Web Client Code**: `_datafiles/html/public/context.md` - Web Client specific code that generates virtual windows that can accept/handle MCP and GMCP updates.
 ### Core Engine Components
 - **Characters System**: `internal/characters/context.md` - Player/NPC character system with stats, equipment, combat mechanics, and character states
 - **Rooms System**: `internal/rooms/context.md` - World management system with dynamic loading, biomes, spawning, and ephemeral room creation
@@ -272,3 +235,6 @@ make client               # Connect telnet client to Docker instance
 
 ### Plugin Architecture
 - **Modules System**: `modules/context.md` - Comprehensive plugin architecture with event integration, web interfaces, scripting, and extensible functionality
+
+## Important
+- Always update `context.md` in the folder of code that has been updated. If the context doesn't exist in this `AGENTS.md`, add a reference to it following the pattern that is established.
