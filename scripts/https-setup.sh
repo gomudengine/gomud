@@ -133,6 +133,12 @@ backup_file="${CONFIG_FILE}.bak.${timestamp}"
 cp "$CONFIG_FILE" "$backup_file"
 
 tmp_file=$(mktemp "${TMPDIR:-/tmp}/gomud-https-setup.XXXXXX")
+cleanup() {
+	if [ -n "${tmp_file:-}" ]; then
+		rm -f "$tmp_file"
+	fi
+}
+trap cleanup EXIT HUP INT TERM
 
 awk \
 	-v https_cert_file="$https_cert_file" \
@@ -155,7 +161,8 @@ awk \
 	{ print }
 	' "$CONFIG_FILE" >"$tmp_file"
 
-mv "$tmp_file" "$CONFIG_FILE"
+# Rewrite the existing file in place so we preserve its owner and mode.
+cat "$tmp_file" >"$CONFIG_FILE"
 
 printf '\nHTTPS setup updated.\n'
 printf 'Backup saved to: %s\n' "$backup_file"
