@@ -1,5 +1,6 @@
 {{template "header" .}}
 {{$status := .httpsStatus}}
+{{$probeHost := httpsDiagnosticHost $status.Host}}
 
 <style>
     h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
@@ -82,10 +83,13 @@
 
 <section class="card">
     <h2>Useful Commands</h2>
+    {{if httpsUsesExampleHost $status.Host}}
+    <p class="subtitle">Replace <code>{{$probeHost}}</code> with your public hostname before testing automatic HTTPS.</p>
+    {{end}}
     <pre class="mono">ss -ltnp | rg ':80|:443'
-dig +short {{if $status.Host}}{{$status.Host}}{{else}}example.com{{end}}
-curl -I http://{{if $status.Host}}{{$status.Host}}{{else}}localhost{{end}}/
-curl -vk https://{{if $status.Host}}{{$status.Host}}{{else}}localhost{{end}}/</pre>
+dig +short {{$probeHost}}
+curl -I http://{{$probeHost}}/
+curl -vk https://{{$probeHost}}/</pre>
 </section>
 
 {{template "footer" .}}

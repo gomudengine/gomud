@@ -290,6 +290,30 @@ func defaultHTTPSGuidance(plan httpsPlan, network configs.Network) []string {
 	return steps
 }
 
+func markHTTPSStartupFailure(status *HTTPSStatus, err error) {
+	if err == nil {
+		return
+	}
+
+	status.LastError = err.Error()
+	status.HttpsEnabled = false
+	status.RedirectEnabled = false
+
+	switch status.Mode {
+	case string(httpsModeManual):
+		status.Summary = "Manual HTTPS is configured, but the HTTPS listener is unavailable because startup failed."
+	case string(httpsModeAuto):
+		status.Summary = "Automatic HTTPS is configured, but the HTTPS listener is unavailable because startup failed."
+	default:
+		status.Summary = "HTTPS is unavailable because startup failed."
+	}
+
+	startupCheck := "HTTPS startup failed, so GoMud is not currently serving HTTPS."
+	if !containsString(status.Checks, startupCheck) {
+		status.Checks = append(status.Checks, startupCheck)
+	}
+}
+
 func SetHTTPSStatus(status HTTPSStatus) {
 	httpsStatusLock.Lock()
 	defer httpsStatusLock.Unlock()
@@ -310,6 +334,27 @@ func GetHTTPSStatus() HTTPSStatus {
 	status.Checks = append([]string{}, status.Checks...)
 	status.NextSteps = append([]string{}, status.NextSteps...)
 	return status
+}
+
+func containsString(items []string, target string) bool {
+	for _, item := range items {
+		if item == target {
+			return true
+		}
+	}
+	return false
+}
+
+func httpsDiagnosticHost(host string) string {
+	host = normalizeHTTPSHost(host)
+	if isPublicACMEHost(host) {
+		return host
+	}
+	return "play.example.com"
+}
+
+func httpsUsesExampleHost(host string) bool {
+	return httpsDiagnosticHost(host) == "play.example.com" && !isPublicACMEHost(normalizeHTTPSHost(host))
 }
 
 func runAutoHTTPSPreflight(status *HTTPSStatus) {

@@ -1,6 +1,7 @@
 package web
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -167,6 +168,72 @@ func TestDefaultHTTPSGuidance(t *testing.T) {
 	steps := defaultHTTPSGuidance(plan, network)
 	if len(steps) == 0 {
 		t.Fatalf("defaultHTTPSGuidance() returned no steps")
+	}
+}
+
+func TestMarkHTTPSStartupFailure(t *testing.T) {
+	status := HTTPSStatus{
+		Mode:            string(httpsModeAuto),
+		Summary:         "Automatic HTTPS is enabled.",
+		HttpsEnabled:    true,
+		RedirectEnabled: true,
+	}
+
+	markHTTPSStartupFailure(&status, errors.New("bind: address already in use"))
+
+	if status.HttpsEnabled {
+		t.Fatalf("markHTTPSStartupFailure() left HttpsEnabled true")
+	}
+	if status.RedirectEnabled {
+		t.Fatalf("markHTTPSStartupFailure() left RedirectEnabled true")
+	}
+	if status.LastError != "bind: address already in use" {
+		t.Fatalf("markHTTPSStartupFailure() LastError = %q", status.LastError)
+	}
+	if status.Summary != "Automatic HTTPS is configured, but the HTTPS listener is unavailable because startup failed." {
+		t.Fatalf("markHTTPSStartupFailure() Summary = %q", status.Summary)
+	}
+	if !containsString(status.Checks, "HTTPS startup failed, so GoMud is not currently serving HTTPS.") {
+		t.Fatalf("markHTTPSStartupFailure() did not record startup failure check")
+	}
+}
+
+func TestHTTPSDiagnosticHost(t *testing.T) {
+	tests := []struct {
+		name     string
+		host     string
+		wantHost string
+		wantHint bool
+	}{
+		{
+			name:     "keeps public hostname",
+			host:     "play.example.com",
+			wantHost: "play.example.com",
+			wantHint: false,
+		},
+		{
+			name:     "replaces localhost with example hostname",
+			host:     "localhost",
+			wantHost: "play.example.com",
+			wantHint: true,
+		},
+		{
+			name:     "replaces empty host with example hostname",
+			host:     "",
+			wantHost: "play.example.com",
+			wantHint: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := httpsDiagnosticHost(tt.host); got != tt.wantHost {
+				t.Fatalf("httpsDiagnosticHost() = %q, want %q", got, tt.wantHost)
+			}
+			if got := httpsUsesExampleHost(tt.host); got != tt.wantHint {
+				t.Fatalf("httpsUsesExampleHost() = %v, want %v", got, tt.wantHint)
+			}
+		})
 	}
 }
 

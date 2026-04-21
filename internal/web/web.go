@@ -283,8 +283,7 @@ func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn)) {
 		cert, err := tls.LoadX509KeyPair(httpsPlan.certFile, httpsPlan.keyFile)
 		if err != nil {
 			UpdateHTTPSStatus(func(status *HTTPSStatus) {
-				status.LastError = err.Error()
-				status.HttpsEnabled = false
+				markHTTPSStartupFailure(status, err)
 			})
 			mudlog.Error("HTTPS", "error", fmt.Errorf("Error loading certificate and key: %w", err))
 		} else {
@@ -311,7 +310,7 @@ func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn)) {
 				defer wg.Done()
 				if err := httpsServer.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
 					UpdateHTTPSStatus(func(status *HTTPSStatus) {
-						status.LastError = err.Error()
+						markHTTPSStartupFailure(status, err)
 						status.NextSteps = append(status.NextSteps, describeListenError(int(networkConfig.HttpsPort), err)...)
 					})
 					mudlog.Error("HTTPS", "error", fmt.Errorf("Error starting HTTPS web server: %w", err))
@@ -386,7 +385,7 @@ func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn)) {
 			defer wg.Done()
 			if err := httpsServer.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
 				UpdateHTTPSStatus(func(status *HTTPSStatus) {
-					status.LastError = err.Error()
+					markHTTPSStartupFailure(status, err)
 					status.NextSteps = append(status.NextSteps, describeListenError(int(networkConfig.HttpsPort), err)...)
 				})
 				mudlog.Error("HTTPS", "error", fmt.Errorf("Error starting HTTPS web server: %w", err))
