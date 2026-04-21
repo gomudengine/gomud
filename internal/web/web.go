@@ -419,6 +419,15 @@ func Shutdown() {
 	}
 }
 
+// serveAdminStaticFile serves static assets from the admin HTML directory.
+// The full URL path relative to /admin/ is preserved so subdirectories work.
+func serveAdminStaticFile(w http.ResponseWriter, r *http.Request) {
+	adminRoot := filepath.Clean(configs.GetFilePathsConfig().AdminHtml.String())
+	rel := strings.TrimPrefix(r.URL.Path, "/admin")
+	fullPath := filepath.Join(adminRoot, filepath.Clean(rel))
+	http.ServeFile(w, r, fullPath)
+}
+
 func sendError(w http.ResponseWriter, r *http.Request, status int) {
 	w.WriteHeader(status)
 	if status == http.StatusNotFound {
