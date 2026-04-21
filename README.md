@@ -113,7 +113,8 @@ For a guided config update, run:
 make https-setup
 ```
 
-The helper updates `_datafiles/config.yaml` and writes a timestamped backup before making changes.
+The helper does not edit the bundled base config directly.
+It can PATCH a running GoMud server through `/admin/api/v1/config`, or print a `config-overrides.yaml` snippet for manual save.
 
 Default seeded credentials in the bundled world:
 
