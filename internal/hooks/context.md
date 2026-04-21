@@ -2,7 +2,7 @@
 
 ## Overview
 
-The GoMud hooks system provides comprehensive event-driven game logic through a collection of 39 specialized event listeners that handle everything from combat rounds to quest progression. It serves as the primary integration layer between the event system and game mechanics, implementing core gameplay features like combat resolution, mob AI, player lifecycle management, and system maintenance tasks.
+The GoMud hooks system provides comprehensive event-driven game logic through a collection of specialized event listeners that handle everything from combat rounds to quest progression. It serves as the primary integration layer between the event system and game mechanics, implementing core gameplay features like combat resolution, mob AI, player lifecycle management, and system maintenance tasks.
 
 > **Note:** This package (`internal/hooks`) contains *event listeners* - asynchronous, fire-and-forget handlers wired to the event queue. It is distinct from the synchronous `util.Hook[T]` callback chain described below, which is used when a caller needs to receive a modified return value.
 
@@ -26,14 +26,14 @@ The hooks system is built around several key categories:
 **Event Registration System:**
 - Centralized listener registration in `RegisterListeners()`
 - Type-safe event handling with proper casting
-- Ordered execution with priority support (events.Last)
+- Ordered execution with priority support (`events.Last`)
 - Comprehensive coverage of all game events
 
 **Game Loop Hooks:**
 - **NewRound Events**: Combat, healing, mob AI, player ticks
 - **NewTurn Events**: Autosave, cleanup, buff management
 - **Player Lifecycle**: Spawn, despawn, character changes
-- **System Maintenance**: VM pruning, zombie cleanup, respawns
+- **System Maintenance**: VM pruning, link-dead cleanup, respawns
 
 **Gameplay Integration:**
 - **Combat System**: Full combat round processing with multi-target support
@@ -41,359 +41,125 @@ The hooks system is built around several key categories:
 - **Buff System**: Application, expiration, and effect processing
 - **Audio System**: MSP sound effects and location-based music
 
-## Key Features
+## Complete Listener Registration
 
-### 1. **Comprehensive Game Loop Management**
-- **Round Processing**: 15 different NewRound event handlers
-- **Turn Processing**: 4 NewTurn event handlers for maintenance
-- **Combat Integration**: Complete combat round resolution
-- **Mob AI Processing**: Idle behavior and action execution
+All listeners are registered in `RegisterListeners()` in `hooks.go`:
 
-### 2. **Player Lifecycle Management**
-- **Join/Leave Handling**: Player spawn and despawn processing
-- **Character Updates**: Broadcasting character changes
-- **Level Progression**: Level-up notifications and guide spawning
-- **Connection Management**: Zombie cleanup and inactive player handling
-
-### 3. **Quest and Progression Systems**
-- **Quest Processing**: Multi-step quest advancement and rewards
-- **Item Integration**: Quest item requirements and rewards
-- **Skill Advancement**: Skill-based quest completion
-- **Experience Distribution**: Level-up rewards and notifications
-
-### 4. **System Maintenance and Optimization**
-- **Automatic Cleanup**: Zombie connections, expired buffs, ephemeral rooms
-- **Resource Management**: VM pruning, memory optimization
-- **Data Persistence**: Automatic user saves and data integrity
-- **Performance Monitoring**: Event processing and system health
-
-## Event Listener Categories
-
-### NewRound Event Handlers (15 handlers)
+### Buff Handlers
 ```go
-// Core game loop processing every round
-events.RegisterListener(events.NewRound{}, PruneVMs)              // Clean up JavaScript VMs
-events.RegisterListener(events.NewRound{}, InactivePlayers)       // Handle AFK players
-events.RegisterListener(events.NewRound{}, UpdateZoneMutators)    // Update zone effects
-events.RegisterListener(events.NewRound{}, CheckNewDay)           // Day/night cycle
-events.RegisterListener(events.NewRound{}, SpawnLootGoblin)       // Special mob spawning
-events.RegisterListener(events.NewRound{}, UserRoundTick)         // Player round processing
-events.RegisterListener(events.NewRound{}, MobRoundTick)          // NPC round processing
-events.RegisterListener(events.NewRound{}, HandleRespawns)        // Mob respawning
-events.RegisterListener(events.NewRound{}, DoCombat)              // Combat resolution
-events.RegisterListener(events.NewRound{}, AutoHeal)              // Natural healing
-events.RegisterListener(events.NewRound{}, IdleMobs)              // Mob idle behavior
+events.RegisterListener(events.Buff{}, ApplyBuffs)
 ```
 
-### NewTurn Event Handlers (4 handlers)
+### RoomChange Handlers
 ```go
-// System maintenance every turn (multiple rounds)
-events.RegisterListener(events.NewTurn{}, CleanupZombies)         // Remove disconnected users
-events.RegisterListener(events.NewTurn{}, AutoSave)               // Automatic data saves
-events.RegisterListener(events.NewTurn{}, PruneBuffs)             // Remove expired buffs
-events.RegisterListener(events.NewTurn{}, ActionPoints)           // Regenerate action points
+events.RegisterListener(events.RoomChange{}, LocationMusicChange)
+events.RegisterListener(events.RoomChange{}, CleanupEphemeralRooms)
+events.RegisterListener(events.RoomChange{}, SpawnGuide)
+```
+
+### NewRound Handlers (11 handlers)
+```go
+events.RegisterListener(events.NewRound{}, PruneVMs)
+events.RegisterListener(events.NewRound{}, InactivePlayers)
+events.RegisterListener(events.NewRound{}, UpdateZoneMutators)
+events.RegisterListener(events.NewRound{}, CheckNewDay)
+events.RegisterListener(events.NewRound{}, SpawnLootGoblin)
+events.RegisterListener(events.NewRound{}, UserRoundTick)
+events.RegisterListener(events.NewRound{}, MobRoundTick)
+events.RegisterListener(events.NewRound{}, HandleRespawns)
+events.RegisterListener(events.NewRound{}, DoCombat)   // Combat goes here
+events.RegisterListener(events.NewRound{}, AutoHeal)
+events.RegisterListener(events.NewRound{}, IdleMobs)
+events.RegisterListener(events.MobIdle{}, HandleIdleMobs)
+```
+
+### NewTurn Handlers (4 handlers)
+```go
+events.RegisterListener(events.NewTurn{}, CleanupLinkDead)
+events.RegisterListener(events.NewTurn{}, AutoSave)
+events.RegisterListener(events.NewTurn{}, PruneBuffs)
+events.RegisterListener(events.NewTurn{}, ActionPoints)
 ```
 
 ### Player Lifecycle Handlers
 ```go
-// Player connection and character management
-events.RegisterListener(events.PlayerSpawn{}, HandleJoin)         // Player login processing
-events.RegisterListener(events.PlayerDespawn{}, HandleLeave, events.Last) // Player logout (final)
-events.RegisterListener(events.PlayerDrop{}, HandlePlayerDrop)    // Unexpected disconnection
-events.RegisterListener(events.CharacterCreated{}, BroadcastNewChar) // New character announcements
-events.RegisterListener(events.CharacterChanged{}, BroadcastNewChar) // Character update announcements
+events.RegisterListener(events.PlayerSpawn{}, HandleJoin)
+events.RegisterListener(events.PlayerDespawn{}, HandleLeave, events.Last) // final listener
+events.RegisterListener(events.PlayerDrop{}, HandlePlayerDrop)
+events.RegisterListener(events.CharacterCreated{}, BroadcastNewChar)
+events.RegisterListener(events.CharacterChanged{}, BroadcastNewChar)
 ```
 
 ### Game Mechanics Handlers
 ```go
-// Core gameplay systems
-events.RegisterListener(events.Quest{}, HandleQuestUpdate)        // Quest progression
-events.RegisterListener(events.Buff{}, ApplyBuffs)               // Buff application
-events.RegisterListener(events.LevelUp{}, SendLevelNotifications) // Level-up messages
-events.RegisterListener(events.LevelUp{}, CheckGuide)             // Guide NPC spawning
-events.RegisterListener(events.ItemOwnership{}, CheckItemQuests)  // Item-based quests
-events.RegisterListener(events.MobIdle{}, HandleIdleMobs)         // Mob AI behavior
+events.RegisterListener(events.ItemOwnership{}, CheckItemQuests)
+events.RegisterListener(events.MSP{}, PlaySound)
+events.RegisterListener(events.Quest{}, HandleQuestUpdate)
+events.RegisterListener(events.LevelUp{}, SendLevelNotifications)
+events.RegisterListener(events.LevelUp{}, CheckGuide)
+events.RegisterListener(events.DayNightCycle{}, NotifySunriseSunset)
+events.RegisterListener(events.Looking{}, HandleLookHints)
 ```
 
-## Combat System Integration
-
-### Combat Round Processing
+### Messaging and UI Handlers
 ```go
-func DoCombat(e events.Event) events.ListenerReturn {
-    evt := e.(events.NewRound)
-    
-    // Process all active combat encounters
-    for _, user := range users.GetAllActiveUsers() {
-        if user.Character.IsAggro() {
-            // Handle player combat
-            processCombatRound(user)
-        }
-    }
-    
-    // Process mob vs mob combat
-    for _, mobInstanceId := range mobs.GetAllMobInstanceIds() {
-        mob := mobs.GetInstance(mobInstanceId)
-        if mob != nil && mob.Character.IsAggro() {
-            processMobCombat(mob)
-        }
-    }
-    
-    return events.Continue
-}
-
-// Combat processing includes:
-// - Multi-target combat resolution
-// - Weapon durability and breakage
-// - Death handling and consequences
-// - Experience and loot distribution
-// - Combat state management
+events.RegisterListener(events.Message{}, Message_SendMessage)
+events.RegisterListener(events.RedrawPrompt{}, RedrawPrompt_SendRedraw)
+events.RegisterListener(events.UserSettingChanged{}, ClearSettingCaches)
+events.RegisterListener(events.WebClientCommand{}, WebClientCommand_SendWebClientCommand)
+events.RegisterListener(events.Broadcast{}, Broadcast_SendToAll)
 ```
 
-## Quest System Integration
-
-### Quest Progress Handling
+### System Handlers
 ```go
-func HandleQuestUpdate(e events.Event) events.ListenerReturn {
-    evt := e.(events.Quest)
-    
-    user := users.GetByUserId(evt.UserId)
-    if user == nil {
-        return events.Cancel
-    }
-    
-    // Validate quest progression
-    if !quests.IsTokenAfter(user.Character.GetCurrentQuestToken(), evt.QuestToken) {
-        return events.Cancel
-    }
-    
-    // Update quest progress
-    user.Character.SetQuestFlag(evt.QuestToken)
-    
-    // Check for quest completion
-    quest := quests.GetQuest(evt.QuestToken)
-    if quest != nil && isQuestComplete(quest, evt.QuestToken) {
-        distributeQuestRewards(user, quest)
-    }
-    
-    return events.Continue
-}
-
-// Quest processing includes:
-// - Multi-step quest validation
-// - Item requirement checking
-// - Skill-based quest completion
-// - Reward distribution (gold, items, experience, skills)
-// - Chained quest activation
+events.RegisterListener(events.RebuildMap{}, HandleMapRebuild)
+events.RegisterListener(events.Log{}, FollowLogs)
 ```
 
-## Player Lifecycle Management
+## Handler Files
 
-### Player Join Processing
-```go
-func HandleJoin(e events.Event) events.PlayerSpawn {
-    evt := e.(events.PlayerSpawn)
-    
-    user := users.GetByUserId(evt.UserId)
-    if user == nil {
-        return events.Cancel
-    }
-    
-    // Execute join scripts
-    if room := rooms.LoadRoom(user.Character.RoomId); room != nil {
-        if room.HasScript() {
-            scripting.TryRoomScriptEvent("onPlayerEnter", room.RoomId, evt.UserId, 0)
-        }
-    }
-    
-    // Handle first-time login
-    if user.Character.Level == 1 && user.Character.Experience == 0 {
-        handleNewPlayerSetup(user)
-    }
-    
-    // Broadcast join message
-    broadcastPlayerJoin(user)
-    
-    return events.Continue
-}
-```
+Each listener is implemented in its own file, named `EventType_HandlerName.go`:
 
-### Player Leave Processing
-```go
-func HandleLeave(e events.Event) events.ListenerReturn {
-    evt := e.(events.PlayerDespawn)
-    
-    user := users.GetByUserId(evt.UserId)
-    if user == nil {
-        return events.Cancel
-    }
-    
-    // Save user data
-    if err := user.Save(); err != nil {
-        mudlog.Error("HandleLeave", "userId", evt.UserId, "error", err)
-    }
-    
-    // Clean up combat state
-    user.Character.ClearAggro()
-    
-    // Execute leave scripts
-    if room := rooms.LoadRoom(user.Character.RoomId); room != nil {
-        if room.HasScript() {
-            scripting.TryRoomScriptEvent("onPlayerLeave", room.RoomId, evt.UserId, 0)
-        }
-    }
-    
-    // Broadcast leave message
-    broadcastPlayerLeave(user)
-    
-    return events.Continue
-}
-```
-
-## System Maintenance Hooks
-
-### Automatic Cleanup
-```go
-// Zombie connection cleanup
-func CleanupZombies(e events.Event) events.ListenerReturn {
-    evt := e.(events.NewTurn)
-    
-    expirationTurn := evt.TurnNumber - configs.GetNetworkConfig().LogoutRounds
-    expiredZombies := users.GetExpiredZombies(expirationTurn)
-    
-    for _, userId := range expiredZombies {
-        user := users.GetByUserId(userId)
-        if user != nil {
-            user.Save()
-            users.RemoveUser(userId)
-        }
-    }
-    
-    return events.Continue
-}
-
-// Buff expiration management
-func PruneBuffs(e events.Event) events.ListenerReturn {
-    evt := e.(events.NewTurn)
-    
-    // Prune user buffs
-    for _, user := range users.GetAllActiveUsers() {
-        prunedBuffs := user.Character.Buffs.Prune()
-        for _, buff := range prunedBuffs {
-            notifyBuffExpiration(user, buff)
-        }
-    }
-    
-    // Prune mob buffs
-    for _, mobInstanceId := range mobs.GetAllMobInstanceIds() {
-        mob := mobs.GetInstance(mobInstanceId)
-        if mob != nil {
-            mob.Character.Buffs.Prune()
-        }
-    }
-    
-    return events.Continue
-}
-```
-
-### Automatic Saves
-```go
-func AutoSave(e events.Event) events.ListenerReturn {
-    evt := e.(events.NewTurn)
-    
-    // Save all active users periodically
-    if evt.TurnNumber%configs.GetGamePlayConfig().AutoSaveFrequency == 0 {
-        for _, user := range users.GetAllActiveUsers() {
-            if err := user.Save(); err != nil {
-                mudlog.Error("AutoSave", "userId", user.UserId, "error", err)
-            }
-        }
-    }
-    
-    return events.Continue
-}
-```
-
-## Audio and Visual Effects
-
-### MSP Sound System
-```go
-func PlaySound(e events.Event) events.ListenerReturn {
-    evt := e.(events.MSP)
-    
-    user := users.GetByUserId(evt.UserId)
-    if user == nil || !user.ClientSettings().IsMsp() {
-        return events.Continue
-    }
-    
-    // Send MSP sound command
-    soundCommand := fmt.Sprintf("!!SOUND(%s)", evt.SoundFile)
-    user.SendText(soundCommand)
-    
-    return events.Continue
-}
-
-// Location-based music changes
-func LocationMusicChange(e events.Event) events.ListenerReturn {
-    evt := e.(events.RoomChange)
-    
-    user := users.GetByUserId(evt.UserId)
-    if user == nil {
-        return events.Continue
-    }
-    
-    room := rooms.LoadRoom(evt.RoomId)
-    if room != nil && room.MusicFile != "" {
-        if user.LastMusic != room.MusicFile {
-            user.PlayMusic(room.MusicFile)
-            user.LastMusic = room.MusicFile
-        }
-    }
-    
-    return events.Continue
-}
-```
-
-## Mob AI and Behavior
-
-### Idle Mob Processing
-```go
-func IdleMobs(e events.Event) events.ListenerReturn {
-    evt := e.(events.NewRound)
-    
-    for _, mobInstanceId := range mobs.GetAllMobInstanceIds() {
-        mob := mobs.GetInstance(mobInstanceId)
-        if mob == nil || mob.Character.IsAggro() {
-            continue
-        }
-        
-        // Check activity level for idle behavior
-        if util.Rand(100) < mob.ActivityLevel {
-            events.AddToQueue(events.MobIdle{
-                MobInstanceId: mobInstanceId,
-            })
-        }
-    }
-    
-    return events.Continue
-}
-
-func HandleIdleMobs(e events.Event) events.ListenerReturn {
-    evt := e.(events.MobIdle)
-    
-    mob := mobs.GetInstance(evt.MobInstanceId)
-    if mob == nil {
-        return events.Continue
-    }
-    
-    // Execute idle command
-    idleCommand := mob.GetIdleCommand()
-    if idleCommand != "" {
-        mob.Command(idleCommand)
-    }
-    
-    return events.Continue
-}
-```
+| File | Event | Handler |
+|------|-------|---------|
+| `Buff_ApplyBuffs.go` | `Buff` | `ApplyBuffs` |
+| `RoomChange_LocationMusicChange.go` | `RoomChange` | `LocationMusicChange` |
+| `RoomChange_CleanupEphemeralRooms.go` | `RoomChange` | `CleanupEphemeralRooms` |
+| `RoomChange_SpawnGuide.go` | `RoomChange` | `SpawnGuide` |
+| `NewRound_PruneVMs.go` | `NewRound` | `PruneVMs` |
+| `NewRound_InactivePlayers.go` | `NewRound` | `InactivePlayers` |
+| `NewRound_UpdateZoneMutators.go` | `NewRound` | `UpdateZoneMutators` |
+| `NewRound_CheckNewDay.go` | `NewRound` | `CheckNewDay` |
+| `NewRound_SpawnLootGoblin.go` | `NewRound` | `SpawnLootGoblin` |
+| `NewRound_UserRoundTick.go` | `NewRound` | `UserRoundTick` |
+| `NewRound_MobRoundTick.go` | `NewRound` | `MobRoundTick` |
+| `NewRound_HandleRespawns.go` | `NewRound` | `HandleRespawns` |
+| `NewRound_DoCombat.go` | `NewRound` | `DoCombat` |
+| `NewRound_AutoHeal.go` | `NewRound` | `AutoHeal` |
+| `NewRound_IdleMobs.go` | `NewRound` | `IdleMobs` |
+| `MobIdle_HandleIdleMobs.go` | `MobIdle` | `HandleIdleMobs` |
+| `NewTurn_CleanupLinkDead.go` | `NewTurn` | `CleanupLinkDead` |
+| `NewTurn_AutoSave.go` | `NewTurn` | `AutoSave` |
+| `NewTurn_PruneBuffs.go` | `NewTurn` | `PruneBuffs` |
+| `NewTurn_ActionPoints.go` | `NewTurn` | `ActionPoints` |
+| `ItemOwnership_CheckItemQuests.go` | `ItemOwnership` | `CheckItemQuests` |
+| `MSP_PlaySound.go` | `MSP` | `PlaySound` |
+| `Quest_HandleQuestUpdate.go` | `Quest` | `HandleQuestUpdate` |
+| `PlayerSpawn_HandleJoin.go` | `PlayerSpawn` | `HandleJoin` |
+| `PlayerDespawn_HandleLeave.go` | `PlayerDespawn` | `HandleLeave` |
+| `PlayerDrop_HandlePlayerDrop.go` | `PlayerDrop` | `HandlePlayerDrop` |
+| `LevelUp_SendLevelNotifications.go` | `LevelUp` | `SendLevelNotifications` |
+| `LevelUp_CheckGuide.go` | `LevelUp` | `CheckGuide` |
+| `DayNightCycle_NotifySunriseSunset.go` | `DayNightCycle` | `NotifySunriseSunset` |
+| `Looking_HandleLookHints.go` | `Looking` | `HandleLookHints` |
+| `Message_SendMessages.go` | `Message` | `Message_SendMessage` |
+| `RedrawPrompt_SendRedraw.go` | `RedrawPrompt` | `RedrawPrompt_SendRedraw` |
+| `UserSettingChanged_ClearSettingCaches.go` | `UserSettingChanged` | `ClearSettingCaches` |
+| `WebClientCommand_SendWebClientCommand.go` | `WebClientCommand` | `WebClientCommand_SendWebClientCommand` |
+| `CharacterCreated_BroadcastNewChar.go` | `CharacterCreated` | `BroadcastNewChar` |
+| `Broadcast_SendToAll.go` | `Broadcast` | `Broadcast_SendToAll` |
+| `RebuildMap_HandleMapRebuild.go` | `RebuildMap` | `HandleMapRebuild` |
+| `Log_FollowLogs.go` | `Log` | `FollowLogs` |
 
 ## Integration Patterns
 
@@ -402,7 +168,8 @@ func HandleIdleMobs(e events.Event) events.ListenerReturn {
 // All hooks integrate with the event system
 - events.RegisterListener()        // Register event handlers
 - events.AddToQueue()             // Queue new events from handlers
-- events.Continue/Cancel          // Control event processing flow
+- events.Continue / events.Cancel // Control event processing flow
+- events.Last                     // Priority flag: run this listener last
 ```
 
 ### Cross-System Communication
@@ -413,71 +180,6 @@ func HandleIdleMobs(e events.Event) events.ListenerReturn {
 - mobs.GetInstance()              // Mob system integration
 - combat.AttackPlayerVsMob()      // Combat system integration
 - scripting.TryRoomScriptEvent()  // Scripting system integration
-```
-
-## Usage Examples
-
-### Custom Hook Registration
-```go
-// Register custom event listener
-func RegisterCustomHook() {
-    events.RegisterListener(events.CustomEvent{}, func(e events.Event) events.ListenerReturn {
-        evt := e.(events.CustomEvent)
-        
-        // Custom processing logic
-        processCustomEvent(evt)
-        
-        return events.Continue
-    })
-}
-```
-
-### Event Processing Flow
-```go
-// Example of event flow through hooks
-// 1. Player attacks mob
-events.AddToQueue(events.Combat{
-    AttackerId: userId,
-    TargetId:   mobInstanceId,
-})
-
-// 2. Combat hook processes attack
-func DoCombat(e events.Event) events.ListenerReturn {
-    // Resolve combat
-    result := combat.AttackPlayerVsMob(user, mob)
-    
-    // Check for death
-    if mob.Character.Health <= 0 {
-        events.AddToQueue(events.MobDeath{
-            MobInstanceId: mobInstanceId,
-            KillerId:      userId,
-        })
-    }
-    
-    return events.Continue
-}
-```
-
-### System Maintenance
-```go
-// Hooks handle automatic system maintenance
-func SystemMaintenance(e events.Event) events.ListenerReturn {
-    evt := e.(events.NewTurn)
-    
-    // Periodic maintenance tasks
-    if evt.TurnNumber%100 == 0 {
-        // Clean up resources
-        cleanupExpiredData()
-        
-        // Optimize performance
-        optimizeMemoryUsage()
-        
-        // Update statistics
-        updateSystemStats()
-    }
-    
-    return events.Continue
-}
 ```
 
 ## Dependencies
@@ -492,5 +194,3 @@ func SystemMaintenance(e events.Event) events.ListenerReturn {
 - `internal/buffs` - Status effects for buff management
 - `internal/configs` - Configuration management for system settings
 - `internal/mudlog` - Logging system for debugging and monitoring
-
-This comprehensive hooks system provides the core game logic implementation through event-driven architecture, handling everything from basic gameplay mechanics to complex system maintenance tasks while maintaining clean separation of concerns and extensible design patterns.

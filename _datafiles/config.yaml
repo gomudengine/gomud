@@ -435,10 +435,10 @@ Network:
   #   Whether Admin/Mod users get timed out when reaching MaxIdleSeconds
   #   If set to false, Admins & Mods never get force disconnected.
   TimeoutMods: false
-    # - ZombieSeconds -
+  # - LinkDeadSeconds -
   #   How many seconds a character stays active/in game after a network connection
   #   is lost. Set to 0 to instantly log out characters (exploitable).
-  ZombieSeconds: 60
+  LinkDeadSeconds: 60
   # - LogoutRounds -
   #   How many rounds of meditation a player must complete before they are
   #   logged out. If interrupted, they must start over.

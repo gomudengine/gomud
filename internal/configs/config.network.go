@@ -12,7 +12,7 @@ type Network struct {
 	AfkSeconds           ConfigInt         `yaml:"AfkSeconds"`           // How long until a player is marked as afk?
 	MaxIdleSeconds       ConfigInt         `yaml:"MaxIdleSeconds"`       // How many seconds a player can go without a command in game before being kicked.
 	TimeoutMods          ConfigBool        `yaml:"TimeoutMods"`          // Whether to kick admin/mods when idle too long.
-	ZombieSeconds        ConfigInt         `yaml:"ZombieSeconds"`        // How many seconds a player will be a zombie allowing them to reconnect.
+	LinkDeadSeconds      ConfigInt         `yaml:"LinkDeadSeconds"`      // How many seconds a player will be link-dead allowing them to reconnect.
 	LogoutRounds         ConfigInt         `yaml:"LogoutRounds"`         // How many rounds of uninterrupted meditation must be completed to log out.
 }
 
@@ -50,8 +50,8 @@ func (n *Network) Validate() {
 		n.MaxIdleSeconds = 0
 	}
 
-	if n.ZombieSeconds < 0 {
-		n.ZombieSeconds = 0
+	if n.LinkDeadSeconds < 0 {
+		n.LinkDeadSeconds = 0
 	}
 
 	if n.LogoutRounds < 0 {

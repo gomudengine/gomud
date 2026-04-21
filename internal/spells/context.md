@@ -102,60 +102,16 @@ const (
 ### Spell Finding System
 ```go
 // Find spell by name or ID with exact and fuzzy matching
-func FindSpell(spellName string) string {
-    // Check for exact ID match first
-    if sd, ok := allSpells[spellName]; ok {
-        return sd.SpellId
-    }
-    
-    // Check for exact name match
-    for _, spellInfo := range allSpells {
-        if strings.ToLower(spellInfo.Name) == spellName {
-            return spellInfo.SpellId
-        }
-    }
-    
-    return ""
-}
+func FindSpell(spellName string) string
 
 // Advanced spell search with prefix matching
-func FindSpellByName(spellName string) *SpellData {
-    var closestMatch *SpellData = nil
-    spellName = strings.ToLower(spellName)
-    
-    for _, spellData := range allSpells {
-        testName := strings.ToLower(spellData.Name)
-        
-        // Exact match takes priority
-        if testName == spellName {
-            return spellData
-        }
-        
-        // Store first prefix match as fallback
-        if closestMatch == nil && strings.HasPrefix(testName, spellName) {
-            closestMatch = spellData
-        }
-    }
-    
-    return closestMatch
-}
+func FindSpellByName(spellName string) *SpellData
 
 // Get spell by exact ID
-func GetSpell(spellId string) *SpellData {
-    if sd, ok := allSpells[spellId]; ok {
-        return sd
-    }
-    return nil
-}
+func GetSpell(spellId string) *SpellData
 
 // Get all available spells (returns copy)
-func GetAllSpells() map[string]*SpellData {
-    retSpellBook := make(map[string]*SpellData)
-    for k, v := range allSpells {
-        retSpellBook[k] = v
-    }
-    return retSpellBook
-}
+func GetAllSpells() map[string]*SpellData
 ```
 
 ## Spell Type Classification
@@ -163,51 +119,13 @@ func GetAllSpells() map[string]*SpellData {
 ### Harm/Help Classification
 ```go
 // Determine if spell is harmful, helpful, or neutral
-func (s SpellType) HelpOrHarmString() string {
-    switch s {
-    case Neutral:
-        return "Neutral"
-    case HelpSingle, HelpMulti, HelpArea:
-        return "Helpful"
-    case HarmSingle, HarmMulti, HarmArea:
-        return "Harmful"
-    }
-    return "Unknown"
-}
+func (s SpellType) HelpOrHarmString() string
 ```
 
 ### Target Type Classification
 ```go
 // Get targeting description (short or long form)
-func (s SpellType) TargetTypeString(short ...bool) string {
-    // Short form for UI display
-    if len(short) > 0 && short[0] {
-        switch s {
-        case Neutral:
-            return "Unknown"
-        case HelpSingle, HarmSingle:
-            return "Single"
-        case HelpMulti, HarmMulti:
-            return "Group"
-        case HelpArea, HarmArea:
-            return "Area"
-        }
-        return "Unknown"
-    }
-    
-    // Long form for detailed descriptions
-    switch s {
-    case Neutral:
-        return "Unknown"
-    case HelpSingle, HarmSingle:
-        return "Single Target"
-    case HelpMulti, HarmMulti:
-        return "Group Target"
-    case HelpArea, HarmArea:
-        return "Area Target"
-    }
-    return "Unknown"
-}
+func (s SpellType) TargetTypeString(short ...bool) string
 ```
 
 ## Spell Creation and Management
@@ -215,65 +133,16 @@ func (s SpellType) TargetTypeString(short ...bool) string {
 ### New Spell Creation
 ```go
 // Create new spell with automatic script template
-func CreateNewSpellFile(newSpellInfo SpellData) (string, error) {
-    // Check for existing spell
-    if sp := GetSpell(newSpellInfo.SpellId); sp != nil {
-        return "", errors.New("Spell already exists.")
-    }
-    
-    // Validate spell data
-    if err := newSpellInfo.Validate(); err != nil {
-        return "", err
-    }
-    
-    // Configure save options
-    saveModes := []fileloader.SaveOption{}
-    if configs.GetFilePathsConfig().CarefulSaveFiles {
-        saveModes = append(saveModes, fileloader.SaveCareful)
-    }
-    
-    // Save spell to file system
-    if err := fileloader.SaveFlatFile[*SpellData](
-        string(configs.GetFilePathsConfig().DataFiles)+"/spells", 
-        &newSpellInfo, 
-        saveModes...
-    ); err != nil {
-        return "", err
-    }
-    
-    // Update in-memory cache
-    allSpells[newSpellInfo.Id()] = &newSpellInfo
-    
-    // Create script directory and copy template
-    newScriptPath := newSpellInfo.GetScriptPath()
-    os.MkdirAll(filepath.Dir(newScriptPath), os.ModePerm)
-    
-    // Copy type-specific script template
-    templatePath := util.FilePath("_datafiles/sample-scripts/spells/" + string(newSpellInfo.Type) + ".js")
-    fileloader.CopyFileContents(templatePath, newScriptPath)
-    
-    return newSpellInfo.SpellId, nil
-}
+func CreateNewSpellFile(newSpellInfo SpellData) (string, error)
 ```
 
 ### Spell Validation
 ```go
 // Validate spell configuration
-func (s *SpellData) Validate() error {
-    // Clamp difficulty to valid range (0-100%)
-    if s.Difficulty < 0 {
-        s.Difficulty = 0
-    } else if s.Difficulty > 100 {
-        s.Difficulty = 100
-    }
-    
-    return nil
-}
+func (s *SpellData) Validate() error
 
 // Get validated difficulty value
-func (s *SpellData) GetDifficulty() int {
-    return s.Difficulty
-}
+func (s *SpellData) GetDifficulty() int
 ```
 
 ## Scripting Integration
@@ -281,40 +150,19 @@ func (s *SpellData) GetDifficulty() int {
 ### Script System Support
 ```go
 // Load spell script content
-func (s *SpellData) GetScript() string {
-    scriptPath := s.GetScriptPath()
-    
-    if _, err := os.Stat(scriptPath); err == nil {
-        if bytes, err := os.ReadFile(scriptPath); err == nil {
-            return string(bytes)
-        }
-    }
-    
-    return ""
-}
+func (s *SpellData) GetScript() string
 
 // Generate script file path
-func (s *SpellData) GetScriptPath() string {
-    return strings.Replace(
-        string(configs.GetFilePathsConfig().DataFiles)+"/spells/"+s.Filepath(), 
-        ".yaml", 
-        ".js", 
-        1
-    )
-}
+func (s *SpellData) GetScriptPath() string
 ```
 
 ### File Path Management
 ```go
 // Generate YAML file path for spell
-func (s *SpellData) Filepath() string {
-    return util.FilePath(fmt.Sprintf("%s.yaml", s.SpellId))
-}
+func (s *SpellData) Filepath() string
 
 // Get unique identifier
-func (s *SpellData) Id() string {
-    return s.SpellId
-}
+func (s *SpellData) Id() string
 ```
 
 ## Summoning System
@@ -322,16 +170,7 @@ func (s *SpellData) Id() string {
 ### Summoning Framework
 ```go
 // Summoning spell implementation framework
-func Summon(sourceUserId int, sourceMobId int, details any) (bool, error) {
-    // details contains summoning specifics (creature type, duration, etc.)
-    // Implementation would handle:
-    // - Creature selection based on details
-    // - Summoning location determination
-    // - Duration and control mechanics
-    // - Integration with mob system
-    
-    return false, nil // Placeholder implementation
-}
+func Summon(sourceUserId int, sourceMobId int, details any) (bool, error)
 ```
 
 ### Summoning Integration Points
@@ -394,22 +233,7 @@ func Summon(sourceUserId int, sourceMobId int, details any) (bool, error) {
 ### Spell Data Loading
 ```go
 // Load all spell files from data directory
-func LoadSpellFiles() {
-    start := time.Now()
-    
-    tmpAllSpells, err := fileloader.LoadAllFlatFiles[string, *SpellData](
-        string(configs.GetFilePathsConfig().DataFiles) + "/spells"
-    )
-    if err != nil {
-        panic(err)
-    }
-    
-    allSpells = tmpAllSpells
-    
-    mudlog.Info("spells.loadAllSpells()", 
-        "loadedCount", len(allSpells), 
-        "Time Taken", time.Since(start))
-}
+func LoadSpellFiles()
 ```
 
 ## Integration Patterns

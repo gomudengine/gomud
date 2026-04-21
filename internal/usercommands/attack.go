@@ -185,6 +185,8 @@ func Attack(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 
 			events.AddToQueue(events.AggroChanged{UserId: user.UserId, RoomId: user.Character.RoomId})
 
+			user.SendText(fmt.Sprintf(`You prepare to fight <ansi fg="mobname">%s</ansi>!`, m.Character.Name))
+
 			if !isSneaking {
 				room.SendText(
 					fmt.Sprintf(`<ansi fg="username">%s</ansi> prepares to fight <ansi fg="mobname">%s</ansi>.`, user.Character.Name, m.Character.Name),
@@ -239,6 +241,8 @@ func Attack(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 
 			events.AddToQueue(events.AggroChanged{UserId: user.UserId, RoomId: user.Character.RoomId})
 
+			user.SendText(fmt.Sprintf(`You prepare to fight <ansi fg="mobname">%s</ansi>!`, p.Character.Name))
+
 			if !isSneaking {
 
 				p.SendText(
@@ -246,7 +250,7 @@ func Attack(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 				)
 
 				room.SendText(
-					fmt.Sprintf(`<ansi fg="username">%s</ansi> prepares to fight <ansi fg="mobname">%s</ansi>.`, user.Character.Name, p.Character.Name),
+					fmt.Sprintf(`<ansi fg="username">%s</ansi> prepares to fight <ansi fg="username">%s</ansi>.`, p.Character.Name, p.Character.Name),
 					user.UserId, attackPlayerId)
 			}
 

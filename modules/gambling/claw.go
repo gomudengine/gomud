@@ -2,11 +2,14 @@ package gambling
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
+	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/term"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
@@ -89,6 +92,8 @@ func (g *GamblingModule) onRoomLookClaw(d rooms.RoomTemplateDetails) rooms.RoomT
 // playClaw executes one claw machine attempt for the user.
 func (g *GamblingModule) playClaw(user *users.UserRecord, room *rooms.Room) {
 
+	user.Character.CancelBuffsWithFlag(buffs.Hidden) // No longer sneaking
+
 	cost := defaultClawCost
 	if v, ok := g.plug.Config.Get(`ClawCost`).(int); ok && v > 0 {
 		cost = v
@@ -113,15 +118,22 @@ func (g *GamblingModule) playClaw(user *users.UserRecord, room *rooms.Room) {
 		GoldChange: -cost,
 	})
 
+	user.SendText(term.CRLFStr)
+	user.SendText("You put your money in and grip the joystick...")
+
 	room.SendText(
 		fmt.Sprintf(`<ansi fg="username">%s</ansi> feeds coins into the claw machine and grips the joystick...`,
 			user.Character.Name),
 		user.UserId,
 	)
 
+	user.SendText(term.CRLFStr)
+
 	if util.Rand(100) >= winChance {
 		user.SendText(`<ansi fg="cyan">The claw descends...</ansi> hovers tantalizingly over a prize...`)
+		user.SendText(term.CRLFStr)
 		user.SendText(`<ansi fg="8">...and drops it at the last moment. Better luck next time!</ansi>`)
+		user.SendText(term.CRLFStr)
 		room.SendText(
 			fmt.Sprintf(`<ansi fg="8">The claw drops its prize just before the chute. <ansi fg="username">%s</ansi> walks away empty-handed.</ansi>`,
 				user.Character.Name),
@@ -133,20 +145,32 @@ func (g *GamblingModule) playClaw(user *users.UserRecord, room *rooms.Room) {
 	selected := g.pickClawPrize()
 	if selected == nil {
 		user.SendText(`<ansi fg="8">The claw machine whirs but the prize pool is empty. (All prize weights are zero.)</ansi>`)
+		user.SendText(term.CRLFStr)
 		return
 	}
 
 	prize := items.New(selected.itemId)
 	if !prize.IsValid() {
 		user.SendText(`<ansi fg="8">The claw machine whirs but produces nothing. (Something went wrong internally.)</ansi>`)
+		user.SendText(term.CRLFStr)
 		return
 	}
 
 	if !user.Character.StoreItem(prize) {
 		user.SendText(fmt.Sprintf(
-			`<ansi fg="cyan">The claw snatches up a <ansi fg="item">%s</ansi>!</ansi> <ansi fg="214">But your backpack is full — it tumbles back into the machine.</ansi>`,
+			`<ansi fg="cyan">The claw snatches up a <ansi fg="item">%s</ansi>!</ansi> <ansi fg="214">But your backpack is full — it tumbles to the floor.</ansi>`,
 			selected.name,
 		))
+
+		room.SendText(
+			fmt.Sprintf(`<ansi fg="username">%s</ansi> wins a <ansi fg="item">%s</ansi> but it falls to the floor!`,
+				user.Character.Name,
+				selected.name),
+			user.UserId,
+		)
+
+		room.AddItem(prize, false)
+		user.SendText(term.CRLFStr)
 		return
 	}
 
@@ -157,10 +181,16 @@ func (g *GamblingModule) playClaw(user *users.UserRecord, room *rooms.Room) {
 	})
 
 	user.SendText(`<ansi fg="cyan-bold">The claw descends with purpose...</ansi>`)
+
+	user.SendText(term.CRLFStr)
+
 	user.SendText(fmt.Sprintf(
 		`<ansi fg="green-bold">...and snatches up a <ansi fg="item">%s</ansi>!</ansi> It drops neatly into the prize chute. <ansi fg="yellow-bold">Congratulations!</ansi>`,
 		selected.name,
 	))
+
+	user.SendText(term.CRLFStr)
+
 	room.SendText(
 		fmt.Sprintf(`<ansi fg="cyan-bold">The claw machine rattles!</ansi> <ansi fg="username">%s</ansi> <ansi fg="green">wins a prize!</ansi>`,
 			user.Character.Name),
@@ -171,6 +201,7 @@ func (g *GamblingModule) playClaw(user *users.UserRecord, room *rooms.Room) {
 // clawMachineNounDesc returns the noun description shown when a player types
 // "look claw machine" in a room with the claw machine tag.
 func (g *GamblingModule) clawMachineNounDesc(room *rooms.Room) string {
+
 	cost := defaultClawCost
 	if v, ok := g.plug.Config.Get(`ClawCost`).(int); ok && v > 0 {
 		cost = v
@@ -179,66 +210,45 @@ func (g *GamblingModule) clawMachineNounDesc(room *rooms.Room) string {
 	if v, ok := g.plug.Config.Get(`ClawWinChance`).(int); ok && v > 0 {
 		winChance = v
 	}
-	return fmt.Sprintf(
-		`A tall glass cabinet filled with prizes, lit from within by a warm glow. A mechanical claw hangs from a gantry inside. Cost to play: <ansi fg="gold">%d gold</ansi>. Chance to win: <ansi fg="cyan-bold">%d%%</ansi>. Type <ansi fg="command">play claw machine</ansi> to try your luck.`,
-		cost, winChance,
-	)
-}
 
-func (g *GamblingModule) lookClawMachine(user *users.UserRecord, room *rooms.Room) {
-
-	cost := defaultClawCost
-	if v, ok := g.plug.Config.Get(`ClawCost`).(int); ok && v > 0 {
-		cost = v
-	}
-
-	winChance := defaultClawWinChance
-	if v, ok := g.plug.Config.Get(`ClawWinChance`).(int); ok && v > 0 {
-		winChance = v
-	}
-
-	// Compute total weight for percentage display.
 	totalWeight := 0
 	for i := range clawPrizes {
 		totalWeight += g.clawPrizeWeight(clawPrizes[i])
 	}
 
-	user.SendText(``)
-	user.SendText(`<ansi fg="cyan">╔════════════════════════════════╗</ansi>`)
-	user.SendText(`<ansi fg="cyan">║</ansi>      <ansi fg="cyan-bold">C L A W  M A C H I N E</ansi>      <ansi fg="cyan">║</ansi>`)
-	user.SendText(`<ansi fg="cyan">╚════════════════════════════════╝</ansi>`)
-	user.SendText(``)
-	user.SendText(`A tall glass cabinet filled with small prizes, lit from within by a warm glow.`)
-	user.SendText(`A mechanical claw hangs from a gantry inside, waiting to be guided by a brave soul.`)
-	user.SendText(`A placard on the front reads:`)
-	user.SendText(``)
-	user.SendText(fmt.Sprintf(`    Cost to play:  <ansi fg="gold">%d gold</ansi>`, cost))
-	user.SendText(fmt.Sprintf(`    Chance to win: <ansi fg="cyan-bold">%d%%</ansi>`, winChance))
-	user.SendText(``)
-	user.SendText(`<ansi fg="cyan">Prizes</ansi> <ansi fg="8">(chance on win):</ansi>`)
-
+	type weightedPrize struct {
+		prize clawPrize
+		wt    int
+	}
+	sorted := make([]weightedPrize, 0, len(clawPrizes))
 	for i := range clawPrizes {
-		p := clawPrizes[i]
-		wt := g.clawPrizeWeight(p)
-		if wt <= 0 {
-			continue
+		wt := g.clawPrizeWeight(clawPrizes[i])
+		if wt > 0 {
+			sorted = append(sorted, weightedPrize{clawPrizes[i], wt})
 		}
+	}
+	sort.Slice(sorted, func(i, j int) bool { return sorted[i].wt > sorted[j].wt })
+
+	var sb strings.Builder
+	sb.WriteString(`<ansi fg="cyan">╔════════════════════════════════╗</ansi>` + "\n")
+	sb.WriteString(`<ansi fg="cyan">║</ansi>     <ansi fg="cyan-bold">C L A W  M A C H I N E</ansi>     <ansi fg="cyan">║</ansi>` + "\n")
+	sb.WriteString(`<ansi fg="cyan">╚════════════════════════════════╝</ansi>` + "\n")
+	sb.WriteString("\n")
+	sb.WriteString("A tall glass cabinet filled with small prizes, lit from within by a warm glow.\n")
+	sb.WriteString("A mechanical claw hangs from a gantry inside, waiting to be guided by a brave soul.\n")
+	sb.WriteString("\n")
+	sb.WriteString(fmt.Sprintf("    Cost to play:  <ansi fg=\"gold\">%d gold</ansi>\n", cost))
+	sb.WriteString(fmt.Sprintf("    Chance to win: <ansi fg=\"cyan-bold\">%d%%</ansi>\n", winChance))
+	sb.WriteString("\n")
+	sb.WriteString(`<ansi fg="cyan">Prizes</ansi> <ansi fg="8">(chance on win):</ansi>` + "\n")
+	for _, wp := range sorted {
 		pct := 0
 		if totalWeight > 0 {
-			pct = wt * 100 / totalWeight
+			pct = wp.wt * 100 / totalWeight
 		}
-		user.SendText(fmt.Sprintf(
-			`    <ansi fg="item">%-16s</ansi>  <ansi fg="cyan">%d%%</ansi>`,
-			p.name, pct,
-		))
+		sb.WriteString(fmt.Sprintf("    <ansi fg=\"item\">%-16s</ansi>  <ansi fg=\"cyan\">%d%%</ansi>\n", wp.prize.name, pct))
 	}
-
-	user.SendText(``)
-	user.SendText(`Type <ansi fg="command">play claw machine</ansi> to try your luck.`)
-	user.SendText(``)
-
-	room.SendText(
-		fmt.Sprintf(`<ansi fg="username">%s</ansi> examines the claw machine.`, user.Character.Name),
-		user.UserId,
-	)
+	sb.WriteString("\n")
+	sb.WriteString(`Type <ansi fg="command">play claw machine</ansi> to try your luck.`)
+	return sb.String()
 }

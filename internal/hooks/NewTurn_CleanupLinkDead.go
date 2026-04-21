@@ -9,11 +9,11 @@ import (
 )
 
 //
-// Cleans up zombie users
-// Zombie users are users who have disconnected but their user/character is still in game.
+// Cleans up link-dead users
+// Link-dead users are users who have disconnected but their user/character is still in game.
 //
 
-func CleanupZombies(e events.Event) events.ListenerReturn {
+func CleanupLinkDead(e events.Event) events.ListenerReturn {
 
 	evt, typeOk := e.(events.NewTurn)
 	if !typeOk {
@@ -24,21 +24,21 @@ func CleanupZombies(e events.Event) events.ListenerReturn {
 	et := configs.GetTimingConfig()
 	gp := configs.GetNetworkConfig()
 
-	expTurns := uint64(et.SecondsToTurns(int(gp.ZombieSeconds)))
+	expTurns := uint64(et.SecondsToTurns(int(gp.LinkDeadSeconds)))
 
 	if expTurns < evt.TurnNumber {
 
-		expZombies := users.GetExpiredZombies(evt.TurnNumber - expTurns)
+		expired := users.GetExpiredLinkDeadUsers(evt.TurnNumber - expTurns)
 
-		if len(expZombies) > 0 {
+		if len(expired) > 0 {
 
-			mudlog.Info("Expired Zombies", "count", len(expZombies))
+			mudlog.Info("Expired Link-Dead Users", "count", len(expired))
 
-			for _, userId := range expZombies {
+			for _, userId := range expired {
 				events.AddToQueue(events.System{
 					Command:     `leaveworld`,
 					Data:        userId,
-					Description: `Zombie Expired`,
+					Description: `Link-Dead Expired`,
 				})
 			}
 

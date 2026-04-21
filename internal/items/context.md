@@ -174,52 +174,19 @@ type Damage struct {
 ### Item Creation and Validation
 ```go
 // Create new item instance
-func New(itemId int) Item {
-    itemSpec := GetItemSpec(itemId)
-    newItm := Item{
-        UUID:   uuid.New(UUIDItem),
-        ItemId: itemId,
-        Uses:   itemSpec.Uses,
-    }
-    newItm.Validate()
-    return newItm
-}
+func New(itemId int) Item
 
 // Item validation ensures consistency
-func (i *Item) Validate() {
-    if i.UUID.IsNil() {
-        i.UUID = uuid.New(UUIDItem)
-    }
-    
-    iSpec := i.GetSpec()
-    if i.Uses == 0 && iSpec.Uses > 0 {
-        i.Uses = iSpec.Uses
-    }
-}
+func (i *Item) Validate()
 ```
 
 ### Item Identification and Matching
 ```go
 // Multiple identification methods
-func (i *Item) ShorthandId() string {
-    return fmt.Sprintf("!%d:%s", i.ItemId, i.UUID.String())
-}
+func (i *Item) ShorthandId() string
 
 // Name matching with partial and full match support
-func (i *Item) NameMatch(input string, allowContains bool) (partialMatch bool, fullMatch bool) {
-    input = strings.ToLower(input)
-    simpleName := strings.ToLower(i.Name())
-    
-    if allowContains && strings.Contains(simpleName, input) {
-        return true, simpleName == input
-    }
-    
-    if strings.HasPrefix(simpleName, input) {
-        return true, simpleName == input
-    }
-    
-    return false, false
-}
+func (i *Item) NameMatch(input string, allowContains bool) (partialMatch bool, fullMatch bool)
 ```
 
 ## Enchantment and Modification System
@@ -227,74 +194,20 @@ func (i *Item) NameMatch(input string, allowContains bool) (partialMatch bool, f
 ### Dynamic Item Enhancement
 ```go
 // Enchant item with bonuses
-func (i *Item) Enchant(damageBonus int, defenseBonus int, statBonus map[string]int, cursed bool) {
-    var newSpec ItemSpec
-    
-    if i.Spec == nil {
-        specCopy := *GetItemSpec(i.ItemId)
-        newSpec = specCopy
-    } else {
-        newSpec = *i.Spec
-    }
-    
-    // Apply enhancements
-    newSpec.Damage.BonusDamage += damageBonus
-    newSpec.DamageReduction += defenseBonus
-    
-    for statName, statBonusAmt := range statBonus {
-        newSpec.StatMods.Add(statName, statBonusAmt)
-    }
-    
-    i.Enchantments++
-    newSpec.Cursed = cursed
-    newSpec.AutoCalculateValue()
-    
-    i.Spec = &newSpec
-}
+func (i *Item) Enchant(damageBonus int, defenseBonus int, statBonus map[string]int, cursed bool)
 
 // Curse management
-func (i *Item) IsCursed() bool {
-    return i.GetSpec().Cursed && !i.Uncursed
-}
-
-func (i *Item) Uncurse() {
-    i.Uncursed = true
-}
+func (i *Item) IsCursed() bool
+func (i *Item) Uncurse()
 ```
 
 ### Adjective System
 ```go
 // Visual effects through adjectives
-func (i *Item) SetAdjective(adj string, addToList bool) {
-    if i.Adjectives == nil {
-        i.Adjectives = []string{}
-    }
-    
-    for idx, a := range i.Adjectives {
-        if a == adj {
-            if !addToList {
-                i.Adjectives = append(i.Adjectives[:idx], i.Adjectives[idx+1:]...)
-            }
-            return
-        }
-    }
-    
-    if addToList {
-        i.Adjectives = append(i.Adjectives, adj)
-    }
-}
+func (i *Item) SetAdjective(adj string, addToList bool)
 
 // Display name with adjectives
-func (i *Item) DisplayName() string {
-    name := i.GetSpec().Name
-    
-    if len(i.Adjectives) > 0 {
-        suffix := " <ansi fg=\"black-bold\">(" + strings.Join(i.Adjectives, "|") + ")</ansi>"
-        name += suffix
-    }
-    
-    return name
-}
+func (i *Item) DisplayName() string
 ```
 
 ## Combat Message System
@@ -323,35 +236,10 @@ type TogetherMessages struct {
 ### Message Selection and Token Replacement
 ```go
 // Get attack message based on damage percentage
-func GetAttackMessage(subType ItemSubType, pctDamage int) AttackOptions {
-    var intensity Intensity
-    if pctDamage >= 101 {
-        intensity = Critical
-    } else if pctDamage >= 75 {
-        intensity = Heavy
-    } else if pctDamage >= 30 {
-        intensity = Normal
-    } else if pctDamage >= 1 {
-        intensity = Weak
-    } else {
-        intensity = Miss
-    }
-    
-    // Get messages for weapon subtype and intensity
-    if attackMsgOptions, ok := attackMessages[subType]; ok {
-        if messages, ok := attackMsgOptions.Options[intensity]; ok {
-            return messages
-        }
-    }
-    
-    // Fallback to generic messages
-    return GetAttackMessage(Generic, pctDamage)
-}
+func GetAttackMessage(subType ItemSubType, pctDamage int) AttackOptions
 
 // Token replacement in messages
-func (am ItemMessage) SetTokenValue(tokenName TokenName, tokenValue string) ItemMessage {
-    return ItemMessage(strings.Replace(string(am), string(tokenName), tokenValue, -1))
-}
+func (am ItemMessage) SetTokenValue(tokenName TokenName, tokenValue string) ItemMessage
 ```
 
 ## Durability and Usage System
@@ -359,32 +247,10 @@ func (am ItemMessage) SetTokenValue(tokenName TokenName, tokenValue string) Item
 ### Break Mechanics
 ```go
 // Break chance testing
-func (i *Item) BreakTest(increaseChance ...int) bool {
-    bc := i.GetSpec().BreakChance
-    if bc < 1 {
-        return false
-    }
-    
-    randNum := uint8(util.Rand(100))
-    if len(increaseChance) > 0 {
-        if uint8(increaseChance[0]) >= randNum {
-            randNum = 0
-        } else {
-            randNum -= uint8(increaseChance[0])
-        }
-    }
-    
-    return bc > randNum
-}
+func (i *Item) BreakTest(increaseChance ...int) bool
 
 // Usage tracking
-func (i *Item) UseItem() bool {
-    if i.Uses > 0 {
-        i.Uses--
-        return i.Uses > 0  // Return true if item still has uses
-    }
-    return false
-}
+func (i *Item) UseItem() bool
 ```
 
 ## Data Storage and Persistence
@@ -392,52 +258,17 @@ func (i *Item) UseItem() bool {
 ### Blob Content System
 ```go
 // Store custom data in items
-func (i *Item) SetBlob(blob string) {
-    compressed := util.Compress([]byte(blob))
-    i.Blob = util.Encode(compressed)
-}
-
-func (i *Item) GetBlob() string {
-    if len(i.Blob) == 0 {
-        return ""
-    }
-    
-    decoded := util.Decode(i.Blob)
-    return string(util.Decompress(decoded))
-}
+func (i *Item) SetBlob(blob string)
+func (i *Item) GetBlob() string
 
 // Temporary data storage
-func (i *Item) SetTempData(key string, value any) {
-    if i.tempDataStore == nil {
-        i.tempDataStore = make(map[string]any)
-    }
-    
-    if value == nil {
-        delete(i.tempDataStore, key)
-        return
-    }
-    i.tempDataStore[key] = value
-}
+func (i *Item) SetTempData(key string, value any)
 ```
 
 ### File Organization
 ```go
 // Automatic file organization by item ID ranges
-func (i *ItemSpec) ItemFolder(baseonly ...bool) string {
-    if i.ItemId >= 30000 {
-        return "consumables-30000"
-    } else if i.ItemId >= 20000 {
-        if len(baseonly) > 0 && baseonly[0] {
-            return "armor-20000"
-        } else {
-            return "armor-20000/" + string(i.Type)
-        }
-    } else if i.ItemId >= 10000 {
-        return "weapons-10000"
-    } else {
-        return "other-0"
-    }
-}
+func (i *ItemSpec) ItemFolder(baseonly ...bool) string
 ```
 
 ## Integration Patterns
@@ -445,16 +276,8 @@ func (i *ItemSpec) ItemFolder(baseonly ...bool) string {
 ### Scripting Integration
 ```go
 // JavaScript event integration
-func (i *Item) GetScript() string {
-    return i.GetSpec().GetScript()
-}
-
-func (i *ItemSpec) GetScriptPath() string {
-    return strings.Replace(
-        string(configs.GetFilePathsConfig().DataFiles)+"/items/"+i.Filepath(),
-        ".yaml", ".js", 1,
-    )
-}
+func (i *Item) GetScript() string
+func (i *ItemSpec) GetScriptPath() string
 
 // Script events: onFound, onLost, onUse, onPurchase
 // Called from various game systems when items are manipulated
@@ -463,22 +286,10 @@ func (i *ItemSpec) GetScriptPath() string {
 ### Character Equipment Integration
 ```go
 // Stat modification when equipped
-func (i *Item) StatMod(statName ...string) int {
-    if i.ItemId < 1 {
-        return 0
-    }
-    
-    itemInfo := i.GetSpec()
-    return itemInfo.StatMods.Get(statName...)
-}
+func (i *Item) StatMod(statName ...string) int
 
 // Equipment comparison
-func (i *Item) IsBetterThan(otherItm Item) bool {
-    if otherItm.ItemId < 1 {
-        return i.ItemId > 0
-    }
-    return i.GetSpec().Value > otherItm.GetSpec().Value
-}
+func (i *Item) IsBetterThan(otherItm Item) bool
 ```
 
 ### Quest System Integration
@@ -497,73 +308,14 @@ type ItemSpec struct {
 ### Item Finding Functions
 ```go
 // Multiple search methods
-func FindItem(nameOrId string) int {
-    if itemId, err := strconv.Atoi(nameOrId); err == nil {
-        if itm := New(itemId); itm.ItemId != 0 {
-            return itm.ItemId
-        }
-    }
-    return FindItemByName(nameOrId)
-}
-
-func FindItemByName(name string) int {
-    name = strings.ToLower(name)
-    
-    // Exact match first
-    for _, item := range items {
-        if strings.ToLower(item.Name) == name {
-            return item.ItemId
-        }
-    }
-    
-    // Prefix match
-    for _, item := range items {
-        if strings.HasPrefix(strings.ToLower(item.Name), name) {
-            return item.ItemId
-        }
-    }
-    
-    // Contains match
-    for _, item := range items {
-        if strings.Contains(strings.ToLower(item.Name), name) {
-            return item.ItemId
-        }
-    }
-    
-    return 0
-}
+func FindItem(nameOrId string) int
+func FindItemByName(name string) int
 ```
 
 ### Advanced Item Matching
 ```go
 // Find items in collections with numbering support
-func FindMatchIn(itemName string, items ...Item) (pMatch Item, fMatch Item) {
-    // Support for !itemId:uuid format for exact identification
-    if len(itemName) > 1 && itemName[0] == '!' {
-        parts := strings.Split(itemName[1:], ":")
-        itemIdMatch, _ := strconv.Atoi(parts[0])
-        
-        var itemUUIDMatch uuid.UUID
-        if len(parts) > 1 {
-            itemUUIDMatch, _ = uuid.FromString(parts[1])
-        }
-        
-        for _, itm := range items {
-            if !itemUUIDMatch.IsNil() && itm.UUID == itemUUIDMatch {
-                return itm, itm
-            }
-            if itemIdMatch > 0 && itm.ItemId == itemIdMatch {
-                return itm, itm
-            }
-        }
-    }
-    
-    // Support for numbered items (e.g., "sword 2" for second sword)
-    itemName, itemNumber := util.GetMatchNumber(itemName)
-    
-    // Find matches with numbering support
-    // Returns partial match and full match separately
-}
+func FindMatchIn(itemName string, items ...Item) (pMatch Item, fMatch Item)
 ```
 
 ## Performance Considerations
@@ -577,33 +329,7 @@ func FindMatchIn(itemName string, items ...Item) (pMatch Item, fMatch Item) {
 ### File Loading Optimization
 ```go
 // Batch loading of all item specifications
-func LoadDataFiles() {
-    start := time.Now()
-    
-    tmpItems, err := fileloader.LoadAllFlatFiles[int, *ItemSpec](
-        string(configs.GetFilePathsConfig().DataFiles) + "/items"
-    )
-    if err != nil {
-        panic(err)
-    }
-    
-    items = tmpItems
-    
-    // Load attack messages
-    tmpAttackMessages, err := fileloader.LoadAllFlatFiles[ItemSubType, *WeaponAttackMessageGroup](
-        string(configs.GetFilePathsConfig().DataFiles) + "/combat-messages"
-    )
-    if err != nil {
-        panic(err)
-    }
-    
-    attackMessages = tmpAttackMessages
-    
-    mudlog.Info("itemspec.LoadDataFiles()", 
-        "itemLoadedCount", len(items),
-        "attackMessageCount", len(attackMessages),
-        "Time Taken", time.Since(start))
-}
+func LoadDataFiles()
 ```
 
 ## Dependencies

@@ -220,18 +220,14 @@ type RebuildMap struct {
     SkipIfExists  bool
 }
 
-func (r RebuildMap) UniqueID() string {
-    return `RebuildMap-` + strconv.Itoa(r.MapRootRoomId) + `-` + strconv.FormatBool(r.SkipIfExists)
-}
+func (r RebuildMap) UniqueID() string
 
 type RedrawPrompt struct {
     UserId        int
     OnlyIfChanged bool
 }
 
-func (l RedrawPrompt) UniqueID() string {
-    return `RedrawPrompt-` + strconv.Itoa(l.UserId)
-}
+func (l RedrawPrompt) UniqueID() string
 ```
 
 ## Event Flags
@@ -268,11 +264,7 @@ flags.Remove(CmdBlockInput)
 ### Listener Registration
 ```go
 // Register listener for specific event type
-listenerId := events.RegisterListener(PlayerSpawn{}, func(e events.Event) events.ListenerReturn {
-    spawn := e.(events.PlayerSpawn)
-    log.Printf("Player %s spawned in room %d", spawn.CharacterName, spawn.RoomId)
-    return events.Continue
-})
+listenerId := events.RegisterListener(PlayerSpawn{}, func(e events.Event) events.ListenerReturn)
 
 // Register high-priority listener (executes first)
 events.RegisterListener(PlayerDeath{}, handlePlayerDeath, events.First)
@@ -296,33 +288,10 @@ const (
 ### Listener Examples
 ```go
 // Character death handler
-func handlePlayerDeath(e events.Event) events.ListenerReturn {
-    death := e.(events.PlayerDeath)
-    
-    if death.Permanent {
-        // Handle permadeath
-        handlePermaDeath(death.UserId)
-        return events.Cancel // Stop further processing
-    }
-    
-    // Normal death, allow other handlers
-    return events.Continue
-}
+func handlePlayerDeath(e events.Event) events.ListenerReturn
 
 // Level up notification
-func broadcastLevelUp(e events.Event) events.ListenerReturn {
-    levelUp := e.(events.LevelUp)
-    
-    message := fmt.Sprintf("%s has reached level %d!", 
-        levelUp.CharacterName, levelUp.NewLevel)
-    
-    events.AddToQueue(events.Broadcast{
-        Text: message,
-        IsCommunication: false,
-    })
-    
-    return events.Continue
-}
+func broadcastLevelUp(e events.Event) events.ListenerReturn
 ```
 
 ## Event Processing
@@ -360,18 +329,7 @@ events.AddToQueue(events.RedrawPrompt{
 events.ProcessEvents()
 
 // This is typically called from the main game loop:
-func gameLoop() {
-    for {
-        // Handle network input
-        processNetworkInput()
-        
-        // Process all queued events
-        events.ProcessEvents()
-        
-        // Sleep until next tick
-        time.Sleep(tickDuration)
-    }
-}
+func gameLoop()
 ```
 
 ### Custom Event Creation
@@ -383,23 +341,13 @@ type CustomGameEvent struct {
     Data     map[string]any
 }
 
-func (c CustomGameEvent) Type() string {
-    return "CustomGameEvent"
-}
+func (c CustomGameEvent) Type() string
 
 // Register listener for custom event
-events.RegisterListener(CustomGameEvent{}, func(e events.Event) events.ListenerReturn {
-    custom := e.(CustomGameEvent)
-    // Handle custom event
-    return events.Continue
-})
+events.RegisterListener(CustomGameEvent{}, func(e events.Event) events.ListenerReturn)
 
 // Fire custom event
-events.AddToQueue(CustomGameEvent{
-    PlayerId: 123,
-    Action:   "special_action",
-    Data:     map[string]any{"value": 42},
-})
+events.AddToQueue(CustomGameEvent{...})
 ```
 
 ## Integration Patterns
@@ -407,71 +355,27 @@ events.AddToQueue(CustomGameEvent{
 ### Hook System Integration
 ```go
 // Event hooks are registered as listeners
-func init() {
-    events.RegisterListener(events.NewRound{}, handleNewRound)
-    events.RegisterListener(events.PlayerSpawn{}, handlePlayerJoin)
-    events.RegisterListener(events.RoomChange{}, handleRoomChange)
-}
+func init()
 
 // Hook implementations
-func handleNewRound(e events.Event) events.ListenerReturn {
-    round := e.(events.NewRound)
-    
-    // Process combat
-    handleCombat(round)
-    
-    // Process mob AI
-    processMobAI(round)
-    
-    // Auto-healing
-    processAutoHeal(round)
-    
-    return events.Continue
-}
+func handleNewRound(e events.Event) events.ListenerReturn
 ```
 
 ### Module Integration
 ```go
-// Modules can register for events they care about
-type AuctionModule struct {
-    // module fields
-}
+type AuctionModule struct{}
 
-func (m *AuctionModule) Initialize() {
-    events.RegisterListener(events.PlayerSpawn{}, m.onPlayerJoin)
-    events.RegisterListener(events.NewTurn{}, m.processAuctions)
-}
-
-func (m *AuctionModule) onPlayerJoin(e events.Event) events.ListenerReturn {
-    spawn := e.(events.PlayerSpawn)
-    // Send auction notifications to new player
-    return events.Continue
-}
+func (m *AuctionModule) Initialize()
+func (m *AuctionModule) onPlayerJoin(e events.Event) events.ListenerReturn
 ```
 
 ### Scripting Integration
 ```go
 // JavaScript can raise custom events
-func RaiseEvent(name string, data map[string]any) {
-    events.AddToQueue(events.ScriptedEvent{
-        Name: name,
-        Data: data,
-    })
-}
+func RaiseEvent(name string, data map[string]any)
 
 // Event listener handles scripted events
-func handleScriptedEvent(e events.Event) events.ListenerReturn {
-    scripted := e.(events.ScriptedEvent)
-    
-    switch scripted.Name {
-    case "custom-quest-complete":
-        handleQuestComplete(scripted.Data)
-    case "special-room-effect":
-        handleRoomEffect(scripted.Data)
-    }
-    
-    return events.Continue
-}
+func handleScriptedEvent(e events.Event) events.ListenerReturn
 ```
 
 ## Performance Considerations
@@ -487,32 +391,12 @@ func handleScriptedEvent(e events.Event) events.ListenerReturn {
 // Events are processed and removed from queue immediately
 // No long-term event storage or memory leaks
 // Automatic cleanup of unique event tracking
-
-// Performance monitoring
-func ProcessEvents() {
-    start := time.Now()
-    defer func() {
-        if time.Since(start) > threshold {
-            log.Printf("Event processing took %v", time.Since(start))
-        }
-    }()
-    
-    // Process events...
-}
 ```
 
 ### Debug and Monitoring
 ```go
 // Enable event debugging
 events.SetDebug(true)
-
-// Monitor events without listeners
-// Automatically logs when events have no registered listeners
-// Helps identify missing event handlers
-
-// Performance tracking
-// Automatic timing of event processing loops
-// Configurable sampling to reduce overhead
 ```
 
 ## Error Handling
@@ -526,13 +410,7 @@ events.SetDebug(true)
 ### Listener Management
 ```go
 // Safe listener removal
-func cleanup() {
-    // Unregister listeners when no longer needed
-    events.UnregisterListener(PlayerSpawn{}, listenerId)
-    
-    // Clear all listeners (typically for testing)
-    events.ClearListeners()
-}
+func cleanup()
 ```
 
 ## Dependencies
@@ -549,33 +427,18 @@ func cleanup() {
 ```go
 // 1. Define event type
 type PlayerLoginEvent struct {
-    UserId   int
-    Username string
+    UserId    int
+    Username  string
     LoginTime time.Time
 }
 
-func (p PlayerLoginEvent) Type() string { return "PlayerLogin" }
+func (p PlayerLoginEvent) Type() string
 
 // 2. Register listeners
-events.RegisterListener(PlayerLoginEvent{}, func(e events.Event) events.ListenerReturn {
-    login := e.(PlayerLoginEvent)
-    log.Printf("Player %s logged in at %v", login.Username, login.LoginTime)
-    
-    // Send welcome message
-    events.AddToQueue(events.Message{
-        UserId: login.UserId,
-        Text:   "Welcome back!",
-    })
-    
-    return events.Continue
-})
+events.RegisterListener(PlayerLoginEvent{}, func(e events.Event) events.ListenerReturn)
 
 // 3. Fire event
-events.AddToQueue(PlayerLoginEvent{
-    UserId:    123,
-    Username:  "player1",
-    LoginTime: time.Now(),
-})
+events.AddToQueue(PlayerLoginEvent{...})
 
 // 4. Process events
 events.ProcessEvents()

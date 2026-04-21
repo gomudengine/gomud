@@ -157,22 +157,7 @@ import (
 //go:embed files/*
 var files embed.FS
 
-func init() {
-    plugin := plugins.New("mymodule", "1.0")
-    
-    // Attach file system
-    plugin.AttachFileSystem(files)
-    
-    // Register commands
-    plugin.AddUserCommand("mycommand", myCommand, false, false)
-    
-    // Register event listeners
-    events.RegisterListener(events.NewRound{}, handleNewRound)
-    
-    // Set up callbacks
-    plugin.Callbacks.SetOnLoad(onLoad)
-    plugin.Callbacks.SetOnSave(onSave)
-}
+func init()
 ```
 
 ### **State Management**
@@ -181,27 +166,13 @@ type ModuleData struct {
     SomeState map[string]interface{} `json:"somestate"`
 }
 
-func (m *MyModule) save() {
-    data := ModuleData{SomeState: m.state}
-    m.plugin.WriteBytes("state.json", data)
-}
-
-func (m *MyModule) load() {
-    var data ModuleData
-    m.plugin.ReadBytes("state.json", &data)
-    m.state = data.SomeState
-}
+func (m *MyModule) save()
+func (m *MyModule) load()
 ```
 
 ### **Event Handling**
 ```go
-func (m *MyModule) handleNewRound(e events.Event) events.ListenerReturn {
-    if evt, ok := e.(events.NewRound); ok {
-        // Process round-based logic
-        m.processRoundLogic(evt.RoundNumber)
-    }
-    return events.Continue
-}
+func (m *MyModule) handleNewRound(e events.Event) events.ListenerReturn
 ```
 
 ## Integration Points

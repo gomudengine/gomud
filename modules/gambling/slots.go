@@ -5,8 +5,10 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/term"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
@@ -52,7 +54,14 @@ var (
 
 // SlotState holds the persistent jackpot pool.
 type SlotState struct {
-	Jackpot int `yaml:"Jackpot"`
+	Jackpot        int    `yaml:"Jackpot"`
+	BiggestWin     int    `yaml:"BiggestWin"`
+	BiggestWinName string `yaml:"BiggestWinName"`
+}
+
+// minJackpot returns the minimum jackpot value (20x the cost to play).
+func minJackpot(cost int) int {
+	return cost * 160
 }
 
 // roomHasSlots returns true when the room carries a "slots" or "slot machine" tag.
@@ -151,17 +160,27 @@ func (g *GamblingModule) playSlots(user *users.UserRecord, room *rooms.Room) {
 		return
 	}
 
+	user.Character.CancelBuffsWithFlag(buffs.Hidden) // No longer sneaking
+
 	// Deduct cost and add to jackpot pool.
 	user.Character.Gold -= cost
 
 	slotMu.Lock()
 	g.state.Jackpot += cost / 2 // half of each play feeds the jackpot
+	if g.state.Jackpot < minJackpot(cost) {
+		g.state.Jackpot = minJackpot(cost)
+	}
 	slotMu.Unlock()
+	g.refreshRoomNouns(room)
 
 	events.AddToQueue(events.EquipmentChange{
 		UserId:     user.UserId,
 		GoldChange: -cost,
 	})
+
+	user.SendText(term.CRLFStr)
+	user.SendText("You put in your money and pull the lever...")
+	user.SendText(term.CRLFStr)
 
 	a, b, c := spinReel(), spinReel(), spinReel()
 
@@ -181,8 +200,12 @@ func (g *GamblingModule) playSlots(user *users.UserRecord, room *rooms.Room) {
 	if outcome.label == `JACKPOT` {
 		slotMu.Lock()
 		prize := g.state.Jackpot
+		if prize < minJackpot(cost) {
+			prize = minJackpot(cost)
+		}
 		g.state.Jackpot = 0
 		slotMu.Unlock()
+		g.refreshRoomNouns(room)
 
 		user.Character.Gold += prize
 		events.AddToQueue(events.EquipmentChange{
@@ -190,12 +213,14 @@ func (g *GamblingModule) playSlots(user *users.UserRecord, room *rooms.Room) {
 			GoldChange: prize,
 		})
 
+		g.maybeUpdateBiggestWin(prize, user.Character.Name, room)
+
 		banner := jackpotBanner()
-		user.SendText(" ")
+
 		user.SendText(reelLine)
-		user.SendText(" ")
+		user.SendText(term.CRLFStr)
 		user.SendText(fmt.Sprintf(`%s <ansi fg="gold">You win %d gold!</ansi>`, banner, prize))
-		user.SendText(" ")
+		user.SendText(term.CRLFStr)
 		room.SendText(
 			fmt.Sprintf(`%s <ansi fg="username">%s</ansi> <ansi fg="yellow-bold">has hit the JACKPOT!!!</ansi>`,
 				banner, user.Character.Name),
@@ -224,13 +249,15 @@ func (g *GamblingModule) playSlots(user *users.UserRecord, room *rooms.Room) {
 			GoldChange: prize,
 		})
 
+		g.maybeUpdateBiggestWin(prize, user.Character.Name, room)
+
 		user.SendText(reelLine)
-		user.SendText(" ")
+		user.SendText(term.CRLFStr)
 		user.SendText(fmt.Sprintf(
 			`<ansi fg="%s">%s!</ansi> You win <ansi fg="gold">%d gold</ansi>!`,
 			labelColor, outcome.label, prize,
 		))
-		user.SendText(" ")
+		user.SendText(term.CRLFStr)
 		room.SendText(
 			fmt.Sprintf(`<ansi fg="username">%s</ansi> <ansi fg="green">wins</ansi> on the slot machine!`, user.Character.Name),
 			user.UserId,
@@ -246,6 +273,47 @@ func (g *GamblingModule) playSlots(user *users.UserRecord, room *rooms.Room) {
 	)
 }
 
+// slotPayoutTable returns the formatted payout table lines.
+func slotPayoutTable() string {
+	var sb strings.Builder
+	rows := []struct {
+		label  string
+		desc   string
+		color  string
+		payout string
+	}{
+		{`JACKPOT`, `seven  seven  seven`, `gold`, `entire jackpot`},
+		{`TRIPLE BAR`, `bar    bar    bar`, `cyan-bold`, `20x cost`},
+		{`TRIPLE BELL`, `bell   bell   bell`, `green-bold`, `10x cost`},
+		{`TRIPLE <any>`, `X      X      X`, `green-bold`, `5x cost`},
+		{`PAIR`, `X      X      -`, `green-bold`, `2x cost`},
+		{`CHERRIES`, `cherry cherry -`, `green-bold`, `2x cost`},
+	}
+	sb.WriteString(`<ansi fg="magenta">Payout table:</ansi>` + "\n")
+	for _, r := range rows {
+		sb.WriteString(fmt.Sprintf(
+			"    <ansi fg=\"%s\">%-14s</ansi>  <ansi fg=\"8\">%-22s</ansi>  <ansi fg=\"gold\">%s</ansi>\n",
+			r.color, r.label, r.desc, r.payout,
+		))
+	}
+	return sb.String()
+}
+
+// maybeUpdateBiggestWin records a new biggest win if prize exceeds the current record,
+// then clears the room cache so the noun description is refreshed.
+func (g *GamblingModule) maybeUpdateBiggestWin(prize int, name string, room *rooms.Room) {
+	slotMu.Lock()
+	updated := prize > g.state.BiggestWin
+	if updated {
+		g.state.BiggestWin = prize
+		g.state.BiggestWinName = name
+	}
+	slotMu.Unlock()
+	if updated {
+		g.refreshRoomNouns(room)
+	}
+}
+
 // slotMachineNounDesc returns the noun description shown when a player types
 // "look slot machine" in a room with the slots tag.
 func (g *GamblingModule) slotMachineNounDesc(room *rooms.Room) string {
@@ -255,47 +323,33 @@ func (g *GamblingModule) slotMachineNounDesc(room *rooms.Room) string {
 	}
 	slotMu.Lock()
 	jackpot := g.state.Jackpot
+	biggestWin := g.state.BiggestWin
+	biggestWinName := g.state.BiggestWinName
 	slotMu.Unlock()
-	return fmt.Sprintf(
-		`A gleaming mechanical contraption adorned with spinning reels and flashing lights. A worn lever protrudes from its side. Cost to play: <ansi fg="gold">%d gold</ansi>. Current jackpot: <ansi fg="220">%d gold</ansi>. Type <ansi fg="command">play slots</ansi> to try your luck.`,
-		cost, jackpot,
-	)
-}
-
-func (g *GamblingModule) lookSlotMachine(user *users.UserRecord, room *rooms.Room) {
-
-	cost := defaultCost
-	if v, ok := g.plug.Config.Get(`SlotCost`).(int); ok && v > 0 {
-		cost = v
+	if jackpot < minJackpot(cost) {
+		jackpot = minJackpot(cost)
 	}
 
-	slotMu.Lock()
-	jackpot := g.state.Jackpot
-	slotMu.Unlock()
+	biggestWinLine := "    Biggest winner: <ansi fg=\"8\">none yet</ansi>\n"
+	if biggestWin > 0 {
+		biggestWinLine = fmt.Sprintf("\n    Biggest winner:  <ansi fg=\"username\">%s</ansi> with <ansi fg=\"gold\">%d gold</ansi>\n", biggestWinName, biggestWin)
+	}
 
-	user.SendText(``)
-	user.SendText(`<ansi fg="220">╔════════════════════════════════╗</ansi>`)
-	user.SendText(`<ansi fg="220">║</ansi>     <ansi fg="yellow-bold">S L O T  M A C H I N E</ansi>     <ansi fg="220">║</ansi>`)
-	user.SendText(`<ansi fg="220">╚════════════════════════════════╝</ansi>`)
-	user.SendText(``)
-	user.SendText(`A gleaming mechanical contraption adorned with spinning reels and flashing lights.`)
-	user.SendText(`A worn lever protrudes from its side, inviting the bold and foolish alike.`)
-	user.SendText(`A placard on the front reads:`)
-	user.SendText(``)
-	user.SendText(fmt.Sprintf(
-		`    Cost to play:    <ansi fg="gold">%d gold</ansi>`,
-		cost,
-	))
-	user.SendText(fmt.Sprintf(
-		`    Current jackpot: <ansi fg="gold">%d gold</ansi>`,
-		jackpot,
-	))
-	user.SendText(``)
-	user.SendText(`Type <ansi fg="command">play slots</ansi> to try your luck.`)
-	user.SendText(``)
-
-	room.SendText(
-		fmt.Sprintf(`<ansi fg="username">%s</ansi> examines the slot machine.`, user.Character.Name),
-		user.UserId,
+	return fmt.Sprintf(
+		"<ansi fg=\"220\">╔════════════════════════════════╗</ansi>\n"+
+			"<ansi fg=\"220\">║</ansi>     <ansi fg=\"yellow-bold\">S L O T  M A C H I N E</ansi>     <ansi fg=\"220\">║</ansi>\n"+
+			"<ansi fg=\"220\">╚════════════════════════════════╝</ansi>\n"+
+			"\n"+
+			"A gleaming mechanical contraption adorned with spinning reels and flashing lights.\n"+
+			"A worn lever protrudes from its side.\n"+
+			"\n"+
+			"    Cost to play:    <ansi fg=\"gold\">%d gold</ansi>\n"+
+			"    Current jackpot: <ansi fg=\"gold\">%d gold</ansi>\n"+
+			"%s"+
+			"\n"+
+			"%s"+
+			"\n"+
+			"Type <ansi fg=\"command\">play slots</ansi> to try your luck.",
+		cost, jackpot, biggestWinLine, slotPayoutTable(),
 	)
 }

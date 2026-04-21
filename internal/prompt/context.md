@@ -84,116 +84,28 @@ type Prompt struct {
 
 **Example: Password Change**
 ```go
-func Password(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
-    cmdPrompt, _ := user.StartPrompt(`password`, rest)
-    
-    question := cmdPrompt.Ask(`What is your current password?`, []string{})
-    if !question.Done {
-        return true, nil
-    }
-    
-    if !user.PasswordMatches(question.Response) {
-        user.SendText(`Sorry, your password was incorrect.`)
-        user.ClearPrompt()
-        return true, nil
-    }
-    
-    // Continue with new password questions...
-}
+func Password(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error)
 ```
 
 ### 2. Multi-Step Creation Workflow
 
 **Example: Mob Creation**
 ```go
-func mob_Create(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
-    cmdPrompt, isNew := user.StartPrompt(`mob create`, rest)
-    
-    if isNew {
-        user.SendText(`Starting mob creation...`)
-    }
-    
-    // Step 1: Get mob name
-    question := cmdPrompt.Ask(`What name do you want to give this mob?`, []string{})
-    if !question.Done {
-        return true, nil
-    }
-    if question.Response == `` {
-        user.SendText("Aborting...")
-        user.ClearPrompt()
-        return true, nil
-    }
-    cmdPrompt.Remember(`name`, question.Response)
-    
-    // Step 2: Get description
-    question = cmdPrompt.Ask(`Describe this mob:`, []string{})
-    if !question.Done {
-        return true, nil
-    }
-    // Continue with additional steps...
-    
-    // Final confirmation
-    question = cmdPrompt.Ask(`Create this mob? (y/n)`, []string{`y`, `n`})
-    if !question.Done {
-        return true, nil
-    }
-    
-    user.ClearPrompt()
-    
-    if question.Response != `y` {
-        user.SendText("Aborting...")
-        return true, nil
-    }
-    
-    // Create the mob using collected data
-    return true, nil
-}
+func mob_Create(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error)
 ```
 
 ### 3. Menu-Driven Selection
 
 **Example: Character Management**
 ```go
-func Character(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
-    menuOptions := []string{`new`, `delete`, `switch`, `hire`, `dismiss`, `quit`}
-    
-    cmdPrompt, isNew := user.StartPrompt(`character`, rest)
-    
-    question := cmdPrompt.Ask(`Choose an option:`, menuOptions, `new`)
-    if !question.Done {
-        return true, nil
-    }
-    
-    if question.Response == `quit` {
-        user.ClearPrompt()
-        return true, nil
-    }
-    
-    // Handle selected option...
-}
+func Character(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error)
 ```
 
 ### 4. Conditional Branching
 
 **Example: Room Container Editing**
 ```go
-func room_EditContainers(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
-    cmdPrompt, _ := user.StartPrompt(`room edit containers`, rest)
-    
-    question := cmdPrompt.Ask(`Choose one:`, []string{`new`}, `new`)
-    if !question.Done {
-        return true, nil
-    }
-    
-    if question.Response == `new` {
-        // Branch to new container creation
-        question = cmdPrompt.Ask(`Container name:`, []string{})
-        // Handle new container...
-    } else {
-        // Branch to existing container editing
-        // Handle container selection and editing...
-    }
-}
+func room_EditContainers(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error)
 ```
 
 ## Integration with Input Loop

@@ -36,7 +36,7 @@ func RegisterListeners() {
 	events.RegisterListener(events.MobIdle{}, HandleIdleMobs)
 
 	// Turn Hooks
-	events.RegisterListener(events.NewTurn{}, CleanupZombies)
+	events.RegisterListener(events.NewTurn{}, CleanupLinkDead)
 	events.RegisterListener(events.NewTurn{}, AutoSave)
 	events.RegisterListener(events.NewTurn{}, PruneBuffs)
 	events.RegisterListener(events.NewTurn{}, ActionPoints)

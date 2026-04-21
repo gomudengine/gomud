@@ -77,6 +77,14 @@ func init() {
 	events.RegisterListener(events.PlayerSpawn{}, g.onPlayerSpawn)
 }
 
+// refreshRoomNouns evicts the room from the cache and immediately re-injects
+// updated noun descriptions, so changes (e.g. jackpot) are visible without
+// requiring players to leave and re-enter the room.
+func (g *GamblingModule) refreshRoomNouns(room *rooms.Room) {
+	g.roomCache.Remove(room.RoomId)
+	g.ensureRoomNouns(room)
+}
+
 // ensureRoomNouns injects gambling fixture nouns into the room's Nouns map so
 // that "look slot machine", "look slots", and "look claw machine" are handled
 // synchronously by the core look command rather than falling through to

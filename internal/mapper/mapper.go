@@ -387,7 +387,7 @@ func (r *mapper) FindRoomsInDistance(centerRoomId int, xyRadius int, zRadiusOpt 
 
 	xyRadius = int(math.Abs(float64(xyRadius)))
 	zRadius := 0
-	if len(zRadiusOpt) == 0 {
+	if len(zRadiusOpt) > 0 {
 		zRadius = int(math.Abs(float64(zRadiusOpt[0])))
 	}
 

@@ -415,62 +415,28 @@ Every module is an IIFE to keep all state private. The pattern is:
 (function() {
 
     // -- Styles (injected once at script load time) --------------------------
-    injectStyles(`
-        #example-content {
-            color: #fff;
-            padding: 8px;
-            font-family: monospace;
-        }
-    `);
+    injectStyles(/* css string */);
 
     // -- DOM factory --------------------------------------------------------
     // Called once on first open. Must append to document.body.
-    function createDOM() {
-        const el = document.createElement('div');
-        el.id = 'example-content';
-        el.textContent = 'Waiting for data...';
-        document.body.appendChild(el);
-        return el;
-    }
+    function createDOM() { /* ... */ }
 
     // -- VirtualWindow instance ---------------------------------------------
     const win = new VirtualWindow('Example', {
         dock:          'right',   // 'left' | 'right' — enables docking
         defaultDocked: true,      // start docked on page load
         dockedHeight:  200,       // preferred height (px) when docked
-        factory() {
-            const el = createDOM();
-            return {
-                title:      'Example',
-                mount:      el,
-                background: '#1c6b60',
-                border:     1,
-                x:          'right',
-                y:          0,
-                width:      363,
-                height:     220,
-                header:     20,
-                bottom:     60,
-            };
-        },
+        factory() { /* ... */ },
     });
 
     // -- Update logic -------------------------------------------------------
-    function update() {
-        const data = Client.GMCPStructs.Some && Client.GMCPStructs.Some.Namespace;
-        if (!data) { return; }
-
-        win.open();
-        if (!win.isOpen()) { return; }
-
-        document.getElementById('example-content').textContent = data.someField;
-    }
+    function update() { /* ... */ }
 
     // -- Registration -------------------------------------------------------
     VirtualWindows.register({
         window:       win,
         gmcpHandlers: ['Some.Namespace', 'Some'],
-        onGMCP() { update(); },
+        onGMCP() { /* ... */ },
     });
 
 })();
@@ -574,10 +540,7 @@ module involvement.
 ### Adding a terminal command
 
 ```js
-Client.registerCommand('!example', 'Print example info', (input) => {
-    Client.term.writeln('Example command ran.');
-    return true;  // return true to consume the input (clears the field)
-});
+Client.registerCommand('!example', 'Print example info', (input) => { /* ... */ });
 ```
 
 Commands are matched against the exact input string before it is sent to the
