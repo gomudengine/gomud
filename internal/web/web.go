@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"text/template"
 	"time"
 
@@ -21,8 +23,9 @@ import (
 )
 
 var (
-	httpServer  *http.Server
-	httpsServer *http.Server
+	httpServer         *http.Server
+	httpsServer        *http.Server
+	httpsRedirectReady atomic.Bool
 
 	// internalMux is the single ServeMux used by both the live HTTP servers and
 	// the in-process InternalRequest dispatcher. All routes must be registered
@@ -233,6 +236,7 @@ func serveTemplate(w http.ResponseWriter, r *http.Request) {
 }
 
 func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn)) {
+	httpsRedirectReady.Store(false)
 
 	networkConfig := configs.GetNetworkConfig()
 	filePaths := configs.GetFilePathsConfig()
@@ -306,16 +310,19 @@ func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn)) {
 			}
 
 			mudlog.Info("HTTPS", "stage", "Starting https server", "mode", "manual", "port", networkConfig.HttpsPort)
-			go func() {
-				defer wg.Done()
-				if err := httpsServer.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
-					UpdateHTTPSStatus(func(status *HTTPSStatus) {
-						markHTTPSStartupFailure(status, err)
-						status.NextSteps = append(status.NextSteps, describeListenError(int(networkConfig.HttpsPort), err)...)
-					})
-					mudlog.Error("HTTPS", "error", fmt.Errorf("Error starting HTTPS web server: %w", err))
-				}
-			}()
+			startHTTPSServer(wg, httpsServer, func() {
+				httpsRedirectReady.Store(true)
+				UpdateHTTPSStatus(func(status *HTTPSStatus) {
+					markHTTPSListenerReady(status, bool(networkConfig.HttpsRedirect))
+				})
+			}, func(err error) {
+				httpsRedirectReady.Store(false)
+				UpdateHTTPSStatus(func(status *HTTPSStatus) {
+					markHTTPSStartupFailure(status, err)
+					status.NextSteps = append(status.NextSteps, describeListenError(int(networkConfig.HttpsPort), err)...)
+				})
+				mudlog.Error("HTTPS", "error", fmt.Errorf("Error starting HTTPS web server: %w", err))
+			})
 		}
 	case httpsModeAuto:
 		status := newHTTPSStatus(httpsPlan, networkConfig)
@@ -342,7 +349,7 @@ func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn)) {
 
 		httpServer = &http.Server{
 			Addr:    fmt.Sprintf(`:%d`, networkConfig.HttpPort),
-			Handler: buildAutoHTTPHandler(manager, networkConfig, internalMux),
+			Handler: buildAutoHTTPHandler(manager, networkConfig, internalMux, &httpsRedirectReady),
 		}
 
 		baseTLSConfig := manager.TLSConfig()
@@ -380,17 +387,19 @@ func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn)) {
 			mudlog.Warn("HTTPS", "warning", "Automatic HTTPS is enabled without HttpsEmail; certificate expiry notices will not be sent by email.")
 		}
 
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			if err := httpsServer.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
-				UpdateHTTPSStatus(func(status *HTTPSStatus) {
-					markHTTPSStartupFailure(status, err)
-					status.NextSteps = append(status.NextSteps, describeListenError(int(networkConfig.HttpsPort), err)...)
-				})
-				mudlog.Error("HTTPS", "error", fmt.Errorf("Error starting HTTPS web server: %w", err))
-			}
-		}()
+		startHTTPSServer(wg, httpsServer, func() {
+			httpsRedirectReady.Store(true)
+			UpdateHTTPSStatus(func(status *HTTPSStatus) {
+				markHTTPSListenerReady(status, bool(networkConfig.HttpsRedirect))
+			})
+		}, func(err error) {
+			httpsRedirectReady.Store(false)
+			UpdateHTTPSStatus(func(status *HTTPSStatus) {
+				markHTTPSStartupFailure(status, err)
+				status.NextSteps = append(status.NextSteps, describeListenError(int(networkConfig.HttpsPort), err)...)
+			})
+			mudlog.Error("HTTPS", "error", fmt.Errorf("Error starting HTTPS web server: %w", err))
+		})
 	case httpsModeHTTPOnly:
 		status := newHTTPSStatus(httpsPlan, networkConfig)
 		SetHTTPSStatus(status)
@@ -427,7 +436,7 @@ func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn)) {
 					http.Redirect(w, r, target, http.StatusMovedPermanently)
 				}
 
-				httpServer.Handler = redirectHandler
+				httpServer.Handler = buildConditionalHTTPSRedirectHandler(redirectHandler, int(networkConfig.HttpsPort), internalMux, &httpsRedirectReady)
 
 			}
 
@@ -456,16 +465,57 @@ func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn)) {
 
 }
 
-func buildAutoHTTPHandler(manager *autocert.Manager, networkConfig configs.Network, fallback http.Handler) http.Handler {
+func startHTTPSServer(wg *sync.WaitGroup, server *http.Server, onBound func(), onError func(error)) {
+	listener, err := net.Listen("tcp", server.Addr)
+	if err != nil {
+		onError(err)
+		return
+	}
+
+	if onBound != nil {
+		onBound()
+	}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		tlsListener := tls.NewListener(listener, server.TLSConfig)
+		if err := server.Serve(tlsListener); err != nil && err != http.ErrServerClosed {
+			onError(err)
+		}
+	}()
+}
+
+func buildConditionalHTTPSRedirectHandler(redirect http.Handler, httpsPort int, fallback http.Handler, redirectReady *atomic.Bool) http.Handler {
 	if fallback == nil {
 		fallback = internalMux
 	}
 
-	if bool(networkConfig.HttpsRedirect) {
-		fallback = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			target := buildHTTPSRedirectTarget(r.Host, int(networkConfig.HttpsPort), r.RequestURI)
+	if redirect == nil {
+		redirect = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			target := buildHTTPSRedirectTarget(r.Host, httpsPort, r.RequestURI)
 			http.Redirect(w, r, target, http.StatusMovedPermanently)
 		})
+	}
+
+	if redirectReady == nil {
+		return redirect
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !redirectReady.Load() {
+			fallback.ServeHTTP(w, r)
+			return
+		}
+
+		redirect.ServeHTTP(w, r)
+	})
+}
+
+func buildAutoHTTPHandler(manager *autocert.Manager, networkConfig configs.Network, fallback http.Handler, redirectReady *atomic.Bool) http.Handler {
+	if bool(networkConfig.HttpsRedirect) {
+		fallback = buildConditionalHTTPSRedirectHandler(nil, int(networkConfig.HttpsPort), fallback, redirectReady)
 	}
 
 	return manager.HTTPHandler(fallback)
@@ -489,6 +539,7 @@ func RunWithMUDLocked(next http.HandlerFunc) http.HandlerFunc {
 }
 
 func Shutdown() {
+	httpsRedirectReady.Store(false)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

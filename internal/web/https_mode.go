@@ -218,7 +218,7 @@ func newHTTPSStatus(plan httpsPlan, network configs.Network) HTTPSStatus {
 		HttpsPort:       int(network.HttpsPort),
 		HttpEnabled:     network.HttpPort > 0,
 		HttpsEnabled:    plan.mode == httpsModeManual || plan.mode == httpsModeAuto,
-		RedirectEnabled: bool(network.HttpsRedirect) && (plan.mode == httpsModeManual || plan.mode == httpsModeAuto),
+		RedirectEnabled: false,
 		CacheDir:        plan.cacheDir,
 		CertFile:        plan.certFile,
 		KeyFile:         plan.keyFile,
@@ -331,6 +331,16 @@ func markHTTPSStartupFailure(status *HTTPSStatus, err error) {
 	}
 }
 
+func markHTTPSListenerReady(status *HTTPSStatus, redirectConfigured bool) {
+	if status == nil {
+		return
+	}
+
+	if redirectConfigured && (status.Mode == string(httpsModeManual) || status.Mode == string(httpsModeAuto)) {
+		status.RedirectEnabled = true
+	}
+}
+
 func markAutoHTTPSHTTPFailure(status *HTTPSStatus, err error) {
 	if err == nil {
 		return
@@ -407,10 +417,17 @@ func runAutoHTTPSPreflight(status *HTTPSStatus) {
 		return
 	}
 
+	appendAutoHTTPSDNSChecks(status, addrs, localIPs)
+}
+
+func appendAutoHTTPSDNSChecks(status *HTTPSStatus, addrs []string, localIPs []string) {
+	if status == nil {
+		return
+	}
+
 	status.Checks = append(status.Checks, fmt.Sprintf("DNS lookup for %s returned: %s", status.Host, strings.Join(addrs, ", ")))
-	if len(localIPs) > 0 && !sharesAnyAddress(addrs, localIPs) {
-		status.Checks = append(status.Checks, "DNS does not currently point at a local interface address on this machine.")
-		status.NextSteps = append(status.NextSteps, fmt.Sprintf("Update DNS for %s so it resolves to this server before expecting Let's Encrypt to succeed.", status.Host))
+	if len(localIPs) > 0 && sharesAnyAddress(addrs, localIPs) {
+		status.Checks = append(status.Checks, "DNS includes a local interface address on this machine.")
 	}
 }
 

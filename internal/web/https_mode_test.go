@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -210,6 +211,19 @@ func TestMarkHTTPSStartupFailure(t *testing.T) {
 	}
 }
 
+func TestMarkHTTPSListenerReady(t *testing.T) {
+	status := HTTPSStatus{
+		Mode:            string(httpsModeAuto),
+		RedirectEnabled: false,
+	}
+
+	markHTTPSListenerReady(&status, true)
+
+	if !status.RedirectEnabled {
+		t.Fatalf("markHTTPSListenerReady() left RedirectEnabled false")
+	}
+}
+
 func TestMarkAutoHTTPSHTTPFailure(t *testing.T) {
 	status := HTTPSStatus{
 		Mode:            string(httpsModeAuto),
@@ -348,7 +362,7 @@ func TestBuildAutoHTTPHandlerPassesThroughWhenRedirectDisabled(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	handler := buildAutoHTTPHandler(manager, network, fallback)
+	handler := buildAutoHTTPHandler(manager, network, fallback, nil)
 	req := httptest.NewRequest(http.MethodGet, "/webclient", nil)
 	req.Host = "play.example.com"
 	rec := httptest.NewRecorder()
@@ -360,7 +374,7 @@ func TestBuildAutoHTTPHandlerPassesThroughWhenRedirectDisabled(t *testing.T) {
 	}
 }
 
-func TestBuildAutoHTTPHandlerRedirectsBeforeFirstCertHandshake(t *testing.T) {
+func TestBuildAutoHTTPHandlerFallsBackUntilHTTPSListenerIsReady(t *testing.T) {
 	manager := &autocert.Manager{
 		HostPolicy: autocert.HostWhitelist("play.example.com"),
 	}
@@ -370,22 +384,18 @@ func TestBuildAutoHTTPHandlerRedirectsBeforeFirstCertHandshake(t *testing.T) {
 		HttpsRedirect: true,
 	}
 
-	fallback := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Fatal("fallback should not be used when redirect is enabled")
-	})
-
-	handler := buildAutoHTTPHandler(manager, network, fallback)
+	redirectReady := atomic.Bool{}
+	handler := buildAutoHTTPHandler(manager, network, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}), &redirectReady)
 	req := httptest.NewRequest(http.MethodGet, "/webclient?x=1", nil)
 	req.Host = "play.example.com"
 	rec := httptest.NewRecorder()
 
 	handler.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusMovedPermanently {
-		t.Fatalf("buildAutoHTTPHandler() status = %d, want %d", rec.Code, http.StatusMovedPermanently)
-	}
-	if got := rec.Header().Get("Location"); got != "https://play.example.com/webclient?x=1" {
-		t.Fatalf("buildAutoHTTPHandler() Location = %q, want %q", got, "https://play.example.com/webclient?x=1")
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("buildAutoHTTPHandler() status = %d, want %d", rec.Code, http.StatusNoContent)
 	}
 }
 
@@ -399,11 +409,13 @@ func TestBuildAutoHTTPHandlerRedirectsWhenEnabledAndReady(t *testing.T) {
 		HttpsRedirect: true,
 	}
 
+	redirectReady := atomic.Bool{}
+	redirectReady.Store(true)
 	fallback := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatal("fallback should not be used when redirect is enabled and ready")
 	})
 
-	handler := buildAutoHTTPHandler(manager, network, fallback)
+	handler := buildAutoHTTPHandler(manager, network, fallback, &redirectReady)
 	req := httptest.NewRequest(http.MethodGet, "/webclient?x=1", nil)
 	req.Host = "play.example.com"
 	rec := httptest.NewRecorder()
@@ -434,7 +446,7 @@ func TestBuildAutoHTTPHandlerInterceptsACMEChallenge(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	handler := buildAutoHTTPHandler(manager, network, fallback)
+	handler := buildAutoHTTPHandler(manager, network, fallback, nil)
 	req := httptest.NewRequest(http.MethodGet, "/.well-known/acme-challenge/token", nil)
 	req.Host = "invalid.example"
 	rec := httptest.NewRecorder()
@@ -446,5 +458,23 @@ func TestBuildAutoHTTPHandlerInterceptsACMEChallenge(t *testing.T) {
 	}
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("buildAutoHTTPHandler() status = %d, want %d", rec.Code, http.StatusForbidden)
+	}
+}
+
+func TestRunAutoHTTPSPreflightDoesNotWarnWhenDNSUsesLoadBalancerAddress(t *testing.T) {
+	status := HTTPSStatus{
+		Host:   "play.example.com",
+		Checks: []string{},
+	}
+
+	localIPs := []string{"192.0.2.10"}
+	addrs := []string{"198.51.100.25"}
+	appendAutoHTTPSDNSChecks(&status, addrs, localIPs)
+
+	if containsString(status.Checks, "DNS does not currently point at a local interface address on this machine.") {
+		t.Fatalf("unexpected local-interface mismatch warning in checks: %v", status.Checks)
+	}
+	if !containsString(status.Checks, "DNS lookup for play.example.com returned: 198.51.100.25") {
+		t.Fatalf("appendAutoHTTPSDNSChecks() did not record DNS results: %v", status.Checks)
 	}
 }
