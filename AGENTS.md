@@ -254,6 +254,7 @@ make client               # Connect telnet client to Docker instance
 - **Time Module**: `modules/time/AGENTS.md` - time command displaying current in-game date, time, and zodiac
 - **WebHelp Module**: `modules/webhelp/AGENTS.md` - Web-based help browser exposing all in-game help topics as HTML pages
 - **Zombie Mode Module**: `modules/zombiemode/AGENTS.md` - AFK automation system with configurable combat, looting, roaming, and resting behaviors
+- **Mudmail Module**: `modules/mudmail/AGENTS.md` - Player inbox and admin mass-mail system
 
 ## Important
 - Always update `AGENTS.md` in the folder of code that has been updated. If the context doesn't exist in this `AGENTS.md`, add a reference to it following the pattern that is established.

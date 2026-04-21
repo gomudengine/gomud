@@ -35,7 +35,6 @@ help:
       - shout
       - broadcast
       - whisper
-      - inbox
     shops:
       - appraise
       - bank
@@ -132,7 +131,6 @@ help:
       - grant
       - locate
       - modify
-      - mudmail
       - mute
       - paz
       - prepare

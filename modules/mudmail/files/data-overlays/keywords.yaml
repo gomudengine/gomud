@@ -1,0 +1,7 @@
+help:
+  command:
+    communication:
+      - inbox
+  admin:
+    all:
+      - mudmail
