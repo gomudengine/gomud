@@ -6,8 +6,8 @@ Recommended versioning for the next release line:
 
 - Start the next stable release at `v0.10.0`.
 - Keep the binary's embedded version in source as a normal semver such as `0.10.0`.
-- Let merge-driven prereleases use generated tags like `pre-YYYYMMDDHHMMSS-<sha7>`.
-- Reserve manual semver tags like `v0.10.x` for a future stable-release process if needed.
+- Let merge-driven builds update a single rolling `prerelease` tag.
+- Reserve semver tags like `v0.10.x` for stable releases.
 
 ### 1. New Feature or Breaking‑Change Release (Minor/Major)
 
@@ -27,16 +27,14 @@ Recommended versioning for the next release line:
 
    Or, for a manual test without merging:
    - Run the `Release` workflow with `workflow_dispatch`.
-   - Optionally provide a short `release_label` such as `test`.
 
 2. **Monitor Release**
    - GitHub Actions will:
      - Run `go generate ./...`
      - Build per-platform binaries with `main.version` set from `main.go`
-     - Create a generated prerelease tag like `pre-YYYYMMDDHHMMSS-<sha7>`
-     - Archive `_datafiles` as `gomud-ALL-datafiles-pre-YYYYMMDDHHMMSS-<sha7>.zip`
-     - Generate `gomud-pre-YYYYMMDDHHMMSS-<sha7>-SHA256SUMS.txt`
-     - Publish a GitHub prerelease for that generated tag
+     - Replace the rolling `prerelease` tag and GitHub prerelease
+     - Archive `_datafiles` as `gomud-ALL-datafiles-prerelease.zip`
+     - Generate `gomud-prerelease-SHA256SUMS.txt`
      - Leave the release unmarked as `Latest`
 
 3. **Announce**
@@ -52,16 +50,17 @@ Recommended versioning for the next release line:
    - PRs should run normal CI only.
 
 2. **Merges to `master` do publish release binaries**
-   - A push to `master` runs the `Release` workflow and publishes a prerelease.
+   - A push to `master` runs the `Release` workflow and replaces the rolling
+     `prerelease`.
 
 3. **Manual test runs can also publish prereleases**
-   - `workflow_dispatch` can be used to create a test prerelease without merging.
-   - An optional `release_label` is appended to the generated prerelease tag.
+   - `workflow_dispatch` can be used to refresh the rolling `prerelease`
+     without merging.
 
-4. **Generated release naming**
-   - The release tag is generated automatically from UTC time plus the merge commit SHA.
-   - Example: `pre-20260417021530-1a2b3c4`
-   - With a manual label: `pre-20260417021530-1a2b3c4-test`
+4. **Rolling release naming**
+   - The release tag is always `prerelease`.
+   - The release notes record the commit SHA and publish time for the current build.
+   - Numbered releases such as `v0.10.0` remain the permanent download history.
 
 ---
 
@@ -70,10 +69,10 @@ Recommended versioning for the next release line:
 1. **Run the release workflow manually**
    - Use `workflow_dispatch` when you want a test release
      without merging to `master`.
-   - Optionally set `release_label=test` or similar to make the generated tag clearer.
 
 2. **Verify the GitHub release**
    - Confirm the workflow succeeds.
+   - Confirm the `prerelease` release now points at the expected commit.
    - Confirm the per-platform binaries are attached.
    - Confirm the `_datafiles` zip asset is attached.
    - Confirm the checksum manifest asset is attached.
@@ -81,8 +80,8 @@ Recommended versioning for the next release line:
    - Confirm GitHub does not mark it as `Latest`.
 
 3. **Clean up if needed**
-   - Delete the test tag and release after validation if you do not want to keep them
-     in repository history.
+   - No cleanup is normally required because the next successful run replaces the
+     rolling `prerelease`.
 
 ---
 
@@ -90,14 +89,15 @@ Recommended versioning for the next release line:
 
 - **Does every merge to `master` trigger a release?**
   Yes - every push to `master` runs the release workflow and publishes a prerelease.
+  That prerelease is the rolling `prerelease` entry, not a newly named release.
 
 - **Is auto-tagging enabled?**
-  Stable semver tags are not generated automatically. The merge-driven workflow creates
-  its own prerelease tag from UTC time plus commit SHA.
+  Stable semver tags are not generated automatically. The merge-driven workflow
+  updates the rolling `prerelease` tag instead.
 
 - **Can I create a test release without merging to `master`?**
   Yes - run the `Release` workflow manually with `workflow_dispatch`. That keeps PR
-  submissions clean while still allowing on-demand test releases.
+  submissions clean while still allowing an on-demand refresh of `prerelease`.
 
 - **Are workflow-created releases stable releases?**
   No - the workflow creates prereleases. A repo owner must manually promote a release
@@ -109,8 +109,8 @@ Recommended versioning for the next release line:
   verify the assets.
 
 - **What tag format should we use going forward?**
-  Keep the source/binary version on the `0.10.x` line. Let the workflow generate
-  prerelease tags like `pre-YYYYMMDDHHMMSS-<sha7>` on merges to `master`.
+  Keep the source/binary version on the `0.10.x` line. Use `prerelease` for the
+  rolling master build and semver tags for stable releases.
 
 - **When should I bump minor vs. patch?**
   - **Minor** for new, backward‑compatible features.
