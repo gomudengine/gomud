@@ -1693,7 +1693,7 @@ func (r *Room) FindNoun(noun string) (foundNoun string, nounDescription string) 
 	for full, desc := range roomNouns {
 		if strings.Contains(full, " ") {
 			for _, part := range testNouns {
-				if strings.Contains(full, part) {
+				if strings.HasPrefix(full, part) {
 					if strings.HasPrefix(desc, ":") {
 						target := desc[1:]
 						if td, ok := roomNouns[target]; ok && !strings.HasPrefix(td, ":") {

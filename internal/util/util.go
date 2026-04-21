@@ -360,11 +360,13 @@ func stringMatch(searchFor string, searchIn string, allowContains bool) (partial
 	searchIn = strings.ToLower(searchIn)
 
 	if allowContains {
-		if strings.Contains(searchIn, searchFor) {
-			if searchIn == searchFor {
-				return true, true
+		for _, word := range strings.Fields(searchIn) {
+			if strings.HasPrefix(word, searchFor) {
+				if searchIn == searchFor {
+					return true, true
+				}
+				return true, false
 			}
-			return true, false
 		}
 	}
 
