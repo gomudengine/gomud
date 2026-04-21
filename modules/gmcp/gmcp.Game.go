@@ -1,7 +1,7 @@
 package gmcp
 
 import (
-	"strconv"
+	"encoding/json"
 
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -29,6 +29,8 @@ func init() {
 	events.RegisterListener(events.PlayerDespawn{}, g.onJoinLeave)
 	events.RegisterListener(events.PlayerSpawn{}, g.onJoinLeave)
 	events.RegisterListener(events.PlayerChanged{}, g.onJoinLeave)
+	events.RegisterListener(events.LevelUp{}, g.onJoinLeave)
+	events.RegisterListener(events.CharacterChanged{}, g.onJoinLeave)
 	events.RegisterListener(GMCPGameRequest{}, g.onGameRequest)
 
 }
@@ -55,38 +57,52 @@ func (g *GMCPGameModule) onGameRequest(e events.Event) events.ListenerReturn {
 	return events.Continue
 }
 
+type GMCPGamePlayer struct {
+	Username   string `json:"username"`
+	Name       string `json:"name"`
+	Level      int    `json:"level"`
+	Alignment  string `json:"alignment"`
+	Profession string `json:"profession"`
+	TimeOnline string `json:"time_online"`
+	Role       string `json:"role"`
+}
+
+func (g *GMCPGameModule) buildWhoPayload() []GMCPGamePlayer {
+	players := []GMCPGamePlayer{}
+	for _, user := range users.GetAllActiveUsers() {
+		info := user.GetOnlineInfo()
+		players = append(players, GMCPGamePlayer{
+			Username:   info.Username,
+			Name:       info.CharacterName,
+			Level:      info.Level,
+			Alignment:  info.Alignment,
+			Profession: info.Profession,
+			TimeOnline: info.OnlineTimeStr,
+			Role:       info.Role,
+		})
+	}
+	return players
+}
+
 func (g *GMCPGameModule) sendGamePayload(targetUserId int) {
 
 	c := configs.GetConfig()
 	tFormat := string(c.TextFormats.Time)
 
-	whoPayload := `"Who": { "Players": [`
-
-	var infoStr string
-	pCt := 0
-	for _, user := range users.GetAllActiveUsers() {
-
-		if user.UserId == targetUserId {
-			infoStr = `"Info": { "logintime": "` + user.GetConnectTime().Format(tFormat) + `", "name": "` + string(c.Server.MudName) + `" }`
-		}
-
-		if pCt > 0 {
-			whoPayload += `, `
-		}
-		pCt++
-
-		whoPayload += `{ "level": ` + strconv.Itoa(user.Character.Level) + `, "name": "` + user.Character.Name + `", "title": "` + user.Role + `"}`
-	}
-	whoPayload += `] }`
-
-	if infoStr == `` {
+	user := users.GetByUserId(targetUserId)
+	if user == nil {
 		return
 	}
+
+	infoStr := `"Info": { "logintime": "` + user.GetConnectTime().Format(tFormat) + `", "name": "` + string(c.Server.MudName) + `" }`
+
+	players := g.buildWhoPayload()
+	playersJSON, _ := json.Marshal(players)
 
 	events.AddToQueue(GMCPOut{
 		UserId:  targetUserId,
 		Module:  `Game`,
-		Payload: `{ ` + infoStr + `, ` + whoPayload + ` }`,
+		Payload: `{ ` + infoStr + `, "Who": { "Players": ` + string(playersJSON) + ` } }`,
 	})
 }
 
@@ -95,29 +111,16 @@ func (g *GMCPGameModule) onJoinLeave(e events.Event) events.ListenerReturn {
 	c := configs.GetConfig()
 	tFormat := string(c.TextFormats.Time)
 
-	whoPayload := `"Who": { "Players": [`
+	players := g.buildWhoPayload()
+	playersJSON, _ := json.Marshal(players)
+	whoFragment := `"Who": { "Players": ` + string(playersJSON) + ` }`
 
-	infoPayloads := map[int]string{}
-
-	pCt := 0
 	for _, user := range users.GetAllActiveUsers() {
-
-		infoPayloads[user.UserId] = `"Info": { "logintime": "` + user.GetConnectTime().Format(tFormat) + `", "name": "` + string(c.Server.MudName) + `" }`
-
-		if pCt > 0 {
-			whoPayload += `, `
-		}
-		pCt++
-
-		whoPayload += `{ "level": ` + strconv.Itoa(user.Character.Level) + `, "name": "` + user.Character.Name + `", "title": "` + user.Role + `"}`
-	}
-	whoPayload += `] }`
-
-	for userId, infoStr := range infoPayloads {
+		infoStr := `"Info": { "logintime": "` + user.GetConnectTime().Format(tFormat) + `", "name": "` + string(c.Server.MudName) + `" }`
 		events.AddToQueue(GMCPOut{
-			UserId:  userId,
+			UserId:  user.UserId,
 			Module:  `Game`,
-			Payload: `{ ` + infoStr + `, ` + whoPayload + ` }`,
+			Payload: `{ ` + infoStr + `, ` + whoFragment + ` }`,
 		})
 	}
 

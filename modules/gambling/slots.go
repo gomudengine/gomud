@@ -52,12 +52,15 @@ var (
 	slotMu sync.Mutex
 )
 
-// SlotState holds the persistent jackpot pool.
-type SlotState struct {
+// RoomSlotState holds the per-room jackpot and biggest-win record.
+type RoomSlotState struct {
 	Jackpot        int    `yaml:"Jackpot"`
 	BiggestWin     int    `yaml:"BiggestWin"`
 	BiggestWinName string `yaml:"BiggestWinName"`
 }
+
+// SlotState holds per-room slot machine state, keyed by room ID.
+type SlotState map[int]*RoomSlotState
 
 // minJackpot returns the minimum jackpot value (20x the cost to play).
 func minJackpot(cost int) int {
@@ -143,6 +146,18 @@ func jackpotBanner() string {
 	return out
 }
 
+// roomSlotState returns the SlotState for the given room, creating it if needed.
+// Must be called with slotMu held.
+func (g *GamblingModule) roomSlotState(roomId int) *RoomSlotState {
+	if g.state == nil {
+		g.state = make(SlotState)
+	}
+	if _, ok := g.state[roomId]; !ok {
+		g.state[roomId] = &RoomSlotState{}
+	}
+	return g.state[roomId]
+}
+
 // playSlots executes one spin for the user, charging the cost and paying out
 // any winnings. It writes all output directly to the user and room.
 func (g *GamblingModule) playSlots(user *users.UserRecord, room *rooms.Room) {
@@ -166,12 +181,12 @@ func (g *GamblingModule) playSlots(user *users.UserRecord, room *rooms.Room) {
 	user.Character.Gold -= cost
 
 	slotMu.Lock()
-	g.state.Jackpot += cost / 2 // half of each play feeds the jackpot
-	if g.state.Jackpot < minJackpot(cost) {
-		g.state.Jackpot = minJackpot(cost)
+	rs := g.roomSlotState(room.RoomId)
+	if rs.Jackpot < minJackpot(cost) {
+		rs.Jackpot = minJackpot(cost)
 	}
+	rs.Jackpot += cost / 2 // half of each play feeds the jackpot
 	slotMu.Unlock()
-	g.refreshRoomNouns(room)
 
 	events.AddToQueue(events.EquipmentChange{
 		UserId:     user.UserId,
@@ -185,7 +200,7 @@ func (g *GamblingModule) playSlots(user *users.UserRecord, room *rooms.Room) {
 	a, b, c := spinReel(), spinReel(), spinReel()
 
 	reelLine := fmt.Sprintf(
-		`<ansi fg="yellow">[ </ansi>%s <ansi fg="yellow">|</ansi> %s <ansi fg="yellow">|</ansi> %s<ansi fg="yellow"> ]</ansi>`,
+		`    <ansi fg="yellow">[ </ansi>%s <ansi fg="yellow">|</ansi> %s <ansi fg="yellow">|</ansi> %s<ansi fg="yellow"> ]</ansi>`,
 		coloredGlyph(a), coloredGlyph(b), coloredGlyph(c),
 	)
 
@@ -199,13 +214,13 @@ func (g *GamblingModule) playSlots(user *users.UserRecord, room *rooms.Room) {
 
 	if outcome.label == `JACKPOT` {
 		slotMu.Lock()
-		prize := g.state.Jackpot
+		rs := g.roomSlotState(room.RoomId)
+		prize := rs.Jackpot
 		if prize < minJackpot(cost) {
 			prize = minJackpot(cost)
 		}
-		g.state.Jackpot = 0
+		rs.Jackpot = 0
 		slotMu.Unlock()
-		g.refreshRoomNouns(room)
 
 		user.Character.Gold += prize
 		events.AddToQueue(events.EquipmentChange{
@@ -213,13 +228,13 @@ func (g *GamblingModule) playSlots(user *users.UserRecord, room *rooms.Room) {
 			GoldChange: prize,
 		})
 
-		g.maybeUpdateBiggestWin(prize, user.Character.Name, room)
+		g.maybeUpdateBiggestWin(room.RoomId, prize, user.Character.Name)
 
 		banner := jackpotBanner()
 
 		user.SendText(reelLine)
 		user.SendText(term.CRLFStr)
-		user.SendText(fmt.Sprintf(`%s <ansi fg="gold">You win %d gold!</ansi>`, banner, prize))
+		user.SendText(fmt.Sprintf(`    %s <ansi fg="gold">You win %d gold!</ansi>`, banner, prize))
 		user.SendText(term.CRLFStr)
 		room.SendText(
 			fmt.Sprintf(`%s <ansi fg="username">%s</ansi> <ansi fg="yellow-bold">has hit the JACKPOT!!!</ansi>`,
@@ -249,12 +264,12 @@ func (g *GamblingModule) playSlots(user *users.UserRecord, room *rooms.Room) {
 			GoldChange: prize,
 		})
 
-		g.maybeUpdateBiggestWin(prize, user.Character.Name, room)
+		g.maybeUpdateBiggestWin(room.RoomId, prize, user.Character.Name)
 
 		user.SendText(reelLine)
 		user.SendText(term.CRLFStr)
 		user.SendText(fmt.Sprintf(
-			`<ansi fg="%s">%s!</ansi> You win <ansi fg="gold">%d gold</ansi>!`,
+			`    <ansi fg="%s">%s!</ansi> You win <ansi fg="gold">%d gold</ansi>!`,
 			labelColor, outcome.label, prize,
 		))
 		user.SendText(term.CRLFStr)
@@ -266,7 +281,9 @@ func (g *GamblingModule) playSlots(user *users.UserRecord, room *rooms.Room) {
 	}
 
 	user.SendText(reelLine)
-	user.SendText(fmt.Sprintf(`<ansi fg="8">No luck this time. You lost <ansi fg="gold">%d gold</ansi>.</ansi>`, cost))
+	user.SendText(term.CRLFStr)
+	user.SendText(fmt.Sprintf(`    <ansi fg="8">No luck this time. You lost <ansi fg="gold">%d gold</ansi>.</ansi>`, cost))
+	user.SendText(term.CRLFStr)
 	room.SendText(
 		fmt.Sprintf(`<ansi fg="username">%s</ansi> <ansi fg="8">loses on the slot machine.</ansi>`, user.Character.Name),
 		user.UserId,
@@ -299,32 +316,28 @@ func slotPayoutTable() string {
 	return sb.String()
 }
 
-// maybeUpdateBiggestWin records a new biggest win if prize exceeds the current record,
-// then clears the room cache so the noun description is refreshed.
-func (g *GamblingModule) maybeUpdateBiggestWin(prize int, name string, room *rooms.Room) {
+// maybeUpdateBiggestWin records a new biggest win for the given room if prize exceeds the current record.
+func (g *GamblingModule) maybeUpdateBiggestWin(roomId int, prize int, name string) {
 	slotMu.Lock()
-	updated := prize > g.state.BiggestWin
-	if updated {
-		g.state.BiggestWin = prize
-		g.state.BiggestWinName = name
+	rs := g.roomSlotState(roomId)
+	if prize > rs.BiggestWin {
+		rs.BiggestWin = prize
+		rs.BiggestWinName = name
 	}
 	slotMu.Unlock()
-	if updated {
-		g.refreshRoomNouns(room)
-	}
 }
 
-// slotMachineNounDesc returns the noun description shown when a player types
-// "look slot machine" in a room with the slots tag.
-func (g *GamblingModule) slotMachineNounDesc(room *rooms.Room) string {
+// slotMachineNounDesc returns the description shown when a player looks at the slot machine.
+func (g *GamblingModule) slotMachineNounDesc(roomId int) string {
 	cost := defaultCost
 	if v, ok := g.plug.Config.Get(`SlotCost`).(int); ok && v > 0 {
 		cost = v
 	}
 	slotMu.Lock()
-	jackpot := g.state.Jackpot
-	biggestWin := g.state.BiggestWin
-	biggestWinName := g.state.BiggestWinName
+	rs := g.roomSlotState(roomId)
+	jackpot := rs.Jackpot
+	biggestWin := rs.BiggestWin
+	biggestWinName := rs.BiggestWinName
 	slotMu.Unlock()
 	if jackpot < minJackpot(cost) {
 		jackpot = minJackpot(cost)

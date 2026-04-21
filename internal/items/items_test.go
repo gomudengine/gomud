@@ -78,9 +78,10 @@ func TestFindMatchIn_NoMatch(t *testing.T) {
 }
 
 func TestFindMatchIn_ContainsFallback(t *testing.T) {
-	longsword := makeItem(1, "longsword")
+	// "sword" is a prefix of the word "sword" in the two-word name "long sword",
+	// so the contains pass finds it when the prefix pass on the full name does not.
+	longsword := makeItem(1, "long sword")
 
-	// "sword" is not a prefix of "longsword" so it falls back to contains search
 	partial, full := FindMatchIn("sword", longsword)
 	assert.Equal(t, longsword.ItemId, partial.ItemId)
 	assert.Equal(t, Item{}, full)

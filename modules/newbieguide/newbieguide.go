@@ -1,29 +1,54 @@
-package hooks
+package newbieguide
 
 import (
+	"embed"
 	"fmt"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/plugins"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
 
-//
-// RoomChangeHandler waits for RoomChange events
-// Also sends music changes out
-//
+//go:embed files/*
+var files embed.FS
 
-const guideMobId = 38
+const defaultGuideMobId = 38
 
-func SpawnGuide(e events.Event) events.ListenerReturn {
+type newbieGuideModule struct {
+	plug *plugins.Plugin
+}
+
+var mod newbieGuideModule
+
+func init() {
+	mod = newbieGuideModule{
+		plug: plugins.New(`newbieguide`, `1.0`),
+	}
+
+	if err := mod.plug.AttachFileSystem(files); err != nil {
+		panic(err)
+	}
+
+	events.RegisterListener(events.RoomChange{}, mod.spawnGuide)
+	events.RegisterListener(events.LevelUp{}, mod.checkGuide)
+}
+
+func (m *newbieGuideModule) guideMobId() int {
+	if v, ok := m.plug.Config.Get(`GuideMobId`).(int); ok && v > 0 {
+		return v
+	}
+	return defaultGuideMobId
+}
+
+func (m *newbieGuideModule) spawnGuide(e events.Event) events.ListenerReturn {
 
 	evt := e.(events.RoomChange)
 
-	// If this isn't a user changing rooms, just pass it along.
 	if evt.UserId == 0 {
 		return events.Continue
 	}
@@ -59,28 +84,24 @@ func SpawnGuide(e events.Event) events.ListenerReturn {
 		return events.Continue
 	}
 
+	guideMobId := m.guideMobId()
+
 	for _, miid := range user.Character.GetCharmIds() {
-		if testMob := mobs.GetInstance(miid); testMob != nil && testMob.MobId == guideMobId {
-			return events.Continue // already have the mob, we can skip this.
+		if testMob := mobs.GetInstance(miid); testMob != nil && testMob.MobId == mobs.MobId(guideMobId) {
+			return events.Continue
 		}
 	}
 
-	// Get the new room
 	room := rooms.LoadRoom(evt.ToRoomId)
 
-	// Create the mob
-	guideMob := mobs.NewMobById(guideMobId, 1)
+	guideMob := mobs.NewMobById(mobs.MobId(guideMobId), 1)
 
-	// Give them a clearly identifying (however long) name
 	guideMob.Character.Name = fmt.Sprintf(`%s's Guide`, user.Character.Name)
 
-	// Add the guide to the room
 	room.AddMob(guideMob.InstanceId)
 
-	// Charm the mob
 	guideMob.Character.Charm(evt.UserId, characters.CharmPermanent, characters.CharmExpiredDespawn)
 
-	// Track it
 	user.Character.TrackCharmed(guideMob.InstanceId, true)
 
 	room.SendText(`<ansi fg="mobname">` + guideMob.Character.Name + `</ansi> appears in a shower of sparks!`)
@@ -91,6 +112,32 @@ func SpawnGuide(e events.Event) events.ListenerReturn {
 	user.SendText(`<ansi fg="alert-3">Your guide will try and stick around until you reach level 5.</ansi>`)
 
 	user.SetTempData(`lastGuideRound`, roundNow)
+
+	return events.Continue
+}
+
+func (m *newbieGuideModule) checkGuide(e events.Event) events.ListenerReturn {
+
+	evt := e.(events.LevelUp)
+
+	user := users.GetByUserId(evt.UserId)
+	if user == nil {
+		return events.Continue
+	}
+
+	guideMobId := m.guideMobId()
+
+	if user.Character.Level >= 5 {
+		for _, mobInstanceId := range user.Character.CharmedMobs {
+			if mob := mobs.GetInstance(mobInstanceId); mob != nil {
+				if mob.MobId == mobs.MobId(guideMobId) {
+					mob.Command(`say I see you have grown much stronger and more experienced. My assistance is now needed elsewhere. I wish you good luck!`)
+					mob.Command(`emote clicks their heels together and disappears in a cloud of smoke.`, 10)
+					mob.Command(`suicide vanish`, 10)
+				}
+			}
+		}
+	}
 
 	return events.Continue
 }

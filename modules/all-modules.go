@@ -12,6 +12,7 @@ import (
 	_ "github.com/GoMudEngine/GoMud/modules/gambling"
 	_ "github.com/GoMudEngine/GoMud/modules/gmcp"
 	_ "github.com/GoMudEngine/GoMud/modules/leaderboards"
+	_ "github.com/GoMudEngine/GoMud/modules/newbieguide"
 	_ "github.com/GoMudEngine/GoMud/modules/time"
 	_ "github.com/GoMudEngine/GoMud/modules/webhelp"
 	_ "github.com/GoMudEngine/GoMud/modules/zombiemode"

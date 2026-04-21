@@ -530,11 +530,13 @@ func (i *Item) NameMatch(input string, allowContains bool) (partialMatch bool, f
 	simpleName := strings.ToLower(i.Name())
 
 	if allowContains {
-		if strings.Contains(simpleName, input) {
-			if simpleName == input {
-				return true, true
+		for _, word := range strings.Fields(simpleName) {
+			if strings.HasPrefix(word, input) {
+				if simpleName == input {
+					return true, true
+				}
+				return true, false
 			}
-			return true, false
 		}
 	}
 
