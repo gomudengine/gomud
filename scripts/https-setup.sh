@@ -3,6 +3,7 @@
 set -eu
 
 CONFIG_FILE="${CONFIG_FILE:-_datafiles/config.yaml}"
+CURL_BIN="${CURL_BIN:-curl}"
 
 if [ ! -f "$CONFIG_FILE" ]; then
 	echo "Config file not found: $CONFIG_FILE" >&2
@@ -19,20 +20,39 @@ read_yaml_value() {
 	' "$CONFIG_FILE"
 }
 
+json_escape() {
+	printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+
+base_url_without_trailing_slash() {
+	url=$1
+	while [ "${url%/}" != "$url" ]; do
+		url=${url%/}
+	done
+	printf '%s' "$url"
+}
+
+current_data_files=$(read_yaml_value DataFiles)
 current_https_cert=$(read_yaml_value HttpsCertFile)
 current_https_key=$(read_yaml_value HttpsKeyFile)
 current_http_port=$(read_yaml_value HttpPort)
 current_https_port=$(read_yaml_value HttpsPort)
 current_https_redirect=$(read_yaml_value HttpsRedirect)
 
+override_file="${CONFIG_PATH:-${current_data_files:-_datafiles/world/default}/config-overrides.yaml}"
 https_cert_file=$current_https_cert
 https_key_file=$current_https_key
 http_port=$current_http_port
 https_port=$current_https_port
 https_redirect=$current_https_redirect
+config_updates=""
+override_snippet=""
 
 printf 'Interactive HTTPS setup\n'
-printf 'Config file: %s\n\n' "$CONFIG_FILE"
+printf 'Bundled base config: %s\n' "$CONFIG_FILE"
+printf 'Override target: %s\n\n' "$override_file"
+printf 'This helper no longer edits the bundled base config directly.\n'
+printf 'It can PATCH a running GoMud server or print a config-overrides snippet for manual save.\n\n'
 
 printf 'Choose HTTPS mode:\n'
 printf '  1) Manual certificate files\n'
@@ -103,6 +123,28 @@ case "$mode_selection" in
 	;;
 esac
 
+config_updates=$(
+	cat <<EOF
+"FilePaths.HttpsCertFile":"$(json_escape "$https_cert_file")"
+,"FilePaths.HttpsKeyFile":"$(json_escape "$https_key_file")"
+,"Network.HttpPort":"$(json_escape "$http_port")"
+,"Network.HttpsPort":"$(json_escape "$https_port")"
+,"Network.HttpsRedirect":"$(json_escape "$https_redirect")"
+EOF
+)
+
+override_snippet=$(
+	cat <<EOF
+FilePaths:
+  HttpsCertFile: "$(json_escape "$https_cert_file")"
+  HttpsKeyFile: "$(json_escape "$https_key_file")"
+Network:
+  HttpPort: $http_port
+  HttpsPort: $https_port
+  HttpsRedirect: $https_redirect
+EOF
+)
+
 printf '\nPlanned settings:\n'
 printf '  HttpsCertFile: %s\n' "${https_cert_file:-<empty>}"
 printf '  HttpsKeyFile: %s\n' "${https_key_file:-<empty>}"
@@ -111,68 +153,69 @@ printf '  HttpsPort: %s\n' "$https_port"
 printf '  HttpsRedirect: %s\n' "$https_redirect"
 
 if [ "$mode_selection" = "1" ]; then
-	printf '\nBefore restarting GoMud:\n'
+	printf '\nBefore applying these settings:\n'
 	printf '  - Make sure %s and %s exist and are readable by the server.\n' "$https_cert_file" "$https_key_file"
 	printf '  - Open inbound TCP port %s if players should use HTTPS from the internet.\n' "$https_port"
 fi
 
-printf '\nApply these changes to %s? [Y/n]: ' "$CONFIG_FILE"
-IFS= read -r confirm
-confirm=${confirm:-Y}
-case "$confirm" in
-Y | y | yes | YES)
-	;;
-*)
-	echo "Aborted without changing the config."
-	exit 0
-	;;
-esac
+printf '\nChoose how to apply these changes:\n'
+printf '  1) PATCH a running GoMud server via /admin/api/v1/config\n'
+printf '  2) Print a config-overrides snippet for manual save\n'
+printf 'Selection [2]: '
+IFS= read -r apply_selection
+apply_selection=${apply_selection:-2}
 
-timestamp=$(date +%Y%m%d%H%M%S)
-backup_file="${CONFIG_FILE}.bak.${timestamp}"
-cp "$CONFIG_FILE" "$backup_file"
-
-tmp_file=$(mktemp "${TMPDIR:-/tmp}/gomud-https-setup.XXXXXX")
-cleanup() {
-	if [ -n "${tmp_file:-}" ]; then
-		rm -f "$tmp_file"
-	fi
-}
-trap cleanup EXIT HUP INT TERM
-
-awk \
-	-v https_cert_file="$https_cert_file" \
-	-v https_key_file="$https_key_file" \
-	-v http_port="$http_port" \
-	-v https_port="$https_port" \
-	-v https_redirect="$https_redirect" \
-	'
-	function yaml_string(s, escaped) {
-		escaped = s
-		gsub(/\\/,"\\\\", escaped)
-		gsub(/"/,"\\\"", escaped)
-		return "\"" escaped "\""
-	}
-	/^[[:space:]]*HttpsCertFile:/ { print "  HttpsCertFile: " yaml_string(https_cert_file); next }
-	/^[[:space:]]*HttpsKeyFile:/  { print "  HttpsKeyFile: " yaml_string(https_key_file); next }
-	/^[[:space:]]*HttpPort:/      { print "  HttpPort: " http_port; next }
-	/^[[:space:]]*HttpsPort:/     { print "  HttpsPort: " https_port; next }
-	/^[[:space:]]*HttpsRedirect:/ { print "  HttpsRedirect: " https_redirect; next }
-	{ print }
-	' "$CONFIG_FILE" >"$tmp_file"
-
-# Rewrite the existing file in place so we preserve its owner and mode.
-cat "$tmp_file" >"$CONFIG_FILE"
-
-printf '\nHTTPS setup updated.\n'
-printf 'Backup saved to: %s\n' "$backup_file"
-printf 'Next steps:\n'
-case "$mode_selection" in
+case "$apply_selection" in
 1)
-	printf '  1. Confirm %s and %s exist and are readable.\n' "$https_cert_file" "$https_key_file"
-	printf '  2. Restart GoMud and open https://your-domain:%s/.\n' "$https_port"
+	printf 'Admin base URL [http://localhost]: '
+	IFS= read -r admin_base_url
+	admin_base_url=${admin_base_url:-http://localhost}
+	admin_base_url=$(base_url_without_trailing_slash "$admin_base_url")
+
+	printf 'Admin username [admin]: '
+	IFS= read -r admin_username
+	admin_username=${admin_username:-admin}
+
+	printf 'Admin password: '
+	IFS= read -r admin_password
+
+	printf '\nPATCH %s/admin/api/v1/config\n' "$admin_base_url"
+	if ! "$CURL_BIN" --fail --silent --show-error \
+		-u "$admin_username:$admin_password" \
+		-H 'Content-Type: application/json' \
+		-X PATCH \
+		--data "{$config_updates}" \
+		"$admin_base_url/admin/api/v1/config"; then
+		printf '\nFailed to apply settings through the admin API.\n' >&2
+		printf 'Fallback: save the following override snippet to %s and restart GoMud:\n\n' "$override_file" >&2
+		printf '%s\n' "$override_snippet" >&2
+		exit 1
+	fi
+
+	printf '\nHTTPS setup applied through the admin API.\n'
+	printf 'Next steps:\n'
+	if [ "$mode_selection" = "1" ]; then
+		printf '  1. Confirm %s and %s exist and are readable.\n' "$https_cert_file" "$https_key_file"
+		printf '  2. Restart GoMud only if your deployment requires it, then open https://your-domain:%s/.\n' "$https_port"
+	else
+		printf '  1. Restart GoMud only if your deployment requires it, then connect over plain HTTP on port %s.\n' "$http_port"
+	fi
 	;;
 2)
-	printf '  1. Restart GoMud and connect over plain HTTP on port %s.\n' "$http_port"
+	printf '\nSave the following override snippet to %s:\n\n' "$override_file"
+	printf '%s\n' "$override_snippet"
+	printf '\nNext steps:\n'
+	if [ "$mode_selection" = "1" ]; then
+		printf '  1. Save the snippet to %s or set the same keys through the admin API.\n' "$override_file"
+		printf '  2. Confirm %s and %s exist and are readable.\n' "$https_cert_file" "$https_key_file"
+		printf '  3. Restart GoMud and open https://your-domain:%s/.\n' "$https_port"
+	else
+		printf '  1. Save the snippet to %s or set the same keys through the admin API.\n' "$override_file"
+		printf '  2. Restart GoMud and connect over plain HTTP on port %s.\n' "$http_port"
+	fi
+	;;
+*)
+	echo "Unknown selection: $apply_selection" >&2
+	exit 1
 	;;
 esac
