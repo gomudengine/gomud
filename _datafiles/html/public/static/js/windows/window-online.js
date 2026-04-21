@@ -77,8 +77,30 @@
             padding-left: 10px;
         }
 
-        .online-col-title {
+        .online-col-profession {
             flex: 1;
+            min-width: 0;
+            padding-left: 10px;
+            overflow: hidden;
+        }
+
+        .online-col-alignment {
+            width: 68px;
+            flex-shrink: 0;
+            padding-left: 10px;
+            overflow: hidden;
+        }
+
+        .online-col-time {
+            width: 44px;
+            flex-shrink: 0;
+            padding-left: 10px;
+            overflow: hidden;
+        }
+
+        .online-col-role {
+            width: 44px;
+            flex-shrink: 0;
             padding-left: 10px;
             overflow: hidden;
         }
@@ -138,11 +160,48 @@
             white-space: nowrap;
         }
 
-        .online-player-title {
-            color: #7ab8a0;
+        .online-player-profession {
+            color: #c8e0ff;
             font-family: Arial, sans-serif;
             font-size: 0.75em;
             flex: 1;
+            min-width: 0;
+            padding-left: 10px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .online-player-alignment {
+            color: #7ab8a0;
+            font-family: Arial, sans-serif;
+            font-size: 0.75em;
+            width: 68px;
+            flex-shrink: 0;
+            padding-left: 10px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .online-player-time {
+            color: #a07ab8;
+            font-family: monospace;
+            font-size: 0.75em;
+            width: 44px;
+            flex-shrink: 0;
+            padding-left: 10px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .online-player-role {
+            color: #b8a07a;
+            font-family: Arial, sans-serif;
+            font-size: 0.75em;
+            width: 44px;
+            flex-shrink: 0;
             padding-left: 10px;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -183,7 +242,7 @@
         const colHeaders = document.createElement('div');
         colHeaders.id = 'online-col-headers';
 
-        [['online-col-lvl', 'Lvl'], ['online-col-name', 'Name'], ['online-col-title', 'Title']].forEach(function(col) {
+        [['online-col-lvl', 'Lvl'], ['online-col-name', 'Name'], ['online-col-profession', 'Profession'], ['online-col-alignment', 'Alignment'], ['online-col-time', 'Time'], ['online-col-role', 'Role']].forEach(function(col) {
             const cell = document.createElement('div');
             cell.className = col[0];
             const text = document.createElement('span');
@@ -226,7 +285,7 @@
                 border:     1,
                 x:          'right',
                 y:          0,
-                width:      363,
+                width:      480,
                 height:     220,
                 header:     20,
                 bottom:     60,
@@ -265,13 +324,28 @@
             name.className = 'online-player-name';
             name.textContent = p.name || '';
 
-            const title = document.createElement('span');
-            title.className = 'online-player-title';
-            title.textContent = p.title || '';
+            const profession = document.createElement('span');
+            profession.className = 'online-player-profession';
+            profession.textContent = p.profession || '';
+
+            const alignment = document.createElement('span');
+            alignment.className = 'online-player-alignment';
+            alignment.textContent = p.alignment || '';
+
+            const time = document.createElement('span');
+            time.className = 'online-player-time';
+            time.textContent = p.time_online || '';
+
+            const role = document.createElement('span');
+            role.className = 'online-player-role';
+            role.textContent = p.role || '';
 
             row.appendChild(lvl);
             row.appendChild(name);
-            row.appendChild(title);
+            row.appendChild(profession);
+            row.appendChild(alignment);
+            row.appendChild(time);
+            row.appendChild(role);
             list.appendChild(row);
         });
     }

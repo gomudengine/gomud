@@ -717,8 +717,7 @@ class VirtualWindow {
     // Open the window. On first call, honours defaultDocked and saved layout.
     // Subsequent calls are no-ops unless the window is not yet open.
     open() {
-        if (this._win === false)      { return; }  // user closed it
-        if (this._win !== undefined)  { return; }  // already open (float or docked)
+        if (this._win !== undefined && this._win !== false) { return; }  // already open (float or docked)
 
         // Check saved layout for this window
         const saved = LayoutStore.getWindow(this._id);
@@ -728,6 +727,14 @@ class VirtualWindow {
             this._win = false;
             return;
         }
+
+        // offOnLoad windows stay closed unless the user has explicitly enabled them.
+        if (this._win === false && !(saved && saved.enabled === true)) {
+            return;
+        }
+
+        // Reset to undefined so the rest of open() treats this as a first open.
+        this._win = undefined;
 
         // First open: run the factory to get opts + content element
         const opts = this._factory();
