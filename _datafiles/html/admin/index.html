@@ -3,7 +3,7 @@
 <style>
     h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
     .subtitle { color: #555; margin-bottom: 2rem; font-size: 0.9rem; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem; }
     .card { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 1.25rem; }
     .card h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: #666; margin-bottom: 0.5rem; }
     .card .value { font-size: 1.75rem; font-weight: 700; color: #1a1a2e; }
@@ -28,6 +28,10 @@
     .curl-block .kw  { color: #79c0ff; }
     .curl-block .str { color: #a5d6ff; }
     .curl-block .flag { color: #d2a8ff; }
+    .test-mode-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; font-size: 0.82rem; color: #555; user-select: none; }
+    .test-mode-row input[type="checkbox"] { cursor: pointer; accent-color: #8a4a00; }
+    .test-mode-row label { cursor: pointer; }
+    .test-mode-flag { color: #d2a8ff; }
     .response-examples { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
     .resp-entry { border: 1px solid #ddd; border-radius: 4px; overflow: hidden; }
     .resp-entry summary { display: flex; align-items: baseline; gap: 0.6rem; padding: 0.45rem 0.75rem; cursor: pointer; user-select: none; list-style: none; background: #f5f5f5; font-size: 0.82rem; }
@@ -104,8 +108,12 @@
             </summary>
             <div class="api-body">
                 <p>Accepts a JSON object of dot-path config keys to new string values. Locked keys are rejected and returned in the <code>rejected</code> list. Unknown keys return 400.</p>
-                <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
-     <span class="flag">-X</span> PATCH \
+                <div class="test-mode-row">
+                    <input type="checkbox" id="tm-patch-config" checked onchange="toggleTestMode('curl-patch-config', this.checked)" />
+                    <label for="tm-patch-config">Test Mode &mdash; adds <code>X-Test-Mode: true</code> header, changes are reverted after</label>
+                </div>
+                <div class="curl-block" id="curl-patch-config"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="flag">-X</span> PATCH <span class="test-mode-flag">\<br>     <span class="flag">-H</span> <span class="str">"X-Test-Mode: true"</span></span> \
      <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
      <span class="flag">-d</span> <span class="str">'{ "Server.MudName": "My MUD" }'</span> \
      <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/config</span></div>
@@ -137,5 +145,12 @@
 
     </div>
 </div>
+
+<script>
+function toggleTestMode(blockId, enabled) {
+    var flags = document.querySelectorAll('#' + blockId + ' .test-mode-flag');
+    flags.forEach(function(el) { el.style.display = enabled ? 'inline' : 'none'; });
+}
+</script>
 
 {{template "footer" .}}

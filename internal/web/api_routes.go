@@ -9,6 +9,6 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 		doBasicAuth(apiV1GetConfig),
 	))
 	mux.HandleFunc("PATCH /admin/api/v1/config", RunWithMUDLocked(
-		doBasicAuth(apiV1PatchConfig),
+		doBasicAuth(RunInTestMode(apiV1PatchConfig)),
 	))
 }

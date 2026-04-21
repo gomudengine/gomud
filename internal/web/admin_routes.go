@@ -12,5 +12,9 @@ func registerAdminRoutes(mux *http.ServeMux) {
 		doBasicAuth(adminIndex),
 	))
 
+	mux.HandleFunc("GET /admin/config", RunWithMUDLocked(
+		doBasicAuth(adminConfig),
+	))
+
 	registerAdminAPIRoutes(mux)
 }
