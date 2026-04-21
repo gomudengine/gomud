@@ -186,6 +186,34 @@ func TestHTTPSSetupPreservesBundledConfigPermissions(t *testing.T) {
 	}
 }
 
+func TestHTTPSSetupPreservesConfigPermissions(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("POSIX file modes are not stable on Windows")
+	}
+
+	configPath := writeHTTPSSetupTempConfig(t, sampleHTTPSConfig)
+	if err := os.Chmod(configPath, 0o640); err != nil {
+		t.Fatalf("os.Chmod() error = %v", err)
+	}
+
+	input := strings.Join([]string{
+		"2",
+		"8080",
+		"Y",
+		"",
+	}, "\n")
+
+	runHTTPSSetup(t, configPath, input)
+
+	info, err := os.Stat(configPath)
+	if err != nil {
+		t.Fatalf("os.Stat() error = %v", err)
+	}
+	if got, want := info.Mode().Perm(), os.FileMode(0o640); got != want {
+		t.Fatalf("config mode = %o, want %o", got, want)
+	}
+}
+
 func writeHTTPSSetupTempConfig(t *testing.T, content string) string {
 	t.Helper()
 

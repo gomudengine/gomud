@@ -98,25 +98,25 @@ func resolveHTTPSPlan(network configs.Network, filePaths configs.FilePaths) http
 	}
 
 	if hasManualCert != hasManualKey {
-		plan.mode = httpsModeHTTPOnly
+		plan.mode = fallbackHTTPMode(network)
 		plan.fallbackReason = "manual HTTPS requires both HttpsCertFile and HttpsKeyFile"
 		return plan
 	}
 
 	if plan.host == "" {
-		plan.mode = httpsModeHTTPOnly
+		plan.mode = fallbackHTTPMode(network)
 		plan.fallbackReason = "automatic HTTPS requires FilePaths.WebDomain to be set to a public hostname"
 		return plan
 	}
 
 	if !isPublicACMEHost(plan.host) {
-		plan.mode = httpsModeHTTPOnly
+		plan.mode = fallbackHTTPMode(network)
 		plan.fallbackReason = fmt.Sprintf("automatic HTTPS requires a public hostname, got %q", plan.host)
 		return plan
 	}
 
 	if network.HttpPort != 80 || network.HttpsPort != 443 {
-		plan.mode = httpsModeHTTPOnly
+		plan.mode = fallbackHTTPMode(network)
 		plan.fallbackReason = fmt.Sprintf("automatic HTTPS requires Network.HttpPort=80 and Network.HttpsPort=443, got %d/%d", network.HttpPort, network.HttpsPort)
 		return plan
 	}
@@ -124,6 +124,13 @@ func resolveHTTPSPlan(network configs.Network, filePaths configs.FilePaths) http
 	plan.mode = httpsModeAuto
 	plan.emailNoticeNeeded = plan.email == ""
 	return plan
+}
+
+func fallbackHTTPMode(network configs.Network) httpsMode {
+	if network.HttpPort > 0 {
+		return httpsModeHTTPOnly
+	}
+	return httpsModeDisabled
 }
 
 func normalizeHTTPSHost(host string) string {
@@ -254,7 +261,13 @@ func newHTTPSStatus(plan httpsPlan, network configs.Network) HTTPSStatus {
 		status.NextSteps = append(status.NextSteps, defaultHTTPSGuidance(plan, network)...)
 	default:
 		status.Summary = "HTTPS is disabled."
-		status.NextSteps = append(status.NextSteps, "Set Network.HttpsPort to 443 and FilePaths.WebDomain to a public hostname to enable automatic HTTPS.")
+		if plan.fallbackReason != "" {
+			status.Checks = append(status.Checks, plan.fallbackReason)
+		}
+		if plan.host == "localhost" || plan.host == "localhost.localdomain" {
+			status.Checks = append(status.Checks, "Localhost is treated as development mode, so automatic HTTPS is skipped on purpose.")
+		}
+		status.NextSteps = append(status.NextSteps, defaultHTTPSGuidance(plan, network)...)
 	}
 
 	return status
@@ -273,6 +286,10 @@ func defaultHTTPSGuidance(plan httpsPlan, network configs.Network) []string {
 
 	if plan.host != "" && !isPublicACMEHost(plan.host) {
 		steps = append(steps, "Use a public DNS hostname instead of localhost, a private-only name, or a raw IP address.")
+	}
+
+	if network.HttpPort <= 0 && network.HttpsPort > 0 {
+		steps = append(steps, "Set Network.HttpPort to 80 so GoMud can serve HTTP or complete automatic HTTPS challenges.")
 	}
 
 	if network.HttpPort != 80 || network.HttpsPort != 443 {
@@ -309,6 +326,22 @@ func markHTTPSStartupFailure(status *HTTPSStatus, err error) {
 	}
 
 	startupCheck := "HTTPS startup failed, so GoMud is not currently serving HTTPS."
+	if !containsString(status.Checks, startupCheck) {
+		status.Checks = append(status.Checks, startupCheck)
+	}
+}
+
+func markAutoHTTPSHTTPFailure(status *HTTPSStatus, err error) {
+	if err == nil {
+		return
+	}
+
+	status.LastError = err.Error()
+	status.HttpsEnabled = false
+	status.RedirectEnabled = false
+	status.Summary = "Automatic HTTPS is configured, but the required HTTP listener is unavailable because startup failed."
+
+	startupCheck := "Automatic HTTPS requires a working HTTP listener for ACME challenges and redirects."
 	if !containsString(status.Checks, startupCheck) {
 		status.Checks = append(status.Checks, startupCheck)
 	}

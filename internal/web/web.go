@@ -442,7 +442,11 @@ func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn)) {
 
 			if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 				UpdateHTTPSStatus(func(status *HTTPSStatus) {
-					status.LastError = err.Error()
+					if status.Mode == string(httpsModeAuto) {
+						markAutoHTTPSHTTPFailure(status, err)
+					} else {
+						status.LastError = err.Error()
+					}
 					status.NextSteps = append(status.NextSteps, describeListenError(int(networkConfig.HttpPort), err)...)
 				})
 				mudlog.Error("HTTP", "error", fmt.Errorf("Error starting web server: %w", err))

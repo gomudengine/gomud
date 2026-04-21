@@ -91,6 +91,18 @@ func TestResolveHTTPSPlan(t *testing.T) {
 			wantMode:     httpsModeHTTPOnly,
 			wantFallback: "manual HTTPS requires both HttpsCertFile and HttpsKeyFile",
 		},
+		{
+			name: "no http listener leaves HTTPS disabled instead of claiming HTTP only",
+			network: configs.Network{
+				HttpPort:  0,
+				HttpsPort: 443,
+			},
+			filePaths: configs.FilePaths{
+				WebDomain: "play.example.com",
+			},
+			wantMode:     httpsModeDisabled,
+			wantFallback: "automatic HTTPS requires Network.HttpPort=80 and Network.HttpsPort=443, got 0/443",
+		},
 	}
 
 	for _, tt := range tests {
@@ -195,6 +207,33 @@ func TestMarkHTTPSStartupFailure(t *testing.T) {
 	}
 	if !containsString(status.Checks, "HTTPS startup failed, so GoMud is not currently serving HTTPS.") {
 		t.Fatalf("markHTTPSStartupFailure() did not record startup failure check")
+	}
+}
+
+func TestMarkAutoHTTPSHTTPFailure(t *testing.T) {
+	status := HTTPSStatus{
+		Mode:            string(httpsModeAuto),
+		Summary:         "Automatic HTTPS is enabled.",
+		HttpsEnabled:    true,
+		RedirectEnabled: true,
+	}
+
+	markAutoHTTPSHTTPFailure(&status, errors.New("listen tcp :80: bind: permission denied"))
+
+	if status.HttpsEnabled {
+		t.Fatalf("markAutoHTTPSHTTPFailure() left HttpsEnabled true")
+	}
+	if status.RedirectEnabled {
+		t.Fatalf("markAutoHTTPSHTTPFailure() left RedirectEnabled true")
+	}
+	if status.LastError != "listen tcp :80: bind: permission denied" {
+		t.Fatalf("markAutoHTTPSHTTPFailure() LastError = %q", status.LastError)
+	}
+	if status.Summary != "Automatic HTTPS is configured, but the required HTTP listener is unavailable because startup failed." {
+		t.Fatalf("markAutoHTTPSHTTPFailure() Summary = %q", status.Summary)
+	}
+	if !containsString(status.Checks, "Automatic HTTPS requires a working HTTP listener for ACME challenges and redirects.") {
+		t.Fatalf("markAutoHTTPSHTTPFailure() did not record challenge listener check")
 	}
 }
 
