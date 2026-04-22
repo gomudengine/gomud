@@ -88,6 +88,27 @@ func TestHTTPSSetupUsesConfigPathAsOverrideTarget(t *testing.T) {
 	}
 }
 
+func TestHTTPSSetupIgnoresConfigPathWhenItTargetsBundledConfig(t *testing.T) {
+	configPath := writeHTTPSSetupTempConfig(t, sampleHTTPSConfig)
+
+	input := strings.Join([]string{
+		"2",
+		"8080",
+		"2",
+		"",
+	}, "\n")
+
+	output := runHTTPSSetup(t, configPath, input, map[string]string{
+		"CONFIG_PATH": configPath,
+	})
+	if !strings.Contains(output, "Ignoring CONFIG_PATH="+configPath) {
+		t.Fatalf("https-setup output did not warn about bundled config target:\n%s", output)
+	}
+	if !strings.Contains(output, "Override target: _datafiles/world/default/config-overrides.yaml") {
+		t.Fatalf("https-setup output did not fall back to config-overrides target:\n%s", output)
+	}
+}
+
 func TestHTTPSSetupCanPatchRunningServer(t *testing.T) {
 	configPath := writeHTTPSSetupTempConfig(t, sampleHTTPSConfig)
 	curlDir := t.TempDir()

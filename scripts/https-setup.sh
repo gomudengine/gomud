@@ -20,6 +20,17 @@ read_yaml_value() {
 	' "$CONFIG_FILE"
 }
 
+canonicalize_path() {
+	path=$1
+	path_dir=$(dirname "$path")
+	path_base=$(basename "$path")
+	if abs_dir=$(cd "$path_dir" 2>/dev/null && pwd -P); then
+		printf '%s/%s\n' "$abs_dir" "$path_base"
+		return 0
+	fi
+	printf '%s\n' "$path"
+}
+
 json_escape() {
 	printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
 }
@@ -39,7 +50,16 @@ current_http_port=$(read_yaml_value HttpPort)
 current_https_port=$(read_yaml_value HttpsPort)
 current_https_redirect=$(read_yaml_value HttpsRedirect)
 
-override_file="${CONFIG_PATH:-${current_data_files:-_datafiles/world/default}/config-overrides.yaml}"
+default_override_file="${current_data_files:-_datafiles/world/default}/config-overrides.yaml"
+override_file="${CONFIG_PATH:-$default_override_file}"
+bundled_config_path=$(canonicalize_path "$CONFIG_FILE")
+override_path=$(canonicalize_path "$override_file")
+
+if [ "$override_path" = "$bundled_config_path" ]; then
+	printf 'Ignoring CONFIG_PATH=%s because https-setup must not target the bundled base config.\n' "$override_file" >&2
+	override_file=$default_override_file
+fi
+
 https_cert_file=$current_https_cert
 https_key_file=$current_https_key
 http_port=$current_http_port
