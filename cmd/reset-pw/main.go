@@ -20,13 +20,19 @@ func main() {
 		os.Exit(1)
 	}
 
-	adminUser, err := findAdminUser()
+	username, err := resolveUsername(os.Args[1:], os.Stdin, os.Stdout)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to locate admin user: %v\n", err)
+		fmt.Fprintf(os.Stderr, "failed to determine username: %v\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Printf("Resetting password for admin user %q.\n", adminUser.Username)
+	userRecord, err := findUser(username)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to locate user: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Resetting password for user %q.\n", userRecord.Username)
 
 	newPassword, err := promptForPassword(os.Stdin, os.Stdout, int(os.Stdin.Fd()))
 	if err != nil {
@@ -34,36 +40,49 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := adminUser.SetPassword(newPassword); err != nil {
+	if err := userRecord.SetPassword(newPassword); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to set password: %v\n", err)
 		os.Exit(1)
 	}
 
-	if err := users.SaveUser(*adminUser); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to save admin user: %v\n", err)
+	if err := users.SaveUser(*userRecord); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to save user: %v\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Printf("Admin password updated for %q.\n", adminUser.Username)
+	fmt.Printf("Password updated for %q.\n", userRecord.Username)
 }
 
-func findAdminUser() (*users.UserRecord, error) {
-	var adminUser *users.UserRecord
-
-	users.SearchOfflineUsers(func(u *users.UserRecord) bool {
-		if strings.EqualFold(u.Role, users.RoleAdmin) {
-			copyUser := *u
-			adminUser = &copyUser
-			return false
+func resolveUsername(args []string, stdin *os.File, stdout *os.File) (string, error) {
+	if len(args) > 0 {
+		username := strings.TrimSpace(args[0])
+		if username == "" {
+			return "", errors.New("username cannot be empty")
 		}
-		return true
-	})
-
-	if adminUser == nil {
-		return nil, errors.New("no offline admin user record found")
+		return username, nil
 	}
 
-	return adminUser, nil
+	reader := bufio.NewReader(stdin)
+	fmt.Fprint(stdout, "Username: ")
+	username, err := reader.ReadString('\n')
+	if err != nil {
+		return "", err
+	}
+	username = strings.TrimSpace(username)
+	if username == "" {
+		return "", errors.New("username cannot be empty")
+	}
+
+	return username, nil
+}
+
+func findUser(username string) (*users.UserRecord, error) {
+	userRecord, err := users.LoadUser(username, true)
+	if err != nil {
+		return nil, err
+	}
+
+	return userRecord, nil
 }
 
 func promptForPassword(stdin *os.File, stdout *os.File, fd int) (string, error) {
@@ -72,14 +91,14 @@ func promptForPassword(stdin *os.File, stdout *os.File, fd int) (string, error) 
 		reader = bufio.NewReader(stdin)
 	}
 
-	fmt.Fprint(stdout, "New admin password: ")
+	fmt.Fprint(stdout, "New password: ")
 	first, err := readPassword(stdin, fd, reader)
 	if err != nil {
 		return "", err
 	}
 
 	fmt.Fprintln(stdout)
-	fmt.Fprint(stdout, "Confirm new admin password: ")
+	fmt.Fprint(stdout, "Confirm new password: ")
 	second, err := readPassword(stdin, fd, reader)
 	if err != nil {
 		return "", err

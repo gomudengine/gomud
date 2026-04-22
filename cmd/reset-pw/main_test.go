@@ -12,7 +12,42 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
-func TestFindAdminUser(t *testing.T) {
+func TestResolveUsernameFromArgs(t *testing.T) {
+	username, err := resolveUsername([]string{"player1"}, os.Stdin, os.Stdout)
+	if err != nil {
+		t.Fatalf("resolveUsername() error = %v", err)
+	}
+
+	if username != "player1" {
+		t.Fatalf("resolveUsername() = %q, want %q", username, "player1")
+	}
+}
+
+func TestResolveUsernameFromPrompt(t *testing.T) {
+	inputFile := writePromptInput(t, "player2\n")
+	outputFile := tempOutputFile(t)
+
+	username, err := resolveUsername(nil, inputFile, outputFile)
+	if err != nil {
+		t.Fatalf("resolveUsername() error = %v", err)
+	}
+
+	if username != "player2" {
+		t.Fatalf("resolveUsername() = %q, want %q", username, "player2")
+	}
+}
+
+func TestResolveUsernameEmpty(t *testing.T) {
+	inputFile := writePromptInput(t, "\n")
+	outputFile := tempOutputFile(t)
+
+	_, err := resolveUsername(nil, inputFile, outputFile)
+	if err == nil {
+		t.Fatal("resolveUsername() error = nil, want non-nil")
+	}
+}
+
+func TestFindUser(t *testing.T) {
 	chdirToRepoRoot(t)
 	overridePath := writeTestConfig(t)
 	t.Setenv("CONFIG_PATH", overridePath)
@@ -23,16 +58,16 @@ func TestFindAdminUser(t *testing.T) {
 	}
 	createUserIndex(t)
 
-	adminUser, err := findAdminUser()
+	userRecord, err := findUser("admin")
 	if err != nil {
-		t.Fatalf("findAdminUser() error = %v", err)
+		t.Fatalf("findUser() error = %v", err)
 	}
 
-	if adminUser.Username != "admin" {
-		t.Fatalf("findAdminUser() username = %q, want %q", adminUser.Username, "admin")
+	if userRecord.Username != "admin" {
+		t.Fatalf("findUser() username = %q, want %q", userRecord.Username, "admin")
 	}
-	if adminUser.Role != users.RoleAdmin {
-		t.Fatalf("findAdminUser() role = %q, want %q", adminUser.Role, users.RoleAdmin)
+	if userRecord.Role != users.RoleAdmin {
+		t.Fatalf("findUser() role = %q, want %q", userRecord.Role, users.RoleAdmin)
 	}
 }
 
@@ -47,7 +82,7 @@ func TestPromptForPasswordMismatch(t *testing.T) {
 	}
 }
 
-func TestResetAdminPasswordPersistsHash(t *testing.T) {
+func TestResetPasswordPersistsHash(t *testing.T) {
 	chdirToRepoRoot(t)
 	overridePath := writeTestConfig(t)
 	t.Setenv("CONFIG_PATH", overridePath)
@@ -58,20 +93,20 @@ func TestResetAdminPasswordPersistsHash(t *testing.T) {
 	}
 	createUserIndex(t)
 
-	adminUser, err := findAdminUser()
+	userRecord, err := findUser("admin")
 	if err != nil {
-		t.Fatalf("findAdminUser() error = %v", err)
+		t.Fatalf("findUser() error = %v", err)
 	}
 
 	const newPassword = "new-secret"
-	if err := adminUser.SetPassword(newPassword); err != nil {
+	if err := userRecord.SetPassword(newPassword); err != nil {
 		t.Fatalf("SetPassword() error = %v", err)
 	}
-	if err := users.SaveUser(*adminUser); err != nil {
+	if err := users.SaveUser(*userRecord); err != nil {
 		t.Fatalf("SaveUser() error = %v", err)
 	}
 
-	reloadedUser, err := users.LoadUser(adminUser.Username, true)
+	reloadedUser, err := users.LoadUser(userRecord.Username, true)
 	if err != nil {
 		t.Fatalf("LoadUser() error = %v", err)
 	}
@@ -106,6 +141,18 @@ character:
 		t.Fatalf("WriteFile(admin) error = %v", err)
 	}
 
+	regularUser := strings.TrimSpace(`
+userid: 2
+role: user
+username: player2
+password: password
+character:
+  name: PlayerTwo
+`)
+	if err := os.WriteFile(filepath.Join(usersDir, "2.yaml"), []byte(regularUser+"\n"), 0o600); err != nil {
+		t.Fatalf("WriteFile(player2) error = %v", err)
+	}
+
 	overridePath := filepath.Join(root, "config-overrides.yaml")
 	override := "FilePaths.DataFiles: " + dataFiles + "\n"
 	if err := os.WriteFile(overridePath, []byte(override), 0o600); err != nil {
@@ -124,6 +171,9 @@ func createUserIndex(t *testing.T) {
 	}
 	if err := index.AddUser(1, "admin"); err != nil {
 		t.Fatalf("AddUser(admin) error = %v", err)
+	}
+	if err := index.AddUser(2, "player2"); err != nil {
+		t.Fatalf("AddUser(player2) error = %v", err)
 	}
 }
 
