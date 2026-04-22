@@ -23,6 +23,22 @@
 const AdminAPI = (() => {
     'use strict';
 
+    const CACHE_TTL_MS = 30000; // how long GET results are cached (ms)
+
+    const _cache = new Map();
+
+    // /admin/api/v1/items/attack-messages -> /admin/api/v1/items
+    function _rootPath(path) {
+        return path.split('/').slice(0, 5).join('/');
+    }
+
+    function _invalidate(path) {
+        const prefix = _rootPath(path);
+        for (const key of _cache.keys()) {
+            if (key.startsWith(prefix)) _cache.delete(key);
+        }
+    }
+
     /**
      * @typedef {Object} APIResult
      * @property {boolean} ok          - true when HTTP status is 2xx
@@ -83,8 +99,15 @@ const AdminAPI = (() => {
      * @param {string} path
      * @returns {Promise<APIResult>}
      */
-    function get(path) {
-        return request('GET', path);
+    async function get(path) {
+        const cached = _cache.get(path);
+        if (cached && Date.now() < cached.expires) return cached.result;
+
+        const result = await request('GET', path);
+        if (result.ok) {
+            _cache.set(path, { result, expires: Date.now() + CACHE_TTL_MS });
+        }
+        return result;
     }
 
     /**
@@ -93,8 +116,10 @@ const AdminAPI = (() => {
      * @param {Object} body
      * @returns {Promise<APIResult>}
      */
-    function post(path, body) {
-        return request('POST', path, body);
+    async function post(path, body) {
+        const result = await request('POST', path, body);
+        _invalidate(path);
+        return result;
     }
 
     /**
@@ -104,7 +129,9 @@ const AdminAPI = (() => {
      * @returns {Promise<APIResult>}
      */
     function put(path, body) {
-        return request('PUT', path, body);
+        const result = request('PUT', path, body);
+        _invalidate(path);
+        return result;
     }
 
     /**
@@ -113,8 +140,10 @@ const AdminAPI = (() => {
      * @param {Object} body
      * @returns {Promise<APIResult>}
      */
-    function patch(path, body) {
-        return request('PATCH', path, body);
+    async function patch(path, body) {
+        const result = await request('PATCH', path, body);
+        _invalidate(path);
+        return result;
     }
 
     /**
@@ -123,8 +152,10 @@ const AdminAPI = (() => {
      * @param {Object|null} body
      * @returns {Promise<APIResult>}
      */
-    function del(path, body = null) {
-        return request('DELETE', path, body);
+    async function del(path, body = null) {
+        const result = await request('DELETE', path, body);
+        _invalidate(path);
+        return result;
     }
 
     /**
