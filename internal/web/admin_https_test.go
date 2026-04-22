@@ -93,7 +93,7 @@ func TestHTTPSIndexDisablesCaching(t *testing.T) {
 	adminDir := t.TempDir()
 	for name, contents := range map[string]string{
 		"_header.html": "header",
-		"https.html":   "{{.httpsStatus}}",
+		"https.html":   "nav={{len .NAV}}|{{.httpsStatus}}",
 		"_footer.html": "footer",
 	} {
 		if err := os.WriteFile(filepath.Join(adminDir, name), []byte(contents), 0o600); err != nil {
@@ -132,5 +132,8 @@ func TestHTTPSIndexDisablesCaching(t *testing.T) {
 
 	if got := rec.Header().Get("Cache-Control"); got != "no-store" {
 		t.Fatalf("httpsIndex() Cache-Control = %q, want %q", got, "no-store")
+	}
+	if strings.Contains(rec.Body.String(), "nav=0|") {
+		t.Fatalf("httpsIndex() body = %q, want non-empty admin nav", rec.Body.String())
 	}
 }

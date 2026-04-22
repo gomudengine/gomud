@@ -226,14 +226,6 @@ FilePaths:
   #   Required when SSHPort is non-zero. Generate with:
   #     ssh-keygen -t ed25519 -f ssh_host_key -N ""
   SSHHostKeyFile: ""
-  # - HttpsEmail -
-  #   Optional contact email for automatic Let's Encrypt HTTPS.
-  #   This is used for expiry/problem notices from the certificate authority.
-  HttpsEmail: ""
-  # - HttpsCacheDir -
-  #   Folder used to cache automatic Let's Encrypt account and certificate data.
-  #   Must be writable and persistent across restarts.
-  HttpsCacheDir: "_datafiles/tls"
 
 ################################################################################
 #

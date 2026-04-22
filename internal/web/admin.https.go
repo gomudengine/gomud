@@ -22,6 +22,7 @@ func httpsIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tplData := map[string]any{
+		"NAV":         buildAdminNav(),
 		"httpsStatus": GetHTTPSStatus(),
 	}
 
