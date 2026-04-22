@@ -343,6 +343,9 @@ case "$apply_selection" in
 		--data "{$config_updates}" \
 		"$admin_base_url/admin/api/v1/config"; then
 		printf '\nFailed to apply settings through the admin API.\n' >&2
+		printf 'GoMud is not reachable at %s.\n' "$admin_base_url" >&2
+		printf 'If the server is already running, enter its current admin URL and try again.\n' >&2
+		printf 'Otherwise, save the override snippet below and restart GoMud.\n\n' >&2
 		printf 'Fallback: save the following override snippet to %s and restart GoMud:\n\n' "$override_file" >&2
 		printf '%s\n' "$override_snippet" >&2
 		exit 1

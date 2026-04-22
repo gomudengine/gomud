@@ -273,6 +273,46 @@ func TestHTTPSSetupAutoModeAPIApplyRequiresRestart(t *testing.T) {
 	}
 }
 
+func TestHTTPSSetupAPIApplyFailureExplainsRetryAndFallback(t *testing.T) {
+	configPath := writeHTTPSSetupTempConfig(t, sampleHTTPSConfig)
+	curlDir := t.TempDir()
+	curlStub := filepath.Join(curlDir, "curl-stub.sh")
+	curlScript := "#!/usr/bin/env sh\nexit 7\n"
+	if err := os.WriteFile(curlStub, []byte(curlScript), 0o755); err != nil {
+		t.Fatalf("os.WriteFile() error = %v", err)
+	}
+
+	input := strings.Join([]string{
+		"2",
+		"play.example.com",
+		"",
+		"1",
+		"",
+		"",
+		"password",
+		"",
+	}, "\n")
+
+	output, err := runHTTPSSetupExpectError(t, configPath, input, map[string]string{
+		"CURL_BIN": curlStub,
+	})
+	if err == nil {
+		t.Fatalf("https-setup.sh unexpectedly succeeded for failed API apply")
+	}
+	if !strings.Contains(output, "Failed to apply settings through the admin API.") {
+		t.Fatalf("https-setup output did not report API apply failure:\n%s", output)
+	}
+	if !strings.Contains(output, "GoMud is not reachable at http://127.0.0.1:8080.") {
+		t.Fatalf("https-setup output did not identify unreachable admin URL:\n%s", output)
+	}
+	if !strings.Contains(output, "If the server is already running, enter its current admin URL and try again.") {
+		t.Fatalf("https-setup output did not explain retry guidance:\n%s", output)
+	}
+	if !strings.Contains(output, "Otherwise, save the override snippet below and restart GoMud.") {
+		t.Fatalf("https-setup output did not explain fallback guidance:\n%s", output)
+	}
+}
+
 func TestHTTPSSetupAutoModePrintsLetsEncryptOverrideSnippet(t *testing.T) {
 	configPath := writeHTTPSSetupTempConfig(t, sampleHTTPSConfig)
 
