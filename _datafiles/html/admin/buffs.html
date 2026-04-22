@@ -116,7 +116,7 @@
     .script-toggle.open::before { transform: rotate(90deg); }
     .script-area { display: none; margin-top: 0.5rem; }
     .script-area.open { display: block; }
-    .script-area textarea { width: 100%; min-height: 220px; font-family: monospace; font-size: 0.82rem; padding: 0.6rem 0.75rem; border: 1px solid #ccc; border-radius: 4px; resize: vertical; background: #1a1a2e; color: #c9d1d9; line-height: 1.55; }
+    .script-area textarea { width: 100%; min-height: 660px; font-family: monospace; font-size: 0.82rem; padding: 0.6rem 0.75rem; border: 1px solid #ccc; border-radius: 4px; resize: vertical; background: #1a1a2e; color: #c9d1d9; line-height: 1.55; }
     .script-area textarea:focus { outline: 2px solid #4a6fa5; outline-offset: 1px; }
     .script-hint { font-size: 0.75rem; color: #888; margin-top: 0.3rem; }
 
@@ -240,6 +240,7 @@
     let allStatMods = {};  // statName -> description  (from /admin/api/v1/statmods)
     let currentBuffId = null;
     let isNew = false;
+    let scriptSync = null;
 
     // Ordered groups for the known-stat grid.
     // Each entry: { label, keys[] }
@@ -289,6 +290,7 @@
         allStatMods = statmodsRes.data.data || {};
 
         renderList(Object.values(allBuffs).sort((a, b) => a.BuffId - b.BuffId));
+        scriptSync = ScriptEditor.init('f-script');
     }
 
     // -------------------------------------------------------------------------
@@ -368,6 +370,7 @@
         buildFlagsGrid(spec.Flags || []);
 
         setVal('f-script', script);
+        if (scriptSync) scriptSync();
         document.getElementById('script-toggle').classList.toggle('open', script.length > 0);
         document.getElementById('script-area').classList.toggle('open', script.length > 0);
     }

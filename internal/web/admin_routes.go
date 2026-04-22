@@ -7,6 +7,7 @@ import (
 func registerAdminRoutes(mux *http.ServeMux) {
 	// Static assets (non-HTML files) under /admin/ require authentication.
 	mux.HandleFunc("GET /admin/{file}", doBasicAuth(serveAdminStaticFile))
+	mux.HandleFunc("GET /admin/static/{path...}", doBasicAuth(serveAdminStaticFile))
 
 	mux.HandleFunc("GET /admin/", RunWithMUDLocked(
 		doBasicAuth(adminIndex),
@@ -48,6 +49,20 @@ func registerAdminRoutes(mux *http.ServeMux) {
 	))
 	mux.HandleFunc("GET /admin/users-api", RunWithMUDLocked(
 		doBasicAuth(adminUsersAPI),
+	))
+
+	mux.HandleFunc("GET /admin/colorpatterns", RunWithMUDLocked(
+		doBasicAuth(adminColorPatterns),
+	))
+	mux.HandleFunc("GET /admin/colorpatterns-api", RunWithMUDLocked(
+		doBasicAuth(adminColorPatternsAPI),
+	))
+
+	mux.HandleFunc("GET /admin/races", RunWithMUDLocked(
+		doBasicAuth(adminRaces),
+	))
+	mux.HandleFunc("GET /admin/races-api", RunWithMUDLocked(
+		doBasicAuth(adminRacesAPI),
 	))
 
 	registerAdminAPIRoutes(mux)

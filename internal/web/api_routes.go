@@ -84,4 +84,32 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /admin/api/v1/users/search", RunWithMUDLocked(
 		doBasicAuth(apiV1SearchUsers),
 	))
+
+	// Color Patterns
+	mux.HandleFunc("GET /admin/api/v1/colorpatterns", RunWithMUDLocked(
+		doBasicAuth(apiV1GetColorPatterns),
+	))
+	mux.HandleFunc("POST /admin/api/v1/colorpatterns", RunWithMUDLocked(
+		doBasicAuth(apiV1CreateColorPattern),
+	))
+	mux.HandleFunc("PATCH /admin/api/v1/colorpatterns", RunWithMUDLocked(
+		doBasicAuth(apiV1PatchColorPatterns),
+	))
+	mux.HandleFunc("DELETE /admin/api/v1/colorpatterns", RunWithMUDLocked(
+		doBasicAuth(apiV1DeleteColorPattern),
+	))
+
+	// Races
+	mux.HandleFunc("GET /admin/api/v1/races", RunWithMUDLocked(
+		doBasicAuth(apiV1GetRaces),
+	))
+	mux.HandleFunc("POST /admin/api/v1/races", RunWithMUDLocked(
+		doBasicAuth(apiV1CreateRace),
+	))
+	mux.HandleFunc("PATCH /admin/api/v1/races/{raceId}", RunWithMUDLocked(
+		doBasicAuth(apiV1PatchRace),
+	))
+	mux.HandleFunc("DELETE /admin/api/v1/races/{raceId}", RunWithMUDLocked(
+		doBasicAuth(apiV1DeleteRace),
+	))
 }

@@ -73,6 +73,12 @@
             <p>Returns all loaded weapon attack message groups keyed by subtype (generic, slashing, stabbing, etc.).</p>
             <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
      <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/items/attack-messages</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"generic":{"Intensity":{...}},"slashing":{...},...}}</div></div>
+                </details>
+            </div>
         </div>
     </details>
 
@@ -83,9 +89,15 @@
             <span class="api-desc">Return all item specs</span>
         </summary>
         <div class="api-body">
-            <p>Returns an array of every loaded item specification.</p>
+            <p>Returns an array of every loaded item specification. Each entry includes a <code>HasScript</code> boolean.</p>
             <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
      <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/items</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":[{"ItemId":10001,"Name":"Steel Sword","Type":"weapon","HasScript":false,...},...]}</div></div>
+                </details>
+            </div>
         </div>
     </details>
 
@@ -127,6 +139,16 @@
      <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/items/10042</span>
 <span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
      <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/items/rusty%20dagger</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"ItemId":10042,"Name":"Rusty Dagger","Type":"weapon",...}}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">404</span> <span class="resp-label">Not Found</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"item not found: 99999"}</div></div>
+                </details>
+            </div>
         </div>
     </details>
 
@@ -143,6 +165,20 @@
      <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
      <span class="flag">-d</span> <span class="str">'{"Description":"A corroded blade."}'</span> \
      <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/items/10042</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"ItemId":10042,"Name":"Rusty Dagger","Description":"A corroded blade.",...}}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"malformed request body: ..."}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">404</span> <span class="resp-label">Not Found</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"item not found: 99999"}</div></div>
+                </details>
+            </div>
         </div>
     </details>
 
@@ -157,6 +193,16 @@
             <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
      <span class="flag">-X</span> DELETE \
      <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/items/10042</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">404</span> <span class="resp-label">Not Found</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"item not found: 99999"}</div></div>
+                </details>
+            </div>
         </div>
     </details>
 
@@ -192,6 +238,20 @@
      <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
      <span class="flag">-d</span> <span class="str">'{"script":"function onFound(user,item,room){}"}'</span> \
      <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/items/10042/script</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"malformed request body: ..."}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">404</span> <span class="resp-label">Not Found</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"item not found: 99999"}</div></div>
+                </details>
+            </div>
         </div>
     </details>
 

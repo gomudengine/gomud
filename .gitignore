@@ -1,4 +1,5 @@
 .vscode
+.claude
 bin/
 private-notes.txt
 _datafiles/**/users/*

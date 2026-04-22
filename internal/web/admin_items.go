@@ -70,3 +70,19 @@ func adminUsers(w http.ResponseWriter, r *http.Request) {
 func adminUsersAPI(w http.ResponseWriter, r *http.Request) {
 	serveAdminTemplate(w, r, "users-api.html", nil)
 }
+
+func adminColorPatterns(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "colorpatterns.html", nil)
+}
+
+func adminColorPatternsAPI(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "colorpatterns-api.html", nil)
+}
+
+func adminRaces(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "races.html", nil)
+}
+
+func adminRacesAPI(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "races-api.html", nil)
+}

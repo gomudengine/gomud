@@ -1,0 +1,375 @@
+{{template "header" .}}
+
+<style>
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #555; margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+    .page-layout { display: grid; grid-template-columns: 260px 1fr; gap: 1.25rem; align-items: start; }
+    @media (max-width: 800px) { .page-layout { grid-template-columns: 1fr; } }
+
+    .sidebar { background: #fff; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; }
+    .sidebar-header { padding: 0.75rem 0.9rem; border-bottom: 1px solid #eee; }
+    .sidebar-header input[type="search"] { width: 100%; padding: 0.35rem 0.6rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; }
+    .race-list { overflow-y: auto; max-height: 72vh; }
+    .race-row {
+        padding: 0.5rem 0.9rem; cursor: pointer; border-bottom: 1px solid #f0f0f0;
+        display: flex; align-items: baseline; gap: 0.5rem; font-size: 0.875rem;
+    }
+    .race-row:last-child { border-bottom: none; }
+    .race-row:hover { background: #f5f7ff; }
+    .race-row.active { background: #1a1a2e; color: #fff; }
+    .race-id { font-size: 0.75rem; color: #999; font-family: monospace; flex-shrink: 0; }
+    .race-row.active .race-id { color: #8899cc; }
+    .no-races { padding: 1.5rem; text-align: center; color: #888; font-size: 0.85rem; }
+    .btn-new { margin: 0.6rem 0.9rem; padding: 0.4rem 0.9rem; border: none; border-radius: 4px; background: #1e6e34; color: #fff; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: block; text-align: center; }
+    .btn-new:hover { background: #145728; }
+
+    .editor-panel { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 1.25rem; }
+    .editor-placeholder { color: #aaa; text-align: center; padding: 4rem 1rem; font-size: 0.9rem; }
+
+    .status-bar { display: none; padding: 0.55rem 0.9rem; border-radius: 4px; font-size: 0.85rem; margin-bottom: 1rem; }
+    .status-bar.success { background: #e6f4ea; color: #1e6e34; display: block; }
+    .status-bar.error   { background: #fde8e8; color: #8a0000; display: block; }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem 1.25rem; }
+    .form-grid .span2 { grid-column: 1 / -1; }
+    .field label { display: block; font-size: 0.78rem; font-weight: 600; color: #555; margin-bottom: 0.25rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .field input[type="text"], .field input[type="number"], .field select, .field textarea {
+        width: 100%; padding: 0.4rem 0.6rem; border: 1px solid #ccc; border-radius: 4px;
+        font-size: 0.875rem; font-family: inherit; background: #fff;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid #1a1a2e; outline-offset: 1px; border-color: transparent; }
+    .field textarea { resize: vertical; min-height: 70px; }
+    .field-hint { font-size: 0.75rem; color: #888; margin-top: 0.2rem; }
+    .checkbox-row { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0; font-size: 0.875rem; }
+    .checkbox-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: #1a1a2e; flex-shrink: 0; }
+
+    .section-title { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #666; padding: 0.75rem 0 0.4rem; border-bottom: 1px solid #eee; margin-bottom: 0.75rem; grid-column: 1 / -1; }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; grid-column: 1 / -1; }
+    .stat-cell label { display: block; font-size: 0.75rem; font-weight: 600; color: #555; margin-bottom: 0.2rem; text-transform: uppercase; }
+    .stat-cell input { width: 100%; padding: 0.35rem 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.875rem; font-family: monospace; text-align: center; }
+
+    .slots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 0.35rem; grid-column: 1 / -1; }
+    .slot-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; }
+    .slot-item input[type="checkbox"] { accent-color: #1a1a2e; }
+
+    .btn-row { display: flex; gap: 0.6rem; margin-top: 1.25rem; grid-column: 1 / -1; }
+    .btn-save { padding: 0.45rem 1.2rem; background: #1a1a2e; color: #fff; border: none; border-radius: 4px; font-size: 0.875rem; font-weight: 600; cursor: pointer; }
+    .btn-save:hover { background: #2d2d4e; }
+    .btn-delete { padding: 0.45rem 1rem; background: #fff; color: #8a0000; border: 1px solid #e0a0a0; border-radius: 4px; font-size: 0.875rem; font-weight: 600; cursor: pointer; }
+    .btn-delete:hover { background: #fde8e8; }
+</style>
+
+<h1>Races</h1>
+<p class="subtitle">View, create, edit and delete race definitions. <a href="/admin/races-api">API Docs →</a></p>
+
+<div class="page-layout">
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <input type="search" id="raceSearch" placeholder="Search races…" oninput="filterRaces()" />
+        </div>
+        <div id="raceList" class="race-list">
+            <div class="no-races">Loading…</div>
+        </div>
+        <button class="btn-new" onclick="newRace()">+ New Race</button>
+    </div>
+
+    <div class="editor-panel">
+        <div id="editorPlaceholder" class="editor-placeholder">Select a race to edit, or click "New Race".</div>
+        <div id="editorForm" style="display:none">
+            <div id="statusBar" class="status-bar"></div>
+            <div class="form-grid">
+                <p class="section-title" id="editorTitle">Edit Race</p>
+
+                <div class="field">
+                    <label for="fName">Name</label>
+                    <input type="text" id="fName" placeholder="Human" />
+                </div>
+                <div class="field">
+                    <label for="fSize">Size</label>
+                    <select id="fSize">
+                        <option value="small">Small</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="large">Large</option>
+                    </select>
+                </div>
+
+                <div class="field span2">
+                    <label for="fDesc">Description</label>
+                    <textarea id="fDesc" rows="3" placeholder="A description of this race."></textarea>
+                </div>
+
+                <div class="field">
+                    <label for="fDefaultAlignment">Default Alignment</label>
+                    <input type="number" id="fDefaultAlignment" min="-100" max="100" value="0" />
+                    <div class="field-hint">Range −100 (evil) to 100 (good)</div>
+                </div>
+                <div class="field">
+                    <label for="fTNLScale">TNL Scale</label>
+                    <input type="number" id="fTNLScale" step="0.1" min="0.1" value="1.0" />
+                    <div class="field-hint">XP multiplier for leveling (1.0 = normal)</div>
+                </div>
+
+                <div class="field">
+                    <label for="fUnarmedName">Unarmed Attack Name</label>
+                    <input type="text" id="fUnarmedName" placeholder="fist" />
+                </div>
+                <div class="field">
+                    <label for="fDiceRoll">Unarmed Damage (Dice Roll)</label>
+                    <input type="text" id="fDiceRoll" placeholder="1d4" />
+                    <div class="field-hint">e.g. 1d6, 2d4+1</div>
+                </div>
+
+                <div class="field span2">
+                    <label>Flags</label>
+                    <div style="display:flex; gap:1.5rem; flex-wrap:wrap;">
+                        <label class="checkbox-row"><input type="checkbox" id="fSelectable" /> Selectable by players</label>
+                        <label class="checkbox-row"><input type="checkbox" id="fTameable" /> Tameable</label>
+                        <label class="checkbox-row"><input type="checkbox" id="fKnowsFirstAid" /> Knows First Aid</label>
+                    </div>
+                </div>
+
+                <div class="field span2">
+                    <label for="fBuffIds">Permanent Buff IDs</label>
+                    <input type="text" id="fBuffIds" placeholder="e.g. 1, 5, 12" />
+                    <div class="field-hint">Comma-separated buff IDs always applied to this race.</div>
+                </div>
+
+                <div class="field span2">
+                    <label for="fAngryCommands">Angry Commands</label>
+                    <textarea id="fAngryCommands" rows="3" placeholder="One command per line, e.g.&#10;emote growls.&#10;say Back off!"></textarea>
+                    <div class="field-hint">Randomly chosen when the race enters combat.</div>
+                </div>
+
+                <div class="section-title">Base Stats</div>
+                <div class="stats-grid">
+                    <div class="stat-cell"><label>Strength</label><input type="number" id="fStrength" value="0" /></div>
+                    <div class="stat-cell"><label>Speed</label><input type="number" id="fSpeed" value="0" /></div>
+                    <div class="stat-cell"><label>Smarts</label><input type="number" id="fSmarts" value="0" /></div>
+                    <div class="stat-cell"><label>Vitality</label><input type="number" id="fVitality" value="0" /></div>
+                    <div class="stat-cell"><label>Mysticism</label><input type="number" id="fMysticism" value="0" /></div>
+                    <div class="stat-cell"><label>Perception</label><input type="number" id="fPerception" value="0" /></div>
+                </div>
+
+                <div class="section-title">Disabled Equipment Slots</div>
+                <div class="slots-grid" id="slotsGrid">
+                    <label class="slot-item"><input type="checkbox" class="slot-cb" value="weapon" /> Weapon</label>
+                    <label class="slot-item"><input type="checkbox" class="slot-cb" value="offhand" /> Off-hand</label>
+                    <label class="slot-item"><input type="checkbox" class="slot-cb" value="head" /> Head</label>
+                    <label class="slot-item"><input type="checkbox" class="slot-cb" value="neck" /> Neck</label>
+                    <label class="slot-item"><input type="checkbox" class="slot-cb" value="body" /> Body</label>
+                    <label class="slot-item"><input type="checkbox" class="slot-cb" value="belt" /> Belt</label>
+                    <label class="slot-item"><input type="checkbox" class="slot-cb" value="gloves" /> Gloves</label>
+                    <label class="slot-item"><input type="checkbox" class="slot-cb" value="ring" /> Ring</label>
+                    <label class="slot-item"><input type="checkbox" class="slot-cb" value="legs" /> Legs</label>
+                    <label class="slot-item"><input type="checkbox" class="slot-cb" value="feet" /> Feet</label>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn-save" onclick="saveRace()">Save</button>
+                    <button class="btn-delete" id="btnDelete" onclick="deleteRace()" style="display:none">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let racesData = {}; // id(string) -> Race
+let activeRaceId = null;
+let isNew = false;
+
+// ---- Load ----
+async function loadRaces() {
+    const res = await AdminAPI.get('/admin/api/v1/races');
+    if (!res.ok) { console.error('Failed to load races:', res.error); return; }
+    racesData = (res.data && res.data.data) || {};
+    renderList();
+}
+
+function filterRaces() {
+    const q = document.getElementById('raceSearch').value.toLowerCase();
+    document.querySelectorAll('.race-row').forEach(row => {
+        const name = (row.dataset.name || '').toLowerCase();
+        row.style.display = name.includes(q) ? '' : 'none';
+    });
+}
+
+function renderList() {
+    const list = document.getElementById('raceList');
+    const ids = Object.keys(racesData).sort((a, b) => parseInt(a) - parseInt(b));
+    if (ids.length === 0) {
+        list.innerHTML = '<div class="no-races">No races found.</div>';
+        return;
+    }
+    list.innerHTML = ids.map(id => {
+        const r = racesData[id];
+        return `<div class="race-row" data-id="${id}" data-name="${escAttr(r.Name || '')}"
+            onclick="selectRace('${id}')">
+            <span class="race-id">#${id}</span>
+            <span>${escHtml(r.Name || '(unnamed)')}</span>
+        </div>`;
+    }).join('');
+    if (activeRaceId !== null) highlightRow(activeRaceId);
+}
+
+function highlightRow(id) {
+    document.querySelectorAll('.race-row').forEach(r => r.classList.remove('active'));
+    const row = document.querySelector(`.race-row[data-id="${id}"]`);
+    if (row) row.classList.add('active');
+}
+
+// ---- Select / New ----
+function selectRace(id) {
+    activeRaceId = id;
+    isNew = false;
+    highlightRow(id);
+    populateForm(racesData[id]);
+}
+
+function newRace() {
+    activeRaceId = null;
+    isNew = true;
+    document.querySelectorAll('.race-row').forEach(r => r.classList.remove('active'));
+    populateForm(null);
+}
+
+function populateForm(race) {
+    document.getElementById('editorPlaceholder').style.display = 'none';
+    document.getElementById('editorForm').style.display = '';
+    document.getElementById('statusBar').className = 'status-bar';
+    document.getElementById('statusBar').textContent = '';
+    document.getElementById('btnDelete').style.display = isNew ? 'none' : '';
+    document.getElementById('editorTitle').textContent = isNew ? 'New Race' : `Edit: ${race ? race.Name : ''}`;
+
+    const r = race || {};
+    document.getElementById('fName').value = r.Name || '';
+    document.getElementById('fSize').value = (r.Size || 'medium').toLowerCase();
+    document.getElementById('fDesc').value = r.Description || '';
+    document.getElementById('fDefaultAlignment').value = r.DefaultAlignment || 0;
+    document.getElementById('fTNLScale').value = r.TNLScale || 1.0;
+    document.getElementById('fUnarmedName').value = r.UnarmedName || '';
+    document.getElementById('fDiceRoll').value = (r.Damage && r.Damage.DiceRoll) ? r.Damage.DiceRoll : '';
+    document.getElementById('fSelectable').checked = !!r.Selectable;
+    document.getElementById('fTameable').checked = !!r.Tameable;
+    document.getElementById('fKnowsFirstAid').checked = !!r.KnowsFirstAid;
+    document.getElementById('fBuffIds').value = (r.BuffIds || []).join(', ');
+    document.getElementById('fAngryCommands').value = (r.AngryCommands || []).join('\n');
+
+    const stats = r.Stats || {};
+    document.getElementById('fStrength').value  = (stats.Strength  && stats.Strength.Base)  || 0;
+    document.getElementById('fSpeed').value     = (stats.Speed     && stats.Speed.Base)     || 0;
+    document.getElementById('fSmarts').value    = (stats.Smarts    && stats.Smarts.Base)    || 0;
+    document.getElementById('fVitality').value  = (stats.Vitality  && stats.Vitality.Base)  || 0;
+    document.getElementById('fMysticism').value = (stats.Mysticism && stats.Mysticism.Base) || 0;
+    document.getElementById('fPerception').value= (stats.Perception&& stats.Perception.Base)|| 0;
+
+    const disabled = new Set((r.DisabledSlots || []).map(s => s.toLowerCase()));
+    document.querySelectorAll('.slot-cb').forEach(cb => {
+        cb.checked = disabled.has(cb.value);
+    });
+}
+
+// ---- Save / Delete ----
+function buildPayload() {
+    const buffIds = document.getElementById('fBuffIds').value
+        .split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n) && n > 0);
+
+    const angryCommands = document.getElementById('fAngryCommands').value
+        .split('\n').map(s => s.trim()).filter(Boolean);
+
+    const disabledSlots = [];
+    document.querySelectorAll('.slot-cb:checked').forEach(cb => disabledSlots.push(cb.value));
+
+    const diceRoll = document.getElementById('fDiceRoll').value.trim();
+
+    return {
+        Name:             document.getElementById('fName').value.trim(),
+        Description:      document.getElementById('fDesc').value.trim(),
+        DefaultAlignment: parseInt(document.getElementById('fDefaultAlignment').value, 10) || 0,
+        Size:             document.getElementById('fSize').value,
+        TNLScale:         parseFloat(document.getElementById('fTNLScale').value) || 1.0,
+        UnarmedName:      document.getElementById('fUnarmedName').value.trim(),
+        Selectable:       document.getElementById('fSelectable').checked,
+        Tameable:         document.getElementById('fTameable').checked,
+        KnowsFirstAid:    document.getElementById('fKnowsFirstAid').checked,
+        BuffIds:          buffIds.length ? buffIds : null,
+        AngryCommands:    angryCommands.length ? angryCommands : null,
+        Damage:           { DiceRoll: diceRoll, Attacks: 1 },
+        Stats: {
+            Strength:   { Base: parseInt(document.getElementById('fStrength').value,  10) || 0 },
+            Speed:      { Base: parseInt(document.getElementById('fSpeed').value,     10) || 0 },
+            Smarts:     { Base: parseInt(document.getElementById('fSmarts').value,    10) || 0 },
+            Vitality:   { Base: parseInt(document.getElementById('fVitality').value,  10) || 0 },
+            Mysticism:  { Base: parseInt(document.getElementById('fMysticism').value, 10) || 0 },
+            Perception: { Base: parseInt(document.getElementById('fPerception').value,10) || 0 },
+        },
+        DisabledSlots: disabledSlots.length ? disabledSlots : null,
+    };
+}
+
+async function saveRace() {
+    const payload = buildPayload();
+    if (!payload.Name) { showStatus('error', 'Name is required.'); return; }
+
+    let res;
+    if (isNew) {
+        res = await AdminAPI.post('/admin/api/v1/races', payload);
+        if (res.ok && res.data && res.data.data) {
+            const id = String(res.data.data.RaceId);
+            racesData[id] = res.data.data;
+            activeRaceId = id;
+            isNew = false;
+            renderList();
+            highlightRow(id);
+            document.getElementById('btnDelete').style.display = '';
+            document.getElementById('editorTitle').textContent = `Edit: ${payload.Name}`;
+            showStatus('success', `Race "${payload.Name}" created (ID #${id}).`);
+        } else {
+            showStatus('error', res.error || 'Save failed.');
+        }
+    } else {
+        res = await AdminAPI.patch(`/admin/api/v1/races/${activeRaceId}`, payload);
+        if (res.ok) {
+            racesData[activeRaceId] = (res.data && res.data.data) || payload;
+            renderList();
+            highlightRow(activeRaceId);
+            document.getElementById('editorTitle').textContent = `Edit: ${payload.Name}`;
+            showStatus('success', `Race "${payload.Name}" saved.`);
+        } else {
+            showStatus('error', res.error || 'Save failed.');
+        }
+    }
+}
+
+async function deleteRace() {
+    if (activeRaceId === null) return;
+    const name = racesData[activeRaceId] && racesData[activeRaceId].Name || `#${activeRaceId}`;
+    if (!confirm(`Delete race "${name}" (ID #${activeRaceId})? This cannot be undone.`)) return;
+    const res = await AdminAPI.delete(`/admin/api/v1/races/${activeRaceId}`);
+    if (res.ok) {
+        delete racesData[activeRaceId];
+        activeRaceId = null;
+        renderList();
+        document.getElementById('editorForm').style.display = 'none';
+        document.getElementById('editorPlaceholder').style.display = '';
+    } else {
+        showStatus('error', res.error || 'Delete failed.');
+    }
+}
+
+function showStatus(type, msg) {
+    const bar = document.getElementById('statusBar');
+    bar.className = 'status-bar ' + type;
+    bar.textContent = msg;
+    if (type === 'success') setTimeout(() => { bar.className = 'status-bar'; }, 3000);
+}
+
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escAttr(s) { return String(s).replace(/"/g,'&quot;'); }
+
+loadRaces();
+</script>
+
+{{template "footer" .}}

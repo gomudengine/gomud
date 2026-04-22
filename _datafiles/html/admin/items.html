@@ -28,6 +28,11 @@
         background: #e8eaf6; color: #3949ab; flex-shrink: 0; margin-left: auto;
     }
     .item-row.active .item-type-badge { background: #3949ab; color: #fff; }
+    .item-script-badge {
+        font-size: 0.65rem; padding: 0.1rem 0.35rem; border-radius: 3px;
+        background: #fff3e0; color: #8a4a00; flex-shrink: 0;
+    }
+    .item-row.active .item-script-badge { background: #8a4a00; color: #fff; }
     .no-items { padding: 1.5rem; text-align: center; color: #888; font-size: 0.85rem; }
 
     /* new item btn */
@@ -64,6 +69,14 @@
     .field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid #1a1a2e; outline-offset: 1px; border-color: transparent; }
     .field textarea { resize: vertical; min-height: 80px; }
     .field-hint { font-size: 0.75rem; color: #888; margin-top: 0.2rem; }
+    .field-with-btn { display: flex; gap: 0.4rem; align-items: center; }
+    .field-with-btn input { flex: 1; }
+    .btn-search {
+        padding: 0.35rem 0.55rem; border: 1px solid #ccc; border-radius: 4px;
+        background: #f5f5f5; cursor: pointer; font-size: 0.95rem; line-height: 1;
+        flex-shrink: 0;
+    }
+    .btn-search:hover { background: #e8eaff; border-color: #7986cb; }
 
     /* section headings inside editor */
     .section-title {
@@ -112,7 +125,7 @@
     }
     .script-area.open { display: block; }
     .script-area textarea {
-        width: 100%; min-height: 220px; font-family: monospace; font-size: 0.82rem;
+        width: 100%; min-height: 660px; font-family: monospace; font-size: 0.82rem;
         padding: 0.6rem 0.75rem; border: 1px solid #ccc; border-radius: 4px;
         resize: vertical; background: #1a1a2e; color: #c9d1d9; line-height: 1.55;
     }
@@ -182,7 +195,10 @@
                 </div>
                 <div class="field">
                     <label>Display Name / Style</label>
-                    <input type="text" id="f-displayname" placeholder="e.g. :rainbow or &lt;ansi fg=&quot;red&quot;&gt;...&lt;/ansi&gt;" />
+                    <div class="field-with-btn">
+                        <input type="text" id="f-displayname" placeholder="e.g. :rainbow or &lt;ansi fg=&quot;red&quot;&gt;...&lt;/ansi&gt;" />
+                        <button class="btn-search" onclick="pickColorPattern()" title="Browse color patterns">&#x1F50D;</button>
+                    </div>
                     <div class="field-hint">Leave blank to use Name. Prefix with <code>:</code> for a color pattern.</div>
                 </div>
                 <div class="field">
@@ -343,6 +359,7 @@
     let itemSubtypes = [];
     let currentItemId = null; // null = new item
     let isNew = false;
+    let scriptSync = null;
 
     // -------------------------------------------------------------------------
     // Init
@@ -363,6 +380,7 @@
         populateTypeFilter();
         populateTypeSelects();
         renderList(allItems);
+        scriptSync = ScriptEditor.init('f-script');
     }
 
     // -------------------------------------------------------------------------
@@ -395,6 +413,7 @@
             row.innerHTML = `
                 <span class="item-id">#${item.ItemId}</span>
                 <span>${esc(item.Name)}</span>
+                ${item.HasScript ? '<span class="item-script-badge">JS</span>' : ''}
                 <span class="item-type-badge">${esc(item.Type || '')}</span>`;
             row.onclick = () => loadItem(item.ItemId);
             list.appendChild(row);
@@ -517,6 +536,7 @@
 
         // Script
         setVal('f-script', script);
+        if (scriptSync) scriptSync();
         document.getElementById('script-toggle').classList.toggle('open', script.length > 0);
         document.getElementById('script-area').classList.toggle('open', script.length > 0);
     }
@@ -739,6 +759,21 @@
     function esc(s) {
         return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
+
+    window.pickColorPattern = function () {
+        SelectDialog.open({
+            title: 'Pick a Color Pattern',
+            apiPath: '/admin/api/v1/colorpatterns',
+            transform: data => Object.keys(data).sort().map(k => ({
+                label: k,
+                value: k,
+                html: AnsiColors.swatchHtml(data[k], 12),
+            })),
+            onSelect: value => {
+                document.getElementById('f-displayname').value = ':' + value;
+            },
+        });
+    };
 
     init();
 })();

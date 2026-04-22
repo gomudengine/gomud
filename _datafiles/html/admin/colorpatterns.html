@@ -1,0 +1,277 @@
+{{template "header" .}}
+
+<style>
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #555; margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+    .page-layout { display: grid; grid-template-columns: 260px 1fr; gap: 1.25rem; align-items: start; }
+    @media (max-width: 800px) { .page-layout { grid-template-columns: 1fr; } }
+
+    .sidebar { background: #fff; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; }
+    .sidebar-header { padding: 0.75rem 0.9rem; border-bottom: 1px solid #eee; }
+    .sidebar-header input[type="search"] { width: 100%; padding: 0.35rem 0.6rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; }
+    .pattern-list { overflow-y: auto; max-height: 72vh; }
+    .pattern-row {
+        padding: 0.5rem 0.9rem; cursor: pointer; border-bottom: 1px solid #f0f0f0;
+        display: flex; align-items: center; gap: 0.55rem; font-size: 0.875rem;
+    }
+    .pattern-row:last-child { border-bottom: none; }
+    .pattern-row:hover { background: #f5f7ff; }
+    .pattern-row.active { background: #1a1a2e; color: #fff; }
+    .pattern-swatch { display: flex; gap: 1px; flex-shrink: 0; }
+    .pattern-swatch span { width: 8px; height: 16px; border-radius: 1px; }
+    .no-patterns { padding: 1.5rem; text-align: center; color: #888; font-size: 0.85rem; }
+    .btn-new { margin: 0.6rem 0.9rem; padding: 0.4rem 0.9rem; border: none; border-radius: 4px; background: #1e6e34; color: #fff; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: block; text-align: center; }
+    .btn-new:hover { background: #145728; }
+
+    .editor-panel { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 1.25rem; }
+    .editor-placeholder { color: #aaa; text-align: center; padding: 4rem 1rem; font-size: 0.9rem; }
+
+    .status-bar { display: none; padding: 0.55rem 0.9rem; border-radius: 4px; font-size: 0.85rem; margin-bottom: 1rem; }
+    .status-bar.success { background: #e6f4ea; color: #1e6e34; display: block; }
+    .status-bar.error   { background: #fde8e8; color: #8a0000; display: block; }
+
+    .field { margin-bottom: 1rem; }
+    .field label { display: block; font-size: 0.78rem; font-weight: 600; color: #555; margin-bottom: 0.25rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .field input[type="text"] { width: 100%; padding: 0.4rem 0.6rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.875rem; font-family: inherit; }
+    .field input:focus { outline: 2px solid #1a1a2e; outline-offset: 1px; border-color: transparent; }
+    .field-hint { font-size: 0.75rem; color: #888; margin-top: 0.2rem; }
+
+    .colors-row { display: flex; gap: 0.5rem; align-items: center; }
+    .colors-row input { flex: 1; font-family: monospace; font-size: 0.85rem; }
+    .btn-preview { padding: 0.4rem 0.75rem; border: 1px solid #ccc; border-radius: 4px; background: #f5f5f5; font-size: 0.82rem; cursor: pointer; white-space: nowrap; }
+    .btn-preview:hover { background: #ebebeb; }
+
+    .swatch-bar { display: flex; gap: 2px; margin-top: 0.5rem; height: 20px; }
+    .swatch-bar span { flex: 1; border-radius: 2px; }
+
+    .preview-section { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid #eee; }
+    .preview-section h3 { font-size: 0.85rem; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.6rem; }
+    .preview-output { font-family: monospace; font-size: 1rem; display: flex; flex-wrap: wrap; gap: 0; min-height: 2rem; padding: 0.5rem 0.6rem; background: #1a1a2e; border-radius: 4px; color: #fff; }
+
+    .btn-row { display: flex; gap: 0.6rem; margin-top: 1.25rem; }
+    .btn-save { padding: 0.45rem 1.2rem; background: #1a1a2e; color: #fff; border: none; border-radius: 4px; font-size: 0.875rem; font-weight: 600; cursor: pointer; }
+    .btn-save:hover { background: #2d2d4e; }
+    .btn-delete { padding: 0.45rem 1rem; background: #fff; color: #8a0000; border: 1px solid #e0a0a0; border-radius: 4px; font-size: 0.875rem; font-weight: 600; cursor: pointer; }
+    .btn-delete:hover { background: #fde8e8; }
+    .section-title { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #666; padding: 0.5rem 0 0.4rem; border-bottom: 1px solid #eee; margin-bottom: 0.75rem; }
+</style>
+
+<h1>Color Patterns</h1>
+<p class="subtitle">View, create, edit and delete ANSI color patterns.</p>
+
+<div class="page-layout">
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <input type="search" id="patternSearch" placeholder="Search patterns…" oninput="filterPatterns()" />
+        </div>
+        <div id="patternList" class="pattern-list">
+            <div class="no-patterns">Loading…</div>
+        </div>
+        <button class="btn-new" onclick="newPattern()">+ New Pattern</button>
+    </div>
+
+    <div class="editor-panel">
+        <div id="editorPlaceholder" class="editor-placeholder">Select a pattern to edit, or click "New Pattern".</div>
+        <div id="editorForm" style="display:none">
+            <div id="statusBar" class="status-bar"></div>
+            <p class="section-title" id="editorTitle">Edit Pattern</p>
+
+            <div class="field">
+                <label for="fieldName">Name</label>
+                <input type="text" id="fieldName" placeholder="e.g. flame" />
+                <div class="field-hint" id="nameHint"></div>
+            </div>
+
+            <div class="field">
+                <label>Color Values (ANSI 256)</label>
+                <div class="colors-row">
+                    <input type="text" id="fieldColors" placeholder="e.g. 124, 196, 202, 208, 214" />
+                    <button class="btn-preview" onclick="refreshSwatch()">Preview</button>
+                </div>
+                <div id="swatchBar" class="swatch-bar"></div>
+                <div class="field-hint">Comma-separated ANSI 256-color codes (0–255).</div>
+            </div>
+
+            <div class="preview-section">
+                <h3>Preview</h3>
+                <div id="previewOutput" class="preview-output"></div>
+            </div>
+
+            <div class="btn-row">
+                <button class="btn-save" onclick="savePattern()">Save</button>
+                <button class="btn-delete" id="btnDelete" onclick="deletePattern()" style="display:none">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let patternsData = {}; // name -> [int,...]
+let activePattern = null;
+let isNew = false;
+
+function makeSwatchHtml(colors) {
+    return AnsiColors.swatchHtml(colors);
+}
+
+// ---- Load ----
+async function loadPatterns() {
+    const res = await AdminAPI.get('/admin/api/v1/colorpatterns');
+    if (!res.ok) { showStatus('error', 'Failed to load: ' + res.error); return; }
+    patternsData = (res.data && res.data.data) || {};
+    renderList();
+}
+
+function filterPatterns() {
+    const q = document.getElementById('patternSearch').value.toLowerCase();
+    document.querySelectorAll('.pattern-row').forEach(row => {
+        row.style.display = row.dataset.name.includes(q) ? '' : 'none';
+    });
+}
+
+function renderList() {
+    const list = document.getElementById('patternList');
+    const names = Object.keys(patternsData).sort();
+    if (names.length === 0) {
+        list.innerHTML = '<div class="no-patterns">No patterns found.</div>';
+        return;
+    }
+    list.innerHTML = names.map(name => {
+        const colors = patternsData[name] || [];
+        const swatch = makeSwatchHtml(colors.slice(0, 12));
+        return `<div class="pattern-row" data-name="${escAttr(name)}" onclick="selectPattern(${escAttr(JSON.stringify(name))})">
+            <div class="pattern-swatch">${swatch}</div>
+            <span>${escHtml(name)}</span>
+        </div>`;
+    }).join('');
+    if (activePattern) highlightRow(activePattern);
+}
+
+function highlightRow(name) {
+    document.querySelectorAll('.pattern-row').forEach(r => r.classList.remove('active'));
+    const row = document.querySelector(`.pattern-row[data-name="${escAttr(name)}"]`);
+    if (row) row.classList.add('active');
+}
+
+// ---- Select / New ----
+function selectPattern(name) {
+    activePattern = name;
+    isNew = false;
+    highlightRow(name);
+    showEditor(name, patternsData[name] || []);
+}
+
+function newPattern() {
+    activePattern = null;
+    isNew = true;
+    document.querySelectorAll('.pattern-row').forEach(r => r.classList.remove('active'));
+    showEditor('', []);
+}
+
+function showEditor(name, colors) {
+    document.getElementById('editorPlaceholder').style.display = 'none';
+    document.getElementById('editorForm').style.display = '';
+    document.getElementById('statusBar').className = 'status-bar';
+    document.getElementById('statusBar').textContent = '';
+    document.getElementById('fieldName').value = name;
+    document.getElementById('fieldName').readOnly = !isNew;
+    document.getElementById('nameHint').textContent = isNew ? '' : 'Name cannot be changed for existing patterns.';
+    document.getElementById('editorTitle').textContent = isNew ? 'New Pattern' : `Edit: ${name}`;
+    document.getElementById('fieldColors').value = colors.join(', ');
+    document.getElementById('btnDelete').style.display = isNew ? 'none' : '';
+    refreshSwatch();
+    renderPreview();
+}
+
+// ---- Swatch + Preview ----
+function parseColors() {
+    return document.getElementById('fieldColors').value
+        .split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+}
+
+function refreshSwatch() {
+    const colors = parseColors();
+    document.getElementById('swatchBar').innerHTML = makeSwatchHtml(colors);
+    renderPreview();
+}
+
+function renderPreview() {
+    const text = 'The quick brown fox jumps over the lazy dog';
+    const colors = parseColors();
+    document.getElementById('previewOutput').innerHTML =
+        colors.length ? AnsiColors.previewTextHtml(text, colors) : escHtml(text);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('fieldColors').addEventListener('input', refreshSwatch);
+});
+
+// ---- Save / Delete ----
+async function savePattern() {
+    const name = document.getElementById('fieldName').value.trim();
+    const colors = parseColors();
+    if (!name) { showStatus('error', 'Name is required.'); return; }
+    if (colors.length === 0) { showStatus('error', 'At least one color value is required.'); return; }
+
+    let res;
+    if (isNew) {
+        res = await AdminAPI.post('/admin/api/v1/colorpatterns', { name, colors });
+        if (res.ok) {
+            patternsData[name] = colors;
+            activePattern = name;
+            isNew = false;
+            renderList();
+            highlightRow(name);
+            document.getElementById('fieldName').readOnly = true;
+            document.getElementById('nameHint').textContent = 'Name cannot be changed for existing patterns.';
+            document.getElementById('editorTitle').textContent = `Edit: ${name}`;
+            document.getElementById('btnDelete').style.display = '';
+            showStatus('success', `Pattern "${name}" created.`);
+        } else {
+            showStatus('error', res.error || 'Save failed.');
+        }
+    } else {
+        const patch = {};
+        patch[activePattern] = colors;
+        res = await AdminAPI.patch('/admin/api/v1/colorpatterns', patch);
+        if (res.ok) {
+            patternsData[activePattern] = colors;
+            renderList();
+            highlightRow(activePattern);
+            showStatus('success', `Pattern "${activePattern}" saved.`);
+        } else {
+            showStatus('error', res.error || 'Save failed.');
+        }
+    }
+}
+
+async function deletePattern() {
+    if (!activePattern) return;
+    if (!confirm(`Delete pattern "${activePattern}"? This cannot be undone.`)) return;
+    const res = await AdminAPI.delete('/admin/api/v1/colorpatterns', { name: activePattern });
+    if (res.ok) {
+        delete patternsData[activePattern];
+        activePattern = null;
+        renderList();
+        document.getElementById('editorForm').style.display = 'none';
+        document.getElementById('editorPlaceholder').style.display = '';
+    } else {
+        showStatus('error', res.error || 'Delete failed.');
+    }
+}
+
+function showStatus(type, msg) {
+    const bar = document.getElementById('statusBar');
+    bar.className = 'status-bar ' + type;
+    bar.textContent = msg;
+    if (type === 'success') setTimeout(() => { bar.className = 'status-bar'; }, 3000);
+}
+
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escAttr(s) { return String(s).replace(/"/g,'&quot;'); }
+
+loadPatterns();
+</script>
+
+{{template "footer" .}}

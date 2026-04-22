@@ -27,11 +27,24 @@ func apiV1GetItemAttackMessages(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+type itemListEntry struct {
+	items.ItemSpec
+	HasScript bool `json:"HasScript"`
+}
+
 // GET /admin/api/v1/items
 func apiV1GetItems(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, APIResponse[[]items.ItemSpec]{
+	specs := items.GetAllItemSpecs()
+	result := make([]itemListEntry, len(specs))
+	for i, s := range specs {
+		result[i] = itemListEntry{
+			ItemSpec:  s,
+			HasScript: s.GetScript() != "",
+		}
+	}
+	writeJSON(w, http.StatusOK, APIResponse[[]itemListEntry]{
 		Success: true,
-		Data:    items.GetAllItemSpecs(),
+		Data:    result,
 	})
 }
 
