@@ -25,6 +25,7 @@ func httpsIndex(w http.ResponseWriter, r *http.Request) {
 		"httpsStatus": GetHTTPSStatus(),
 	}
 
+	w.Header().Set("Cache-Control", "no-store")
 	if err := tmpl.Execute(w, tplData); err != nil {
 		mudlog.Error("HTML Execute", "error", err)
 	}
