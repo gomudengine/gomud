@@ -12,25 +12,25 @@ import (
 // adminSummaryEntry is the JSON shape returned by the list (summary) endpoint.
 // It intentionally omits the message body.
 type adminSummaryEntry struct {
-	UserId   int    `json:"user_id"`
-	Username string `json:"username"`
-	FromName string `json:"from_name"`
-	Read     bool   `json:"read"`
-	HasGold  bool   `json:"has_gold,omitempty"`
-	HasItem  bool   `json:"has_item,omitempty"`
-	DateSent string `json:"date_sent"` // RFC3339Nano
+	UserId     int    `json:"user_id"`
+	Username   string `json:"username"`
+	FromName   string `json:"from_name"`
+	Read       bool   `json:"read"`
+	HasGold    bool   `json:"has_gold,omitempty"`
+	HasItem    bool   `json:"has_item,omitempty"`
+	DateSent   string `json:"date_sent"`    // RFC3339Nano
 	DateSentUs int64  `json:"date_sent_us"` // microseconds since Unix epoch
 }
 
 // adminMessageEntry is the full JSON shape returned by the body endpoint.
 type adminMessageEntry struct {
-	UserId   int    `json:"user_id"`
-	Username string `json:"username"`
-	FromName string `json:"from_name"`
-	Body     string `json:"body"`
-	Gold     int    `json:"gold,omitempty"`
-	Read     bool   `json:"read"`
-	DateSent string `json:"date_sent"` // RFC3339Nano
+	UserId     int    `json:"user_id"`
+	Username   string `json:"username"`
+	FromName   string `json:"from_name"`
+	Body       string `json:"body"`
+	Gold       int    `json:"gold,omitempty"`
+	Read       bool   `json:"read"`
+	DateSent   string `json:"date_sent"`    // RFC3339Nano
 	DateSentUs int64  `json:"date_sent_us"` // microseconds since Unix epoch
 }
 

@@ -30,9 +30,9 @@ type AdminAPIRoute struct {
 }
 
 type WebConfig struct {
-	navLinks      map[string]string  // name=>path
-	pages         map[string]WebPage // path=>WebPage
-	adminPages    []AdminWebPage
+	navLinks       map[string]string  // name=>path
+	pages          map[string]WebPage // path=>WebPage
+	adminPages     []AdminWebPage
 	adminAPIRoutes []AdminAPIRoute
 }
 

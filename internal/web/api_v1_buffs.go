@@ -12,7 +12,7 @@ import (
 // Returns all buff flags (flag -> description map) AND all buff specs.
 func apiV1GetBuffs(w http.ResponseWriter, r *http.Request) {
 	type buffsResponse struct {
-		Flags map[buffs.Flag]string `json:"flags"`
+		Flags map[buffs.Flag]string   `json:"flags"`
 		Specs map[int]*buffs.BuffSpec `json:"specs"`
 	}
 	writeJSON(w, http.StatusOK, APIResponse[buffsResponse]{
