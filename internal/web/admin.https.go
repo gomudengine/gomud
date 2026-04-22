@@ -17,6 +17,8 @@ func httpsIndex(w http.ResponseWriter, r *http.Request) {
 	)
 	if err != nil {
 		mudlog.Error("HTML Template", "error", err)
+		http.Error(w, "Error parsing template files", http.StatusInternalServerError)
+		return
 	}
 
 	tplData := map[string]any{
