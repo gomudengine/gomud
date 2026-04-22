@@ -1,0 +1,254 @@
+{{template "header" .}}
+
+<style>
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #555; margin-bottom: 2rem; font-size: 0.9rem; }
+    .api-list { display: flex; flex-direction: column; gap: 0.5rem; }
+    .api-entry { background: #fff; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; }
+    .api-entry summary { display: flex; align-items: baseline; gap: 0.75rem; padding: 0.65rem 1rem; cursor: pointer; user-select: none; list-style: none; }
+    .api-entry summary::-webkit-details-marker { display: none; }
+    .api-entry summary::before { content: "\25B6"; font-size: 0.65rem; color: #888; transition: transform 0.15s; flex-shrink: 0; }
+    .api-entry[open] summary::before { transform: rotate(90deg); }
+    .api-entry summary:hover { background: #fafafa; }
+    .method { font-family: monospace; font-size: 0.8rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 3px; flex-shrink: 0; }
+    .method-get    { background: #e6f4ea; color: #1e6e34; }
+    .method-post   { background: #e8f0fe; color: #1a4a8a; }
+    .method-delete { background: #fde8e8; color: #8a0000; }
+    .api-path { font-family: monospace; font-size: 0.9rem; color: #1a1a2e; }
+    .api-desc { font-size: 0.85rem; color: #555; margin-left: auto; text-align: right; }
+    .api-body { padding: 0.75rem 1rem 1rem; border-top: 1px solid #eee; background: #fafafa; }
+    .api-body p { font-size: 0.85rem; color: #444; margin-bottom: 0.5rem; }
+    .api-body ul { font-size: 0.85rem; color: #444; margin: 0.25rem 0 0.5rem 1.25rem; }
+    .curl-block { background: #1a1a2e; color: #c9d1d9; font-family: monospace; font-size: 0.82rem; padding: 0.85rem 1rem; border-radius: 5px; white-space: pre; overflow-x: auto; line-height: 1.6; }
+    .curl-block .kw   { color: #79c0ff; }
+    .curl-block .str  { color: #a5d6ff; }
+    .curl-block .flag { color: #d2a8ff; }
+    .response-examples { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
+    .resp-entry { border: 1px solid #ddd; border-radius: 4px; overflow: hidden; }
+    .resp-entry summary { display: flex; align-items: baseline; gap: 0.6rem; padding: 0.45rem 0.75rem; cursor: pointer; user-select: none; list-style: none; background: #f5f5f5; font-size: 0.82rem; }
+    .resp-entry summary::-webkit-details-marker { display: none; }
+    .resp-entry summary::before { content: "\25B6"; font-size: 0.6rem; color: #888; transition: transform 0.15s; flex-shrink: 0; }
+    .resp-entry[open] summary::before { transform: rotate(90deg); }
+    .resp-entry summary:hover { background: #efefef; }
+    .resp-body { padding: 0.6rem 0.75rem 0.75rem; border-top: 1px solid #eee; background: #fafafa; }
+    .resp-body p { font-size: 0.82rem; color: #444; margin-bottom: 0.4rem; }
+    .status-ok  { background: #e6f4ea; color: #1e6e34; }
+    .status-err { background: #fde8e8; color: #8a0000; }
+    .resp-label { font-size: 0.8rem; color: #444; }
+    code { background: #f0f0f0; padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.85em; }
+</style>
+
+<h1>Mudmail API Reference</h1>
+<p class="subtitle">REST endpoints for managing player inbox messages.</p>
+
+<div class="api-list">
+
+    <!-- GET /admin/api/v1/mudmail -->
+    <details class="api-entry">
+        <summary>
+            <span class="method method-get">GET</span>
+            <span class="api-path">/admin/api/v1/mudmail?user_id={id}</span>
+            <span class="api-desc">List message summaries for one user</span>
+        </summary>
+        <div class="api-body">
+            <p>Returns summary entries (no message body) for every message in the specified user's inbox. The <code>user_id</code> query parameter is required.</p>
+            <p>Query parameters:</p>
+            <ul>
+                <li><code>user_id</code> <strong>(required)</strong> &mdash; the recipient's user ID</li>
+            </ul>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="str">"http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/mudmail?user_id=42"</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body">
+                        <p>Returns a <code>messages</code> array of summary objects. Each entry contains:</p>
+                        <ul>
+                            <li><code>user_id</code> &mdash; recipient user ID</li>
+                            <li><code>username</code> &mdash; recipient username</li>
+                            <li><code>from_name</code> &mdash; sender display name</li>
+                            <li><code>read</code> &mdash; whether the player has read this message</li>
+                            <li><code>has_gold</code> &mdash; true if gold is attached (omitted when false)</li>
+                            <li><code>has_item</code> &mdash; true if an item is attached (omitted when false)</li>
+                            <li><code>date_sent</code> &mdash; RFC3339 timestamp</li>
+                            <li><code>date_sent_us</code> &mdash; microseconds since Unix epoch (key for body and delete endpoints)</li>
+                        </ul>
+                        <div class="curl-block">{&#10;  "success": true,&#10;  "data": {&#10;    "messages": [&#10;      {&#10;        "user_id": 42,&#10;        "username": "alice",&#10;        "from_name": "System",&#10;        "read": false,&#10;        "has_gold": true,&#10;        "date_sent": "2025-01-15T10:30:00.123456Z",&#10;        "date_sent_us": 1736937000123456&#10;      }&#10;    ]&#10;  }&#10;}</div>
+                    </div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request</span></summary>
+                    <div class="resp-body">
+                        <p>Returned when <code>user_id</code> is missing or invalid.</p>
+                        <div class="curl-block">{&#10;  "success": false,&#10;  "data": { "error": "user_id query param is required" }&#10;}</div>
+                    </div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">401</span> <span class="resp-label">Unauthorized</span></summary>
+                    <div class="resp-body">
+                        <div class="curl-block">{&#10;  "success": false,&#10;  "error": "unauthorized"&#10;}</div>
+                    </div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <!-- GET /admin/api/v1/mudmail-body/{user_id}/{timestamp} -->
+    <details class="api-entry">
+        <summary>
+            <span class="method method-get">GET</span>
+            <span class="api-path">/admin/api/v1/mudmail-body/{user_id}/{timestamp}</span>
+            <span class="api-desc">Fetch full message data for one message</span>
+        </summary>
+        <div class="api-body">
+            <p>Returns the complete message including the body text, gold, and read status. Use the <code>date_sent_us</code> value from the summary endpoint as the <code>{timestamp}</code> path segment.</p>
+            <p>Path parameters:</p>
+            <ul>
+                <li><code>user_id</code> &mdash; the recipient's user ID</li>
+                <li><code>timestamp</code> &mdash; microseconds since Unix epoch of the message (from <code>date_sent_us</code> in the summary response)</li>
+            </ul>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/mudmail-body/42/1736937000123456</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body">
+                        <p>Returns the full message object:</p>
+                        <ul>
+                            <li><code>user_id</code>, <code>username</code>, <code>from_name</code>, <code>read</code>, <code>date_sent</code>, <code>date_sent_us</code> &mdash; same as summary</li>
+                            <li><code>body</code> &mdash; full message text</li>
+                            <li><code>gold</code> &mdash; attached gold amount (omitted if 0)</li>
+                        </ul>
+                        <div class="curl-block">{&#10;  "success": true,&#10;  "data": {&#10;    "user_id": 42,&#10;    "username": "alice",&#10;    "from_name": "System",&#10;    "body": "Welcome to the server!",&#10;    "gold": 100,&#10;    "read": false,&#10;    "date_sent": "2025-01-15T10:30:00.123456Z",&#10;    "date_sent_us": 1736937000123456&#10;  }&#10;}</div>
+                    </div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request</span></summary>
+                    <div class="resp-body">
+                        <p>Returned when path parameters are missing or invalid.</p>
+                        <div class="curl-block">{&#10;  "success": false,&#10;  "data": { "error": "invalid user_id" }&#10;}</div>
+                    </div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">404</span> <span class="resp-label">Not Found</span></summary>
+                    <div class="resp-body">
+                        <div class="curl-block">{&#10;  "success": false,&#10;  "data": { "error": "message not found" }&#10;}</div>
+                    </div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">401</span> <span class="resp-label">Unauthorized</span></summary>
+                    <div class="resp-body">
+                        <div class="curl-block">{&#10;  "success": false,&#10;  "error": "unauthorized"&#10;}</div>
+                    </div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <!-- POST /admin/api/v1/mudmail -->
+    <details class="api-entry">
+        <summary>
+            <span class="method method-post">POST</span>
+            <span class="api-path">/admin/api/v1/mudmail</span>
+            <span class="api-desc">Send a message to one player or everyone</span>
+        </summary>
+        <div class="api-body">
+            <p>Request body fields:</p>
+            <ul>
+                <li><code>from_name</code> <strong>(required)</strong> &mdash; sender display name</li>
+                <li><code>body</code> <strong>(required)</strong> &mdash; message text</li>
+                <li><code>gold</code> (optional) &mdash; gold to attach (default 0)</li>
+                <li><code>user_id</code> (optional) &mdash; recipient user ID; omit or set to <code>0</code> to broadcast to all players</li>
+            </ul>
+            <p>Send to one player:</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="flag">-X</span> POST \
+     <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
+     <span class="flag">-d</span> <span class="str">'{"from_name":"System","body":"Hello!","user_id":42}'</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/mudmail</span></div>
+            <p>Broadcast to everyone:</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="flag">-X</span> POST \
+     <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
+     <span class="flag">-d</span> <span class="str">'{"from_name":"System","body":"Server maintenance in 10 minutes."}'</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/mudmail</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Sent to one player</span></summary>
+                    <div class="resp-body">
+                        <div class="curl-block">{&#10;  "success": true,&#10;  "data": { "sent_to": 42 }&#10;}</div>
+                    </div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Broadcast to all</span></summary>
+                    <div class="resp-body">
+                        <div class="curl-block">{&#10;  "success": true,&#10;  "data": { "sent_to_all": true, "recipient_count": 127 }&#10;}</div>
+                    </div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request</span></summary>
+                    <div class="resp-body">
+                        <p>Returned when <code>from_name</code> or <code>body</code> is missing, or the JSON is malformed.</p>
+                        <div class="curl-block">{&#10;  "success": false,&#10;  "data": { "error": "body is required" }&#10;}</div>
+                    </div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">401</span> <span class="resp-label">Unauthorized</span></summary>
+                    <div class="resp-body">
+                        <div class="curl-block">{&#10;  "success": false,&#10;  "error": "unauthorized"&#10;}</div>
+                    </div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <!-- DELETE /admin/api/v1/mudmail -->
+    <details class="api-entry">
+        <summary>
+            <span class="method method-delete">DELETE</span>
+            <span class="api-path">/admin/api/v1/mudmail</span>
+            <span class="api-desc">Delete one message by user ID and send timestamp</span>
+        </summary>
+        <div class="api-body">
+            <p>Query parameters:</p>
+            <ul>
+                <li><code>user_id</code> <strong>(required)</strong> &mdash; the recipient's user ID</li>
+                <li><code>date_sent_us</code> <strong>(required)</strong> &mdash; the microseconds-since-epoch timestamp of the message (from <code>date_sent_us</code> in the summary response)</li>
+            </ul>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="flag">-X</span> DELETE \
+     <span class="str">"http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/mudmail?user_id=42&amp;date_sent_us=1736937000123456"</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Deleted</span></summary>
+                    <div class="resp-body">
+                        <div class="curl-block">{&#10;  "success": true,&#10;  "data": { "deleted": true }&#10;}</div>
+                    </div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request</span></summary>
+                    <div class="resp-body">
+                        <p>Returned when required query params are missing or invalid.</p>
+                        <div class="curl-block">{&#10;  "success": false,&#10;  "data": { "error": "user_id and date_sent_us query params are required" }&#10;}</div>
+                    </div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">404</span> <span class="resp-label">Not Found</span></summary>
+                    <div class="resp-body">
+                        <p>No message matched the provided user ID and timestamp.</p>
+                        <div class="curl-block">{&#10;  "success": false,&#10;  "data": { "error": "message not found" }&#10;}</div>
+                    </div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">401</span> <span class="resp-label">Unauthorized</span></summary>
+                    <div class="resp-body">
+                        <div class="curl-block">{&#10;  "success": false,&#10;  "error": "unauthorized"&#10;}</div>
+                    </div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+</div>
+
+{{template "footer" .}}

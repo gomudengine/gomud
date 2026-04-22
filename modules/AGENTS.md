@@ -16,10 +16,12 @@ The GoMud modules system provides a powerful plugin architecture that allows for
 
 #### **Plugin Callbacks** (`plugincallbacks.go`)
 - **Command registration**: Add new user commands and mob AI commands
-- **Event handling**: IAC (telnet protocol) command processing
-- **Network callbacks**: Handle new connection events
-- **Lifecycle hooks**: Load and save callbacks for plugin state management
-- **Script integration**: Expose plugin functions to JavaScript runtime
+- **Event handling**: IAC (telnet protocol) command processing via `SetIACHandler`
+- **Text prefix handling**: WebSocket text prefix processing via `SetTextPrefixHandler` (used by GMCP for `!!GMCP(...)` messages)
+- **Network callbacks**: Handle new connection events via `SetOnNetConnect`
+- **Lifecycle hooks**: Load and save callbacks for plugin state management via `SetOnLoad`/`SetOnSave`
+- **Script integration**: Expose plugin functions to JavaScript runtime via `AddScriptingFunction`
+- **Function export**: Expose Go functions to other modules via `ExportFunction` / `GetExportedFunction`
 
 #### **Configuration System** (`pluginconfig.go`)
 - **Plugin-specific config**: Each plugin gets its own configuration namespace
@@ -27,10 +29,13 @@ The GoMud modules system provides a powerful plugin architecture that allows for
 - **Persistent settings**: Plugin configurations are saved with the main game configuration
 
 #### **Web Integration** (`webconfig.go`)
-- **Custom web pages**: Plugins can add new web pages to the admin interface
-- **Navigation integration**: Add menu items to the web interface
-- **Template system**: Use custom HTML templates with dynamic data
+- **Public web pages**: Plugins can add new pages to the public web interface via `plug.Web.WebPage`
+- **Admin pages**: Plugins can add pages to the authenticated admin interface via `plug.Web.AdminPage`
+- **Admin API endpoints**: Plugins can register REST API handlers under `/admin/api/v1/<slug>` via `plug.Web.AdminAPIEndpoint`
+- **Navigation integration**: Add top-level or nested nav entries to the admin interface
+- **Template system**: Use custom HTML templates with dynamic data supplied by a `func(*http.Request) map[string]any`
 - **Asset serving**: Serve static files (CSS, JS, images) from plugin file systems
+- **Acyclic wiring**: `main.go` calls `plugins.SetAdminRegistrar(web.GetAdminRegistrar())` before `plugins.Load()` to break the import cycle between `internal/web` and `internal/plugins`
 
 #### **File System** (`pluginfiles.go`)
 - **Embedded files**: Go embed.FS integration for packaging plugin assets
@@ -94,28 +99,95 @@ plugin.AddScriptingFunction("GetFollowers", getFollowersFunc)
 // modules.follow.GetFollowers()
 ```
 
-### **Web System Integration**
+### **Function Export (cross-module)**
 ```go
-// Add web pages
-plugin.Web.WebPage("Leaderboards", "/leaderboards", "leaderboards.html", true, dataFunc)
+// Export a Go function for other modules to call by name
+plugin.ExportFunction("SendInboxMessage", func(userId int, from, msg string, gold int, itm *items.Item) {
+    // ...
+})
 
-// Add navigation links
-plugin.Web.NavLink("Auctions", "/auctions")
+// Consuming module retrieves and calls it
+if fn, ok := usercommands.GetExportedFunction("SendInboxMessage"); ok {
+    if f, ok := fn.(func(int, string, string, int, *items.Item)); ok {
+        f(userId, "System", "Your message", 0, nil)
+    }
+}
 ```
+
+### **Public Web Page Integration**
+```go
+// Add a public web page (no auth required)
+plugin.Web.WebPage("Leaderboards", "/leaderboards", "leaderboards.html", true,
+    func(r *http.Request) map[string]any {
+        return map[string]any{"DATA": getLeaderboardData()}
+    },
+)
+
+// Add navigation links to the public interface
+plugin.Web.NavLink("Leaderboards", "/leaderboards")
+```
+
+### **Admin Page Integration**
+```go
+// Add an authenticated admin page at /admin/<slug>
+// navParent: if non-empty, nests this page as a sub-item under that parent nav entry
+plugin.Web.AdminPage("Mudmail", "mudmail", "html/admin/mudmail.html", true, "",
+    func(r *http.Request) map[string]any {
+        return map[string]any{"INBOX_COUNT": getCount()}
+    },
+)
+
+// Nested under an existing nav parent
+plugin.Web.AdminPage("Mudmail API", "mudmail-api", "html/admin/mudmail-api.html", true, "Mudmail",
+    nil,
+)
+```
+
+### **Admin API Endpoint Registration**
+```go
+// Register a REST handler at /admin/api/v1/<slug>
+// All admin API routes are automatically auth-gated and mud-locked
+plugin.Web.AdminAPIEndpoint("GET", "mudmail", func(r *http.Request) (int, bool, any) {
+    return http.StatusOK, true, getStats()
+})
+
+plugin.Web.AdminAPIEndpoint("POST", "mudmail", func(r *http.Request) (int, bool, any) {
+    // parse r.Body, send mail ...
+    return http.StatusOK, true, map[string]any{"sent": true}
+})
+
+plugin.Web.AdminAPIEndpoint("DELETE", "mudmail", func(r *http.Request) (int, bool, any) {
+    return http.StatusOK, true, nil
+})
+```
+
+The handler signature is `func(r *http.Request) (status int, success bool, data any)`. The framework wraps the return values in the standard `APIResponse[T]` JSON envelope.
 
 ### **Configuration Management**
 ```go
-// Plugin-specific configuration
-plugin.Config.Set("maxAuctions", 10)
+// Plugin-specific configuration (read from Modules.<pluginname>.* in config.yaml)
 value := plugin.Config.Get("maxAuctions")
 ```
+
+### **Plugin Data Persistence**
+```go
+// Save/load arbitrary bytes
+plugin.WriteBytes("mydata", rawBytes)
+rawBytes, err := plugin.ReadBytes("mydata")
+
+// Save/load a struct (YAML serialization)
+plugin.WriteStruct("auctionhistory", &auctionData)
+plugin.ReadIntoStruct("auctionhistory", &auctionData)
+```
+
+Data is stored under `<datafiles>/plugin-data/<name>-v<version>/` as `<identifier>.plugin.dat` files.
 
 ### **File System Integration**
 ```go
 //go:embed files/*
 var files embed.FS
 
-// Attach to plugin
+// Attach to plugin — walks the embed.FS and maps paths for later lookup
 plugin.AttachFileSystem(files)
 
 // Files available as overlays to core system
@@ -195,9 +267,11 @@ The engine provides numerous hooks for module integration:
 - Custom event types supported
 
 #### **Web System**
-- Integration with admin web interface
-- Custom pages and navigation
-- Template system access
+- Integration with public and admin web interfaces
+- Admin pages require `plugins.SetAdminRegistrar(web.GetAdminRegistrar())` called in `main.go` before `plugins.Load()`
+- Custom pages, navigation, and REST API endpoints
+- Template system access with per-request data functions
+- All admin routes are automatically auth-gated and mud-locked by the framework
 
 ### **JavaScript Runtime Integration**
 - Module functions exposed to scripting system
@@ -238,12 +312,15 @@ The engine provides numerous hooks for module integration:
 ### **Official Modules**
 - **GMCP**: Essential for modern MUD clients
 - **Auctions**: Player economy features
+- **Cleanup**: World maintenance (trash and bury commands)
 - **Follow**: Social and AI mechanics
-- **Gambling**: Gambling items and room-based slot machines
+- **Gambling**: Room-based slot machines and claw machines
 - **Leaderboards**: Player engagement and competition
+- **Mudmail**: Player inbox and admin mass-mail system
+- **Newbie Guide**: Automatic guide companion for new players
 - **Time**: Basic utility functionality
-- **Cleanup**: World maintenance
-- **Web Help**: Enhanced help system
+- **Web Help**: Web-based help browser
+- **Zombie Mode**: AFK automation system
 
 ### **Module Discovery**
 - Automatic module loading via `modules/all-modules.go`

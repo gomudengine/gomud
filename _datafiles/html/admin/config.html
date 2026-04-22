@@ -1,0 +1,473 @@
+{{template "header" .}}
+
+<style>
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #555; margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+    /* toolbar */
+    .toolbar { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .toolbar input[type="search"] {
+        flex: 1; min-width: 180px; padding: 0.4rem 0.7rem;
+        border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem;
+    }
+    .toolbar select {
+        padding: 0.4rem 0.6rem; border: 1px solid #ccc; border-radius: 4px;
+        font-size: 0.9rem; background: #fff;
+    }
+    .btn {
+        padding: 0.4rem 1rem; border: none; border-radius: 4px; cursor: pointer;
+        font-size: 0.875rem; font-weight: 600;
+    }
+    .btn-primary { background: #1a1a2e; color: #fff; }
+    .btn-primary:hover { background: #2d2d4e; }
+    .btn-primary:disabled { background: #999; cursor: default; }
+
+    /* status banner */
+    #status-bar {
+        display: none; padding: 0.6rem 1rem; border-radius: 4px;
+        font-size: 0.875rem; margin-bottom: 1rem;
+    }
+    #status-bar.success { background: #e6f4ea; color: #1e6e34; display: block; }
+    #status-bar.error   { background: #fde8e8; color: #8a0000; display: block; }
+
+    /* config table */
+    .config-table-wrap { background: #fff; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    col.col-key   { width: 38%; }
+    col.col-value { width: 62%; }
+    thead th {
+        background: #f0f0f0; text-align: left; padding: 0.6rem 0.9rem;
+        font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em;
+        color: #555; border-bottom: 1px solid #ddd;
+    }
+    tbody tr { border-bottom: 1px solid #eee; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr.hidden-row { display: none; }
+    tbody tr:hover { background: #fafafa; }
+    td { padding: 0.55rem 0.9rem; font-size: 0.875rem; vertical-align: middle; overflow: hidden; }
+    td.key-cell {
+        font-family: monospace; font-size: 0.82rem; color: #1a1a2e;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    td.value-cell {
+        max-width: 0; overflow: hidden;
+    }
+    td.action-cell { width: 2.5rem; text-align: right; white-space: nowrap; padding-left: 0; }
+
+    /* inline edit */
+    .value-display {
+        cursor: pointer; display: block;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .value-display:hover { text-decoration: underline dotted #888; }
+    .value-redacted { color: #888; font-style: italic; cursor: default; }
+    .value-redacted:hover { text-decoration: none; }
+    .edit-form { display: none; align-items: center; gap: 0.4rem; width: 100%; }
+    .edit-form.active { display: flex; }
+    .edit-form input[type="text"] {
+        flex: 1; padding: 0.3rem 0.5rem; border: 1px solid #aaa;
+        border-radius: 3px; font-size: 0.875rem; font-family: inherit;
+    }
+    .btn-save {
+        padding: 0.25rem 0.6rem; font-size: 0.8rem; border-radius: 3px;
+        border: none; cursor: pointer; background: #1a6e34; color: #fff;
+    }
+    .btn-save:hover { background: #145728; }
+    .btn-cancel {
+        padding: 0.25rem 0.6rem; font-size: 0.8rem; border-radius: 3px;
+        border: none; cursor: pointer; background: #ccc; color: #333;
+    }
+    .btn-cancel:hover { background: #bbb; }
+
+    /* locked badge */
+    .badge-locked {
+        display: inline-block; font-size: 0.7rem; padding: 0.1rem 0.4rem;
+        background: #fff3e0; color: #8a4a00; border-radius: 3px;
+        border: 1px solid #f0c070; vertical-align: middle; margin-left: 0.4rem;
+    }
+
+    /* pending changes panel */
+    #pending-panel {
+        display: none; background: #fff; border: 1px solid #ddd; border-radius: 6px;
+        padding: 1rem; margin-bottom: 1.25rem;
+    }
+    #pending-panel h3 { font-size: 1rem; margin-bottom: 0.75rem; }
+    #pending-list { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.75rem; }
+    .pending-item {
+        display: flex; align-items: baseline; gap: 0.5rem;
+        font-size: 0.875rem; background: #f9f9f9;
+        border: 1px solid #eee; border-radius: 4px; padding: 0.35rem 0.65rem;
+    }
+    .pending-key { font-family: monospace; font-size: 0.82rem; color: #1a1a2e; flex: 1; }
+    .pending-arrow { color: #888; }
+    .pending-val { color: #1e6e34; font-weight: 600; }
+    .pending-remove {
+        background: none; border: none; cursor: pointer; color: #888;
+        font-size: 1rem; line-height: 1; padding: 0 0.2rem;
+    }
+    .pending-remove:hover { color: #c00; }
+    .pending-actions { display: flex; gap: 0.5rem; }
+    .btn-discard { background: #eee; color: #333; }
+    .btn-discard:hover { background: #ddd; }
+
+    /* section header rows */
+    tr.section-header td {
+        background: #f5f5f5; font-size: 0.78rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.06em; color: #666;
+        padding: 0.4rem 0.9rem; border-bottom: 1px solid #e0e0e0;
+    }
+
+    .no-results { padding: 1.5rem; text-align: center; color: #888; font-size: 0.9rem; display: none; }
+</style>
+
+<h1>Configuration</h1>
+<p class="subtitle">Live server configuration. Click any value to edit it inline. Changes are staged until you apply them.</p>
+
+<div id="status-bar"></div>
+
+<div id="pending-panel">
+    <h3>Pending Changes</h3>
+    <div id="pending-list"></div>
+    <div class="pending-actions">
+        <button class="btn btn-primary" id="apply-btn" onclick="applyChanges()">Apply Changes</button>
+        <button class="btn btn-discard" onclick="discardAll()">Discard All</button>
+    </div>
+</div>
+
+<div class="toolbar">
+    <input type="search" id="search-input" placeholder="Filter by key or value..." oninput="filterTable()" />
+    <select id="section-filter" onchange="filterTable()">
+        <option value="">All sections</option>
+    </select>
+</div>
+
+<div class="config-table-wrap">
+    <table id="config-table">
+        <colgroup>
+            <col class="col-key" />
+            <col class="col-value" />
+        </colgroup>
+        <thead>
+            <tr>
+                <th>Key</th>
+                <th>Value</th>
+            </tr>
+        </thead>
+        <tbody id="config-body">
+            <tr><td colspan="2" style="padding:1.5rem;text-align:center;color:#888;">Loading...</td></tr>
+        </tbody>
+    </table>
+    <div class="no-results" id="no-results">No matching configuration keys.</div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    const REDACTED = '*** REDACTED ***';
+
+    // key -> new value (staged but not yet applied)
+    const pending = {};
+
+    // full config snapshot loaded on page load
+    let configData = {};
+
+    // -------------------------------------------------------------------------
+    // Bootstrap
+    // -------------------------------------------------------------------------
+    async function init() {
+        const res = await AdminAPI.get('/admin/api/v1/config');
+        if (!res.ok) {
+            showStatus('Failed to load configuration: ' + res.error, false);
+            return;
+        }
+        configData = res.data.data || {};
+        buildTable(configData);
+        buildSectionFilter(configData);
+    }
+
+    // -------------------------------------------------------------------------
+    // Table construction
+    // -------------------------------------------------------------------------
+    function buildTable(data) {
+        const tbody = document.getElementById('config-body');
+        tbody.innerHTML = '';
+
+        const keys = Object.keys(data).sort();
+        let lastSection = null;
+
+        for (const key of keys) {
+            const section = key.split('.')[0];
+            if (section !== lastSection) {
+                lastSection = section;
+                const hdr = document.createElement('tr');
+                hdr.className = 'section-header';
+                hdr.dataset.section = section;
+                hdr.innerHTML = `<td colspan="2">${escHtml(section)}</td>`;
+                tbody.appendChild(hdr);
+            }
+
+            const value = String(data[key]);
+            const isRedacted = value === REDACTED;
+            const tr = document.createElement('tr');
+            tr.dataset.key = key;
+            tr.dataset.section = section;
+            tr.dataset.value = value.toLowerCase();
+
+            tr.innerHTML = `
+                <td class="key-cell" title="${escAttr(key)}">${escHtml(key)}</td>
+                <td class="value-cell">
+                    <span class="value-display${isRedacted ? ' value-redacted' : ''}"
+                          title="${escAttr(value)}"
+                          ${isRedacted ? '' : `onclick="startEdit('${escAttr(key)}')" `}>
+                        ${escHtml(value)}
+                    </span>
+                    <span class="edit-form" id="edit-${cssId(key)}">
+                        <input type="text" id="input-${cssId(key)}" value="${escAttr(value)}"
+                               onkeydown="editKeydown(event, '${escAttr(key)}')" />
+                        <button class="btn-save" onclick="stageEdit('${escAttr(key)}')">Stage</button>
+                        <button class="btn-cancel" onclick="cancelEdit('${escAttr(key)}')">Cancel</button>
+                    </span>
+                </td>`;
+
+            tbody.appendChild(tr);
+        }
+    }
+
+    function buildSectionFilter(data) {
+        const sel = document.getElementById('section-filter');
+        const sections = [...new Set(Object.keys(data).map(k => k.split('.')[0]))].sort();
+        for (const s of sections) {
+            const opt = document.createElement('option');
+            opt.value = s;
+            opt.textContent = s;
+            sel.appendChild(opt);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Filtering
+    // -------------------------------------------------------------------------
+    window.filterTable = function () {
+        const query = document.getElementById('search-input').value.toLowerCase();
+        const section = document.getElementById('section-filter').value;
+        const rows = document.querySelectorAll('#config-body tr[data-key]');
+        const headers = document.querySelectorAll('#config-body tr.section-header');
+        const visibleSections = new Set();
+        let anyVisible = false;
+
+        for (const row of rows) {
+            const keyMatch  = !query || row.dataset.key.toLowerCase().includes(query);
+            const valMatch  = !query || row.dataset.value.includes(query);
+            const secMatch  = !section || row.dataset.section === section;
+            const show = (keyMatch || valMatch) && secMatch;
+            row.classList.toggle('hidden-row', !show);
+            if (show) {
+                visibleSections.add(row.dataset.section);
+                anyVisible = true;
+            }
+        }
+
+        for (const hdr of headers) {
+            hdr.classList.toggle('hidden-row', !visibleSections.has(hdr.dataset.section));
+        }
+
+        document.getElementById('no-results').style.display = anyVisible ? 'none' : 'block';
+    };
+
+    // -------------------------------------------------------------------------
+    // Inline editing
+    // -------------------------------------------------------------------------
+    window.startEdit = function (key) {
+        cancelAllEdits();
+        const form = document.getElementById('edit-' + cssId(key));
+        const display = form.previousElementSibling;
+        display.style.display = 'none';
+        form.classList.add('active');
+        const input = document.getElementById('input-' + cssId(key));
+        // Pre-fill with staged value if present
+        if (pending[key] !== undefined) {
+            input.value = pending[key];
+        }
+        input.focus();
+        input.select();
+    };
+
+    window.cancelEdit = function (key) {
+        const form = document.getElementById('edit-' + cssId(key));
+        if (!form) return;
+        form.classList.remove('active');
+        form.previousElementSibling.style.display = '';
+    };
+
+    window.editKeydown = function (e, key) {
+        if (e.key === 'Enter') { stageEdit(key); }
+        if (e.key === 'Escape') { cancelEdit(key); }
+    };
+
+    window.stageEdit = function (key) {
+        const input = document.getElementById('input-' + cssId(key));
+        const newVal = input.value;
+        const currentVal = String(configData[key]);
+
+        cancelEdit(key);
+
+        if (newVal === currentVal && pending[key] === undefined) return;
+        if (newVal === currentVal) {
+            // reverting to original — remove from pending
+            delete pending[key];
+        } else {
+            pending[key] = newVal;
+        }
+
+        // Update display
+        const tr = document.querySelector(`tr[data-key="${escAttr(key)}"]`);
+        if (tr) {
+            const display = tr.querySelector('.value-display');
+            display.textContent = newVal;
+            tr.dataset.value = newVal.toLowerCase();
+            tr.style.background = pending[key] !== undefined ? '#fffbe6' : '';
+        }
+
+        renderPendingPanel();
+    };
+
+    function cancelAllEdits() {
+        document.querySelectorAll('.edit-form.active').forEach(f => {
+            f.classList.remove('active');
+            f.previousElementSibling.style.display = '';
+        });
+    }
+
+    // -------------------------------------------------------------------------
+    // Pending panel
+    // -------------------------------------------------------------------------
+    function renderPendingPanel() {
+        const panel = document.getElementById('pending-panel');
+        const list  = document.getElementById('pending-list');
+        const keys  = Object.keys(pending);
+
+        if (keys.length === 0) {
+            panel.style.display = 'none';
+            return;
+        }
+
+        panel.style.display = 'block';
+        list.innerHTML = '';
+        for (const key of keys.sort()) {
+            const item = document.createElement('div');
+            item.className = 'pending-item';
+            item.innerHTML = `
+                <span class="pending-key">${escHtml(key)}</span>
+                <span class="pending-arrow">&rarr;</span>
+                <span class="pending-val">${escHtml(pending[key])}</span>
+                <button class="pending-remove" title="Remove" onclick="removePending('${escAttr(key)}')">&times;</button>`;
+            list.appendChild(item);
+        }
+    }
+
+    window.removePending = function (key) {
+        delete pending[key];
+        // Restore display value to original
+        const tr = document.querySelector(`tr[data-key="${escAttr(key)}"]`);
+        if (tr) {
+            const display = tr.querySelector('.value-display');
+            display.textContent = configData[key];
+            tr.dataset.value = String(configData[key]).toLowerCase();
+            tr.style.background = '';
+        }
+        renderPendingPanel();
+    };
+
+    window.discardAll = function () {
+        for (const key of Object.keys(pending)) {
+            const tr = document.querySelector(`tr[data-key="${escAttr(key)}"]`);
+            if (tr) {
+                const display = tr.querySelector('.value-display');
+                display.textContent = configData[key];
+                tr.dataset.value = String(configData[key]).toLowerCase();
+                tr.style.background = '';
+            }
+            delete pending[key];
+        }
+        renderPendingPanel();
+    };
+
+    // -------------------------------------------------------------------------
+    // Apply changes
+    // -------------------------------------------------------------------------
+    window.applyChanges = async function () {
+        if (Object.keys(pending).length === 0) return;
+
+        const btn = document.getElementById('apply-btn');
+        btn.disabled = true;
+        btn.textContent = 'Applying...';
+
+        const payload = Object.assign({}, pending);
+        const res = await AdminAPI.patch('/admin/api/v1/config', payload);
+
+        btn.disabled = false;
+        btn.textContent = 'Apply Changes';
+
+        if (!res.ok) {
+            showStatus('Error: ' + res.error, false);
+            return;
+        }
+
+        const result = res.data.data || {};
+        const applied  = result.applied  || [];
+        const rejected = result.rejected || [];
+
+        // Commit applied keys into local snapshot
+        for (const key of applied) {
+            configData[key] = pending[key];
+            delete pending[key];
+            const tr = document.querySelector(`tr[data-key="${escAttr(key)}"]`);
+            if (tr) tr.style.background = '';
+        }
+
+        // Leave rejected keys in pending (still highlighted)
+        let msg = '';
+        if (applied.length)  msg += `Applied: ${applied.join(', ')}. `;
+        if (rejected.length) msg += `Rejected (locked): ${rejected.join(', ')}.`;
+        showStatus(msg || 'No changes applied.', rejected.length === 0);
+
+        renderPendingPanel();
+    };
+
+    // -------------------------------------------------------------------------
+    // Status bar
+    // -------------------------------------------------------------------------
+    function showStatus(msg, success) {
+        const bar = document.getElementById('status-bar');
+        bar.textContent = msg;
+        bar.className = success ? 'success' : 'error';
+        clearTimeout(bar._timer);
+        bar._timer = setTimeout(() => { bar.className = ''; bar.style.display = 'none'; }, 6000);
+    }
+
+    // -------------------------------------------------------------------------
+    // Utilities
+    // -------------------------------------------------------------------------
+    function escHtml(s) {
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function escAttr(s) {
+        return String(s).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
+
+    // Convert a config key like "Server.MudName" to a safe CSS id fragment.
+    function cssId(key) {
+        return key.replace(/[^a-zA-Z0-9_-]/g, '_');
+    }
+
+    init();
+})();
+</script>
+
+{{template "footer" .}}

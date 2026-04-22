@@ -40,11 +40,196 @@ var (
 
 	// Used to interface with plugins and request web stuff
 	webPlugins WebPlugin = nil
+
+	// defaultRegistrar is the singleton that implements ModuleAdminRegistrar.
+	defaultRegistrar = &moduleAdminRegistrarImpl{}
 )
 
+// WebNav is used for the public-facing navigation.
 type WebNav struct {
 	Name   string
 	Target string
+}
+
+// WebNavItem represents a top-level admin nav entry, optionally with sub-items.
+type WebNavItem struct {
+	Name     string
+	Target   string // primary href; empty if dropdown-only
+	SubItems []WebNavSub
+}
+
+// WebNavSub is a single item inside a dropdown.
+type WebNavSub struct {
+	Label  string
+	Target string
+}
+
+// ModuleAdminRegistrar is implemented by internal/web and provided to plugins
+// via plugins.SetAdminRegistrar. This breaks the import cycle.
+type ModuleAdminRegistrar interface {
+	// RegisterAdminPage registers a module admin page.
+	// htmlContent is the raw HTML read from the plugin's embedded FS.
+	RegisterAdminPage(name, slug, htmlContent string, addToNav bool, navParent string, dataFunc func(*http.Request) map[string]any)
+	// RegisterAdminAPIEndpoint registers a module API handler.
+	// handler receives the request and returns (statusCode, success, data).
+	RegisterAdminAPIEndpoint(method, slug string, handler func(*http.Request) (int, bool, any))
+}
+
+// moduleAdminRegistrarImpl holds module-contributed nav and API routes.
+type moduleAdminRegistrarImpl struct {
+	navItems []WebNavItem
+}
+
+// GetAdminRegistrar returns the ModuleAdminRegistrar that main.go passes to
+// plugins.SetAdminRegistrar.
+func GetAdminRegistrar() ModuleAdminRegistrar {
+	return defaultRegistrar
+}
+
+// RegisterAdminPage registers a module admin page on internalMux and records
+// its nav contribution.
+func (reg *moduleAdminRegistrarImpl) RegisterAdminPage(
+	name, slug, htmlContent string,
+	addToNav bool,
+	navParent string,
+	dataFunc func(*http.Request) map[string]any,
+) {
+	path := "/admin/" + slug
+
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		adminHtml := configs.GetFilePathsConfig().AdminHtml.String()
+
+		tmpl, err := template.New(slug+".html").Funcs(funcMap).ParseFiles(
+			adminHtml+"/_header.html",
+			adminHtml+"/_footer.html",
+		)
+		if err != nil {
+			mudlog.Error("HTML ERROR", "error", err)
+			http.Error(w, "Error parsing template files", http.StatusInternalServerError)
+			return
+		}
+		tmpl, err = tmpl.Parse(htmlContent)
+		if err != nil {
+			mudlog.Error("HTML ERROR", "error", err)
+			http.Error(w, "Error parsing module html", http.StatusInternalServerError)
+			return
+		}
+
+		templateData := map[string]any{
+			"CONFIG": configs.GetConfig(),
+			"STATS":  GetStats(),
+			"NAV":    buildAdminNav(),
+		}
+		if dataFunc != nil {
+			for k, v := range dataFunc(r) {
+				if _, exists := templateData[k]; !exists {
+					templateData[k] = v
+				}
+			}
+		}
+
+		w.Header().Set("Cache-Control", "no-store")
+		if err := tmpl.Execute(w, templateData); err != nil {
+			mudlog.Error("HTML ERROR", "action", "Execute", "error", err)
+		}
+	}
+
+	internalMux.HandleFunc("GET "+path, RunWithMUDLocked(doBasicAuth(handler)))
+
+	if !addToNav {
+		return
+	}
+
+	if navParent == "" {
+		// Top-level nav item with a single sub-item pointing to itself.
+		reg.navItems = append(reg.navItems, WebNavItem{
+			Name:   name,
+			Target: path,
+			SubItems: []WebNavSub{
+				{Label: "View", Target: path},
+			},
+		})
+		return
+	}
+
+	// Attach as sub-item to an existing nav entry.
+	for i, item := range reg.navItems {
+		if item.Name == navParent {
+			reg.navItems[i].SubItems = append(reg.navItems[i].SubItems, WebNavSub{
+				Label:  name,
+				Target: path,
+			})
+			return
+		}
+	}
+	// Parent not found yet — add as top-level with the sub-item.
+	reg.navItems = append(reg.navItems, WebNavItem{
+		Name:   navParent,
+		Target: "",
+		SubItems: []WebNavSub{
+			{Label: name, Target: path},
+		},
+	})
+}
+
+// RegisterAdminAPIEndpoint registers a module API endpoint on internalMux.
+func (reg *moduleAdminRegistrarImpl) RegisterAdminAPIEndpoint(
+	method, slug string,
+	handler func(*http.Request) (int, bool, any),
+) {
+	path := "/admin/api/v1/" + slug
+
+	h := func(w http.ResponseWriter, r *http.Request) {
+		status, success, data := handler(r)
+		writeJSON(w, status, APIResponse[any]{Success: success, Data: data})
+	}
+
+	internalMux.HandleFunc(method+" "+path, RunWithMUDLocked(doBasicAuth(h)))
+}
+
+// buildAdminNav returns the full admin navigation, combining hardcoded core
+// entries with module-contributed entries.
+func buildAdminNav() []WebNavItem {
+	nav := []WebNavItem{
+		{
+			Name:   "Dashboard",
+			Target: "/admin/",
+		},
+		{
+			Name:   "Config",
+			Target: "/admin/config",
+			SubItems: []WebNavSub{
+				{Label: "View / Edit", Target: "/admin/config"},
+				{Label: "API Docs", Target: "/admin/config-api"},
+			},
+		},
+		{
+			Name:   "Items",
+			Target: "/admin/items",
+			SubItems: []WebNavSub{
+				{Label: "View / Edit", Target: "/admin/items"},
+				{Label: "API Docs", Target: "/admin/items-api"},
+			},
+		},
+		{
+			Name:   "Buffs",
+			Target: "/admin/buffs",
+			SubItems: []WebNavSub{
+				{Label: "View / Edit", Target: "/admin/buffs"},
+				{Label: "API Docs", Target: "/admin/buffs-api"},
+			},
+		},
+		{
+			Name:   "Quests",
+			Target: "/admin/quests",
+			SubItems: []WebNavSub{
+				{Label: "View / Edit", Target: "/admin/quests"},
+				{Label: "API Docs", Target: "/admin/quests-api"},
+			},
+		},
+	}
+	nav = append(nav, defaultRegistrar.navItems...)
+	return nav
 }
 
 type WebPlugin interface {
@@ -417,6 +602,15 @@ func Shutdown() {
 			mudlog.Info("HTTPS", "stage", "stopped")
 		}
 	}
+}
+
+// serveAdminStaticFile serves static assets from the admin HTML directory.
+// The full URL path relative to /admin/ is preserved so subdirectories work.
+func serveAdminStaticFile(w http.ResponseWriter, r *http.Request) {
+	adminRoot := filepath.Clean(configs.GetFilePathsConfig().AdminHtml.String())
+	rel := strings.TrimPrefix(r.URL.Path, "/admin")
+	fullPath := filepath.Join(adminRoot, filepath.Clean(rel))
+	http.ServeFile(w, r, fullPath)
 }
 
 func sendError(w http.ResponseWriter, r *http.Request, status int) {

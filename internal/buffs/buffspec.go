@@ -15,57 +15,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
 
-// Something temporarily attached to a character
-// That modifies some aspect of their status
-/*
-Examples:
-Fast Healing - increased natural health recovery for 10 rounds
-Poison - add -10 health every round for 5 rounds
-*/
-
-type Flag string
-
 const (
-	//
-	// All Flags must be lowercase
-	//
-	All Flag = ``
-
-	// Behavioral flags
-	NoCombat       Flag = `no-combat`
-	NoMovement     Flag = `no-go`
-	NoFlee         Flag = `no-flee`
-	CancelIfCombat Flag = `cancel-on-combat`
-	CancelOnAction Flag = `cancel-on-action`
-	CancelOnWater  Flag = `cancel-on-water`
-
-	// Death preventing
-	ReviveOnDeath Flag = `revive-on-death`
-
-	// Gear related
-	PermaGear   Flag = `perma-gear`
-	RemoveCurse Flag = `remove-curse`
-
-	// Harmful flags
-	Poison   Flag = `poison`
-	Drunk    Flag = `drunk`
-	Tripping Flag = `tripping`
-
-	// Useful flags
-	Hidden       Flag = `hidden`
-	Accuracy     Flag = `accuracy`
-	Blink        Flag = `blink`
-	EmitsLight   Flag = `lightsource`
-	SuperHearing Flag = `superhearing`
-	NightVision  Flag = `nightvision`
-	Warmed       Flag = `warmed`
-	Hydrated     Flag = `hydrated`
-	Thirsty      Flag = `thirsty`
-
-	// Flags that reveal things
-	SeeHidden Flag = `see-hidden`
-	SeeNouns  Flag = `see-nouns`
-
 	// Arbitrarily chosen round for calculating trigger round counts
 	validationRound = 1000000
 )

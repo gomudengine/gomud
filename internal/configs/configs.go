@@ -173,6 +173,18 @@ func GetOverrides() map[string]any {
 	return overrides
 }
 
+// RestoreOverrides replaces the current overrides with the supplied flat
+// dot-path map and re-applies them to the live config. It is used by the
+// test-mode middleware to revert changes made during a dry-run request.
+func RestoreOverrides(flatSnapshot map[string]any) error {
+	overrides = unflattenMap(flatSnapshot)
+	if err := configData.OverlayOverrides(overrides); err != nil {
+		return err
+	}
+	configData.Validate()
+	return nil
+}
+
 func (c *Config) SetOverrides(newOverrides map[string]any) error {
 
 	overrides = newOverrides

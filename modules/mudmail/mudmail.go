@@ -40,6 +40,32 @@ func init() {
 
 	m.plug.Callbacks.SetOnSave(m.onSave)
 
+	// Admin page: Mudmail management UI.
+	m.plug.Web.AdminPage(
+		"Mudmail",
+		"mudmail",
+		"html/admin/mudmail.html",
+		true,
+		"",
+		nil,
+	)
+
+	// Admin page: Mudmail API docs, nested under the Mudmail nav entry.
+	m.plug.Web.AdminPage(
+		"API Docs",
+		"mudmail-api",
+		"html/admin/mudmail-api.html",
+		true,
+		"Mudmail",
+		nil,
+	)
+
+	// Admin API endpoints.
+	m.plug.Web.AdminAPIEndpoint("GET", "mudmail", m.apiAdminListMudmail)
+	m.plug.Web.AdminAPIEndpoint("GET", "mudmail-body/{user_id}/{timestamp}", m.apiAdminGetMudmailBody)
+	m.plug.Web.AdminAPIEndpoint("POST", "mudmail", m.apiAdminSendMudmail)
+	m.plug.Web.AdminAPIEndpoint("DELETE", "mudmail", m.apiAdminDeleteMudmail)
+
 	events.RegisterListener(events.PlayerSpawn{}, m.onPlayerSpawn)
 	events.RegisterListener(events.PlayerDespawn{}, m.onPlayerDespawn)
 }

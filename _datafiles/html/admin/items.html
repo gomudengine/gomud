@@ -1,0 +1,747 @@
+{{template "header" .}}
+
+<style>
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #555; margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+    /* layout */
+    .page-layout { display: grid; grid-template-columns: 300px 1fr; gap: 1.25rem; align-items: start; }
+    @media (max-width: 860px) { .page-layout { grid-template-columns: 1fr; } }
+
+    /* sidebar */
+    .sidebar { background: #fff; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; }
+    .sidebar-header { padding: 0.75rem 0.9rem; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 0.5rem; }
+    .sidebar-header input[type="search"] { flex: 1; padding: 0.35rem 0.6rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; }
+    .sidebar-header select { padding: 0.35rem 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.82rem; background: #fff; max-width: 110px; }
+    .item-list { overflow-y: auto; max-height: 72vh; }
+    .item-row {
+        padding: 0.55rem 0.9rem; cursor: pointer; border-bottom: 1px solid #f0f0f0;
+        display: flex; align-items: baseline; gap: 0.5rem; font-size: 0.875rem;
+    }
+    .item-row:last-child { border-bottom: none; }
+    .item-row:hover { background: #f5f7ff; }
+    .item-row.active { background: #1a1a2e; color: #fff; }
+    .item-row.active .item-id { color: #8899cc; }
+    .item-id { font-size: 0.75rem; color: #999; font-family: monospace; flex-shrink: 0; }
+    .item-type-badge {
+        font-size: 0.68rem; padding: 0.1rem 0.35rem; border-radius: 3px;
+        background: #e8eaf6; color: #3949ab; flex-shrink: 0; margin-left: auto;
+    }
+    .item-row.active .item-type-badge { background: #3949ab; color: #fff; }
+    .no-items { padding: 1.5rem; text-align: center; color: #888; font-size: 0.85rem; }
+
+    /* new item btn */
+    .btn-new {
+        margin: 0.6rem 0.9rem; padding: 0.4rem 0.9rem; border: none; border-radius: 4px;
+        background: #1e6e34; color: #fff; font-size: 0.85rem; font-weight: 600;
+        cursor: pointer; text-align: center;
+    }
+    .btn-new:hover { background: #145728; }
+
+    /* editor panel */
+    .editor-panel { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 1.25rem; }
+    .editor-placeholder { color: #aaa; text-align: center; padding: 4rem 1rem; font-size: 0.9rem; }
+
+    /* status */
+    .status-bar {
+        display: none; padding: 0.55rem 0.9rem; border-radius: 4px;
+        font-size: 0.85rem; margin-bottom: 1rem;
+    }
+    .status-bar.success { background: #e6f4ea; color: #1e6e34; display: block; }
+    .status-bar.error   { background: #fde8e8; color: #8a0000; display: block; }
+
+    /* form */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem 1.25rem; }
+    .form-grid .span2 { grid-column: 1 / -1; }
+    .field label { display: block; font-size: 0.78rem; font-weight: 600; color: #555; margin-bottom: 0.25rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .field input[type="text"],
+    .field input[type="number"],
+    .field select,
+    .field textarea {
+        width: 100%; padding: 0.4rem 0.6rem; border: 1px solid #ccc; border-radius: 4px;
+        font-size: 0.875rem; font-family: inherit; background: #fff;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid #1a1a2e; outline-offset: 1px; border-color: transparent; }
+    .field textarea { resize: vertical; min-height: 80px; }
+    .field-hint { font-size: 0.75rem; color: #888; margin-top: 0.2rem; }
+
+    /* section headings inside editor */
+    .section-title {
+        font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.06em; color: #666; padding: 0.5rem 0 0.4rem;
+        border-bottom: 1px solid #eee; margin-bottom: 0.75rem; grid-column: 1 / -1;
+    }
+
+    /* stat mods editor */
+    .statmods-list { display: flex; flex-direction: column; gap: 0.4rem; }
+    .statmod-row { display: flex; gap: 0.5rem; align-items: center; }
+    .statmod-row input[type="text"] { flex: 1; }
+    .statmod-row input[type="number"] { width: 80px; }
+    .btn-icon {
+        background: none; border: none; cursor: pointer; font-size: 1rem;
+        color: #888; padding: 0 0.2rem; line-height: 1;
+    }
+    .btn-icon:hover { color: #c00; }
+    .btn-add-sm {
+        font-size: 0.8rem; padding: 0.3rem 0.7rem; border: 1px dashed #aaa;
+        background: none; border-radius: 4px; cursor: pointer; color: #555; margin-top: 0.25rem;
+    }
+    .btn-add-sm:hover { border-color: #1a1a2e; color: #1a1a2e; }
+
+    /* buff ids */
+    .buff-ids-wrap { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+    .buff-chip {
+        display: inline-flex; align-items: center; gap: 0.3rem;
+        background: #e8eaf6; color: #3949ab; border-radius: 12px;
+        padding: 0.2rem 0.6rem; font-size: 0.8rem;
+    }
+    .buff-chip button { background: none; border: none; cursor: pointer; color: #3949ab; font-size: 0.85rem; line-height: 1; padding: 0; }
+    .buff-chip button:hover { color: #c00; }
+    .buff-add-input { width: 80px; padding: 0.25rem 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.82rem; }
+
+    /* script editor */
+    .script-toggle {
+        display: flex; align-items: center; gap: 0.6rem; cursor: pointer;
+        font-size: 0.85rem; color: #1a1a2e; font-weight: 600; padding: 0.5rem 0;
+        user-select: none;
+    }
+    .script-toggle::before { content: "\25B6"; font-size: 0.65rem; transition: transform 0.15s; }
+    .script-toggle.open::before { transform: rotate(90deg); }
+    .script-area {
+        display: none; margin-top: 0.5rem;
+    }
+    .script-area.open { display: block; }
+    .script-area textarea {
+        width: 100%; min-height: 220px; font-family: monospace; font-size: 0.82rem;
+        padding: 0.6rem 0.75rem; border: 1px solid #ccc; border-radius: 4px;
+        resize: vertical; background: #1a1a2e; color: #c9d1d9; line-height: 1.55;
+    }
+    .script-area textarea:focus { outline: 2px solid #4a6fa5; outline-offset: 1px; }
+    .script-hint { font-size: 0.75rem; color: #888; margin-top: 0.3rem; }
+
+    /* action bar */
+    .action-bar { display: flex; gap: 0.6rem; margin-top: 1.25rem; align-items: center; flex-wrap: wrap; }
+    .btn { padding: 0.45rem 1.1rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.875rem; font-weight: 600; }
+    .btn-primary { background: #1a1a2e; color: #fff; }
+    .btn-primary:hover { background: #2d2d4e; }
+    .btn-primary:disabled { background: #999; cursor: default; }
+    .btn-danger { background: #c0392b; color: #fff; }
+    .btn-danger:hover { background: #a93226; }
+    .btn-secondary { background: #eee; color: #333; }
+    .btn-secondary:hover { background: #ddd; }
+    .item-id-display { font-family: monospace; font-size: 0.82rem; color: #888; margin-left: auto; }
+
+    /* editor header */
+    .editor-header { display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 1rem; }
+    .editor-header h2 { font-size: 1.1rem; flex: 1; }
+    .editor-header .badge { font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 3px; background: #e8eaf6; color: #3949ab; }
+</style>
+
+<h1>Items</h1>
+<p class="subtitle">Browse, edit, and create item definitions. Click an item in the list to load its editor.</p>
+
+<div id="status-bar" class="status-bar"></div>
+
+<div class="page-layout">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <button class="btn-new" onclick="newItem()">+ New Item</button>
+        <div class="sidebar-header">
+            <input type="search" id="item-search" placeholder="Search items..." oninput="filterItems()" />
+            <select id="type-filter" onchange="filterItems()">
+                <option value="">All types</option>
+            </select>
+        </div>
+        <div class="item-list" id="item-list">
+            <div class="no-items">Loading...</div>
+        </div>
+    </div>
+
+    <!-- Editor -->
+    <div class="editor-panel" id="editor-panel">
+        <div class="editor-placeholder" id="editor-placeholder">
+            Select an item from the list to edit it,<br>or click <strong>+ New Item</strong> to create one.
+        </div>
+        <div id="editor-form" style="display:none;">
+            <div class="editor-header">
+                <h2 id="editor-title">Item Editor</h2>
+                <span class="badge" id="editor-type-badge"></span>
+            </div>
+
+            <div class="form-grid">
+                <div class="section-title">Identity</div>
+
+                <div class="field">
+                    <label>Name</label>
+                    <input type="text" id="f-name" placeholder="e.g. Steel Sword" />
+                </div>
+                <div class="field">
+                    <label>Simple Name</label>
+                    <input type="text" id="f-namesimple" placeholder="e.g. Sword" />
+                    <div class="field-hint">Short name used for matching commands</div>
+                </div>
+                <div class="field">
+                    <label>Display Name / Style</label>
+                    <input type="text" id="f-displayname" placeholder="e.g. :rainbow or &lt;ansi fg=&quot;red&quot;&gt;...&lt;/ansi&gt;" />
+                    <div class="field-hint">Leave blank to use Name. Prefix with <code>:</code> for a color pattern.</div>
+                </div>
+                <div class="field">
+                    <label>Gold Value</label>
+                    <input type="number" id="f-value" min="0" placeholder="0 = auto-calculate" />
+                </div>
+
+                <div class="field span2">
+                    <label>Description</label>
+                    <textarea id="f-description" rows="3" placeholder="Item description shown to players"></textarea>
+                </div>
+
+                <div class="section-title">Classification</div>
+
+                <div class="field">
+                    <label>Type</label>
+                    <select id="f-type" onchange="onTypeChange()"></select>
+                </div>
+                <div class="field">
+                    <label>Subtype</label>
+                    <select id="f-subtype"></select>
+                </div>
+                <div class="field">
+                    <label>Element</label>
+                    <select id="f-element">
+                        <option value="">None</option>
+                        <option value="fire">fire</option>
+                        <option value="water">water</option>
+                        <option value="ice">ice</option>
+                        <option value="electricity">electricity</option>
+                        <option value="acid">acid</option>
+                        <option value="life">life</option>
+                        <option value="death">death</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Uses</label>
+                    <input type="number" id="f-uses" min="0" placeholder="0 = unlimited" />
+                    <div class="field-hint">Max uses before item is consumed</div>
+                </div>
+
+                <!-- Weapon section -->
+                <div id="weapon-section" style="display:none; grid-column:1/-1;">
+                    <div class="form-grid">
+                        <div class="section-title">Weapon</div>
+                        <div class="field">
+                            <label>Damage Dice Roll</label>
+                            <input type="text" id="f-diceroll" placeholder="e.g. 1d6+2" />
+                            <div class="field-hint">Format: [attacks@]NdS[+bonus][#critBuffId,...]</div>
+                        </div>
+                        <div class="field">
+                            <label>Hands Required</label>
+                            <select id="f-hands">
+                                <option value="1">1-Handed</option>
+                                <option value="2">2-Handed</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>Extra Wait Rounds</label>
+                            <input type="number" id="f-waitrounds" min="0" placeholder="0" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Key section -->
+                <div id="key-section" style="display:none; grid-column:1/-1;">
+                    <div class="form-grid">
+                        <div class="section-title">Key</div>
+                        <div class="field span2">
+                            <label>Lock ID</label>
+                            <input type="text" id="f-keylockid" placeholder="e.g. 778-north" />
+                            <div class="field-hint">Format: roomId-exitName (or container name)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-title">Combat &amp; Defense</div>
+
+                <div class="field">
+                    <label>Damage Reduction %</label>
+                    <input type="number" id="f-damagereduction" min="0" max="100" placeholder="0" />
+                    <div class="field-hint">% of incoming damage blocked when equipped</div>
+                </div>
+                <div class="field">
+                    <label>Break Chance %</label>
+                    <input type="number" id="f-breakchance" min="0" max="100" placeholder="0" />
+                </div>
+                <div class="field">
+                    <label>Quest Token</label>
+                    <input type="text" id="f-questtoken" placeholder="e.g. 1001-start" />
+                    <div class="field-hint">Quest progress granted when item is obtained</div>
+                </div>
+                <div class="field">
+                    <label>Cursed</label>
+                    <select id="f-cursed">
+                        <option value="false">No</option>
+                        <option value="true">Yes — cannot be removed once equipped</option>
+                    </select>
+                </div>
+
+                <div class="section-title">Stat Modifications</div>
+
+                <div class="field span2">
+                    <div class="statmods-list" id="statmods-list"></div>
+                    <button class="btn-add-sm" onclick="addStatMod()">+ Add Stat Mod</button>
+                </div>
+
+                <div class="section-title">Buffs</div>
+
+                <div class="field span2">
+                    <label>Buff IDs (applied on use)</label>
+                    <div class="buff-ids-wrap" id="buffids-wrap">
+                        <input type="number" class="buff-add-input" id="buffids-input" placeholder="ID" min="1"
+                               onkeydown="if(event.key==='Enter'){addBuffId('buffids-list','buffids-input');}" />
+                        <button class="btn-add-sm" onclick="addBuffId('buffids-list','buffids-input')">+ Add</button>
+                    </div>
+                    <div class="buff-ids-wrap" id="buffids-list" style="margin-top:0.4rem;"></div>
+                </div>
+                <div class="field span2">
+                    <label>Worn Buff IDs (active while equipped)</label>
+                    <div class="buff-ids-wrap" id="wornbuffids-wrap">
+                        <input type="number" class="buff-add-input" id="wornbuffids-input" placeholder="ID" min="1"
+                               onkeydown="if(event.key==='Enter'){addBuffId('wornbuffids-list','wornbuffids-input');}" />
+                        <button class="btn-add-sm" onclick="addBuffId('wornbuffids-list','wornbuffids-input')">+ Add</button>
+                    </div>
+                    <div class="buff-ids-wrap" id="wornbuffids-list" style="margin-top:0.4rem;"></div>
+                </div>
+            </div>
+
+            <!-- Script editor -->
+            <div style="margin-top:1.25rem; border-top: 1px solid #eee; padding-top: 1rem;">
+                <div class="script-toggle" id="script-toggle" onclick="toggleScript()">Script</div>
+                <div class="script-area" id="script-area">
+                    <textarea id="f-script" spellcheck="false" placeholder="// JavaScript for this item's events (onFound, onLost, onUse, onPurchase)&#10;// Leave blank to delete the script file."></textarea>
+                    <div class="script-hint">Saved as a .js file alongside the item's YAML. Clear the field and save to delete the script.</div>
+                </div>
+            </div>
+
+            <div class="action-bar">
+                <button class="btn btn-primary" id="save-btn" onclick="saveItem()">Save Item</button>
+                <button class="btn btn-secondary" onclick="cancelEdit()">Cancel</button>
+                <button class="btn btn-danger" id="delete-btn" onclick="deleteItem()" style="margin-left:auto;">Delete Item</button>
+                <span class="item-id-display" id="item-id-display"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    // -------------------------------------------------------------------------
+    // State
+    // -------------------------------------------------------------------------
+    let allItems = [];
+    let itemTypes = [];
+    let itemSubtypes = [];
+    let currentItemId = null; // null = new item
+    let isNew = false;
+
+    // -------------------------------------------------------------------------
+    // Init
+    // -------------------------------------------------------------------------
+    async function init() {
+        const [itemsRes, typesRes] = await AdminAPI.all([
+            AdminAPI.get('/admin/api/v1/items'),
+            AdminAPI.get('/admin/api/v1/items/types'),
+        ]);
+
+        if (!itemsRes.ok) { showStatus('Failed to load items: ' + itemsRes.error, false); return; }
+        if (!typesRes.ok) { showStatus('Failed to load item types: ' + typesRes.error, false); return; }
+
+        allItems = (itemsRes.data.data || []).sort((a, b) => a.ItemId - b.ItemId);
+        itemTypes = typesRes.data.data.types || [];
+        itemSubtypes = typesRes.data.data.subtypes || [];
+
+        populateTypeFilter();
+        populateTypeSelects();
+        renderList(allItems);
+    }
+
+    // -------------------------------------------------------------------------
+    // Sidebar list
+    // -------------------------------------------------------------------------
+    function populateTypeFilter() {
+        const sel = document.getElementById('type-filter');
+        const seen = new Set();
+        for (const t of itemTypes) {
+            if (!seen.has(t.Type)) {
+                seen.add(t.Type);
+                const o = document.createElement('option');
+                o.value = t.Type; o.textContent = t.Type;
+                sel.appendChild(o);
+            }
+        }
+    }
+
+    function renderList(items) {
+        const list = document.getElementById('item-list');
+        if (items.length === 0) {
+            list.innerHTML = '<div class="no-items">No items found.</div>';
+            return;
+        }
+        list.innerHTML = '';
+        for (const item of items) {
+            const row = document.createElement('div');
+            row.className = 'item-row' + (item.ItemId === currentItemId ? ' active' : '');
+            row.dataset.id = item.ItemId;
+            row.innerHTML = `
+                <span class="item-id">#${item.ItemId}</span>
+                <span>${esc(item.Name)}</span>
+                <span class="item-type-badge">${esc(item.Type || '')}</span>`;
+            row.onclick = () => loadItem(item.ItemId);
+            list.appendChild(row);
+        }
+    }
+
+    window.filterItems = function () {
+        const q = document.getElementById('item-search').value.toLowerCase();
+        const t = document.getElementById('type-filter').value;
+        const filtered = allItems.filter(item => {
+            const nameMatch = !q || item.Name.toLowerCase().includes(q) || String(item.ItemId).includes(q);
+            const typeMatch = !t || item.Type === t;
+            return nameMatch && typeMatch;
+        });
+        renderList(filtered);
+    };
+
+    // -------------------------------------------------------------------------
+    // Type selects
+    // -------------------------------------------------------------------------
+    function populateTypeSelects() {
+        const typeEl = document.getElementById('f-type');
+        typeEl.innerHTML = '';
+        for (const t of itemTypes) {
+            const o = document.createElement('option');
+            o.value = t.Type; o.textContent = t.Type;
+            typeEl.appendChild(o);
+        }
+
+        refreshSubtypes();
+    }
+
+    function refreshSubtypes() {
+        const subEl = document.getElementById('f-subtype');
+        subEl.innerHTML = '';
+        for (const t of itemSubtypes) {
+            const o = document.createElement('option');
+            o.value = t.Type; o.textContent = t.Type;
+            subEl.appendChild(o);
+        }
+    }
+
+    window.onTypeChange = function () {
+        const t = document.getElementById('f-type').value;
+        document.getElementById('weapon-section').style.display = t === 'weapon' ? 'block' : 'none';
+        document.getElementById('key-section').style.display = t === 'key' ? 'block' : 'none';
+        document.getElementById('editor-type-badge').textContent = t;
+    };
+
+    // -------------------------------------------------------------------------
+    // Load item into editor
+    // -------------------------------------------------------------------------
+    async function loadItem(itemId) {
+        const [itemRes, scriptRes] = await AdminAPI.all([
+            AdminAPI.get('/admin/api/v1/items/' + itemId),
+            AdminAPI.get('/admin/api/v1/items/' + itemId + '/script'),
+        ]);
+
+        if (!itemRes.ok) { showStatus('Failed to load item: ' + itemRes.error, false); return; }
+
+        const item = itemRes.data.data;
+        const script = scriptRes.ok ? (scriptRes.data.data.script || '') : '';
+
+        currentItemId = itemId;
+        isNew = false;
+
+        setActiveRow(itemId);
+        showEditor();
+        fillForm(item, script);
+    }
+
+    function setActiveRow(itemId) {
+        document.querySelectorAll('.item-row').forEach(r => {
+            r.classList.toggle('active', Number(r.dataset.id) === itemId);
+        });
+    }
+
+    function showEditor() {
+        document.getElementById('editor-placeholder').style.display = 'none';
+        document.getElementById('editor-form').style.display = 'block';
+        document.getElementById('delete-btn').style.display = isNew ? 'none' : '';
+    }
+
+    function fillForm(item, script) {
+        document.getElementById('editor-title').textContent = isNew ? 'New Item' : item.Name;
+        document.getElementById('editor-type-badge').textContent = item.Type || '';
+        document.getElementById('item-id-display').textContent = isNew ? '' : 'ID: ' + item.ItemId;
+
+        setVal('f-name', item.Name || '');
+        setVal('f-namesimple', item.NameSimple || '');
+        setVal('f-displayname', item.DisplayName || '');
+        setVal('f-value', item.Value || 0);
+        setVal('f-description', item.Description || '');
+        setVal('f-type', item.Type || '');
+        setVal('f-subtype', item.Subtype || '');
+        setVal('f-element', item.Element || '');
+        setVal('f-uses', item.Uses || 0);
+        setVal('f-damagereduction', item.DamageReduction || 0);
+        setVal('f-breakchance', item.BreakChance || 0);
+        setVal('f-questtoken', item.QuestToken || '');
+        setVal('f-cursed', item.Cursed ? 'true' : 'false');
+
+        // Weapon
+        const dmg = item.Damage || {};
+        setVal('f-diceroll', dmg.DiceRoll || '');
+        setVal('f-hands', item.Hands || 1);
+        setVal('f-waitrounds', item.WaitRounds || 0);
+        document.getElementById('weapon-section').style.display = item.Type === 'weapon' ? 'block' : 'none';
+
+        // Key
+        setVal('f-keylockid', item.KeyLockId || '');
+        document.getElementById('key-section').style.display = item.Type === 'key' ? 'block' : 'none';
+
+        // Stat mods
+        renderStatMods(item.StatMods || {});
+
+        // Buff ids
+        renderBuffChips('buffids-list', item.BuffIds || []);
+        renderBuffChips('wornbuffids-list', item.WornBuffIds || []);
+
+        // Script
+        setVal('f-script', script);
+        document.getElementById('script-toggle').classList.toggle('open', script.length > 0);
+        document.getElementById('script-area').classList.toggle('open', script.length > 0);
+    }
+
+    // -------------------------------------------------------------------------
+    // New item
+    // -------------------------------------------------------------------------
+    window.newItem = function () {
+        currentItemId = null;
+        isNew = true;
+        document.querySelectorAll('.item-row').forEach(r => r.classList.remove('active'));
+        showEditor();
+        fillForm({}, '');
+        document.getElementById('editor-title').textContent = 'New Item';
+        document.getElementById('item-id-display').textContent = '';
+        document.getElementById('delete-btn').style.display = 'none';
+    };
+
+    window.cancelEdit = function () {
+        document.getElementById('editor-placeholder').style.display = '';
+        document.getElementById('editor-form').style.display = 'none';
+        document.querySelectorAll('.item-row').forEach(r => r.classList.remove('active'));
+        currentItemId = null;
+        isNew = false;
+    };
+
+    // -------------------------------------------------------------------------
+    // Stat mods
+    // -------------------------------------------------------------------------
+    function renderStatMods(mods) {
+        const list = document.getElementById('statmods-list');
+        list.innerHTML = '';
+        for (const [key, val] of Object.entries(mods)) {
+            appendStatModRow(list, key, val);
+        }
+    }
+
+    function appendStatModRow(list, key, val) {
+        const row = document.createElement('div');
+        row.className = 'statmod-row';
+        row.innerHTML = `
+            <input type="text" placeholder="stat name" value="${esc(key)}" />
+            <input type="number" placeholder="value" value="${Number(val)}" />
+            <button class="btn-icon" title="Remove" onclick="this.closest('.statmod-row').remove()">&times;</button>`;
+        list.appendChild(row);
+    }
+
+    window.addStatMod = function () {
+        appendStatModRow(document.getElementById('statmods-list'), '', 0);
+    };
+
+    function collectStatMods() {
+        const mods = {};
+        document.querySelectorAll('#statmods-list .statmod-row').forEach(row => {
+            const inputs = row.querySelectorAll('input');
+            const k = inputs[0].value.trim();
+            const v = parseInt(inputs[1].value, 10);
+            if (k) mods[k] = isNaN(v) ? 0 : v;
+        });
+        return mods;
+    }
+
+    // -------------------------------------------------------------------------
+    // Buff chips
+    // -------------------------------------------------------------------------
+    function renderBuffChips(listId, ids) {
+        const list = document.getElementById(listId);
+        list.innerHTML = '';
+        for (const id of ids) appendBuffChip(list, id);
+    }
+
+    function appendBuffChip(list, id) {
+        const chip = document.createElement('span');
+        chip.className = 'buff-chip';
+        chip.dataset.id = id;
+        chip.innerHTML = `${id} <button title="Remove" onclick="this.closest('.buff-chip').remove()">&times;</button>`;
+        list.appendChild(chip);
+    }
+
+    window.addBuffId = function (listId, inputId) {
+        const input = document.getElementById(inputId);
+        const id = parseInt(input.value, 10);
+        if (!id || id < 1) return;
+        appendBuffChip(document.getElementById(listId), id);
+        input.value = '';
+    };
+
+    function collectBuffIds(listId) {
+        return Array.from(document.querySelectorAll('#' + listId + ' .buff-chip')).map(c => parseInt(c.dataset.id, 10));
+    }
+
+    // -------------------------------------------------------------------------
+    // Save
+    // -------------------------------------------------------------------------
+    window.saveItem = async function () {
+        const btn = document.getElementById('save-btn');
+        btn.disabled = true; btn.textContent = 'Saving...';
+
+        const dmgDice = document.getElementById('f-diceroll').value.trim();
+
+        const payload = {
+            Name:            document.getElementById('f-name').value.trim(),
+            NameSimple:      document.getElementById('f-namesimple').value.trim(),
+            DisplayName:     document.getElementById('f-displayname').value.trim(),
+            Value:           parseInt(document.getElementById('f-value').value, 10) || 0,
+            Description:     document.getElementById('f-description').value.trim(),
+            Type:            document.getElementById('f-type').value,
+            Subtype:         document.getElementById('f-subtype').value,
+            Element:         document.getElementById('f-element').value,
+            Uses:            parseInt(document.getElementById('f-uses').value, 10) || 0,
+            DamageReduction: parseInt(document.getElementById('f-damagereduction').value, 10) || 0,
+            BreakChance:     parseInt(document.getElementById('f-breakchance').value, 10) || 0,
+            QuestToken:      document.getElementById('f-questtoken').value.trim(),
+            Cursed:          document.getElementById('f-cursed').value === 'true',
+            Hands:           parseInt(document.getElementById('f-hands').value, 10) || 1,
+            WaitRounds:      parseInt(document.getElementById('f-waitrounds').value, 10) || 0,
+            KeyLockId:       document.getElementById('f-keylockid').value.trim(),
+            StatMods:        collectStatMods(),
+            BuffIds:         collectBuffIds('buffids-list'),
+            WornBuffIds:     collectBuffIds('wornbuffids-list'),
+            Damage: { DiceRoll: dmgDice },
+        };
+
+        const scriptContent = document.getElementById('f-script').value;
+
+        let itemRes;
+        if (isNew) {
+            itemRes = await AdminAPI.post('/admin/api/v1/items', payload);
+        } else {
+            itemRes = await AdminAPI.patch('/admin/api/v1/items/' + currentItemId, payload);
+        }
+
+        btn.disabled = false; btn.textContent = 'Save Item';
+
+        if (!itemRes.ok) {
+            showStatus('Save failed: ' + itemRes.error, false);
+            return;
+        }
+
+        const saved = itemRes.data.data;
+        const savedId = saved.ItemId;
+
+        // Save script separately
+        const scriptRes = await AdminAPI.put('/admin/api/v1/items/' + savedId + '/script', { script: scriptContent });
+        if (!scriptRes.ok) {
+            showStatus('Item saved but script update failed: ' + scriptRes.error, false);
+        } else {
+            showStatus('Item saved successfully.', true);
+        }
+
+        // Refresh list
+        if (isNew) {
+            allItems.push(saved);
+            allItems.sort((a, b) => a.ItemId - b.ItemId);
+        } else {
+            const idx = allItems.findIndex(i => i.ItemId === savedId);
+            if (idx !== -1) allItems[idx] = saved;
+        }
+
+        currentItemId = savedId;
+        isNew = false;
+        filterItems();
+        setActiveRow(savedId);
+        document.getElementById('editor-title').textContent = saved.Name;
+        document.getElementById('editor-type-badge').textContent = saved.Type || '';
+        document.getElementById('item-id-display').textContent = 'ID: ' + savedId;
+        document.getElementById('delete-btn').style.display = '';
+    };
+
+    // -------------------------------------------------------------------------
+    // Delete
+    // -------------------------------------------------------------------------
+    window.deleteItem = async function () {
+        if (!currentItemId) return;
+        if (!confirm('Delete item #' + currentItemId + '? This cannot be undone.')) return;
+
+        const res = await AdminAPI.delete('/admin/api/v1/items/' + currentItemId);
+        if (!res.ok) { showStatus('Delete failed: ' + res.error, false); return; }
+
+        allItems = allItems.filter(i => i.ItemId !== currentItemId);
+        filterItems();
+        cancelEdit();
+        showStatus('Item deleted.', true);
+    };
+
+    // -------------------------------------------------------------------------
+    // Script toggle
+    // -------------------------------------------------------------------------
+    window.toggleScript = function () {
+        const toggle = document.getElementById('script-toggle');
+        const area = document.getElementById('script-area');
+        toggle.classList.toggle('open');
+        area.classList.toggle('open');
+    };
+
+    // -------------------------------------------------------------------------
+    // Status
+    // -------------------------------------------------------------------------
+    function showStatus(msg, ok) {
+        const bar = document.getElementById('status-bar');
+        bar.textContent = msg;
+        bar.className = 'status-bar ' + (ok ? 'success' : 'error');
+        clearTimeout(bar._t);
+        bar._t = setTimeout(() => { bar.className = 'status-bar'; }, 6000);
+    }
+
+    // -------------------------------------------------------------------------
+    // Utilities
+    // -------------------------------------------------------------------------
+    function setVal(id, val) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (el.tagName === 'SELECT') {
+            el.value = String(val);
+        } else {
+            el.value = val;
+        }
+    }
+
+    function esc(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    init();
+})();
+</script>
+
+{{template "footer" .}}

@@ -12,13 +12,44 @@
         nav .brand { font-weight: 700; font-size: 1.1rem; color: #fff; text-decoration: none; }
         nav a { color: #b0b8d0; text-decoration: none; font-size: 0.9rem; }
         nav a:hover { color: #fff; }
-        main { max-width: 960px; margin: 2rem auto; padding: 0 1rem; }
+        .nav-dropdown { position: relative; display: inline-block; }
+        .nav-btn {
+            background: none; border: none; color: #b0b8d0; font-size: 0.9rem;
+            cursor: pointer; padding: 0;
+        }
+        .nav-btn:hover { color: #fff; }
+        .nav-dropdown-menu {
+            display: none; position: absolute; top: 100%; left: 0;
+            background: #1a1a2e; border: 1px solid #333; border-radius: 4px;
+            min-width: 140px; z-index: 100; padding: 0.25rem 0;
+        }
+        .nav-dropdown:hover .nav-dropdown-menu { display: block; }
+        .nav-dropdown-menu a {
+            display: block; padding: 0.4rem 0.85rem;
+            color: #b0b8d0; font-size: 0.85rem; text-decoration: none;
+        }
+        .nav-dropdown-menu a:hover { background: #2d2d4e; color: #fff; }
+        main { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
     </style>
+    <script src="/admin/api.js"></script>
 </head>
 <body>
     <nav>
         <a class="brand" href="/admin/">GoMud Admin</a>
-        <a href="/admin/">Dashboard</a>
+        {{range .NAV}}
+          {{if .SubItems}}
+            <div class="nav-dropdown">
+              <button class="nav-btn">{{.Name}} &#9660;</button>
+              <div class="nav-dropdown-menu">
+                {{range .SubItems}}
+                  <a href="{{.Target}}">{{.Label}}</a>
+                {{end}}
+              </div>
+            </div>
+          {{else}}
+            <a href="{{.Target}}">{{.Name}}</a>
+          {{end}}
+        {{end}}
     </nav>
     <main>
 {{end}}
