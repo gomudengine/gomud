@@ -301,8 +301,6 @@ func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn)) {
 				Certificates: []tls.Certificate{cert},
 			}
 
-			wg.Add(1)
-
 			httpsServer = &http.Server{
 				Addr:      fmt.Sprintf(`:%d`, networkConfig.HttpsPort),
 				TLSConfig: tlsConfig,
