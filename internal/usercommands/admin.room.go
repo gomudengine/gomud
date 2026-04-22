@@ -119,8 +119,28 @@ func Room(rest string, user *users.UserRecord, liveRoom *rooms.Room, flags event
 			return true, nil
 		}
 
+		registeredTags := roomTagProvider()
+		moduleNames := make([]string, 0, len(registeredTags))
+		allTags := map[string]struct{}{}
+		if len(registeredTags) > 0 {
+			for name, tags := range registeredTags {
+				moduleNames = append(moduleNames, name)
+				for _, t := range tags {
+					allTags[t] = struct{}{}
+				}
+			}
+		}
+
 		if len(args) == 2 {
+
 			tag := strings.ToLower(args[1])
+
+			if _, ok := allTags[tag]; !ok {
+				user.SendText(``)
+				user.SendText(fmt.Sprintf(`Invalid tag provided: <ansi fg="yellow">%s</ansi>`, tag))
+				user.SendText(``)
+				return true, fmt.Errorf(`Invalid tag provided: %s`, tag)
+			}
 
 			for i, t := range room.Tags {
 				if t == tag {
@@ -137,6 +157,7 @@ func Room(rest string, user *users.UserRecord, liveRoom *rooms.Room, flags event
 			return true, nil
 		}
 
+		user.SendText(``)
 		if len(room.Tags) == 0 {
 			user.SendText(`No tags set on this room.`)
 		} else {
@@ -146,21 +167,16 @@ func Room(rest string, user *users.UserRecord, liveRoom *rooms.Room, flags event
 			}
 		}
 
-		registeredTags := roomTagProvider()
 		if len(registeredTags) > 0 {
 			user.SendText(``)
 			user.SendText(`Available Tags:`)
-			moduleNames := make([]string, 0, len(registeredTags))
-			for name := range registeredTags {
-				moduleNames = append(moduleNames, name)
-			}
-			sort.Strings(moduleNames)
 			for _, name := range moduleNames {
 				user.SendText(fmt.Sprintf(`  <ansi fg="cyan">%s</ansi> module:`, name))
 				for _, tag := range registeredTags[name] {
 					user.SendText(fmt.Sprintf(`    <ansi fg="yellow">%s</ansi>`, tag))
 				}
 			}
+			user.SendText(``)
 		}
 
 		return true, nil
