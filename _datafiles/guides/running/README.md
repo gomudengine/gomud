@@ -63,8 +63,10 @@ For a guided config update, run:
 > `make https-setup`
 
 The helper does not edit the bundled base config directly.
-It can PATCH a running GoMud server through `/admin/api/v1/config`, or print a `config-overrides.yaml` snippet for manual save.
-It can configure manual certificate files, automatic Let's Encrypt, or HTTP-only mode.
+It can PATCH a running GoMud server through `/admin/api/v1/config`, or print a
+`config-overrides.yaml` snippet for manual save.
+It can configure manual certificate files, automatic Let's Encrypt, or disable
+HTTPS and return to HTTP-only mode.
 Either path still requires a GoMud restart before listener changes take effect.
 
 1. Get a certificate and private key for the hostname players will use.
@@ -85,6 +87,8 @@ For simple single-server installs, GoMud can automatically manage Let's Encrypt 
 4. Set `Network.HttpPort` to `80` and `Network.HttpsPort` to `443`.
 5. Optionally set `FilePaths.HttpsEmail` so Let's Encrypt can send expiry notices.
 6. Leave `FilePaths.HttpsCertFile` and `FilePaths.HttpsKeyFile` empty unless you want to use your own certificate files instead.
+
+If HTTPS is not working and you need to roll back quickly, run `make https-setup`, choose `Disable HTTPS and use HTTP only`, apply the change, and restart GoMud so it rebinds the listeners.
 
 Notes:
 

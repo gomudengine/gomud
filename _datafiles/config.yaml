@@ -209,9 +209,18 @@ FilePaths:
   #   the server crashes during a save.
   CarefulSaveFiles: true
   # - HttpsCertFile/HttpsKeyFile -
-  #   Used to negotiate TLS/https requests
+  #   Used to negotiate TLS/https requests.
+  #   If both are set, manual certificate files take precedence over
+  #   automatic Let's Encrypt HTTPS.
   HttpsCertFile: ""
   HttpsKeyFile: ""
+  # - HttpsEmail -
+  #   Contact email used for automatic HTTPS certificate registration/renewal.
+  HttpsEmail: ""
+  # - HttpsCacheDir -
+  #   Folder used to store automatic HTTPS certificate cache data.
+  #   Leave blank to use the default: _datafiles/tls
+  HttpsCacheDir: ""
   # - SSHHostKeyFile -
   #   Path to a PEM-encoded SSH host private key file.
   #   Required when SSHPort is non-zero. Generate with:
@@ -407,12 +416,16 @@ Network:
   HttpPort: 80
   # - HttpsPort -
   #   The port the server listens on for web requests
-  #   Note: Must have a cert/key file (See FilePaths)
+  #   Note: Manual TLS requires HttpsCertFile/HttpsKeyFile.
+  #   Automatic Let's Encrypt HTTPS requires a public WebDomain and standard
+  #   ports 80/443.
   #   0 (zero) means none.
   HttpsPort: 0
   # - HttpsRedirect -
   #   If true, will send all http traffic to https with a redirect
   #   Requires both Http and Https to be working.
+  #   In automatic Let's Encrypt mode, the HTTP port must still remain enabled
+  #   so ACME challenge requests can be answered on port 80.
   HttpsRedirect: false
   # - SSHPort -
   #   The port the server listens on for SSH connections.

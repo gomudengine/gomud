@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"text/template"
 	"time"
 
@@ -19,11 +20,13 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/util"
 	"github.com/gorilla/websocket"
+	"golang.org/x/crypto/acme/autocert"
 )
 
 var (
-	httpServer  *http.Server
-	httpsServer *http.Server
+	httpServer         *http.Server
+	httpsServer        *http.Server
+	httpsRedirectReady atomic.Bool
 
 	// internalMux is the single ServeMux used by both the live HTTP servers and
 	// the in-process InternalRequest dispatcher. All routes must be registered
@@ -40,11 +43,204 @@ var (
 
 	// Used to interface with plugins and request web stuff
 	webPlugins WebPlugin = nil
+
+	// defaultRegistrar is the singleton that implements ModuleAdminRegistrar.
+	defaultRegistrar = &moduleAdminRegistrarImpl{}
 )
 
+// WebNav is used for the public-facing navigation.
 type WebNav struct {
 	Name   string
 	Target string
+}
+
+// WebNavItem represents a top-level admin nav entry, optionally with sub-items.
+type WebNavItem struct {
+	Name     string
+	Target   string // primary href; empty if dropdown-only
+	SubItems []WebNavSub
+}
+
+// WebNavSub is a single item inside a dropdown.
+type WebNavSub struct {
+	Label  string
+	Target string
+}
+
+// ModuleAdminRegistrar is implemented by internal/web and provided to plugins
+// via plugins.SetAdminRegistrar. This breaks the import cycle.
+type ModuleAdminRegistrar interface {
+	// RegisterAdminPage registers a module admin page.
+	// htmlContent is the raw HTML read from the plugin's embedded FS.
+	RegisterAdminPage(name, slug, htmlContent string, addToNav bool, navParent string, dataFunc func(*http.Request) map[string]any)
+	// RegisterAdminAPIEndpoint registers a module API handler.
+	// handler receives the request and returns (statusCode, success, data).
+	RegisterAdminAPIEndpoint(method, slug string, handler func(*http.Request) (int, bool, any))
+}
+
+// moduleAdminRegistrarImpl holds module-contributed nav and API routes.
+type moduleAdminRegistrarImpl struct {
+	navItems []WebNavItem
+}
+
+// GetAdminRegistrar returns the ModuleAdminRegistrar that main.go passes to
+// plugins.SetAdminRegistrar.
+func GetAdminRegistrar() ModuleAdminRegistrar {
+	return defaultRegistrar
+}
+
+// RegisterAdminPage registers a module admin page on internalMux and records
+// its nav contribution.
+func (reg *moduleAdminRegistrarImpl) RegisterAdminPage(
+	name, slug, htmlContent string,
+	addToNav bool,
+	navParent string,
+	dataFunc func(*http.Request) map[string]any,
+) {
+	path := "/admin/" + slug
+
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		adminHtml := configs.GetFilePathsConfig().AdminHtml.String()
+
+		tmpl, err := template.New(slug+".html").Funcs(funcMap).ParseFiles(
+			adminHtml+"/_header.html",
+			adminHtml+"/_footer.html",
+		)
+		if err != nil {
+			mudlog.Error("HTML ERROR", "error", err)
+			http.Error(w, "Error parsing template files", http.StatusInternalServerError)
+			return
+		}
+		tmpl, err = tmpl.Parse(htmlContent)
+		if err != nil {
+			mudlog.Error("HTML ERROR", "error", err)
+			http.Error(w, "Error parsing module html", http.StatusInternalServerError)
+			return
+		}
+
+		templateData := map[string]any{
+			"CONFIG": configs.GetConfig(),
+			"STATS":  GetStats(),
+			"NAV":    buildAdminNav(),
+		}
+		if dataFunc != nil {
+			for k, v := range dataFunc(r) {
+				if _, exists := templateData[k]; !exists {
+					templateData[k] = v
+				}
+			}
+		}
+
+		w.Header().Set("Cache-Control", "no-store")
+		if err := tmpl.Execute(w, templateData); err != nil {
+			mudlog.Error("HTML ERROR", "action", "Execute", "error", err)
+		}
+	}
+
+	internalMux.HandleFunc("GET "+path, RunWithMUDLocked(doBasicAuth(handler)))
+
+	if !addToNav {
+		return
+	}
+
+	if navParent == "" {
+		// Top-level nav item with a single sub-item pointing to itself.
+		reg.navItems = append(reg.navItems, WebNavItem{
+			Name:   name,
+			Target: path,
+			SubItems: []WebNavSub{
+				{Label: "View", Target: path},
+			},
+		})
+		return
+	}
+
+	// Attach as sub-item to an existing nav entry.
+	for i, item := range reg.navItems {
+		if item.Name == navParent {
+			reg.navItems[i].SubItems = append(reg.navItems[i].SubItems, WebNavSub{
+				Label:  name,
+				Target: path,
+			})
+			return
+		}
+	}
+	// Parent not found yet — add as top-level with the sub-item.
+	reg.navItems = append(reg.navItems, WebNavItem{
+		Name:   navParent,
+		Target: "",
+		SubItems: []WebNavSub{
+			{Label: name, Target: path},
+		},
+	})
+}
+
+// RegisterAdminAPIEndpoint registers a module API endpoint on internalMux.
+func (reg *moduleAdminRegistrarImpl) RegisterAdminAPIEndpoint(
+	method, slug string,
+	handler func(*http.Request) (int, bool, any),
+) {
+	path := "/admin/api/v1/" + slug
+
+	h := func(w http.ResponseWriter, r *http.Request) {
+		status, success, data := handler(r)
+		writeJSON(w, status, APIResponse[any]{Success: success, Data: data})
+	}
+
+	internalMux.HandleFunc(method+" "+path, RunWithMUDLocked(doBasicAuth(h)))
+}
+
+// buildAdminNav returns the full admin navigation, combining hardcoded core
+// entries with module-contributed entries.
+func buildAdminNav() []WebNavItem {
+	nav := []WebNavItem{
+		{
+			Name:   "Dashboard",
+			Target: "/admin/",
+		},
+		{
+			Name:   "Config",
+			Target: "/admin/config",
+			SubItems: []WebNavSub{
+				{Label: "View / Edit", Target: "/admin/config"},
+				{Label: "API Docs", Target: "/admin/config-api"},
+			},
+		},
+		{
+			Name:   "Items",
+			Target: "/admin/items",
+			SubItems: []WebNavSub{
+				{Label: "View / Edit", Target: "/admin/items"},
+				{Label: "API Docs", Target: "/admin/items-api"},
+			},
+		},
+		{
+			Name:   "Buffs",
+			Target: "/admin/buffs",
+			SubItems: []WebNavSub{
+				{Label: "View / Edit", Target: "/admin/buffs"},
+				{Label: "API Docs", Target: "/admin/buffs-api"},
+			},
+		},
+		{
+			Name:   "Quests",
+			Target: "/admin/quests",
+			SubItems: []WebNavSub{
+				{Label: "View / Edit", Target: "/admin/quests"},
+				{Label: "API Docs", Target: "/admin/quests-api"},
+			},
+		},
+		{
+			Name:   "Users",
+			Target: "/admin/users",
+			SubItems: []WebNavSub{
+				{Label: "View / Search", Target: "/admin/users"},
+				{Label: "API Docs", Target: "/admin/users-api"},
+			},
+		},
+	}
+	nav = append(nav, defaultRegistrar.navItems...)
+	return nav
 }
 
 type WebPlugin interface {
@@ -234,8 +430,11 @@ func serveTemplate(w http.ResponseWriter, r *http.Request) {
 }
 
 func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn)) {
+	httpsRedirectReady.Store(false)
 
 	networkConfig := configs.GetNetworkConfig()
+	filePaths := configs.GetFilePathsConfig()
+	httpsPlan := resolveHTTPSPlan(networkConfig, filePaths)
 
 	if networkConfig.HttpPort == 0 && networkConfig.HttpsPort == 0 {
 		slog.Error(`Web`, "error", "No ports defined. No web server will be started.")
@@ -271,50 +470,132 @@ func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn)) {
 	// Https server start up
 	//
 
-	if networkConfig.HttpsPort > 0 {
+	switch httpsPlan.mode {
+	case httpsModeManual:
+		status := newHTTPSStatus(httpsPlan, networkConfig)
+		SetHTTPSStatus(status)
+		logHTTPSStatus(status)
 
-		filePaths := configs.GetFilePathsConfig()
+		mudlog.Info("HTTPS", "stage", "Validating public/private key pair", "Public Cert", httpsPlan.certFile, "Private Key", httpsPlan.keyFile)
 
-		if len(filePaths.HttpsCertFile) == 0 || len(filePaths.HttpsKeyFile) == 0 {
-
-			mudlog.Info("HTTPS", "stage", "skipping", "error", "Undefined public/private key files", "Public Cert", filePaths.HttpsCertFile, "Private Key", filePaths.HttpsKeyFile)
-
+		cert, err := tls.LoadX509KeyPair(httpsPlan.certFile, httpsPlan.keyFile)
+		if err != nil {
+			UpdateHTTPSStatus(func(status *HTTPSStatus) {
+				markHTTPSStartupFailure(status, err)
+			})
+			mudlog.Error("HTTPS", "error", fmt.Errorf("Error loading certificate and key: %w", err))
 		} else {
-
-			if filePaths.HttpsCertFile != `` && filePaths.HttpsKeyFile != `` {
-
-				mudlog.Info("HTTPS", "stage", "Validating public/private key pair", "Public Cert", filePaths.HttpsCertFile, "Private Key", filePaths.HttpsKeyFile)
-
-				cert, err := tls.LoadX509KeyPair(string(filePaths.HttpsCertFile), string(filePaths.HttpsKeyFile))
-
-				if err != nil {
-
-					mudlog.Error("HTTPS", "error", fmt.Errorf("Error loading certificate and key: %w", err))
-
-				} else {
-
-					tlsConfig := &tls.Config{
-						Certificates: []tls.Certificate{cert},
-					}
-
-					wg.Add(1)
-
-					httpsServer = &http.Server{
-						Addr:      fmt.Sprintf(`:%d`, networkConfig.HttpsPort),
-						TLSConfig: tlsConfig,
-						Handler:   internalMux,
-					}
-
-					mudlog.Info("HTTPS", "stage", "Starting https server", "port", networkConfig.HttpsPort)
-					go func() {
-						defer wg.Done()
-						if err := httpsServer.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
-							mudlog.Error("HTTPS", "error", fmt.Errorf("Error starting HTTPS web server: %w", err))
-						}
-					}()
-				}
+			if leaf, leafErr := firstLeafCertificate(&cert); leafErr == nil {
+				UpdateHTTPSStatus(func(status *HTTPSStatus) {
+					setCertificateInfo(status, leaf)
+				})
 			}
+
+			tlsConfig := &tls.Config{
+				Certificates: []tls.Certificate{cert},
+			}
+
+			httpsServer = &http.Server{
+				Addr:      fmt.Sprintf(`:%d`, networkConfig.HttpsPort),
+				TLSConfig: tlsConfig,
+				Handler:   internalMux,
+			}
+
+			mudlog.Info("HTTPS", "stage", "Starting https server", "mode", "manual", "port", networkConfig.HttpsPort)
+			startHTTPSServer(wg, httpsServer, func() {
+				httpsRedirectReady.Store(true)
+				UpdateHTTPSStatus(func(status *HTTPSStatus) {
+					markHTTPSListenerReady(status, bool(networkConfig.HttpsRedirect))
+				})
+			}, func(err error) {
+				httpsRedirectReady.Store(false)
+				UpdateHTTPSStatus(func(status *HTTPSStatus) {
+					markHTTPSStartupFailure(status, err)
+					status.NextSteps = append(status.NextSteps, describeListenError(int(networkConfig.HttpsPort), err)...)
+				})
+				mudlog.Error("HTTPS", "error", fmt.Errorf("Error starting HTTPS web server: %w", err))
+			})
 		}
+	case httpsModeAuto:
+		status := newHTTPSStatus(httpsPlan, networkConfig)
+		runAutoHTTPSPreflight(&status)
+		SetHTTPSStatus(status)
+		logHTTPSStatus(status)
+
+		if err := os.MkdirAll(httpsPlan.cacheDir, 0700); err != nil {
+			mudlog.Error("HTTPS", "error", fmt.Errorf("Error creating HTTPS cache dir: %w", err), "cacheDir", httpsPlan.cacheDir)
+			httpsPlan.mode = httpsModeHTTPOnly
+			if httpsPlan.fallbackReason == "" {
+				httpsPlan.fallbackReason = fmt.Sprintf("automatic HTTPS cache directory %q is not writable", httpsPlan.cacheDir)
+			}
+			SetHTTPSStatus(newHTTPSStatus(httpsPlan, networkConfig))
+			break
+		}
+
+		manager := &autocert.Manager{
+			Prompt:     autocert.AcceptTOS,
+			Cache:      autocert.DirCache(httpsPlan.cacheDir),
+			HostPolicy: autocert.HostWhitelist(httpsPlan.host),
+			Email:      httpsPlan.email,
+		}
+
+		httpServer = &http.Server{
+			Addr:    fmt.Sprintf(`:%d`, networkConfig.HttpPort),
+			Handler: buildAutoHTTPHandler(manager, networkConfig, internalMux, &httpsRedirectReady),
+		}
+
+		baseTLSConfig := manager.TLSConfig()
+		baseGetCertificate := baseTLSConfig.GetCertificate
+		baseTLSConfig.GetCertificate = func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+			if err := validateAutoHTTPSServerName(httpsPlan.host, hello.ServerName); err != nil {
+				return nil, err
+			}
+
+			cert, err := baseGetCertificate(hello)
+			if err == nil {
+				if leaf, leafErr := firstLeafCertificate(cert); leafErr == nil {
+					UpdateHTTPSStatus(func(status *HTTPSStatus) {
+						setCertificateInfo(status, leaf)
+						status.LastError = ""
+					})
+				}
+			} else {
+				UpdateHTTPSStatus(func(status *HTTPSStatus) {
+					status.LastError = err.Error()
+				})
+			}
+			return cert, err
+		}
+
+		httpsServer = &http.Server{
+			Addr:      fmt.Sprintf(`:%d`, networkConfig.HttpsPort),
+			TLSConfig: baseTLSConfig,
+			Handler:   internalMux,
+			ErrorLog:  log.New(automaticHTTPSLogFilter{}, "", 0),
+		}
+
+		mudlog.Info("HTTPS", "stage", "Starting https server", "mode", "automatic", "host", httpsPlan.host, "port", networkConfig.HttpsPort, "cacheDir", httpsPlan.cacheDir)
+		if httpsPlan.emailNoticeNeeded {
+			mudlog.Warn("HTTPS", "warning", "Automatic HTTPS is enabled without HttpsEmail; certificate expiry notices will not be sent by email.")
+		}
+
+		startHTTPSServer(wg, httpsServer, func() {
+			httpsRedirectReady.Store(true)
+			UpdateHTTPSStatus(func(status *HTTPSStatus) {
+				markHTTPSListenerReady(status, bool(networkConfig.HttpsRedirect))
+			})
+		}, func(err error) {
+			httpsRedirectReady.Store(false)
+			UpdateHTTPSStatus(func(status *HTTPSStatus) {
+				markHTTPSStartupFailure(status, err)
+				status.NextSteps = append(status.NextSteps, describeListenError(int(networkConfig.HttpsPort), err)...)
+			})
+			mudlog.Error("HTTPS", "error", fmt.Errorf("Error starting HTTPS web server: %w", err))
+		})
+	case httpsModeHTTPOnly:
+		status := newHTTPSStatus(httpsPlan, networkConfig)
+		SetHTTPSStatus(status)
+		logHTTPSStatus(status)
 	}
 
 	//
@@ -323,12 +604,16 @@ func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn)) {
 
 	if networkConfig.HttpPort > 0 {
 
-		httpServer = &http.Server{
-			Addr:    fmt.Sprintf(`:%d`, networkConfig.HttpPort),
-			Handler: internalMux,
+		if httpServer == nil {
+			httpServer = &http.Server{
+				Addr:    fmt.Sprintf(`:%d`, networkConfig.HttpPort),
+				Handler: internalMux,
+			}
+		} else if httpServer.Handler == nil {
+			httpServer.Handler = internalMux
 		}
 
-		if networkConfig.HttpsRedirect {
+		if networkConfig.HttpsRedirect && httpsPlan.mode != httpsModeAuto {
 
 			if httpsServer == nil {
 
@@ -343,7 +628,7 @@ func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn)) {
 					http.Redirect(w, r, target, http.StatusMovedPermanently)
 				}
 
-				httpServer.Handler = redirectHandler
+				httpServer.Handler = buildConditionalHTTPSRedirectHandler(redirectHandler, int(networkConfig.HttpsPort), internalMux, &httpsRedirectReady)
 
 			}
 
@@ -357,6 +642,14 @@ func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn)) {
 			defer wg.Done()
 
 			if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				UpdateHTTPSStatus(func(status *HTTPSStatus) {
+					if status.Mode == string(httpsModeAuto) {
+						markAutoHTTPSHTTPFailure(status, err)
+					} else {
+						status.LastError = err.Error()
+					}
+					status.NextSteps = append(status.NextSteps, describeListenError(int(networkConfig.HttpPort), err)...)
+				})
 				mudlog.Error("HTTP", "error", fmt.Errorf("Error starting web server: %w", err))
 			}
 		}()
@@ -364,22 +657,60 @@ func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn)) {
 
 }
 
-func buildHTTPSRedirectTarget(host string, httpsPort int, requestURI string) string {
-	if strings.Contains(host, ":") {
-		if splitHost, _, err := net.SplitHostPort(host); err == nil {
-			host = splitHost
+func startHTTPSServer(wg *sync.WaitGroup, server *http.Server, onBound func(), onError func(error)) {
+	listener, err := net.Listen("tcp", server.Addr)
+	if err != nil {
+		onError(err)
+		return
+	}
+
+	if onBound != nil {
+		onBound()
+	}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		tlsListener := tls.NewListener(listener, server.TLSConfig)
+		if err := server.Serve(tlsListener); err != nil && err != http.ErrServerClosed {
+			onError(err)
 		}
+	}()
+}
+
+func buildConditionalHTTPSRedirectHandler(redirect http.Handler, httpsPort int, fallback http.Handler, redirectReady *atomic.Bool) http.Handler {
+	if fallback == nil {
+		fallback = internalMux
 	}
 
-	if strings.Contains(host, ":") && !strings.HasPrefix(host, "[") {
-		host = "[" + host + "]"
+	if redirect == nil {
+		redirect = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			target := buildHTTPSRedirectTarget(r.Host, httpsPort, r.RequestURI)
+			http.Redirect(w, r, target, http.StatusMovedPermanently)
+		})
 	}
 
-	if httpsPort == 443 {
-		return fmt.Sprintf("https://%s%s", host, requestURI)
+	if redirectReady == nil {
+		return redirect
 	}
 
-	return fmt.Sprintf("https://%s:%d%s", host, httpsPort, requestURI)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !redirectReady.Load() {
+			fallback.ServeHTTP(w, r)
+			return
+		}
+
+		redirect.ServeHTTP(w, r)
+	})
+}
+
+func buildAutoHTTPHandler(manager *autocert.Manager, networkConfig configs.Network, fallback http.Handler, redirectReady *atomic.Bool) http.Handler {
+	if bool(networkConfig.HttpsRedirect) {
+		fallback = buildConditionalHTTPSRedirectHandler(nil, int(networkConfig.HttpsPort), fallback, redirectReady)
+	}
+
+	return manager.HTTPHandler(fallback)
 }
 
 // RunWithMUDLocked wraps a handler with the game mutex. Internal requests
@@ -391,13 +722,16 @@ func RunWithMUDLocked(next http.HandlerFunc) http.HandlerFunc {
 			next.ServeHTTP(w, r)
 			return
 		}
+
 		util.LockMud()
 		defer util.UnlockMud()
+
 		next.ServeHTTP(w, r)
 	})
 }
 
 func Shutdown() {
+	httpsRedirectReady.Store(false)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -417,6 +751,15 @@ func Shutdown() {
 			mudlog.Info("HTTPS", "stage", "stopped")
 		}
 	}
+}
+
+// serveAdminStaticFile serves static assets from the admin HTML directory.
+// The full URL path relative to /admin/ is preserved so subdirectories work.
+func serveAdminStaticFile(w http.ResponseWriter, r *http.Request) {
+	adminRoot := filepath.Clean(configs.GetFilePathsConfig().AdminHtml.String())
+	rel := strings.TrimPrefix(r.URL.Path, "/admin")
+	fullPath := filepath.Join(adminRoot, filepath.Clean(rel))
+	http.ServeFile(w, r, fullPath)
 }
 
 func sendError(w http.ResponseWriter, r *http.Request, status int) {

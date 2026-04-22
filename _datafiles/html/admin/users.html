@@ -1,0 +1,128 @@
+{{template "header" .}}
+
+<style>
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #555; margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+    .search-bar { display: flex; gap: 0.6rem; align-items: center; margin-bottom: 1.25rem; }
+    .search-bar input[type="search"] { flex: 1; max-width: 400px; padding: 0.45rem 0.7rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; }
+    .btn { padding: 0.45rem 1.1rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.875rem; font-weight: 600; }
+    .btn-primary { background: #1a1a2e; color: #fff; }
+    .btn-primary:hover { background: #2d2d4e; }
+    .btn-primary:disabled { background: #999; cursor: default; }
+
+    .status-bar { display: none; padding: 0.55rem 0.9rem; border-radius: 4px; font-size: 0.85rem; margin-bottom: 1rem; }
+    .status-bar.success { background: #e6f4ea; color: #1e6e34; display: block; }
+    .status-bar.error   { background: #fde8e8; color: #8a0000; display: block; }
+
+    .results-table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; font-size: 0.875rem; }
+    .results-table th { background: #1a1a2e; color: #fff; padding: 0.6rem 0.9rem; text-align: left; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+    .results-table td { padding: 0.55rem 0.9rem; border-bottom: 1px solid #f0f0f0; }
+    .results-table tr:last-child td { border-bottom: none; }
+    .results-table tr:hover td { background: #f5f7ff; }
+    .results-table .empty-row td { text-align: center; color: #888; padding: 2.5rem; font-style: italic; }
+
+    .role-badge { display: inline-block; font-size: 0.72rem; padding: 0.15rem 0.45rem; border-radius: 3px; font-weight: 600; text-transform: uppercase; }
+    .role-admin { background: #fde8e8; color: #8a0000; }
+    .role-user  { background: #e6f4ea; color: #1e6e34; }
+    .role-guest { background: #f0f0f0; color: #555; }
+
+    .uid { font-family: monospace; color: #888; font-size: 0.82rem; }
+</style>
+
+<h1>Users</h1>
+<p class="subtitle">Search for user accounts by username. Exact matches are returned first; prefix matches are shown when no exact match is found.</p>
+
+<div id="status-bar" class="status-bar"></div>
+
+<div class="search-bar">
+    <input type="search" id="user-search" placeholder="Search by username..." />
+    <button class="btn btn-primary" id="search-btn" onclick="doSearch()">Search</button>
+</div>
+
+<table class="results-table">
+    <thead>
+        <tr>
+            <th>User ID</th>
+            <th>Username</th>
+            <th>Role</th>
+            <th>Email</th>
+        </tr>
+    </thead>
+    <tbody id="results-body">
+        <tr class="empty-row"><td colspan="4">Enter a username above and click Search.</td></tr>
+    </tbody>
+</table>
+
+<script>
+(function () {
+    'use strict';
+
+    const searchInput = document.getElementById('user-search');
+    const searchBtn   = document.getElementById('search-btn');
+
+    searchInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') doSearch();
+    });
+
+    window.doSearch = async function () {
+        const name = searchInput.value.trim();
+        if (!name) { showStatus('Enter a username to search.', false); return; }
+
+        searchBtn.disabled = true;
+        searchBtn.textContent = 'Searching...';
+
+        const res = await AdminAPI.get('/admin/api/v1/users/search?name=' + encodeURIComponent(name));
+
+        searchBtn.disabled = false;
+        searchBtn.textContent = 'Search';
+
+        if (!res.ok) {
+            showStatus('Search failed: ' + res.error, false);
+            renderResults([]);
+            return;
+        }
+
+        const users = res.data.data || [];
+        renderResults(users);
+
+        if (users.length === 0) {
+            showStatus('No users found matching "' + esc(name) + '".', false);
+        } else {
+            showStatus('Found ' + users.length + ' result' + (users.length === 1 ? '' : 's') + '.', true);
+        }
+    };
+
+    function renderResults(users) {
+        const tbody = document.getElementById('results-body');
+        if (!users.length) {
+            tbody.innerHTML = '<tr class="empty-row"><td colspan="4">No results.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = '';
+        for (const u of users) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="uid">${u.user_id}</td>
+                <td>${esc(u.username)}</td>
+                <td><span class="role-badge role-${esc(u.role)}">${esc(u.role)}</span></td>
+                <td>${u.email ? esc(u.email) : '<span style="color:#bbb">—</span>'}</td>`;
+            tbody.appendChild(tr);
+        }
+    }
+
+    function showStatus(msg, ok) {
+        const bar = document.getElementById('status-bar');
+        bar.textContent = msg;
+        bar.className = 'status-bar ' + (ok ? 'success' : 'error');
+        clearTimeout(bar._t);
+        bar._t = setTimeout(() => { bar.className = 'status-bar'; }, 7000);
+    }
+
+    function esc(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+})();
+</script>
+
+{{template "footer" .}}

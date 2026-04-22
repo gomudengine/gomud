@@ -14,6 +14,7 @@ import (
 	_ "github.com/GoMudEngine/GoMud/modules/leaderboards"
 	_ "github.com/GoMudEngine/GoMud/modules/mudmail"
 	_ "github.com/GoMudEngine/GoMud/modules/newbieguide"
+	_ "github.com/GoMudEngine/GoMud/modules/storage"
 	_ "github.com/GoMudEngine/GoMud/modules/time"
 	_ "github.com/GoMudEngine/GoMud/modules/webhelp"
 	_ "github.com/GoMudEngine/GoMud/modules/zombiemode"

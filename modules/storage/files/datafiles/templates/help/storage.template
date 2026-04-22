@@ -1,0 +1,26 @@
+<ansi fg="black-bold">.:</ansi> <ansi fg="magenta">Help for the <ansi fg="command">storage</ansi> command.</ansi>
+
+The <ansi fg="command">storage</ansi> command lets you store and retrieve items at a storage location.
+Storage locations are special rooms tagged with <ansi fg="yellow">storage</ansi>.
+
+<ansi fg="yellow">Usage: </ansi>
+
+  <ansi fg="command">storage</ansi>
+  Lists all items currently in your storage.
+
+  <ansi fg="command">storage add <item></ansi>
+  Moves an item from your backpack into storage.
+
+  <ansi fg="command">storage add all</ansi>
+  Moves all items from your backpack into storage.
+
+  <ansi fg="command">storage remove <item></ansi>
+  Retrieves an item from storage into your backpack.
+
+  <ansi fg="command">storage remove all</ansi>
+  Retrieves all items from storage.
+
+  <ansi fg="command">storage remove 2</ansi>
+  Retrieves the 2nd item listed in storage (by number).
+
+Find out more about referring to items by name by typing <ansi fg="command">help item-names</ansi>.

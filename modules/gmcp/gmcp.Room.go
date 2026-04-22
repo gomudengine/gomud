@@ -496,9 +496,6 @@ func (g *GMCPRoomModule) GetRoomNode(user *users.UserRecord, gmcpModule string) 
 		if room.IsBank {
 			payload.Details = append(payload.Details, `bank`)
 		}
-		if room.IsStorage {
-			payload.Details = append(payload.Details, `storage`)
-		}
 		if room.IsCharacterRoom {
 			payload.Details = append(payload.Details, `character`)
 		}

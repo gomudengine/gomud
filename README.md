@@ -8,7 +8,7 @@
 
 It includes a fully playable default world, and provides built-in tools to customize or create your own.
 
-Playable online demo: **http://www.gomud.net**
+Playable online demo: **<http://www.gomud.net>**
 
 ---
 
@@ -21,6 +21,9 @@ Playable online demo: **http://www.gomud.net**
   - [Requirements](#requirements)
   - [Usage](#usage)
 - [Connecting](#connecting)
+- [Configuration](#configuration)
+  - [Configuration Files](#configuration-files)
+  - [Enable Server HTTPS Support](#enable-server-https-support)
 - [User Support](#user-support)
 - [Development Notes](#development-notes)
   - [Contributor Guide](#contributor-guide)
@@ -68,22 +71,21 @@ Colorization is handled through extensive use of my [github.com/GoMudEngine/ansi
 
 ### Requirements
 
-- `go` language runtime installed
+- `go` 1.24 or newer
+- Optional: `docker` for container builds/test/runs
 
-- `docker` to build/run as a container (optional)
+### Quick Start
 
-### Usage
-
-In a Terminal, run one of the following commands:
+In a Terminal, run the following commands:
 
 ```shell
-make run          # runs GoMud using the `go` framework
+git clone https://github.com/GoMudEngine/GoMud.git
+cd GoMud
 
-make build        # creates a executable binary of GoMud at `./go-mud-server`
+make reset-admin-pw   # set a new default admin password
+make run              # runs GoMud server using `go`
 
-make docker-run   # runs GoMud in a container using Docker Compose
-
-make help         # shows all available `make` command options
+make docker-run       # Alternatively, run the GoMud server using `docker`
 ```
 
 On Linux and other Unix-like hosts, if the active config uses privileged ports
@@ -109,11 +111,13 @@ automatically when Docker itself is not available to the current user. On
 Windows hosts, it uses the normal Docker command path without a `sudo`
 fallback.
 
+Then open your browser to: `http://localhost`
+
 ---
 
 ## Connecting
 
-When the GoMud server is running, you can connect it via the Terminal, or with a web browser:
+When the GoMud server is running, you can connect it via the Terminal, or with a web browser.
 
 - Telnet: `localhost:33333` or `localhost:44444`
 - Local-only telnet port: `127.0.0.1:9999`
@@ -121,10 +125,58 @@ When the GoMud server is running, you can connect it via the Terminal, or with a
 - Web client: [http://localhost/webclient](http://localhost/webclient)
 - Web admin: [http://localhost/admin/](http://localhost/admin/)
 
-Default seeded credentials in the bundled world:
+**Important:** Run `make reset-admin-pw`, otherwise your default world will launch with these credentials:
 
 - Username: `admin`
 - Password: `password`
+
+## Common Server Commands
+
+In a Terminal, run one of the following commands:
+
+```shell
+
+make run          # runs GoMud using the `go` framework
+
+make build        # creates a executable binary of GoMud at `./go-mud-server`
+
+make run-docker   # runs GoMud in a container using Docker Compose
+
+make help         # shows all available `make` command options
+```
+
+## Configuration
+
+### Config Files
+
+GoMud loads configuration in layers so you can keep your own world-specific changes separate from the bundled defaults:
+
+```text
+_datafiles/config.yaml
+  -> FilePaths.DataFiles (defaults to _datafiles/world/default)
+      -> {DataFiles}/config-overrides.yaml
+          -> environment variables such as CONFIG_PATH, LOG_PATH, LOG_LEVEL, LOG_NOCOLOR
+```
+
+- `_datafiles/config.yaml` is the bundled base config that ships with the repo, and shouldn't be edited or changed.
+- `FilePaths.DataFiles` points at the active world data directory. By default that is `_datafiles/world/default`.
+- `{DataFiles}/config-overrides.yaml` is the normal place to save local overrides for a world.
+- `CONFIG_PATH=/path/to/config.yaml` can point GoMud at a different override file when you want to keep it outside the repo or maintain separate deploy-specific settings.
+
+- For upgrades, treat `_datafiles/config.yaml` as a reference file, not your day-to-day edit target.
+- Keep your custom changes in `config-overrides.yaml` or a separate file selected with `CONFIG_PATH` so pulling new code does not overwrite your local settings.
+
+### Enable Server HTTPS Support
+
+GoMud can serve HTTPS when you provide a certificate and private key, or can be automated using LetsEncrypt provisioning.
+
+For a guided HTTPS setup process, run:
+
+```shell
+make https-setup
+```
+
+When the admin interface is enabled, `/admin/https/` shows the current HTTPS mode, the checks GoMud ran, and the next steps needed to finish setup.
 
 ---
 
@@ -152,7 +204,10 @@ Interested in contributing? Check out our [CONTRIBUTING.md](https://github.com/G
 |--------------------|-----------------------------------------------------------------------------|
 | `make build`       | Validates and builds the server binary.                                     |
 | `make run`         | Generates module imports and starts the server with `go run .`.             |
-| `make run-docker`  | Builds and starts the Docker environment from `compose.yml`.                |
+| `make run-new`     | Deletes generated room instance data, then starts the server fresh.         |
+| `make run-docker`  | Builds and starts the server container from `compose.yml`.                  |
+| `make https-setup` | Runs the interactive HTTPS certificate setup helper.                        |
+| `make reset-admin-pw` | Interactively resets the admin user's password.                          |
 | `make test`        | Runs code generation, JavaScript linting, and `go test -race ./...`.        |
 | `make validate`    | Runs `fmtcheck` and `go vet`.                                               |
 | `make ci-local`    | Builds the local CI container and runs workflow validation.                 |

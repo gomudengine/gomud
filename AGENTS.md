@@ -224,7 +224,7 @@ make client               # Connect telnet client to Docker instance
 - **Pet System**: `internal/pets/AGENTS.md` - Comprehensive companion system with feeding mechanics, combat abilities, inventory management, and stat modifications
 - **Race System**: `internal/races/AGENTS.md` - Character race system with racial characteristics, abilities, stat bonuses, size classifications, and behavioral traits
 - **Stat Modifications**: `internal/statmods/AGENTS.md` - Centralized system for managing character statistic modifications from items, buffs, racial bonuses, and skills
-- **Suggestions System**: `internal/suggestions/AGENTS.md` - Simple suggestion cycling system for command completion, auto-suggestions, and help hints
+- **Suggestions System**: `internal/suggestions/AGENTS.md` - Simple suggestion cycling system for command completion, auto-suggestions, and help hints; includes the `OnAutoComplete` hook that modules use to contribute tab-completion results for their own commands
 - **Template System**: `internal/templates/AGENTS.md` - Comprehensive template processing with ANSI color support, markdown processing, and multi-source file integration
 - **Conversations System**: `internal/conversations/AGENTS.md` - Dynamic NPC conversation system with scripted dialogues, participant matching, and turn-based execution
 - **Input Handlers**: `internal/inputhandlers/AGENTS.md` - Comprehensive input processing system with authentication, login flows, system commands, and terminal protocol handling
@@ -254,6 +254,7 @@ make client               # Connect telnet client to Docker instance
 - **Time Module**: `modules/time/AGENTS.md` - time command displaying current in-game date, time, and zodiac
 - **WebHelp Module**: `modules/webhelp/AGENTS.md` - Web-based help browser exposing all in-game help topics as HTML pages
 - **Zombie Mode Module**: `modules/zombiemode/AGENTS.md` - AFK automation system with configurable combat, looting, roaming, and resting behaviors
+- **Storage Module**: `modules/storage/AGENTS.md` - Player item storage system with room-tag-based activation, legacy migration, and admin web interface
 - **Mudmail Module**: `modules/mudmail/AGENTS.md` - Player inbox and admin mass-mail system
 
 ## Important

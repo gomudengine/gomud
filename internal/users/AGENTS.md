@@ -206,6 +206,24 @@ func (s *Storage) RemoveItem(i items.Item) bool
 
 `MigrateInbox(userId int) []LegacyMessage` reads any `inbox:` data from a user's YAML file written by a previous server version, before the mudmail module took ownership of inbox data. Called once per user on their first `PlayerSpawn` after upgrading. `LegacyMessage` mirrors the old message struct for unmarshalling only.
 
+### User Search (`search.go`)
+
+```go
+type UserSearchResult struct {
+    UserId   int    `json:"user_id"`
+    Username string `json:"username"`
+    Role     string `json:"role"`
+    Email    string `json:"email"`
+}
+
+// SearchUsers returns an exact match (sole result) or all prefix matches for
+// searchName. The search is case-insensitive and reads the binary user index
+// directly to avoid loading full user records for every candidate. Role and
+// email are populated from the in-memory user map when the user is online, or
+// from a skip-validation disk load otherwise.
+func SearchUsers(searchName string) []UserSearchResult
+```
+
 ## User Data Management
 
 ### Temporary Data Storage

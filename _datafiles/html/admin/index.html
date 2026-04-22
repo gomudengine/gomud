@@ -3,43 +3,13 @@
 <style>
     h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
     .subtitle { color: #555; margin-bottom: 2rem; font-size: 0.9rem; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem; }
     .card { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 1.25rem; }
     .card h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: #666; margin-bottom: 0.5rem; }
     .card .value { font-size: 1.75rem; font-weight: 700; color: #1a1a2e; }
     .card .detail { font-size: 0.85rem; color: #555; margin-top: 0.25rem; }
-    h3 { font-size: 1.1rem; margin-bottom: 0.75rem; border-bottom: 1px solid #ddd; padding-bottom: 0.5rem; }
-    .section { margin-bottom: 2rem; }
-    .api-list { display: flex; flex-direction: column; gap: 0.5rem; }
-    .api-entry { background: #fff; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; }
-    .api-entry summary { display: flex; align-items: baseline; gap: 0.75rem; padding: 0.65rem 1rem; cursor: pointer; user-select: none; list-style: none; }
-    .api-entry summary::-webkit-details-marker { display: none; }
-    .api-entry summary::before { content: "\25B6"; font-size: 0.65rem; color: #888; transition: transform 0.15s; flex-shrink: 0; }
-    .api-entry[open] summary::before { transform: rotate(90deg); }
-    .api-entry summary:hover { background: #fafafa; }
-    .method { font-family: monospace; font-size: 0.8rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 3px; flex-shrink: 0; }
-    .method-get  { background: #e6f4ea; color: #1e6e34; }
-    .method-patch { background: #fff3e0; color: #8a4a00; }
-    .api-path { font-family: monospace; font-size: 0.9rem; color: #1a1a2e; }
-    .api-desc { font-size: 0.85rem; color: #555; margin-left: auto; text-align: right; }
-    .api-body { padding: 0.75rem 1rem 1rem; border-top: 1px solid #eee; background: #fafafa; }
-    .api-body p { font-size: 0.85rem; color: #444; margin-bottom: 0.5rem; }
-    .curl-block { background: #1a1a2e; color: #c9d1d9; font-family: monospace; font-size: 0.82rem; padding: 0.85rem 1rem; border-radius: 5px; white-space: pre; overflow-x: auto; line-height: 1.6; }
-    .curl-block .kw  { color: #79c0ff; }
-    .curl-block .str { color: #a5d6ff; }
-    .curl-block .flag { color: #d2a8ff; }
-    .response-examples { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
-    .resp-entry { border: 1px solid #ddd; border-radius: 4px; overflow: hidden; }
-    .resp-entry summary { display: flex; align-items: baseline; gap: 0.6rem; padding: 0.45rem 0.75rem; cursor: pointer; user-select: none; list-style: none; background: #f5f5f5; font-size: 0.82rem; }
-    .resp-entry summary::-webkit-details-marker { display: none; }
-    .resp-entry summary::before { content: "\25B6"; font-size: 0.6rem; color: #888; transition: transform 0.15s; flex-shrink: 0; }
-    .resp-entry[open] summary::before { transform: rotate(90deg); }
-    .resp-entry summary:hover { background: #efefef; }
-    .resp-body { padding: 0.6rem 0.75rem 0.75rem; border-top: 1px solid #eee; background: #fafafa; }
-    .resp-body p { font-size: 0.82rem; color: #444; margin-bottom: 0.4rem; }
-    .status-ok   { background: #e6f4ea; color: #1e6e34; }
-    .status-err  { background: #fde8e8; color: #8a0000; }
-    .resp-label  { font-size: 0.8rem; color: #444; }
+    .card a { display: inline-block; margin-top: 0.75rem; font-size: 0.85rem; color: #1a1a2e; text-decoration: underline; }
+    .card a:hover { color: #444; }
 </style>
 
 <h1>{{.CONFIG.Server.MudName}}</h1>
@@ -61,80 +31,10 @@
         <div class="value">{{if .STATS.SSHPort}}{{.STATS.SSHPort}}{{else}}&mdash;{{end}}</div>
         <div class="detail">{{.STATS.SSHConnections}} connected</div>
     </div>
-</div>
-
-<div class="section">
-    <h3>REST API</h3>
-    <div class="api-list">
-
-        <details class="api-entry">
-            <summary>
-                <span class="method method-get">GET</span>
-                <span class="api-path">/admin/api/v1/config</span>
-                <span class="api-desc">Return all configuration values as a flat key/value map</span>
-            </summary>
-            <div class="api-body">
-                <p>Returns the full server configuration as a flat dot-path key/value map. Secrets are redacted.</p>
-                <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
-     <span class="str">http://localhost/admin/api/v1/config</span></div>
-                <div class="response-examples">
-                    <details class="resp-entry">
-                        <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
-                        <div class="resp-body">
-                            <p>Returns the full configuration map. Secrets appear as <code>*** REDACTED ***</code>.</p>
-                            <div class="curl-block">{&#10;  "success": true,&#10;  "data": {&#10;    "Server.MudName": "GoMud",&#10;    "Server.Seed": "*** REDACTED ***",&#10;    "Network.HttpPort": "80"&#10;  }&#10;}</div>
-                        </div>
-                    </details>
-                    <details class="resp-entry">
-                        <summary><span class="method resp-label status-err">401</span> <span class="resp-label">Unauthorized</span></summary>
-                        <div class="resp-body">
-                            <p>Invalid or missing credentials.</p>
-                            <div class="curl-block">{&#10;  "success": false,&#10;  "error": "unauthorized"&#10;}</div>
-                        </div>
-                    </details>
-                </div>
-            </div>
-        </details>
-
-        <details class="api-entry">
-            <summary>
-                <span class="method method-patch">PATCH</span>
-                <span class="api-path">/admin/api/v1/config</span>
-                <span class="api-desc">Update one or more configuration values</span>
-            </summary>
-            <div class="api-body">
-                <p>Accepts a JSON object of dot-path config keys to new string values. Locked keys are rejected and returned in the <code>rejected</code> list. Unknown keys return 400.</p>
-                <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
-     <span class="flag">-X</span> PATCH \
-     <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
-     <span class="flag">-d</span> <span class="str">'{ "Server.MudName": "My MUD" }'</span> \
-     <span class="str">http://localhost/admin/api/v1/config</span></div>
-                <div class="response-examples">
-                    <details class="resp-entry">
-                        <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
-                        <div class="resp-body">
-                            <p><code>applied</code> lists keys that were updated. <code>rejected</code> lists locked keys that were silently skipped.</p>
-                            <div class="curl-block">{&#10;  "success": true,&#10;  "data": {&#10;    "applied": ["Server.MudName"],&#10;    "rejected": ["Server.Seed"]&#10;  }&#10;}</div>
-                        </div>
-                    </details>
-                    <details class="resp-entry">
-                        <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request</span></summary>
-                        <div class="resp-body">
-                            <p>Returned when an unknown config key is supplied or the request body is malformed.</p>
-                            <div class="curl-block">{&#10;  "success": false,&#10;  "error": "unknown config key: Server.Typo"&#10;}</div>
-                        </div>
-                    </details>
-                    <details class="resp-entry">
-                        <summary><span class="method resp-label status-err">401</span> <span class="resp-label">Unauthorized</span></summary>
-                        <div class="resp-body">
-                            <p>Invalid or missing credentials.</p>
-                            <div class="curl-block">{&#10;  "success": false,&#10;  "error": "unauthorized"&#10;}</div>
-                        </div>
-                    </details>
-                </div>
-            </div>
-        </details>
-
+    <div class="card">
+        <h2>API Reference</h2>
+        <div class="detail">REST endpoints for configuration and module management.</div>
+        <a href="/admin/config-api">Config API Docs &rarr;</a>
     </div>
 </div>
 

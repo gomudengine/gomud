@@ -171,8 +171,8 @@ func (g *GMCPWorldModule) buildWorldMap(user *users.UserRecord) []GMCPWorldMap_R
 			if room.IsBank {
 				entry.Details = append(entry.Details, `bank`)
 			}
-			if room.IsStorage {
-				entry.Details = append(entry.Details, `storage`)
+			for _, tag := range room.Tags {
+				entry.Details = append(entry.Details, tag)
 			}
 			if room.IsCharacterRoom {
 				entry.Details = append(entry.Details, `character`)

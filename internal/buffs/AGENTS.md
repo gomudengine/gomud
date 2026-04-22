@@ -236,6 +236,25 @@ func (bs *Buffs) TriggersLeft(buffId int) int
 func (bs *Buffs) GetBuffs(buffId ...int) []*Buff
 ```
 
+## Admin / Persistence Helpers (`admin.go`)
+
+```go
+// GetAllBuffSpecs returns a copy of all loaded buff specs keyed by buffId.
+func GetAllBuffSpecs() map[int]*BuffSpec
+
+// SaveBuffSpec validates, saves to disk, and updates the in-memory cache.
+// BuffId must already be set.
+func SaveBuffSpec(spec *BuffSpec) error
+
+// DeleteBuffSpec removes the YAML file and any associated JS script from disk
+// and purges the entry from the in-memory cache.
+func DeleteBuffSpec(buffId int) error
+
+// SaveBuffScript writes content to the buff's script path.  An empty content
+// string deletes the script file.
+func SaveBuffScript(buffId int, content string) error
+```
+
 ## Scripting Integration
 
 ### Script System Support

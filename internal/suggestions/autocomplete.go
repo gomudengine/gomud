@@ -14,6 +14,34 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
 
+// AutoCompleteRequest is the value threaded through OnAutoComplete handlers.
+// Cmd is the resolved command (after alias expansion). Parts is the original
+// whitespace-split input slice. UserId identifies the requesting player.
+// Results is the accumulated completion suffix list; handlers append to it.
+type AutoCompleteRequest struct {
+	UserId  int
+	Cmd     string
+	Parts   []string
+	Results []string
+}
+
+// OnAutoComplete is fired after the built-in autocomplete logic has run.
+// Modules register handlers here to contribute completions for their own
+// commands. Each handler receives the current request (including any results
+// already accumulated by earlier handlers), may append to Results, and must
+// return the modified value.
+//
+// Example registration from a module:
+//
+//	suggestions.OnAutoComplete.Register(func(r suggestions.AutoCompleteRequest) suggestions.AutoCompleteRequest {
+//	    if r.Cmd != "mycommand" {
+//	        return r
+//	    }
+//	    // ... append to r.Results ...
+//	    return r
+//	})
+var OnAutoComplete util.Hook[AutoCompleteRequest]
+
 // GetAutoComplete returns a list of completion suffixes for the given partial
 // input text. Each entry is the text that should be appended to inputText to
 // form a complete suggestion. The results are sorted shortest-first.
@@ -83,7 +111,16 @@ func GetAutoComplete(userId int, inputText string) []string {
 		itemTypeSearch := []items.ItemType{}
 		itemSubtypeSearch := []items.ItemSubType{}
 
-		if cmd == `help` {
+		req := OnAutoComplete.Fire(AutoCompleteRequest{
+			UserId:  userId,
+			Cmd:     cmd,
+			Parts:   parts,
+			Results: result,
+		})
+
+		if len(req.Results) > 0 {
+			result = req.Results
+		} else if cmd == `help` {
 
 			result = append(result, usercommands.GetHelpSuggestions(targetName, isAdmin)...)
 
@@ -358,35 +395,6 @@ func GetAutoComplete(userId int, inputText string) []string {
 			for _, opt := range []string{`deposit`, `withdraw`} {
 				if strings.HasPrefix(opt, targetName) {
 					result = append(result, opt[targetNameLen:])
-				}
-			}
-
-		} else if cmd == `storage` {
-
-			for _, opt := range []string{`add`, `remove`} {
-				if strings.HasPrefix(opt, targetName) {
-					result = append(result, opt[targetNameLen:])
-				}
-			}
-
-			if len(parts) >= 3 {
-				subCmd := strings.ToLower(parts[1])
-				itemSearch := strings.ToLower(strings.Join(parts[2:], ` `))
-				itemSearchLen := len(itemSearch)
-				if subCmd == `add` {
-					for _, item := range user.Character.GetAllBackpackItems() {
-						iSpec := item.GetSpec()
-						if strings.HasPrefix(strings.ToLower(iSpec.Name), itemSearch) {
-							result = append(result, iSpec.Name[itemSearchLen:])
-						}
-					}
-				} else if subCmd == `remove` {
-					for _, item := range user.ItemStorage.GetItems() {
-						iSpec := item.GetSpec()
-						if strings.HasPrefix(strings.ToLower(iSpec.Name), itemSearch) {
-							result = append(result, iSpec.Name[itemSearchLen:])
-						}
-					}
 				}
 			}
 
