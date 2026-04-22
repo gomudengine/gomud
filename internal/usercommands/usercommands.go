@@ -147,7 +147,7 @@ var (
 		`spells`:      {Spells, true, false},
 		`stash`:       {Stash, false, false},
 		`status`:      {Status, true, false},
-		`storage`:     {Storage, false, false},
+
 		`suicide`:     {Suicide, true, false},
 		`syslogs`:     {SysLogs, true, true}, // Admin only
 		`tame`:        {Tame, false, false},

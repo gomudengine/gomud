@@ -38,7 +38,6 @@ type UserRecord struct {
 	Macros         map[string]string     `yaml:"macros,omitempty"`  // Up to 10 macros, just string commands.
 	Aliases        map[string]string     `yaml:"aliases,omitempty"` // string=>string remapping of commands
 	Character      *characters.Character `yaml:"character,omitempty"`
-	ItemStorage    Storage               `yaml:"itemstorage,omitempty"`
 	ConfigOptions  map[string]any        `yaml:"configoptions,omitempty"`
 	Muted          bool                  `yaml:"muted,omitempty"`        // Cannot SEND custom communications to anyone but admin/mods
 	Deafened       bool                  `yaml:"deafened,omitempty"`     // Cannot HEAR custom communications from anyone but admin/mods

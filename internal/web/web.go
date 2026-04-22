@@ -227,6 +227,14 @@ func buildAdminNav() []WebNavItem {
 				{Label: "API Docs", Target: "/admin/quests-api"},
 			},
 		},
+		{
+			Name:   "Users",
+			Target: "/admin/users",
+			SubItems: []WebNavSub{
+				{Label: "View / Search", Target: "/admin/users"},
+				{Label: "API Docs", Target: "/admin/users-api"},
+			},
+		},
 	}
 	nav = append(nav, defaultRegistrar.navItems...)
 	return nav

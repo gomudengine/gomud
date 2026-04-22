@@ -1,0 +1,242 @@
+{{template "header" .}}
+
+<style>
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #555; margin-bottom: 2rem; font-size: 0.9rem; }
+
+    .panel { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 1.25rem; margin-bottom: 2rem; }
+    .panel h2 { font-size: 1rem; margin-bottom: 1rem; border-bottom: 1px solid #eee; padding-bottom: 0.5rem; }
+
+    .lookup-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
+    .lookup-row input[type="search"] {
+        width: 220px; padding: 0.4rem 0.6rem; border: 1px solid #ccc;
+        border-radius: 4px; font-size: 0.875rem;
+    }
+
+    .btn { padding: 0.4rem 1rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.875rem; font-weight: 600; }
+    .btn-primary { background: #1a1a2e; color: #fff; }
+    .btn-primary:hover { background: #2d2d4e; }
+    .btn-danger { background: #8a0000; color: #fff; font-size: 0.8rem; padding: 0.2rem 0.6rem; }
+    .btn-danger:hover { background: #b00000; }
+
+    #status-bar { display: none; padding: 0.6rem 1rem; border-radius: 4px; font-size: 0.875rem; margin-bottom: 1rem; }
+    #status-bar.success { background: #e6f4ea; color: #1e6e34; display: block; }
+    #status-bar.error   { background: #fde8e8; color: #8a0000; display: block; }
+
+    .table-wrap { background: #fff; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+        background: #f0f0f0; text-align: left; padding: 0.55rem 0.9rem;
+        font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em;
+        color: #555; border-bottom: 1px solid #ddd; white-space: nowrap;
+    }
+    tbody tr { border-bottom: 1px solid #eee; }
+    tbody tr:last-of-type { border-bottom: none; }
+    tbody tr:hover { background: #fafafa; }
+    td { padding: 0.5rem 0.9rem; font-size: 0.85rem; vertical-align: middle; }
+    .no-results { padding: 1.5rem; text-align: center; color: #888; font-size: 0.9rem; }
+    .item-id { font-family: monospace; font-size: 0.8rem; color: #666; }
+</style>
+
+<h1>Item Storage</h1>
+<p class="subtitle">View and manage player item storage.</p>
+
+<div id="status-bar"></div>
+
+<div class="panel">
+    <h2>Storage Lookup</h2>
+    <div class="lookup-row">
+        <label for="lookup-name" style="font-size:0.82rem;font-weight:600;color:#444;">Username</label>
+        <input type="search" id="lookup-name" placeholder="e.g. alice"
+               onkeydown="if(event.key==='Enter') searchUser()" />
+        <button class="btn btn-primary" id="search-btn" onclick="searchUser()">Search</button>
+    </div>
+    <div id="user-select-wrap" style="display:none;margin-bottom:0.75rem;">
+        <label for="user-select" style="font-size:0.82rem;font-weight:600;color:#444;margin-right:0.5rem;">Select user</label>
+        <select id="user-select" style="padding:0.35rem 0.5rem;border:1px solid #ccc;border-radius:4px;font-size:0.875rem;">
+        </select>
+        <button class="btn btn-primary" style="margin-left:0.5rem;" onclick="loadStorageForSelected()">Load</button>
+    </div>
+    <div id="user-info" style="margin-bottom:0.75rem;font-size:0.85rem;color:#444;display:none;"></div>
+    <div class="table-wrap">
+        <table id="storage-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Item Name</th>
+                    <th>Item ID</th>
+                    <th>Short ID</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="storage-body">
+                <tr><td colspan="5" style="padding:1.5rem;text-align:center;color:#888;">Enter a User ID above and click Load.</td></tr>
+            </tbody>
+        </table>
+        <div class="no-results" id="no-results" style="display:none;">This user has no items in storage.</div>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    let currentUserId = 0;
+
+    window.searchUser = async function () {
+        const name = document.getElementById('lookup-name').value.trim();
+        if (!name) { showStatus('Enter a username to search.', false); return; }
+
+        const searchBtn = document.getElementById('search-btn');
+        searchBtn.disabled = true;
+        searchBtn.textContent = 'Searching...';
+
+        hideUserSelect();
+        document.getElementById('user-info').style.display = 'none';
+        document.getElementById('storage-body').innerHTML =
+            '<tr><td colspan="5" style="padding:1.5rem;text-align:center;color:#888;">Enter a username above and click Search.</td></tr>';
+        document.getElementById('no-results').style.display = 'none';
+
+        const res = await AdminAPI.get('/admin/api/v1/users/search?name=' + encodeURIComponent(name));
+
+        searchBtn.disabled = false;
+        searchBtn.textContent = 'Search';
+
+        if (!res.ok) {
+            showStatus('Search failed: ' + (res.error || 'unknown error'), false);
+            return;
+        }
+
+        const users = res.data.data || [];
+
+        if (users.length === 0) {
+            showStatus('No users found matching "' + escHtml(name) + '".', false);
+            return;
+        }
+
+        if (users.length > 5) {
+            showStatus('Too many matches (' + users.length + '). Please be more specific.', false);
+            return;
+        }
+
+        if (users.length === 1) {
+            // Single match — load immediately.
+            currentUserId = users[0].user_id;
+            loadStorage(currentUserId);
+            return;
+        }
+
+        // Multiple matches — show selector.
+        showUserSelect(users);
+    };
+
+    function showUserSelect(users) {
+        const sel = document.getElementById('user-select');
+        sel.innerHTML = '';
+        for (const u of users) {
+            const opt = document.createElement('option');
+            opt.value = u.user_id;
+            opt.textContent = u.username + ' (ID: ' + u.user_id + ')';
+            sel.appendChild(opt);
+        }
+        document.getElementById('user-select-wrap').style.display = 'flex';
+        document.getElementById('user-select-wrap').style.alignItems = 'center';
+    }
+
+    function hideUserSelect() {
+        document.getElementById('user-select-wrap').style.display = 'none';
+    }
+
+    window.loadStorageForSelected = function () {
+        const sel = document.getElementById('user-select');
+        const uid = parseInt(sel.value, 10);
+        if (!uid) return;
+        hideUserSelect();
+        currentUserId = uid;
+        loadStorage(uid);
+    };
+
+    function loadStorage(userId) {
+        currentUserId = userId;
+
+        document.getElementById('storage-body').innerHTML =
+            '<tr><td colspan="5" style="padding:1.5rem;text-align:center;color:#888;">Loading...</td></tr>';
+        document.getElementById('no-results').style.display = 'none';
+        document.getElementById('user-info').style.display = 'none';
+
+        AdminAPI.get('/admin/api/v1/storage?user_id=' + userId).then(function (res) {
+            if (!res.ok) {
+                showStatus('Failed to load storage: ' + (res.error || 'unknown error'), false);
+                return;
+            }
+            renderTable(res.data.data || {});
+        });
+    }
+
+    function renderTable(d) {
+        const tbody = document.getElementById('storage-body');
+        tbody.innerHTML = '';
+
+        const info = document.getElementById('user-info');
+        if (d.username) {
+            info.textContent = 'User: ' + d.username + ' (ID: ' + d.user_id + ')';
+            info.style.display = 'block';
+        }
+
+        const storageItems = d.items || [];
+
+        if (storageItems.length === 0) {
+            document.getElementById('no-results').style.display = 'block';
+            return;
+        }
+        document.getElementById('no-results').style.display = 'none';
+
+        for (const itm of storageItems) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${escHtml(String(itm.index))}</td>
+                <td>${escHtml(itm.name || '')}</td>
+                <td class="item-id">${escHtml(String(itm.item_id))}</td>
+                <td class="item-id">${escHtml(itm.short_id || '')}</td>
+                <td>
+                    <button class="btn btn-danger" onclick="deleteItem(${escHtml(JSON.stringify(itm.short_id))})">Remove</button>
+                </td>`;
+            tbody.appendChild(tr);
+        }
+    }
+
+    window.deleteItem = async function (shortId) {
+        if (!confirm('Remove this item from storage? It will be permanently lost.')) return;
+
+        const res = await AdminAPI.request(
+            'DELETE',
+            '/admin/api/v1/storage?user_id=' + currentUserId + '&short_id=' + encodeURIComponent(shortId),
+            null,
+        );
+
+        if (!res.ok) {
+            showStatus('Remove failed: ' + (res.error || 'unknown error'), false);
+            return;
+        }
+
+        const d = res.data.data || {};
+        showStatus('Removed "' + (d.item_name || shortId) + '" from storage.', true);
+        loadStorage(currentUserId);
+    };
+
+    function showStatus(msg, success) {
+        const bar = document.getElementById('status-bar');
+        bar.textContent = msg;
+        bar.className = success ? 'success' : 'error';
+        clearTimeout(bar._timer);
+        bar._timer = setTimeout(() => { bar.className = ''; bar.style.display = 'none'; }, 6000);
+    }
+
+    function escHtml(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+})();
+</script>
+
+{{template "footer" .}}

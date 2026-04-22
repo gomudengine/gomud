@@ -2,7 +2,78 @@
 
 ## Overview
 
-The `internal/suggestions` package provides a simple suggestion cycling system for the GoMud game engine. It manages a list of suggestions that users can cycle through, commonly used for command completion, auto-suggestions, or help hints in interactive interfaces.
+The `internal/suggestions` package provides two related systems: a simple suggestion cycling type used for tab-completion UI state, and the `GetAutoComplete` function that generates context-aware completion suffixes for the current player input. Modules can extend autocomplete via the `OnAutoComplete` hook.
+
+## Key Components
+
+### Core Files
+- **suggestions.go**: `Suggestions` cycling type
+- **autocomplete.go**: `GetAutoComplete` function, `AutoCompleteRequest` type, and `OnAutoComplete` hook
+
+### Key Structures
+
+#### Suggestions
+```go
+type Suggestions struct {
+    suggestions []string
+    pos         int
+}
+```
+Manages a list of suggestions with cycling functionality:
+- **suggestions**: Array of suggestion strings
+- **pos**: Current position in the suggestion list for cycling
+
+#### AutoCompleteRequest
+```go
+type AutoCompleteRequest struct {
+    UserId  int
+    Cmd     string    // resolved command after alias expansion
+    Parts   []string  // original whitespace-split input
+    Results []string  // accumulated completion suffixes; handlers append here
+}
+```
+Passed through `OnAutoComplete` handlers. Handlers that do not recognise `Cmd` must return the value unchanged.
+
+## OnAutoComplete Hook
+
+`OnAutoComplete` is a `util.Hook[AutoCompleteRequest]` fired after the built-in autocomplete logic runs. Modules register handlers to contribute completions for their own commands.
+
+```go
+// Registration from a module:
+suggestions.OnAutoComplete.Register(func(r suggestions.AutoCompleteRequest) suggestions.AutoCompleteRequest {
+    if r.Cmd != "mycommand" {
+        return r
+    }
+    // inspect r.Parts, append to r.Results ...
+    return r
+})
+```
+
+The storage module uses this hook to provide `storage add` / `storage remove` completions without any coupling back to `autocomplete.go`.
+
+## Core Methods (Suggestions type)
+
+### List Management
+- **Set(suggestions []string)**: Sets the suggestion list and resets position
+- **Clear()**: Empties the suggestion list and resets position
+- **Count() int**: Returns the number of available suggestions
+
+### Suggestion Cycling
+- **Next() string**: Returns the next suggestion in the cycle, wrapping around at the end
+
+## GetAutoComplete
+
+```go
+func GetAutoComplete(userId int, inputText string) []string
+```
+
+Returns a list of completion suffixes (text to append to `inputText`) sorted shortest-first. Built-in logic covers commands, exits, items, mobs, spells, and other core game entities. After the built-in logic runs, `OnAutoComplete` is fired so modules can contribute additional results.
+
+## Integration Points
+
+- **Tab completion**: called by the input handler when the player presses Tab
+- **Modules**: register `OnAutoComplete` handlers to provide completions for module-owned commands
+- **util.Hook**: `OnAutoComplete` follows the same pattern as `rooms.OnRoomLook`
 
 ## Key Components
 

@@ -65,6 +65,7 @@ The web system is built around Go's standard `net/http` package with several key
 | `api_v1_items.go` | Item CRUD + script endpoints (`/admin/api/v1/items/...`) |
 | `api_v1_buffs.go` | Buff CRUD + script endpoints (`/admin/api/v1/buffs/...`) |
 | `api_v1_quests.go` | Quest list / patch / delete endpoints (`/admin/api/v1/quests/...`) |
+| `api_v1_users.go` | User search endpoint (`/admin/api/v1/users/...`) |
 | `auth.go` | `doBasicAuth`, `handlerToHandlerFunc`, auth cache |
 | `context.go` | `withInternalContext`, `IsInternalRequest`, `withTestModeContext`, `IsTestModeRequest` - request context flags |
 | `internal.go` | `InternalRequest`, `InternalRequestJSON` - in-process API dispatcher |
@@ -109,6 +110,7 @@ All routes are registered on the package-level `internalMux`. Both live HTTP/HTT
 - `GET /admin/api/v1/quests` - all quests
 - `PATCH /admin/api/v1/quests` - update a quest (questId in body)
 - `DELETE /admin/api/v1/quests/{questId}` - delete a quest
+- `GET /admin/api/v1/users/search?name={name}` - search users by username (exact or prefix match); returns `[]{ user_id, username, role, email }`
 - `<METHOD> /admin/api/v1/<slug>` - module-contributed API endpoints, registered dynamically by `RegisterAdminAPIEndpoint`
 
 All `/admin/` routes, including API routes, are wrapped with `RunWithMUDLocked` and `doBasicAuth`. Both wrappers short-circuit for internal requests.
@@ -242,6 +244,8 @@ Located in `_datafiles/html/admin/` (path configured via `FilePaths.AdminHtml`).
 | `buffs-api.html` | Buffs REST API reference |
 | `quests.html` | Quests editor: searchable sidebar list, step cards, reward fields |
 | `quests-api.html` | Quests REST API reference |
+| `users.html` | Users search page: username search with results table |
+| `users-api.html` | Users REST API reference |
 | `api.js` | `AdminAPI` JS client library served as a static asset at `/admin/api.js` |
 
 Template data passed to all admin page handlers:

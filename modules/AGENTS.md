@@ -318,6 +318,7 @@ The engine provides numerous hooks for module integration:
 - **Leaderboards**: Player engagement and competition
 - **Mudmail**: Player inbox and admin mass-mail system
 - **Newbie Guide**: Automatic guide companion for new players
+- **Storage**: Player item storage system with room-tag-based activation, legacy migration, and admin web interface
 - **Time**: Basic utility functionality
 - **Web Help**: Web-based help browser
 - **Zombie Mode**: AFK automation system

@@ -78,4 +78,10 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("DELETE /admin/api/v1/quests/{questId}", RunWithMUDLocked(
 		doBasicAuth(apiV1DeleteQuest),
 	))
+
+	// Users — static sub-routes must be registered before any future wildcard
+	// {userId} pattern.
+	mux.HandleFunc("GET /admin/api/v1/users/search", RunWithMUDLocked(
+		doBasicAuth(apiV1SearchUsers),
+	))
 }

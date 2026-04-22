@@ -62,3 +62,11 @@ func adminQuests(w http.ResponseWriter, r *http.Request) {
 func adminQuestsAPI(w http.ResponseWriter, r *http.Request) {
 	serveAdminTemplate(w, r, "quests-api.html", nil)
 }
+
+func adminUsers(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "users.html", nil)
+}
+
+func adminUsersAPI(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "users-api.html", nil)
+}
