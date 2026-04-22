@@ -71,8 +71,6 @@ override_snippet=""
 printf 'Interactive HTTPS setup\n'
 printf 'Bundled base config: %s\n' "$CONFIG_FILE"
 printf 'Override target: %s\n\n' "$override_file"
-printf 'This helper no longer edits the bundled base config directly.\n'
-printf 'It can PATCH a running GoMud server or print a config-overrides snippet for manual save.\n\n'
 
 printf 'Choose HTTPS mode:\n'
 printf '  1) Manual certificate files\n'
