@@ -145,6 +145,24 @@ func Room(rest string, user *users.UserRecord, liveRoom *rooms.Room, flags event
 				user.SendText(fmt.Sprintf(`  <ansi fg="yellow">%s</ansi>`, tag))
 			}
 		}
+
+		registeredTags := roomTagProvider()
+		if len(registeredTags) > 0 {
+			user.SendText(``)
+			user.SendText(`Available Tags:`)
+			moduleNames := make([]string, 0, len(registeredTags))
+			for name := range registeredTags {
+				moduleNames = append(moduleNames, name)
+			}
+			sort.Strings(moduleNames)
+			for _, name := range moduleNames {
+				user.SendText(fmt.Sprintf(`  <ansi fg="cyan">%s</ansi> module:`, name))
+				for _, tag := range registeredTags[name] {
+					user.SendText(fmt.Sprintf(`    <ansi fg="yellow">%s</ansi>`, tag))
+				}
+			}
+		}
+
 		return true, nil
 	}
 

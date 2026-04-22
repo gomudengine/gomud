@@ -39,6 +39,8 @@ func init() {
 
 	m.plug.AddUserCommand(`storage`, m.storageCommand, false, false)
 
+	m.plug.ReserveTags(`storage`)
+
 	m.plug.Callbacks.SetOnSave(m.onSave)
 
 	m.plug.ExportFunction(`GetStorageItems`, m.GetStorageItems)

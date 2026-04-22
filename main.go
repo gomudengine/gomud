@@ -186,6 +186,7 @@ func main() {
 	templates.RegisterFS(plugins.GetPluginRegistry())
 	items.RegisterFS(plugins.GetPluginRegistry())
 	usercommands.AddFunctionExporter(plugins.GetPluginRegistry())
+	usercommands.SetRoomTagProvider(plugins.GetRegisteredRoomTags)
 
 	inputhandlers.AddIACHandler(plugins.GetPluginRegistry())
 	inputhandlers.AddTextPrefixHandler(plugins.GetPluginRegistry())

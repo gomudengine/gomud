@@ -64,6 +64,8 @@ func init() {
 	// Register the "play" user command (handles both slots and claw machine).
 	g.plug.AddUserCommand(`play`, g.playCommand, false, false)
 
+	g.plug.ReserveTags(`slots`, `slot machine`, `claw machine`)
+
 	// Persist the jackpot across restarts.
 	g.plug.Callbacks.SetOnLoad(g.load)
 	g.plug.Callbacks.SetOnSave(g.save)

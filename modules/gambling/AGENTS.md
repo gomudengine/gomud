@@ -18,6 +18,9 @@ tags:
   - slot machine
 ```
 
+The module calls `plug.ReserveTags("slots", "slot machine", "claw machine")` so that
+these tags appear in the output of the `room tags` admin command.
+
 - A single room may carry both tags and have both machines present.
 - Tags are case-insensitive at the module level (`Slot Machine`, `slot machine`, and
   `SLOT MACHINE` are all treated the same).

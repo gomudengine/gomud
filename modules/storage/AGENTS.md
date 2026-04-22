@@ -14,6 +14,9 @@ tags:
   - storage
 ```
 
+The module calls `plug.ReserveTags("storage")` so that this tag appears in the output
+of the `room tags` admin command.
+
 The module registers an `OnRoomLook` hook that injects the storage alert into the room description when the tag is present. The core `roomdetails.go` no longer has a hardcoded `IsStorage` alert.
 
 ## Key Components

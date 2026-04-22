@@ -10,4 +10,4 @@ exits:
   east:
     roomid: 166
 tags:
-  - storage
+- storage

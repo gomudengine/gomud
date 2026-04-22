@@ -39,6 +39,15 @@ func AddFunctionExporter(f FunctionExporter) {
 	functionExporters = append(functionExporters, f)
 }
 
+// roomTagProvider is set by main at startup via SetRoomTagProvider.
+// It returns a map of plugin name to the room tags that plugin has reserved.
+var roomTagProvider func() map[string][]string = func() map[string][]string { return nil }
+
+// SetRoomTagProvider registers the function that returns registered room tags.
+func SetRoomTagProvider(f func() map[string][]string) {
+	roomTagProvider = f
+}
+
 var (
 	functionExporters = []FunctionExporter{}
 

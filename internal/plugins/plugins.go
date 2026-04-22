@@ -78,6 +78,8 @@ type Plugin struct {
 	files PluginFiles
 
 	Web WebConfig
+
+	roomTags []string
 }
 
 func New(name string, version string) *Plugin {
@@ -259,6 +261,24 @@ func (p *Plugin) Requires(modname string, modversion string) {
 	reg, _ := regexp.Compile("[^a-zA-Z0-9_]+")
 	modname = reg.ReplaceAllString(modname, "_")
 	p.dependencies = append(p.dependencies, dependency{modname, modversion})
+}
+
+// ReserveTags registers room tags that this plugin recognises, so that
+// "room tags" can list them alongside the owning module name.
+func (p *Plugin) ReserveTags(tags ...string) {
+	p.roomTags = append(p.roomTags, tags...)
+}
+
+// GetRegisteredRoomTags returns a map of plugin name to the room tags it has
+// reserved, containing only plugins that reserved at least one tag.
+func GetRegisteredRoomTags() map[string][]string {
+	result := map[string][]string{}
+	for _, p := range registry {
+		if len(p.roomTags) > 0 {
+			result[p.name] = append([]string(nil), p.roomTags...)
+		}
+	}
+	return result
 }
 
 func (p *Plugin) ExportFunction(stringId string, f any) {

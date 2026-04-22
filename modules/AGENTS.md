@@ -22,6 +22,7 @@ The GoMud modules system provides a powerful plugin architecture that allows for
 - **Lifecycle hooks**: Load and save callbacks for plugin state management via `SetOnLoad`/`SetOnSave`
 - **Script integration**: Expose plugin functions to JavaScript runtime via `AddScriptingFunction`
 - **Function export**: Expose Go functions to other modules via `ExportFunction` / `GetExportedFunction`
+- **Room tag registration**: Declare room tags the plugin recognises via `ReserveTags`; tags are listed by the `room tags` admin command
 
 #### **Configuration System** (`pluginconfig.go`)
 - **Plugin-specific config**: Each plugin gets its own configuration namespace
@@ -81,7 +82,13 @@ type GMCPOut struct {
 
 ## Plugin Capabilities
 
-### **Command System Integration**
+### Room Tag Registration
+```go
+// Declare the room tags this plugin recognises. Listed by "room tags" admin command.
+plugin.ReserveTags("storage")
+```
+
+### Command System Integration
 ```go
 // Add user commands
 plugin.AddUserCommand("auction", auctionCommand, allowWhenDowned, adminOnly)
