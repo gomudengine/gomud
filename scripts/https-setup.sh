@@ -17,7 +17,7 @@ read_yaml_value() {
 read_yaml_value_from_file() {
 	awk -F': ' -v key="$2" '
 		$1 ~ "^[[:space:]]*" key "$" {
-			gsub(/^"|"$/, "", $2)
+			gsub(/^["'\'']|["'\'']$/, "", $2)
 			print $2
 			exit
 		}
@@ -49,6 +49,10 @@ canonicalize_path() {
 
 json_escape() {
 	printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+
+yaml_single_quote() {
+	printf "'%s'" "$(printf '%s' "$1" | sed "s/'/''/g")"
 }
 
 base_url_without_trailing_slash() {
@@ -214,8 +218,8 @@ EOF
 	override_snippet=$(
 		cat <<EOF
 FilePaths:
-  HttpsCertFile: "$(json_escape "$https_cert_file")"
-  HttpsKeyFile: "$(json_escape "$https_key_file")"
+  HttpsCertFile: $(yaml_single_quote "$https_cert_file")
+  HttpsKeyFile: $(yaml_single_quote "$https_key_file")
 Network:
   HttpPort: $http_port
   HttpsPort: $https_port
@@ -270,8 +274,8 @@ EOF
 FilePaths:
   WebDomain: "$(json_escape "$web_domain")"
   HttpsEmail: "$(json_escape "$https_email")"
-  HttpsCertFile: ""
-  HttpsKeyFile: ""
+  HttpsCertFile: ''
+  HttpsKeyFile: ''
 Network:
   HttpPort: 80
   HttpsPort: 443
@@ -308,9 +312,9 @@ EOF
 	override_snippet=$(
 		cat <<EOF
 FilePaths:
-  HttpsCertFile: ""
-  HttpsKeyFile: ""
-  HttpsEmail: ""
+  HttpsCertFile: ''
+  HttpsKeyFile: ''
+  HttpsEmail: ''
 Network:
   HttpPort: $http_port
   HttpsPort: 0
