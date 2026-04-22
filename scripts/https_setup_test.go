@@ -39,6 +39,12 @@ func TestHTTPSSetupManualModePrintsOverrideSnippet(t *testing.T) {
 	if !strings.Contains(output, "Override target: _datafiles/world/default/config-overrides.yaml") {
 		t.Fatalf("https-setup output did not show override target:\n%s", output)
 	}
+	if !strings.Contains(output, "PATCH a running GoMud server via /admin/api/v1/config (recommended)") {
+		t.Fatalf("https-setup output did not mark PATCH as recommended:\n%s", output)
+	}
+	if strings.Contains(output, "This helper no longer edits the bundled base config directly.") {
+		t.Fatalf("https-setup output still showed removed intro text:\n%s", output)
+	}
 	if !strings.Contains(output, "Save the following override snippet") {
 		t.Fatalf("https-setup output did not switch to snippet mode:\n%s", output)
 	}
@@ -253,6 +259,12 @@ func TestHTTPSSetupAutoModeAPIApplyRequiresRestart(t *testing.T) {
 	output := runHTTPSSetup(t, configPath, input, map[string]string{
 		"CURL_BIN": curlStub,
 	})
+	if strings.Contains(output, "Admin base URL [http://localhost]") {
+		t.Fatalf("https-setup auto API output still showed localhost helper text:\n%s", output)
+	}
+	if !strings.Contains(output, "Admin base URL [http://127.0.0.1:8080]") {
+		t.Fatalf("https-setup auto API output did not show loopback helper text based on current HTTP port:\n%s", output)
+	}
 	if !strings.Contains(output, "Restart GoMud so it rebinds the updated HTTP/HTTPS listeners.") {
 		t.Fatalf("https-setup auto API output did not require restart:\n%s", output)
 	}
@@ -287,6 +299,9 @@ func TestHTTPSSetupAutoModePrintsLetsEncryptOverrideSnippet(t *testing.T) {
 	}
 	if !strings.Contains(output, "HttpsRedirect: true") {
 		t.Fatalf("https-setup output did not enable redirect for auto mode:\n%s", output)
+	}
+	if !strings.Contains(output, "HttpsCertFile: <empty>") || !strings.Contains(output, "HttpsKeyFile: <empty>") {
+		t.Fatalf("https-setup output did not automatically blank manual cert paths for auto mode:\n%s", output)
 	}
 }
 

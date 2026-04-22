@@ -113,9 +113,6 @@ override_snippet=""
 printf 'Interactive HTTPS setup\n'
 printf 'Bundled base config: %s\n' "$CONFIG_FILE"
 printf 'Override target: %s\n\n' "$override_file"
-printf 'This helper no longer edits the bundled base config directly.\n'
-printf 'It can PATCH a running GoMud server or print a config-overrides snippet for manual save.\n'
-printf 'Either path still requires a GoMud restart before listener changes take effect.\n\n'
 
 printf 'Choose HTTPS mode:\n'
 printf '  1) Manual certificate files\n'
@@ -124,6 +121,14 @@ printf '  3) HTTP only\n'
 printf 'Selection [1]: '
 IFS= read -r mode_selection
 mode_selection=${mode_selection:-1}
+default_admin_base_url="http://localhost"
+
+if [ "$mode_selection" = "2" ]; then
+	default_admin_base_url="http://127.0.0.1"
+	if [ -n "${current_http_port:-}" ] && [ "$current_http_port" != "80" ]; then
+		default_admin_base_url="http://127.0.0.1:$current_http_port"
+	fi
+fi
 
 case "$mode_selection" in
 1)
@@ -310,17 +315,17 @@ elif [ "$mode_selection" = "2" ]; then
 fi
 
 printf '\nChoose how to apply these changes:\n'
-printf '  1) PATCH a running GoMud server via /admin/api/v1/config\n'
+printf '  1) PATCH a running GoMud server via /admin/api/v1/config (recommended)\n'
 printf '  2) Print a config-overrides snippet for manual save\n'
-printf 'Selection [2]: '
+printf 'Selection [1]: '
 IFS= read -r apply_selection
-apply_selection=${apply_selection:-2}
+apply_selection=${apply_selection:-1}
 
 case "$apply_selection" in
 1)
-	printf 'Admin base URL [http://localhost]: '
+	printf 'Admin base URL [%s]: ' "$default_admin_base_url"
 	IFS= read -r admin_base_url
-	admin_base_url=${admin_base_url:-http://localhost}
+	admin_base_url=${admin_base_url:-$default_admin_base_url}
 	admin_base_url=$(base_url_without_trailing_slash "$admin_base_url")
 
 	printf 'Admin username [admin]: '
