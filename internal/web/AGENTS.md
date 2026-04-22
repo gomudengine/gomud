@@ -17,6 +17,7 @@ The web system is built around Go's standard `net/http` package with several key
 - WebSocket upgrade handling for real-time clients
 - Graceful shutdown with timeout management
 - Single `internalMux` (`*http.ServeMux`) shared by both live servers and the internal dispatcher
+- Static asset serving for admin non-HTML files via `serveAdminStaticFile`
 
 **Template System:**
 - Go `text/template` based HTML rendering
@@ -44,21 +45,32 @@ The web system is built around Go's standard `net/http` package with several key
 - Auth and mud-lock wrappers detect internal requests and short-circuit automatically
 - Handlers can inspect `IsInternalRequest(r)` to adjust behavior (e.g. skip audit logging)
 
+**Test Mode:**
+- `RunInTestMode` middleware wraps handlers so that requests carrying `X-Test-Mode: true` snapshot config overrides before the handler runs and restore them unconditionally afterwards
+- Response carries `X-Test-Mode: true` header to confirm the mode was active
+- `IsTestModeRequest(r)` lets handlers detect test-mode calls via context
+
 ## Go Source Files
 
 | File | Purpose |
 |---|---|
-| `web.go` | Server startup, `internalMux`, `serveTemplate`, `RunWithMUDLocked`, `Shutdown`, public route registration |
-| `admin.go` | `adminIndex` handler - single admin dashboard page |
-| `admin_routes.go` | `registerAdminRoutes(mux)` - registers all `/admin/` routes in one place |
-| `api.go` | `APIResponse[T]` generic envelope, `writeJSON`, `writeAPIError` helpers |
+| `web.go` | Server startup, `internalMux`, nav types, `ModuleAdminRegistrar` impl, `buildAdminNav`, `GetAdminRegistrar`, `serveTemplate`, `serveAdminStaticFile`, `RunWithMUDLocked`, `Shutdown`, public route registration |
+| `admin.go` | `adminIndex` handler - admin dashboard page |
+| `admin_items.go` | `adminItems`, `adminItemsAPI`, `adminBuffs`, `adminBuffsAPI`, `adminQuests`, `adminQuestsAPI` handlers + `serveAdminTemplate` helper |
+| `admin_config_api.go` | `adminConfigAPI` handler - Config REST API docs page |
+| `admin_routes.go` | `registerAdminRoutes(mux)` - registers all `/admin/` routes including static asset handler |
+| `api.go` | `APIResponse[T]` generic envelope, `writeJSON`, `writeAPIError`, `RunInTestMode` middleware |
 | `api_routes.go` | `registerAdminAPIRoutes(mux)` - registers all `/admin/api/` routes |
 | `api_v1_config.go` | `apiV1GetConfig` and `apiV1PatchConfig` handlers |
+| `api_v1_items.go` | Item CRUD + script endpoints (`/admin/api/v1/items/...`) |
+| `api_v1_buffs.go` | Buff CRUD + script endpoints (`/admin/api/v1/buffs/...`) |
+| `api_v1_quests.go` | Quest list / patch / delete endpoints (`/admin/api/v1/quests/...`) |
 | `auth.go` | `doBasicAuth`, `handlerToHandlerFunc`, auth cache |
-| `context.go` | `withInternalContext`, `IsInternalRequest` - internal request context flag |
+| `context.go` | `withInternalContext`, `IsInternalRequest`, `withTestModeContext`, `IsTestModeRequest` - request context flags |
 | `internal.go` | `InternalRequest`, `InternalRequestJSON` - in-process API dispatcher |
-| `stats.go` | `Stats`, `GetStats`, `UpdateStats` |
+| `stats.go` | `Stats`, `GetStats`, `UpdateStats` - server statistics with SSH/WebSocket/Telnet connection counts |
 | `template_func.go` | `funcMap` - custom template functions |
+| `web_test.go` | Unit tests for `buildHTTPSRedirectTarget` (IPv4, IPv6, port handling) |
 
 ## Routing Structure
 
@@ -70,11 +82,34 @@ All routes are registered on the package-level `internalMux`. Both live HTTP/HTT
 - `GET /ws` - WebSocket upgrade endpoint
 
 ### Admin Routes (registered via `registerAdminRoutes`)
-- `GET /admin/` - admin dashboard (auth required)
+- `GET /admin/{file}` - static asset serving from admin HTML directory (auth required)
+- `GET /admin/` - admin dashboard (auth required, mud-locked)
+- `GET /admin/config` - live configuration editor (auth required, mud-locked)
+- `GET /admin/config-api` - Config REST API docs page (auth required, mud-locked)
+- `GET /admin/<slug>` - module-contributed admin pages, registered dynamically by `RegisterAdminPage`
 
 ### API Routes (registered via `registerAdminAPIRoutes`, called from `registerAdminRoutes`)
-- `GET /admin/api/v1/config` - return all config as flat key/value map (auth required)
-- `PATCH /admin/api/v1/config` - update one or more config values (auth required)
+- `GET /admin/api/v1/config` - return all config as flat key/value map (auth required, mud-locked)
+- `PATCH /admin/api/v1/config` - update one or more config values (auth required, mud-locked, test-mode aware)
+- `GET /admin/api/v1/items/types` - item types and subtypes
+- `GET /admin/api/v1/items/attack-messages` - all weapon attack message groups
+- `GET /admin/api/v1/items` - all item specs
+- `POST /admin/api/v1/items` - create a new item spec
+- `GET /admin/api/v1/items/{itemId}` - single item spec by id or name
+- `PATCH /admin/api/v1/items/{itemId}` - update item spec properties
+- `DELETE /admin/api/v1/items/{itemId}` - delete item spec and its script
+- `GET /admin/api/v1/items/{itemId}/script` - item script contents
+- `PUT /admin/api/v1/items/{itemId}/script` - replace (or delete) item script
+- `GET /admin/api/v1/buffs` - all buff flags with descriptions
+- `GET /admin/api/v1/buffs/{buffId}` - single buff spec
+- `PATCH /admin/api/v1/buffs/{buffId}` - update buff spec properties
+- `DELETE /admin/api/v1/buffs/{buffId}` - delete buff spec and its script
+- `GET /admin/api/v1/buffs/{buffId}/script` - buff script contents
+- `PUT /admin/api/v1/buffs/{buffId}/script` - replace (or delete) buff script
+- `GET /admin/api/v1/quests` - all quests
+- `PATCH /admin/api/v1/quests` - update a quest (questId in body)
+- `DELETE /admin/api/v1/quests/{questId}` - delete a quest
+- `<METHOD> /admin/api/v1/<slug>` - module-contributed API endpoints, registered dynamically by `RegisterAdminAPIEndpoint`
 
 All `/admin/` routes, including API routes, are wrapped with `RunWithMUDLocked` and `doBasicAuth`. Both wrappers short-circuit for internal requests.
 
@@ -131,9 +166,10 @@ Every API response uses the same JSON structure:
 
 ```go
 type APIResponse[T any] struct {
-    Success bool   `json:"success"`
-    Data    T      `json:"data,omitempty"`
-    Error   string `json:"error,omitempty"`
+    Success  bool   `json:"success"`
+    Data     T      `json:"data,omitempty"`
+    Error    string `json:"error,omitempty"`
+    TestMode bool   `json:"test_mode,omitempty"`
 }
 ```
 
@@ -160,6 +196,7 @@ Updates one or more configuration values. Request body is a flat `map[string]str
 - Unknown keys return `400 Bad Request`.
 - Malformed body returns `400 Bad Request`.
 - Unexpected errors return `500 Internal Server Error`.
+- Supports `X-Test-Mode: true` header: changes are applied then rolled back; response includes `"test_mode": true`.
 
 **Response `200 OK`:**
 ```json
@@ -172,33 +209,90 @@ Updates one or more configuration values. Request body is a flat `map[string]str
 }
 ```
 
-## Admin HTML Templates
+## Stats Structure
 
-Located in `_datafiles/html/admin/` (path configured via `FilePaths.AdminHtml`):
-
-| File | Purpose |
-|---|---|
-| `_header.html` | Defines `{{define "header"}}` - minimal HTML5 shell, inline CSS, top nav bar |
-| `_footer.html` | Defines `{{define "footer"}}` - closing tags |
-| `index.html` | Dashboard: server name, version, online count, ports, API endpoint listing |
-
-No external CDN dependencies. No Bootstrap, jQuery, or HTMX.
-
-Template data passed to `adminIndex`:
-- `CONFIG` - `configs.Config` struct
-- `STATS` - `web.Stats` struct (online users, telnet ports, websocket port)
-
-## Plugin Integration
-
-### WebPlugin Interface
 ```go
-type WebPlugin interface {
-    NavLinks() map[string]string
-    WebRequest(r *http.Request) (html string, templateData map[string]any, ok bool)
+type Stats struct {
+    OnlineUsers          []users.OnlineInfo
+    TelnetPorts          []int
+    WebSocketPort        int
+    SSHPort              int
+    TelnetConnections    int
+    WebSocketConnections int
+    SSHConnections       int
 }
 ```
 
-Plugins can add navigation links and handle custom public web requests via `SetWebPlugin`. The admin interface does not use plugin templates.
+Thread-safe via `sync.RWMutex`. Updated by the main game loop via `UpdateStats`. Read by template handlers via `GetStats`.
+
+## Admin HTML Templates
+
+Located in `_datafiles/html/admin/` (path configured via `FilePaths.AdminHtml`). See `_datafiles/html/admin/AGENTS.md` for full details.
+
+| File | Purpose |
+|---|---|
+| `_header.html` | Defines `{{define "header"}}` - HTML5 shell, inline CSS, dropdown nav bar driven by `.NAV`, loads `api.js` |
+| `_footer.html` | Defines `{{define "footer"}}` - closing tags |
+| `index.html` | Dashboard: server name, version, port stats, link card to API docs |
+| `config.html` | Live config editor: inline editing, pending-changes panel, section filter, search |
+| `config-api.html` | Config REST API reference (GET and PATCH `/admin/api/v1/config` with curl examples) |
+| `items.html` | Items editor: searchable sidebar list, full item form with stat mods, buff chips, script editor |
+| `items-api.html` | Items REST API reference |
+| `buffs.html` | Buffs editor: searchable sidebar list, flag checkboxes, stat mods, script editor |
+| `buffs-api.html` | Buffs REST API reference |
+| `quests.html` | Quests editor: searchable sidebar list, step cards, reward fields |
+| `quests-api.html` | Quests REST API reference |
+| `api.js` | `AdminAPI` JS client library served as a static asset at `/admin/api.js` |
+
+Template data passed to all admin page handlers:
+- `CONFIG` - `configs.Config` struct
+- `STATS` - `web.Stats` struct
+- `NAV` - `[]web.WebNavItem` from `buildAdminNav()`
+
+## Admin Navigation
+
+The admin nav is driven by `buildAdminNav()` which returns `[]WebNavItem`. Each handler passes `NAV: buildAdminNav()` in its template data. The nav supports dropdown sub-items rendered by `_header.html`.
+
+```go
+type WebNavItem struct {
+    Name     string
+    Target   string       // primary href; empty if dropdown-only
+    SubItems []WebNavSub
+}
+
+type WebNavSub struct {
+    Label  string
+    Target string
+}
+```
+
+Core nav entries (Dashboard, Config with API Docs sub-item, Items, Buffs, Quests — each with View/Edit and API Docs sub-items) are hardcoded in `buildAdminNav()`. Module entries are appended from `defaultRegistrar.navItems`.
+
+## Module Admin Page and API Registration
+
+Modules register admin pages and API endpoints via `plugins.WebConfig` without importing `internal/web`:
+
+```go
+// In a module init():
+plug.Web.AdminPage("Mudmail", "mudmail", "html/admin/mudmail.html", true, "",
+    func(r *http.Request) map[string]any {
+        return map[string]any{"INBOX_COUNT": getCount()}
+    },
+)
+
+plug.Web.AdminAPIEndpoint("GET", "mudmail", func(r *http.Request) (int, bool, any) {
+    return http.StatusOK, true, getStats()
+})
+```
+
+`main.go` wires the registrar before `plugins.Load()`:
+
+```go
+plugins.SetAdminRegistrar(web.GetAdminRegistrar())
+plugins.Load(dataFilesPath)
+```
+
+This keeps the import graph acyclic: `web` does not import `plugins`; `plugins` does not import `web`; `main` wires them.
 
 ## Security
 
@@ -207,6 +301,7 @@ Plugins can add navigation links and handle custom public web requests via `SetW
 - Successful auth results are cached for 30 minutes.
 - All admin handlers are wrapped with `RunWithMUDLocked` to serialize access to shared game state.
 - Internal requests (via `InternalRequest`) bypass both auth and locking; they are identified by a context value set in `withInternalContext` and checked by `IsInternalRequest`.
+- Static admin assets (`/admin/{file}`) are auth-gated but not mud-locked.
 
 ## Configuration
 
@@ -231,7 +326,7 @@ file_paths:
 - `github.com/gorilla/websocket` - WebSocket upgrade and handling
 - `text/template` - HTML template processing
 - `crypto/tls` - HTTPS certificate management
-- `internal/configs` - Configuration management and `SetVal`/`AllConfigData`
+- `internal/configs` - Configuration management and `SetVal`/`AllConfigData`/`GetOverrides`/`RestoreOverrides`
 - `internal/users` - Authentication and user management
 - `internal/mudlog` - Logging and monitoring
 - `internal/util` - Game state mutex protection

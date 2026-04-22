@@ -8,13 +8,13 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 )
 
-func adminIndex(w http.ResponseWriter, r *http.Request) {
+func adminConfig(w http.ResponseWriter, r *http.Request) {
 
 	adminHtml := configs.GetFilePathsConfig().AdminHtml.String()
 
-	tmpl, err := template.New("index.html").Funcs(funcMap).ParseFiles(
+	tmpl, err := template.New("config.html").Funcs(funcMap).ParseFiles(
 		adminHtml+"/_header.html",
-		adminHtml+"/index.html",
+		adminHtml+"/config.html",
 		adminHtml+"/_footer.html",
 	)
 	if err != nil {

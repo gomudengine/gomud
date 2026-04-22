@@ -40,7 +40,7 @@ func TestHTTPSSetupManualModePrintsOverrideSnippet(t *testing.T) {
 	if !strings.Contains(output, "Save the following override snippet") {
 		t.Fatalf("https-setup output did not switch to snippet mode:\n%s", output)
 	}
-	if !strings.Contains(output, "HttpsCertFile: \"server.crt\"") {
+	if !strings.Contains(output, "HttpsCertFile: 'server.crt'") {
 		t.Fatalf("https-setup output did not include cert override:\n%s", output)
 	}
 
@@ -61,7 +61,7 @@ func TestHTTPSSetupHTTPOnlySnippetClearsHTTPS(t *testing.T) {
 	}, "\n")
 
 	output := runHTTPSSetup(t, configPath, input, nil)
-	if !strings.Contains(output, "HttpsCertFile: \"\"") {
+	if !strings.Contains(output, "HttpsCertFile: ''") {
 		t.Fatalf("https-setup output did not clear cert override:\n%s", output)
 	}
 	if !strings.Contains(output, "HttpsPort: 0") {
@@ -85,6 +85,72 @@ func TestHTTPSSetupUsesConfigPathAsOverrideTarget(t *testing.T) {
 	})
 	if !strings.Contains(output, "Override target: "+overridePath) {
 		t.Fatalf("https-setup output did not prefer CONFIG_PATH:\n%s", output)
+	}
+}
+
+func TestHTTPSSetupUsesExistingOverrideValuesAsDefaults(t *testing.T) {
+	configPath := writeHTTPSSetupTempConfig(t, sampleHTTPSConfig)
+	overridePath := filepath.Join(t.TempDir(), "custom-overrides.yaml")
+	overrideConfig := `FilePaths:
+  HttpsCertFile: 'existing.crt'
+  HttpsKeyFile: 'existing.key'
+Network:
+  HttpPort: 9080
+  HttpsPort: 9443
+  HttpsRedirect: true
+`
+	if err := os.WriteFile(overridePath, []byte(overrideConfig), 0o600); err != nil {
+		t.Fatalf("os.WriteFile() error = %v", err)
+	}
+
+	input := strings.Join([]string{
+		"1",
+		"",
+		"",
+		"",
+		"",
+		"",
+		"2",
+		"",
+	}, "\n")
+
+	output := runHTTPSSetup(t, configPath, input, map[string]string{
+		"CONFIG_PATH": overridePath,
+	})
+	if !strings.Contains(output, "HttpsCertFile: existing.crt") {
+		t.Fatalf("https-setup output did not preserve override cert default:\n%s", output)
+	}
+	if !strings.Contains(output, "HttpPort: 9080") {
+		t.Fatalf("https-setup output did not preserve override HTTP port default:\n%s", output)
+	}
+	if !strings.Contains(output, "HttpsPort: 9443") {
+		t.Fatalf("https-setup output did not preserve override HTTPS port default:\n%s", output)
+	}
+	if !strings.Contains(output, "HttpsRedirect: true") {
+		t.Fatalf("https-setup output did not preserve override redirect default:\n%s", output)
+	}
+}
+
+func TestHTTPSSetupSnippetKeepsWindowsPathsYAMLSafe(t *testing.T) {
+	configPath := writeHTTPSSetupTempConfig(t, sampleHTTPSConfig)
+
+	input := strings.Join([]string{
+		"1",
+		`C:\certs\server.crt`,
+		`C:\certs\server.key`,
+		"",
+		"",
+		"",
+		"2",
+		"",
+	}, "\n")
+
+	output := runHTTPSSetup(t, configPath, input, nil)
+	if !strings.Contains(output, "HttpsCertFile: 'C:\\certs\\server.crt'") {
+		t.Fatalf("https-setup output did not emit YAML-safe Windows cert path:\n%s", output)
+	}
+	if !strings.Contains(output, "HttpsKeyFile: 'C:\\certs\\server.key'") {
+		t.Fatalf("https-setup output did not emit YAML-safe Windows key path:\n%s", output)
 	}
 }
 
