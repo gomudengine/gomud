@@ -80,6 +80,8 @@ Colorization is handled through extensive use of my [github.com/GoMudEngine/ansi
 In a Terminal, run one of the following commands:
 
 ```shell
+make reset-admin-pw
+
 make run          # runs GoMud using the `go` framework
 
 make build        # creates a executable binary of GoMud at `./go-mud-server`

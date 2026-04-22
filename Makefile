@@ -146,6 +146,10 @@ run-docker: ### Build and run server in docker.
 https-setup: ### Interactive HTTPS certificate setup helper.
 	@sh ./scripts/https-setup.sh
 
+.PHONY: reset-admin-pw
+reset-admin-pw: ### Interactively reset the admin user's password.
+	@go run ./cmd/reset-admin-pw
+
 
 .PHONY: client
 client: ### Build and run client terminal client
