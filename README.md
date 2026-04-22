@@ -21,6 +21,9 @@ Playable online demo: **http://www.gomud.net**
   - [Requirements](#requirements)
   - [Usage](#usage)
 - [Connecting](#connecting)
+- [Configuration](#configuration)
+  - [Configuration Files](#configuration-files)
+  - [Enable Server HTTPS Support](#enable-server-https-support)
 - [User Support](#user-support)
 - [Development Notes](#development-notes)
   - [Contributor Guide](#contributor-guide)
@@ -98,7 +101,32 @@ When the GoMud server is running, you can connect it via the Terminal, or with a
 - Web client: [http://localhost/webclient](http://localhost/webclient)
 - Web admin: [http://localhost/admin/](http://localhost/admin/)
 
-### HTTPS With Certificate Files
+Default seeded credentials in the bundled world:
+
+- Username: `admin`
+- Password: `password`
+
+## Configuration
+
+### Configuration Files
+
+GoMud loads configuration in layers so you can keep your own world-specific changes separate from the bundled defaults:
+
+```text
+_datafiles/config.yaml
+  -> FilePaths.DataFiles (defaults to _datafiles/world/default)
+      -> {DataFiles}/config-overrides.yaml
+          -> environment variables such as CONFIG_PATH, LOG_PATH, LOG_LEVEL, LOG_NOCOLOR
+```
+
+- `_datafiles/config.yaml` is the bundled base config that ships with the repo, and shouldn't be edited or changed.
+- `FilePaths.DataFiles` points at the active world data directory. By default that is `_datafiles/world/default`.
+- `{DataFiles}/config-overrides.yaml` is the normal place to save local overrides for a world.
+- `CONFIG_PATH=/path/to/config.yaml` can point GoMud at a different override file when you want to keep it outside the repo or maintain separate deploy-specific settings.
+
+For upgrades, treat `_datafiles/config.yaml` as a reference file, not your day-to-day edit target. Keep your custom changes in `config-overrides.yaml` or a separate file selected with `CONFIG_PATH` so pulling new code does not overwrite your local settings.
+
+### Enable Server HTTPS Support
 
 GoMud can serve HTTPS when you provide a certificate and private key, or can be automated using LetsEncrypt provisioning.
 
@@ -108,29 +136,7 @@ For a guided HTTPS setup process, run:
 make https-setup
 ```
 
-The helper does not edit the bundled base config directly.
-It can PATCH a running GoMud server through `/admin/api/v1/config`, or print a `config-overrides.yaml` snippet for manual save, and it offers manual certificate, automatic Let's Encrypt, or HTTP-only modes.
-Either path still requires a GoMud restart before listener changes take effect.
-### Automatic HTTPS
-
-GoMud can now obtain and renew Let's Encrypt certificates itself for simple single-server installs.
-
-- Run `make https-setup` and choose `Automatic Let's Encrypt`, then either PATCH the running server or save the printed override snippet.
-- Restart GoMud after applying the settings so the updated HTTP/HTTPS listeners are created.
-- Set `FilePaths.WebDomain` to your public DNS name.
-- Leave `FilePaths.HttpsCertFile` and `FilePaths.HttpsKeyFile` empty unless you want to supply your own certificate files.
-- Set `Network.HttpPort` to `80` and `Network.HttpsPort` to `443`.
-- Optional: set `FilePaths.HttpsEmail` to receive certificate expiry notices.
-- Point your DNS name at the server and make sure inbound ports `80` and `443` are reachable.
-
-If automatic HTTPS cannot be completed, GoMud keeps serving HTTP and logs the exact reason. Local development on `localhost` should continue to use plain HTTP.
-
 When the admin interface is enabled, `/admin/https/` shows the current HTTPS mode, the checks GoMud ran, and the next steps needed to finish setup.
-
-Default seeded credentials in the bundled world:
-
-- Username: `admin`
-- Password: `password`
 
 ---
 
