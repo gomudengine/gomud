@@ -188,7 +188,7 @@ func TestHTTPSSetupCanPatchRunningServer(t *testing.T) {
 	curlDir := t.TempDir()
 	curlLog := filepath.Join(curlDir, "curl.log")
 	curlStub := filepath.Join(curlDir, "curl-stub.sh")
-	curlScript := "#!/usr/bin/env sh\nprintf '%s\\n' \"$@\" >\"" + curlLog + "\"\nexit 0\n"
+	curlScript := "#!/usr/bin/env sh\nprintf '%s\\n' \"$@\" >\"" + curlLog + "\"\nprintf '200'\n"
 	if err := os.WriteFile(curlStub, []byte(curlScript), 0o755); err != nil {
 		t.Fatalf("os.WriteFile() error = %v", err)
 	}
@@ -240,7 +240,7 @@ func TestHTTPSSetupAutoModeAPIApplyRequiresRestart(t *testing.T) {
 	curlDir := t.TempDir()
 	curlLog := filepath.Join(curlDir, "curl.log")
 	curlStub := filepath.Join(curlDir, "curl-stub.sh")
-	curlScript := "#!/usr/bin/env sh\nprintf '%s\\n' \"$@\" >\"" + curlLog + "\"\nexit 0\n"
+	curlScript := "#!/usr/bin/env sh\nprintf '%s\\n' \"$@\" >\"" + curlLog + "\"\nprintf '200'\n"
 	if err := os.WriteFile(curlStub, []byte(curlScript), 0o755); err != nil {
 		t.Fatalf("os.WriteFile() error = %v", err)
 	}
@@ -288,7 +288,7 @@ Network:
 
 	curlDir := t.TempDir()
 	curlStub := filepath.Join(curlDir, "curl-stub.sh")
-	curlScript := "#!/usr/bin/env sh\nexit 0\n"
+	curlScript := "#!/usr/bin/env sh\nprintf '200'\n"
 	if err := os.WriteFile(curlStub, []byte(curlScript), 0o755); err != nil {
 		t.Fatalf("os.WriteFile() error = %v", err)
 	}
