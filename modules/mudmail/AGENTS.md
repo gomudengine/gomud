@@ -14,6 +14,22 @@ The `modules/mudmail` module provides the player inbox system and the admin mass
 - Registers user command `inbox` (available when downed, non-admin).
 - Registers user command `mudmail` (available when downed, admin-only).
 - Exports function `SendMudMail` via `plug.ExportFunction` for use by other modules.
+- Registers admin page at `/admin/mudmail` (Send Mudmail UI + message list).
+- Registers admin API docs page at `/admin/mudmail-api` (nested under Mudmail nav).
+- Registers admin API endpoints: `GET`, `POST`, and `DELETE` `/admin/api/v1/mudmail`.
+
+### Admin API (`admin.go`)
+
+Four handler methods on `MudmailModule`:
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/admin/api/v1/mudmail?user_id=<id>` | List summary entries (no body) for one user's inbox. `user_id` is required. |
+| `GET` | `/admin/api/v1/mudmail-body/{user_id}/{timestamp}` | Fetch full message data (including body) for a single message identified by user ID and microsecond timestamp. |
+| `POST` | `/admin/api/v1/mudmail` | Send a message to one user (`user_id`) or broadcast to everyone (`user_id` omitted/0). |
+| `DELETE` | `/admin/api/v1/mudmail` | Delete one message by `?user_id=<id>&date_sent_us=<us>`. |
+
+All endpoints require admin authentication and the mud lock (applied automatically by the framework).
 
 ### Inbox Management
 

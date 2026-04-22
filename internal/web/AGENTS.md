@@ -54,9 +54,10 @@ The web system is built around Go's standard `net/http` package with several key
 
 | File | Purpose |
 |---|---|
-| `web.go` | Server startup, `internalMux`, `serveTemplate`, `serveAdminStaticFile`, `RunWithMUDLocked`, `Shutdown`, public route registration |
+| `web.go` | Server startup, `internalMux`, nav types, `ModuleAdminRegistrar` impl, `buildAdminNav`, `GetAdminRegistrar`, `serveTemplate`, `serveAdminStaticFile`, `RunWithMUDLocked`, `Shutdown`, public route registration |
 | `admin.go` | `adminIndex` handler - admin dashboard page |
 | `admin_config.go` | `adminConfig` handler - live configuration editor page |
+| `admin_config_api.go` | `adminConfigAPI` handler - Config REST API docs page |
 | `admin_routes.go` | `registerAdminRoutes(mux)` - registers all `/admin/` routes including static asset handler |
 | `api.go` | `APIResponse[T]` generic envelope, `writeJSON`, `writeAPIError`, `RunInTestMode` middleware |
 | `api_routes.go` | `registerAdminAPIRoutes(mux)` - registers all `/admin/api/` routes |
@@ -81,10 +82,13 @@ All routes are registered on the package-level `internalMux`. Both live HTTP/HTT
 - `GET /admin/{file}` - static asset serving from admin HTML directory (auth required)
 - `GET /admin/` - admin dashboard (auth required, mud-locked)
 - `GET /admin/config` - live configuration editor (auth required, mud-locked)
+- `GET /admin/config-api` - Config REST API docs page (auth required, mud-locked)
+- `GET /admin/<slug>` - module-contributed admin pages, registered dynamically by `RegisterAdminPage`
 
 ### API Routes (registered via `registerAdminAPIRoutes`, called from `registerAdminRoutes`)
 - `GET /admin/api/v1/config` - return all config as flat key/value map (auth required, mud-locked)
 - `PATCH /admin/api/v1/config` - update one or more config values (auth required, mud-locked, test-mode aware)
+- `<METHOD> /admin/api/v1/<slug>` - module-contributed API endpoints, registered dynamically by `RegisterAdminAPIEndpoint`
 
 All `/admin/` routes, including API routes, are wrapped with `RunWithMUDLocked` and `doBasicAuth`. Both wrappers short-circuit for internal requests.
 
@@ -206,27 +210,62 @@ Located in `_datafiles/html/admin/` (path configured via `FilePaths.AdminHtml`).
 
 | File | Purpose |
 |---|---|
-| `_header.html` | Defines `{{define "header"}}` - HTML5 shell, inline CSS, top nav bar, loads `api.js` |
+| `_header.html` | Defines `{{define "header"}}` - HTML5 shell, inline CSS, dropdown nav bar driven by `.NAV`, loads `api.js` |
 | `_footer.html` | Defines `{{define "footer"}}` - closing tags |
-| `index.html` | Dashboard: server name, version, port stats, expandable REST API reference |
+| `index.html` | Dashboard: server name, version, port stats, link card to API docs |
 | `config.html` | Live config editor: inline editing, pending-changes panel, section filter, search |
+| `config-api.html` | Config REST API reference (GET and PATCH `/admin/api/v1/config` with curl examples) |
 | `api.js` | `AdminAPI` JS client library served as a static asset at `/admin/api.js` |
 
-Template data passed to both `adminIndex` and `adminConfig`:
+Template data passed to all admin page handlers:
 - `CONFIG` - `configs.Config` struct
 - `STATS` - `web.Stats` struct
+- `NAV` - `[]web.WebNavItem` from `buildAdminNav()`
 
-## Plugin Integration
+## Admin Navigation
 
-### WebPlugin Interface
+The admin nav is driven by `buildAdminNav()` which returns `[]WebNavItem`. Each handler passes `NAV: buildAdminNav()` in its template data. The nav supports dropdown sub-items rendered by `_header.html`.
+
 ```go
-type WebPlugin interface {
-    NavLinks() map[string]string
-    WebRequest(r *http.Request) (html string, templateData map[string]any, ok bool)
+type WebNavItem struct {
+    Name     string
+    Target   string       // primary href; empty if dropdown-only
+    SubItems []WebNavSub
+}
+
+type WebNavSub struct {
+    Label  string
+    Target string
 }
 ```
 
-Plugins can add navigation links and handle custom public web requests via `SetWebPlugin`. The admin interface does not use plugin templates.
+Core nav entries (Dashboard, Config with API Docs sub-item) are hardcoded in `buildAdminNav()`. Module entries are appended from `defaultRegistrar.navItems`.
+
+## Module Admin Page and API Registration
+
+Modules register admin pages and API endpoints via `plugins.WebConfig` without importing `internal/web`:
+
+```go
+// In a module init():
+plug.Web.AdminPage("Mudmail", "mudmail", "html/admin/mudmail.html", true, "",
+    func(r *http.Request) map[string]any {
+        return map[string]any{"INBOX_COUNT": getCount()}
+    },
+)
+
+plug.Web.AdminAPIEndpoint("GET", "mudmail", func(r *http.Request) (int, bool, any) {
+    return http.StatusOK, true, getStats()
+})
+```
+
+`main.go` wires the registrar before `plugins.Load()`:
+
+```go
+plugins.SetAdminRegistrar(web.GetAdminRegistrar())
+plugins.Load(dataFilesPath)
+```
+
+This keeps the import graph acyclic: `web` does not import `plugins`; `plugins` does not import `web`; `main` wires them.
 
 ## Security
 

@@ -28,12 +28,26 @@ import (
 
 // pluginRegistry holds all plugins, provides a `fs.ReadFileFS` interface
 
+// ModuleAdminRegistrar is implemented by internal/web and provided to plugins
+// via SetAdminRegistrar. This breaks the import cycle between web and plugins.
+type ModuleAdminRegistrar interface {
+	RegisterAdminPage(name, slug, htmlContent string, addToNav bool, navParent string, dataFunc func(*http.Request) map[string]any)
+	RegisterAdminAPIEndpoint(method, slug string, handler func(*http.Request) (int, bool, any))
+}
+
 var (
-	registrationOpen = true
-	registry         = pluginRegistry{}
-	txtCleanRegex    = regexp.MustCompile(`[^a-zA-Z0-9\._]+`)
-	writeFolderPath  = os.TempDir()
+	registrationOpen     = true
+	registry             = pluginRegistry{}
+	txtCleanRegex        = regexp.MustCompile(`[^a-zA-Z0-9\._]+`)
+	writeFolderPath      = os.TempDir()
+	moduleAdminRegistrar ModuleAdminRegistrar
 )
+
+// SetAdminRegistrar provides the callback that plugins.Load() uses to register
+// module admin pages and API endpoints without importing web directly.
+func SetAdminRegistrar(r ModuleAdminRegistrar) {
+	moduleAdminRegistrar = r
+}
 
 const (
 	dataFilesFolder         = `datafiles` + string(filepath.Separator)
@@ -480,6 +494,25 @@ func Load(dataFilesPath string) {
 				}
 				configs.AddOverlayOverrides(overlayMap)
 
+			}
+		}
+
+		// Register module admin pages and API endpoints.
+		if moduleAdminRegistrar != nil {
+			for _, page := range p.Web.adminPages {
+				htmlContent := ""
+				if b, err := p.files.ReadFile(page.HTMLFile); err == nil {
+					htmlContent = string(b)
+				} else {
+					mudlog.Error("plugins", "admin page html not found", page.HTMLFile, "plugin", p.name)
+				}
+				moduleAdminRegistrar.RegisterAdminPage(page.Name, page.Slug, htmlContent, page.AddToNav, page.NavParent, page.DataFunction)
+			}
+			for _, route := range p.Web.adminAPIRoutes {
+				route := route // capture
+				moduleAdminRegistrar.RegisterAdminAPIEndpoint(route.Method, route.Slug, func(r *http.Request) (int, bool, any) {
+					return route.Handler(r)
+				})
 			}
 		}
 

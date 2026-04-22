@@ -26,6 +26,7 @@ func adminConfig(w http.ResponseWriter, r *http.Request) {
 	templateData := map[string]any{
 		"CONFIG": configs.GetConfig(),
 		"STATS":  GetStats(),
+		"NAV":    buildAdminNav(),
 	}
 
 	w.Header().Set("Cache-Control", "no-store")

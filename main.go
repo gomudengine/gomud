@@ -269,6 +269,10 @@ func main() {
 
 	mudlog.Info(`========================`)
 
+	// Wire module admin registrar before loading plugins so that any admin
+	// pages and API endpoints registered by modules are available immediately.
+	plugins.SetAdminRegistrar(web.GetAdminRegistrar())
+
 	// Trigger the load plugins event
 	plugins.Load(
 		configs.GetFilePathsConfig().DataFiles.String(),
