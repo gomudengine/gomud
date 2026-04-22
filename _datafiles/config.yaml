@@ -212,6 +212,13 @@ FilePaths:
   #   Used to negotiate TLS/https requests
   HttpsCertFile: ""
   HttpsKeyFile: ""
+  # - HttpsEmail -
+  #   Contact email used for automatic HTTPS certificate registration/renewal.
+  HttpsEmail: ""
+  # - HttpsCacheDir -
+  #   Folder used to store automatic HTTPS certificate cache data.
+  #   Leave blank to use the default: _datafiles/tls
+  HttpsCacheDir: ""
   # - SSHHostKeyFile -
   #   Path to a PEM-encoded SSH host private key file.
   #   Required when SSHPort is non-zero. Generate with:
