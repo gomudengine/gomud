@@ -86,3 +86,11 @@ func adminRaces(w http.ResponseWriter, r *http.Request) {
 func adminRacesAPI(w http.ResponseWriter, r *http.Request) {
 	serveAdminTemplate(w, r, "races-api.html", nil)
 }
+
+func adminKeywords(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "keywords.html", nil)
+}
+
+func adminKeywordsAPI(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "keywords-api.html", nil)
+}

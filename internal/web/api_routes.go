@@ -99,6 +99,14 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 		doBasicAuth(apiV1DeleteColorPattern),
 	))
 
+	// Keywords
+	mux.HandleFunc("GET /admin/api/v1/keywords", RunWithMUDLocked(
+		doBasicAuth(apiV1GetKeywords),
+	))
+	mux.HandleFunc("PATCH /admin/api/v1/keywords", RunWithMUDLocked(
+		doBasicAuth(apiV1PatchKeywords),
+	))
+
 	// Races
 	mux.HandleFunc("GET /admin/api/v1/races", RunWithMUDLocked(
 		doBasicAuth(apiV1GetRaces),

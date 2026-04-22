@@ -65,5 +65,12 @@ func registerAdminRoutes(mux *http.ServeMux) {
 		doBasicAuth(adminRacesAPI),
 	))
 
+	mux.HandleFunc("GET /admin/keywords", RunWithMUDLocked(
+		doBasicAuth(adminKeywords),
+	))
+	mux.HandleFunc("GET /admin/keywords-api", RunWithMUDLocked(
+		doBasicAuth(adminKeywordsAPI),
+	))
+
 	registerAdminAPIRoutes(mux)
 }
