@@ -117,7 +117,7 @@ printf 'Override target: %s\n\n' "$override_file"
 printf 'Choose HTTPS mode:\n'
 printf '  1) Manual certificate files\n'
 printf '  2) Automatic Let'\''s Encrypt\n'
-printf '  3) HTTP only\n'
+printf '  3) Disable HTTPS and use HTTP only\n'
 printf 'Selection [1]: '
 IFS= read -r mode_selection
 mode_selection=${mode_selection:-1}
@@ -263,11 +263,13 @@ EOF
 	https_redirect=false
 	https_cert_file=""
 	https_key_file=""
+	https_email=""
 
 	config_updates=$(
 		cat <<EOF
 "FilePaths.HttpsCertFile":""
 ,"FilePaths.HttpsKeyFile":""
+,"FilePaths.HttpsEmail":""
 ,"Network.HttpPort":"$(json_escape "$http_port")"
 ,"Network.HttpsPort":"0"
 ,"Network.HttpsRedirect":"false"
@@ -279,6 +281,7 @@ EOF
 FilePaths:
   HttpsCertFile: ""
   HttpsKeyFile: ""
+  HttpsEmail: ""
 Network:
   HttpPort: $http_port
   HttpsPort: 0
@@ -312,6 +315,10 @@ elif [ "$mode_selection" = "2" ]; then
 	printf '  - Point DNS for %s at this server or forwarded public endpoint.\n' "$web_domain"
 	printf '  - Make sure inbound TCP ports 80 and 443 reach GoMud.\n'
 	printf '  - Leave HttpsCertFile and HttpsKeyFile empty so GoMud can request a certificate.\n'
+elif [ "$mode_selection" = "3" ]; then
+	printf '\nBefore applying these settings:\n'
+	printf '  - This turns HTTPS off and clears certificate and Let'\''s Encrypt email settings.\n'
+	printf '  - Plain HTTP will continue on port %s until you re-enable HTTPS.\n' "$http_port"
 fi
 
 printf '\nChoose how to apply these changes:\n'
