@@ -31,6 +31,39 @@ ACT_DRYRUN_SECRETS ?= -s DISCORD_WEBHOOK_URL=https://example.invalid/webhook
 
 export GOFLAGS := -mod=mod
 
+ifeq ($(OS),Windows_NT)
+RUN_CMD = @go run .
+RUN_DOCKER_CMD = @$(DOCKER_COMPOSE) up --build --remove-orphans server
+else
+RUN_CMD = @GO_BIN=$$(command -v go); \
+	PREFLIGHT_BIN=$$(mktemp); \
+	trap 'rm -f "$$PREFLIGHT_BIN"' EXIT INT TERM; \
+	"$$GO_BIN" build -o "$$PREFLIGHT_BIN" ./cmd/dev-preflight; \
+	if "$$PREFLIGHT_BIN" run-needs-sudo >/dev/null 2>&1; then \
+		"$$GO_BIN" run .; \
+	else \
+		status=$$?; \
+		if [ "$$status" -eq 10 ]; then \
+			echo "make run: current config needs privileged ports; rerunning with sudo." >&2; \
+			echo "make run: if you prefer not to use sudo, use CONFIG_PATH with unprivileged ports or run a built binary with cap_net_bind_service." >&2; \
+			sudo --preserve-env=CONFIG_PATH,LOG_PATH,LOG_LEVEL,LOG_NOCOLOR,GOFLAGS "$$GO_BIN" run .; \
+		else \
+			echo "make run: failed to evaluate the current config preflight." >&2; \
+			exit "$$status"; \
+		fi; \
+	fi
+RUN_DOCKER_CMD = @set -- $(DOCKER_COMPOSE); \
+	if docker info >/dev/null 2>&1; then \
+		"$$@" up --build --remove-orphans server; \
+	elif sudo -n docker info >/dev/null 2>&1; then \
+		echo "make run-docker: docker access requires sudo on this machine; rerunning with sudo." >&2; \
+		sudo "$$@" up --build --remove-orphans server; \
+	else \
+		echo "make run-docker: docker access requires sudo on this machine; rerunning with sudo." >&2; \
+		sudo "$$@" up --build --remove-orphans server; \
+	fi
+endif
+
 ## Build Targets
 
 .PHONY: docker_build 
@@ -133,14 +166,14 @@ clean-instances: ### Deletes all room instance data. Starts the world fresh.
 
 .PHONY: run 
 run: generate  ### Build and run server.
-	@go run .
+	$(RUN_CMD)
 
 .PHONY: run-new
 run-new: clean-instances generate run ### Deletes instance data and runs server
 
 .PHONY: run-docker
 run-docker: ### Build and run server in docker.
-	$(DOCKER_COMPOSE) up --build --remove-orphans server
+	$(RUN_DOCKER_CMD)
 
 
 .PHONY: client

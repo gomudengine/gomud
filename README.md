@@ -86,6 +86,29 @@ make docker-run   # runs GoMud in a container using Docker Compose
 make help         # shows all available `make` command options
 ```
 
+On Linux and other Unix-like hosts, if the active config uses privileged ports
+such as `80` or `443`, `make run` will rerun with `sudo` automatically. If you
+prefer not to use `sudo` for local development, point `CONFIG_PATH` at an
+override file with unprivileged ports such as `8080` and `8443`.
+
+On Windows hosts, `make run` stays on a normal `go run .` path and does not try
+to use `sudo`.
+
+If you want to bind privileged ports without running the whole process as root,
+build the binary and grant it `cap_net_bind_service`, then run the binary
+directly:
+
+```shell
+make build
+sudo setcap 'cap_net_bind_service=+ep' ./go-mud-server
+./go-mud-server
+```
+
+On Linux and other Unix-like hosts, `make run-docker` will use `sudo`
+automatically when Docker itself is not available to the current user. On
+Windows hosts, it uses the normal Docker command path without a `sudo`
+fallback.
+
 ---
 
 ## Connecting
