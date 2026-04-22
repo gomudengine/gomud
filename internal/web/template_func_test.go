@@ -20,6 +20,18 @@ func TestStaticAssetURL(t *testing.T) {
 	}
 	httpsReq.TLS = &tls.ConnectionState{}
 
+	proxiedHTTPSReq, err := http.NewRequest(http.MethodGet, "http://gomud.net/", nil)
+	if err != nil {
+		t.Fatalf("http.NewRequest() error = %v", err)
+	}
+	proxiedHTTPSReq.Header.Set("X-Forwarded-Proto", "https")
+
+	forwardedHTTPSReq, err := http.NewRequest(http.MethodGet, "http://gomud.net/", nil)
+	if err != nil {
+		t.Fatalf("http.NewRequest() error = %v", err)
+	}
+	forwardedHTTPSReq.Header.Add("Forwarded", `for=203.0.113.8;proto=https;host=gomud.net`)
+
 	tests := []struct {
 		name      string
 		req       *http.Request
@@ -44,6 +56,20 @@ func TestStaticAssetURL(t *testing.T) {
 		{
 			name:      "https request drops insecure cdn",
 			req:       httpsReq,
+			cdnBase:   "http://files.gomud.net",
+			assetPath: "/static/css/gomud.css",
+			want:      "/static/css/gomud.css",
+		},
+		{
+			name:      "proxied https request drops insecure cdn",
+			req:       proxiedHTTPSReq,
+			cdnBase:   "http://files.gomud.net",
+			assetPath: "/static/css/gomud.css",
+			want:      "/static/css/gomud.css",
+		},
+		{
+			name:      "forwarded https request drops insecure cdn",
+			req:       forwardedHTTPSReq,
 			cdnBase:   "http://files.gomud.net",
 			assetPath: "/static/css/gomud.css",
 			want:      "/static/css/gomud.css",

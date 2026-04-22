@@ -150,11 +150,61 @@ func staticAssetURL(r *http.Request, cdnBase string, assetPath string) string {
 		return assetPath
 	}
 
-	if r != nil && r.TLS != nil && strings.EqualFold(cdnURL.Scheme, "http") {
+	if requestUsesHTTPS(r) && strings.EqualFold(cdnURL.Scheme, "http") {
 		// Do not emit insecure CDN URLs into HTTPS pages; browsers will block
 		// them as mixed content, so local same-origin assets are the safe fallback.
 		return assetPath
 	}
 
 	return cdnBase + assetPath
+}
+
+func requestUsesHTTPS(r *http.Request) bool {
+	if r == nil {
+		return false
+	}
+
+	if r.TLS != nil {
+		return true
+	}
+
+	if strings.EqualFold(r.URL.Scheme, "https") {
+		return true
+	}
+
+	if proto := forwardedProto(r.Header.Get("X-Forwarded-Proto")); proto != "" {
+		return strings.EqualFold(proto, "https")
+	}
+
+	if proto := forwardedHeaderProto(r.Header.Values("Forwarded")); proto != "" {
+		return strings.EqualFold(proto, "https")
+	}
+
+	return false
+}
+
+func forwardedProto(value string) string {
+	if value == "" {
+		return ""
+	}
+
+	part, _, _ := strings.Cut(value, ",")
+	return strings.TrimSpace(part)
+}
+
+func forwardedHeaderProto(values []string) string {
+	for _, value := range values {
+		for _, field := range strings.Split(value, ",") {
+			for _, pair := range strings.Split(field, ";") {
+				key, rawValue, ok := strings.Cut(pair, "=")
+				if !ok || !strings.EqualFold(strings.TrimSpace(key), "proto") {
+					continue
+				}
+
+				return strings.Trim(strings.TrimSpace(rawValue), `"`)
+			}
+		}
+	}
+
+	return ""
 }
