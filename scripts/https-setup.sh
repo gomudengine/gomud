@@ -24,6 +24,18 @@ read_yaml_value_from_file() {
 	' "$1"
 }
 
+yaml_key_exists_in_file() {
+	awk -F': ' -v key="$2" '
+		$1 ~ "^[[:space:]]*" key "$" {
+			found = 1
+			exit
+		}
+		END {
+			exit(found ? 0 : 1)
+		}
+	' "$1"
+}
+
 canonicalize_path() {
 	path=$1
 	path_dir=$(dirname "$path")
@@ -98,8 +110,8 @@ fi
 
 read_effective_yaml_value() {
 	if [ -f "$override_file" ]; then
-		override_value=$(read_yaml_value_from_file "$override_file" "$1")
-		if [ -n "$override_value" ]; then
+		if yaml_key_exists_in_file "$override_file" "$1"; then
+			override_value=$(read_yaml_value_from_file "$override_file" "$1")
 			printf '%s' "$override_value"
 			return 0
 		fi
@@ -360,12 +372,14 @@ case "$apply_selection" in
 	IFS= read -r admin_password
 
 	printf '\nPATCH %s/admin/api/v1/config\n' "$admin_base_url"
-	if ! "$CURL_BIN" --fail --silent --show-error \
+	curl_status=0
+	curl_http_code=$("$CURL_BIN" --silent --show-error --output /dev/null --write-out '%{http_code}' \
 		-u "$admin_username:$admin_password" \
 		-H 'Content-Type: application/json' \
 		-X PATCH \
 		--data "{$config_updates}" \
-		"$admin_base_url/admin/api/v1/config"; then
+		"$admin_base_url/admin/api/v1/config") || curl_status=$?
+	if [ "$curl_status" -ne 0 ]; then
 		printf '\nFailed to apply settings through the admin API.\n' >&2
 		printf 'GoMud is not reachable at %s.\n' "$admin_base_url" >&2
 		printf 'If the server is already running, enter its current admin URL and try again.\n' >&2
@@ -374,6 +388,26 @@ case "$apply_selection" in
 		printf '%s\n' "$override_snippet" >&2
 		exit 1
 	fi
+	case "$curl_http_code" in
+	2??)
+		;;
+	401 | 403)
+		printf '\nFailed to apply settings through the admin API.\n' >&2
+		printf 'GoMud responded with HTTP %s.\n' "$curl_http_code" >&2
+		printf 'Check that the admin username and password are correct and that the account has admin access.\n\n' >&2
+		printf 'Fallback: save the following override snippet to %s and restart GoMud:\n\n' "$override_file" >&2
+		printf '%s\n' "$override_snippet" >&2
+		exit 1
+		;;
+	*)
+		printf '\nFailed to apply settings through the admin API.\n' >&2
+		printf 'GoMud responded with HTTP %s.\n' "$curl_http_code" >&2
+		printf 'Check the server logs or save the override snippet below and restart GoMud manually.\n\n' >&2
+		printf 'Fallback: save the following override snippet to %s and restart GoMud:\n\n' "$override_file" >&2
+		printf '%s\n' "$override_snippet" >&2
+		exit 1
+		;;
+	esac
 
 	printf '\nHTTPS setup applied through the admin API.\n'
 	printf 'Next steps:\n'
