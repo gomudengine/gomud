@@ -3,6 +3,8 @@ package web
 import (
 	"fmt"
 	"html"
+	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"text/template"
@@ -123,5 +125,36 @@ var (
 		"httpsUsesExampleHost": func(host string) bool {
 			return httpsUsesExampleHost(host)
 		},
+		"staticAssetURL": func(r *http.Request, cdnBase string, assetPath string) string {
+			return staticAssetURL(r, cdnBase, assetPath)
+		},
 	}
 )
+
+func staticAssetURL(r *http.Request, cdnBase string, assetPath string) string {
+	if assetPath == "" {
+		return ""
+	}
+
+	if !strings.HasPrefix(assetPath, "/") {
+		assetPath = "/" + assetPath
+	}
+
+	cdnBase = strings.TrimSpace(strings.TrimRight(cdnBase, "/"))
+	if cdnBase == "" {
+		return assetPath
+	}
+
+	cdnURL, err := url.Parse(cdnBase)
+	if err != nil {
+		return assetPath
+	}
+
+	if r != nil && r.TLS != nil && strings.EqualFold(cdnURL.Scheme, "http") {
+		// Do not emit insecure CDN URLs into HTTPS pages; browsers will block
+		// them as mixed content, so local same-origin assets are the safe fallback.
+		return assetPath
+	}
+
+	return cdnBase + assetPath
+}
