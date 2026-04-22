@@ -13,25 +13,26 @@ Playable online demo: **<http://www.gomud.net>**
 ---
 
 <!-- TOC -->
+
 - [Features](#features)
   - [Screenshots](#screenshots)
   - [ANSI Colors](#ansi-colors)
   - [Small Feature Demos](#small-feature-demos)
 - [Setup](#setup)
   - [Requirements](#requirements)
-  - [Usage](#usage)
+  - [Quick Start](#quick-start)
 - [Connecting](#connecting)
+- [Common Commands](#common-commands)
 - [Configuration](#configuration)
-  - [Configuration Files](#configuration-files)
+  - [Config Files](#config-files)
   - [Enable Server HTTPS Support](#enable-server-https-support)
+  - [Sudo Notes](#sudo-notes)
 - [User Support](#user-support)
 - [Development Notes](#development-notes)
   - [Contributor Guide](#contributor-guide)
   - [Build Commands](#build-commands)
   - [Env Vars](#env-vars)
   - [Why Go?](#why-go)
-
----
 
 <!-- /TOC -->
 
@@ -88,29 +89,6 @@ make run              # runs GoMud server using `go`
 make docker-run       # Alternatively, run the GoMud server using `docker`
 ```
 
-On Linux and other Unix-like hosts, if the active config uses privileged ports
-such as `80` or `443`, `make run` will rerun with `sudo` automatically. If you
-prefer not to use `sudo` for local development, point `CONFIG_PATH` at an
-override file with unprivileged ports such as `8080` and `8443`.
-
-On Windows hosts, `make run` stays on a normal `go run .` path and does not try
-to use `sudo`.
-
-If you want to bind privileged ports without running the whole process as root,
-build the binary and grant it `cap_net_bind_service`, then run the binary
-directly:
-
-```shell
-make build
-sudo setcap 'cap_net_bind_service=+ep' ./go-mud-server
-./go-mud-server
-```
-
-On Linux and other Unix-like hosts, `make run-docker` will use `sudo`
-automatically when Docker itself is not available to the current user. On
-Windows hosts, it uses the normal Docker command path without a `sudo`
-fallback.
-
 Then open your browser to: `http://localhost`
 
 ---
@@ -125,17 +103,17 @@ When the GoMud server is running, you can connect it via the Terminal, or with a
 - Web client: [http://localhost/webclient](http://localhost/webclient)
 - Web admin: [http://localhost/admin/](http://localhost/admin/)
 
-**Important:** Run `make reset-admin-pw`, otherwise your default world will launch with these credentials:
+**Important:**
 
-- Username: `admin`
-- Password: `password`
+- Run `make reset-admin-pw`, otherwise your default world will launch with these credentials:
+  - Username: `admin`
+  - Password: `password`
 
-## Common Server Commands
+## Common Commands
 
 In a Terminal, run one of the following commands:
 
 ```shell
-
 make run          # runs GoMud using the `go` framework
 
 make build        # creates a executable binary of GoMud at `./go-mud-server`
@@ -177,6 +155,33 @@ make https-setup
 ```
 
 When the admin interface is enabled, `/admin/https/` shows the current HTTPS mode, the checks GoMud ran, and the next steps needed to finish setup.
+
+---
+
+### Sudo Notes
+
+- On Linux hosts, host ports such as `80` and `443` require `sudo` access to use
+
+- As such, `make run` will detect if/when sudo is needed
+
+- If you prefer not to use `sudo` for local development:
+  - Set `$CONFIG_PATH` at an override file with unprivileged ports such as `8080` and `8443`.
+
+- On Windows hosts, `make run` stays on a normal mode and does not try to use `sudo`.
+
+- If you want to bind privileged ports without running the whole process as root,
+  build the binary and grant it `cap_net_bind_service`, then run the binary
+  directly:
+
+  ```shell
+  make build
+  sudo setcap 'cap_net_bind_service=+ep' ./go-mud-server
+  ./go-mud-server
+  ```
+
+- On Linux , `make run-docker` will use `sudo` automatically when Docker itself is not available 
+to the current user. On Windows hosts, it uses the normal Docker command path without a `sudo`
+fallback.
 
 ---
 
