@@ -11,13 +11,22 @@ if [ ! -f "$CONFIG_FILE" ]; then
 fi
 
 read_yaml_value() {
-	awk -F': ' -v key="$1" '
+	read_yaml_value_from_file "$CONFIG_FILE" "$1"
+}
+
+read_yaml_value_from_file() {
+	file_path=$1
+	key=$2
+	if [ ! -f "$file_path" ]; then
+		return 0
+	fi
+	awk -F': ' -v key="$key" '
 		$1 ~ "^[[:space:]]*" key "$" {
-			gsub(/^"|"$/, "", $2)
+			gsub(/^["'\'']|["'\'']$/, "", $2)
 			print $2
 			exit
 		}
-	' "$CONFIG_FILE"
+	' "$file_path"
 }
 
 canonicalize_path() {
@@ -35,6 +44,10 @@ json_escape() {
 	printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
 }
 
+yaml_single_quote() {
+	printf "'%s'" "$(printf '%s' "$1" | sed "s/'/''/g")"
+}
+
 base_url_without_trailing_slash() {
 	url=$1
 	while [ "${url%/}" != "$url" ]; do
@@ -44,12 +57,6 @@ base_url_without_trailing_slash() {
 }
 
 current_data_files=$(read_yaml_value DataFiles)
-current_https_cert=$(read_yaml_value HttpsCertFile)
-current_https_key=$(read_yaml_value HttpsKeyFile)
-current_http_port=$(read_yaml_value HttpPort)
-current_https_port=$(read_yaml_value HttpsPort)
-current_https_redirect=$(read_yaml_value HttpsRedirect)
-
 default_override_file="${current_data_files:-_datafiles/world/default}/config-overrides.yaml"
 override_file="${CONFIG_PATH:-$default_override_file}"
 bundled_config_path=$(canonicalize_path "$CONFIG_FILE")
@@ -59,6 +66,22 @@ if [ "$override_path" = "$bundled_config_path" ]; then
 	printf 'Ignoring CONFIG_PATH=%s because https-setup must not target the bundled base config.\n' "$override_file" >&2
 	override_file=$default_override_file
 fi
+
+read_effective_yaml_value() {
+	key=$1
+	value=$(read_yaml_value_from_file "$override_file" "$key")
+	if [ -n "$value" ]; then
+		printf '%s\n' "$value"
+		return 0
+	fi
+	read_yaml_value "$key"
+}
+
+current_https_cert=$(read_effective_yaml_value HttpsCertFile)
+current_https_key=$(read_effective_yaml_value HttpsKeyFile)
+current_http_port=$(read_effective_yaml_value HttpPort)
+current_https_port=$(read_effective_yaml_value HttpsPort)
+current_https_redirect=$(read_effective_yaml_value HttpsRedirect)
 
 https_cert_file=$current_https_cert
 https_key_file=$current_https_key
@@ -154,8 +177,8 @@ EOF
 override_snippet=$(
 	cat <<EOF
 FilePaths:
-  HttpsCertFile: "$(json_escape "$https_cert_file")"
-  HttpsKeyFile: "$(json_escape "$https_key_file")"
+  HttpsCertFile: $(yaml_single_quote "$https_cert_file")
+  HttpsKeyFile: $(yaml_single_quote "$https_key_file")
 Network:
   HttpPort: $http_port
   HttpsPort: $https_port
