@@ -142,6 +142,10 @@ run-new: clean-instances generate run ### Deletes instance data and runs server
 run-docker: ### Build and run server in docker.
 	$(DOCKER_COMPOSE) up --build --remove-orphans server
 
+.PHONY: reset-admin-pw
+reset-admin-pw: ### Interactively reset the admin user's password.
+	@go run ./cmd/reset-admin-pw
+
 
 .PHONY: client
 client: ### Build and run client terminal client
