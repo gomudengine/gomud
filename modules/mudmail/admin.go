@@ -211,8 +211,8 @@ func (m *MudmailModule) inboxForUser(userId int) (username string, inbox Inbox) 
 		return u.Username, m.inboxes[userId]
 	}
 	// Offline: find username from index then load from disk.
-	idx := users.NewUserIndex()
-	if name, ok := idx.FindByUserId(int64(userId)); ok {
+	idx := users.GetUserIndex()
+	if name, ok := idx.FindByUserId(userId); ok {
 		username = name
 	}
 	return username, m.load(userId)

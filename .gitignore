@@ -1,5 +1,4 @@
 .vscode
-.claude
 bin/
 private-notes.txt
 _datafiles/**/users/*
@@ -16,3 +15,6 @@ ssh_host_key
 ssh_host_key.pub
 tmp-gomud.exe
 __debug*
+.claude/
+
+

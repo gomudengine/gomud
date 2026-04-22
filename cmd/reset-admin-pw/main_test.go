@@ -118,7 +118,7 @@ character:
 func createUserIndex(t *testing.T) {
 	t.Helper()
 
-	index := users.NewUserIndex()
+	index := users.InitUserIndex()
 	if err := index.Create(); err != nil {
 		t.Fatalf("Create() error = %v", err)
 	}
