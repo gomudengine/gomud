@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"golang.org/x/crypto/ssh/terminal"
 )
@@ -15,6 +16,13 @@ import (
 var errPasswordMismatch = errors.New("passwords did not match")
 
 func main() {
+	mudlog.SetupLogger(
+		nil,
+		os.Getenv(`LOG_LEVEL`),
+		os.Getenv(`LOG_PATH`),
+		os.Getenv(`LOG_NOCOLOR`) == ``,
+	)
+
 	if err := configs.ReloadConfig(); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to load config: %v\n", err)
 		os.Exit(1)

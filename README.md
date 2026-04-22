@@ -8,7 +8,7 @@
 
 It includes a fully playable default world, and provides built-in tools to customize or create your own.
 
-Playable online demo: **http://www.gomud.net**
+Playable online demo: **<http://www.gomud.net>**
 
 ---
 
@@ -71,31 +71,30 @@ Colorization is handled through extensive use of my [github.com/GoMudEngine/ansi
 
 ### Requirements
 
-- `go` language runtime installed
+- `go` 1.24 or newer
+- Optional: `docker` for container builds/test/runs
 
-- `docker` to build/run as a container (optional)
+### Quick Start
 
-### Usage
-
-In a Terminal, run one of the following commands:
+In a Terminal, run the following commands:
 
 ```shell
-make reset-admin-pw
+git clone https://github.com/GoMudEngine/GoMud.git
+cd GoMud
 
-make run          # runs GoMud using the `go` framework
+make reset-admin-pw   # set a new default admin password
+make run              # runs GoMud server using `go`
 
-make build        # creates a executable binary of GoMud at `./go-mud-server`
-
-make docker-run   # runs GoMud in a container using Docker Compose
-
-make help         # shows all available `make` command options
+make docker-run       # Alternatively, run the GoMud server using `docker`
 ```
+
+Then open your browser to: `http://localhost`
 
 ---
 
 ## Connecting
 
-When the GoMud server is running, you can connect it via the Terminal, or with a web browser:
+When the GoMud server is running, you can connect it via the Terminal, or with a web browser.
 
 - Telnet: `localhost:33333` or `localhost:44444`
 - Local-only telnet port: `127.0.0.1:9999`
@@ -103,14 +102,29 @@ When the GoMud server is running, you can connect it via the Terminal, or with a
 - Web client: [http://localhost/webclient](http://localhost/webclient)
 - Web admin: [http://localhost/admin/](http://localhost/admin/)
 
-Default seeded credentials in the bundled world:
+**Important:** Run `make reset-admin-pw`, otherwise your default world will launch with these credentials:
 
 - Username: `admin`
 - Password: `password`
 
+## Common Server Commands
+
+In a Terminal, run one of the following commands:
+
+```shell
+
+make run          # runs GoMud using the `go` framework
+
+make build        # creates a executable binary of GoMud at `./go-mud-server`
+
+make run-docker   # runs GoMud in a container using Docker Compose
+
+make help         # shows all available `make` command options
+```
+
 ## Configuration
 
-### Configuration Files
+### Config Files
 
 GoMud loads configuration in layers so you can keep your own world-specific changes separate from the bundled defaults:
 
@@ -126,7 +140,8 @@ _datafiles/config.yaml
 - `{DataFiles}/config-overrides.yaml` is the normal place to save local overrides for a world.
 - `CONFIG_PATH=/path/to/config.yaml` can point GoMud at a different override file when you want to keep it outside the repo or maintain separate deploy-specific settings.
 
-For upgrades, treat `_datafiles/config.yaml` as a reference file, not your day-to-day edit target. Keep your custom changes in `config-overrides.yaml` or a separate file selected with `CONFIG_PATH` so pulling new code does not overwrite your local settings.
+- For upgrades, treat `_datafiles/config.yaml` as a reference file, not your day-to-day edit target. 
+= Keep your custom changes in `config-overrides.yaml` or a separate file selected with `CONFIG_PATH` so pulling new code does not overwrite your local settings.
 
 ### Enable Server HTTPS Support
 
@@ -166,7 +181,10 @@ Interested in contributing? Check out our [CONTRIBUTING.md](https://github.com/G
 |--------------------|-----------------------------------------------------------------------------|
 | `make build`       | Validates and builds the server binary.                                     |
 | `make run`         | Generates module imports and starts the server with `go run .`.             |
-| `make run-docker`  | Builds and starts the Docker environment from `compose.yml`.                |
+| `make run-new`     | Deletes generated room instance data, then starts the server fresh.         |
+| `make run-docker`  | Builds and starts the server container from `compose.yml`.                  |
+| `make https-setup` | Runs the interactive HTTPS certificate setup helper.                        |
+| `make reset-admin-pw` | Interactively resets the admin user's password.                          |
 | `make test`        | Runs code generation, JavaScript linting, and `go test -race ./...`.        |
 | `make validate`    | Runs `fmtcheck` and `go vet`.                                               |
 | `make ci-local`    | Builds the local CI container and runs workflow validation.                 |
