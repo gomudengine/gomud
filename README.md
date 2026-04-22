@@ -21,6 +21,9 @@ Playable online demo: **http://www.gomud.net**
   - [Requirements](#requirements)
   - [Usage](#usage)
 - [Connecting](#connecting)
+- [Configuration](#configuration)
+  - [Configuration Files](#configuration-files)
+  - [Enable Server HTTPS Support](#enable-server-https-support)
 - [User Support](#user-support)
 - [Development Notes](#development-notes)
   - [Contributor Guide](#contributor-guide)
@@ -102,6 +105,38 @@ Default seeded credentials in the bundled world:
 
 - Username: `admin`
 - Password: `password`
+
+## Configuration
+
+### Configuration Files
+
+GoMud loads configuration in layers so you can keep your own world-specific changes separate from the bundled defaults:
+
+```text
+_datafiles/config.yaml
+  -> FilePaths.DataFiles (defaults to _datafiles/world/default)
+      -> {DataFiles}/config-overrides.yaml
+          -> environment variables such as CONFIG_PATH, LOG_PATH, LOG_LEVEL, LOG_NOCOLOR
+```
+
+- `_datafiles/config.yaml` is the bundled base config that ships with the repo, and shouldn't be edited or changed.
+- `FilePaths.DataFiles` points at the active world data directory. By default that is `_datafiles/world/default`.
+- `{DataFiles}/config-overrides.yaml` is the normal place to save local overrides for a world.
+- `CONFIG_PATH=/path/to/config.yaml` can point GoMud at a different override file when you want to keep it outside the repo or maintain separate deploy-specific settings.
+
+For upgrades, treat `_datafiles/config.yaml` as a reference file, not your day-to-day edit target. Keep your custom changes in `config-overrides.yaml` or a separate file selected with `CONFIG_PATH` so pulling new code does not overwrite your local settings.
+
+### Enable Server HTTPS Support
+
+GoMud can serve HTTPS when you provide a certificate and private key, or can be automated using LetsEncrypt provisioning.
+
+For a guided HTTPS setup process, run:
+
+```shell
+make https-setup
+```
+
+When the admin interface is enabled, `/admin/https/` shows the current HTTPS mode, the checks GoMud ran, and the next steps needed to finish setup.
 
 ---
 

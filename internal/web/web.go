@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"text/template"
 	"time"
 
@@ -19,11 +20,13 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/util"
 	"github.com/gorilla/websocket"
+	"golang.org/x/crypto/acme/autocert"
 )
 
 var (
-	httpServer  *http.Server
-	httpsServer *http.Server
+	httpServer         *http.Server
+	httpsServer        *http.Server
+	httpsRedirectReady atomic.Bool
 
 	// internalMux is the single ServeMux used by both the live HTTP servers and
 	// the in-process InternalRequest dispatcher. All routes must be registered
@@ -427,8 +430,11 @@ func serveTemplate(w http.ResponseWriter, r *http.Request) {
 }
 
 func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn)) {
+	httpsRedirectReady.Store(false)
 
 	networkConfig := configs.GetNetworkConfig()
+	filePaths := configs.GetFilePathsConfig()
+	httpsPlan := resolveHTTPSPlan(networkConfig, filePaths)
 
 	if networkConfig.HttpPort == 0 && networkConfig.HttpsPort == 0 {
 		slog.Error(`Web`, "error", "No ports defined. No web server will be started.")
@@ -464,50 +470,132 @@ func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn)) {
 	// Https server start up
 	//
 
-	if networkConfig.HttpsPort > 0 {
+	switch httpsPlan.mode {
+	case httpsModeManual:
+		status := newHTTPSStatus(httpsPlan, networkConfig)
+		SetHTTPSStatus(status)
+		logHTTPSStatus(status)
 
-		filePaths := configs.GetFilePathsConfig()
+		mudlog.Info("HTTPS", "stage", "Validating public/private key pair", "Public Cert", httpsPlan.certFile, "Private Key", httpsPlan.keyFile)
 
-		if len(filePaths.HttpsCertFile) == 0 || len(filePaths.HttpsKeyFile) == 0 {
-
-			mudlog.Info("HTTPS", "stage", "skipping", "error", "Undefined public/private key files", "Public Cert", filePaths.HttpsCertFile, "Private Key", filePaths.HttpsKeyFile)
-
+		cert, err := tls.LoadX509KeyPair(httpsPlan.certFile, httpsPlan.keyFile)
+		if err != nil {
+			UpdateHTTPSStatus(func(status *HTTPSStatus) {
+				markHTTPSStartupFailure(status, err)
+			})
+			mudlog.Error("HTTPS", "error", fmt.Errorf("Error loading certificate and key: %w", err))
 		} else {
-
-			if filePaths.HttpsCertFile != `` && filePaths.HttpsKeyFile != `` {
-
-				mudlog.Info("HTTPS", "stage", "Validating public/private key pair", "Public Cert", filePaths.HttpsCertFile, "Private Key", filePaths.HttpsKeyFile)
-
-				cert, err := tls.LoadX509KeyPair(string(filePaths.HttpsCertFile), string(filePaths.HttpsKeyFile))
-
-				if err != nil {
-
-					mudlog.Error("HTTPS", "error", fmt.Errorf("Error loading certificate and key: %w", err))
-
-				} else {
-
-					tlsConfig := &tls.Config{
-						Certificates: []tls.Certificate{cert},
-					}
-
-					wg.Add(1)
-
-					httpsServer = &http.Server{
-						Addr:      fmt.Sprintf(`:%d`, networkConfig.HttpsPort),
-						TLSConfig: tlsConfig,
-						Handler:   internalMux,
-					}
-
-					mudlog.Info("HTTPS", "stage", "Starting https server", "port", networkConfig.HttpsPort)
-					go func() {
-						defer wg.Done()
-						if err := httpsServer.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
-							mudlog.Error("HTTPS", "error", fmt.Errorf("Error starting HTTPS web server: %w", err))
-						}
-					}()
-				}
+			if leaf, leafErr := firstLeafCertificate(&cert); leafErr == nil {
+				UpdateHTTPSStatus(func(status *HTTPSStatus) {
+					setCertificateInfo(status, leaf)
+				})
 			}
+
+			tlsConfig := &tls.Config{
+				Certificates: []tls.Certificate{cert},
+			}
+
+			httpsServer = &http.Server{
+				Addr:      fmt.Sprintf(`:%d`, networkConfig.HttpsPort),
+				TLSConfig: tlsConfig,
+				Handler:   internalMux,
+			}
+
+			mudlog.Info("HTTPS", "stage", "Starting https server", "mode", "manual", "port", networkConfig.HttpsPort)
+			startHTTPSServer(wg, httpsServer, func() {
+				httpsRedirectReady.Store(true)
+				UpdateHTTPSStatus(func(status *HTTPSStatus) {
+					markHTTPSListenerReady(status, bool(networkConfig.HttpsRedirect))
+				})
+			}, func(err error) {
+				httpsRedirectReady.Store(false)
+				UpdateHTTPSStatus(func(status *HTTPSStatus) {
+					markHTTPSStartupFailure(status, err)
+					status.NextSteps = append(status.NextSteps, describeListenError(int(networkConfig.HttpsPort), err)...)
+				})
+				mudlog.Error("HTTPS", "error", fmt.Errorf("Error starting HTTPS web server: %w", err))
+			})
 		}
+	case httpsModeAuto:
+		status := newHTTPSStatus(httpsPlan, networkConfig)
+		runAutoHTTPSPreflight(&status)
+		SetHTTPSStatus(status)
+		logHTTPSStatus(status)
+
+		if err := os.MkdirAll(httpsPlan.cacheDir, 0700); err != nil {
+			mudlog.Error("HTTPS", "error", fmt.Errorf("Error creating HTTPS cache dir: %w", err), "cacheDir", httpsPlan.cacheDir)
+			httpsPlan.mode = httpsModeHTTPOnly
+			if httpsPlan.fallbackReason == "" {
+				httpsPlan.fallbackReason = fmt.Sprintf("automatic HTTPS cache directory %q is not writable", httpsPlan.cacheDir)
+			}
+			SetHTTPSStatus(newHTTPSStatus(httpsPlan, networkConfig))
+			break
+		}
+
+		manager := &autocert.Manager{
+			Prompt:     autocert.AcceptTOS,
+			Cache:      autocert.DirCache(httpsPlan.cacheDir),
+			HostPolicy: autocert.HostWhitelist(httpsPlan.host),
+			Email:      httpsPlan.email,
+		}
+
+		httpServer = &http.Server{
+			Addr:    fmt.Sprintf(`:%d`, networkConfig.HttpPort),
+			Handler: buildAutoHTTPHandler(manager, networkConfig, internalMux, &httpsRedirectReady),
+		}
+
+		baseTLSConfig := manager.TLSConfig()
+		baseGetCertificate := baseTLSConfig.GetCertificate
+		baseTLSConfig.GetCertificate = func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+			if err := validateAutoHTTPSServerName(httpsPlan.host, hello.ServerName); err != nil {
+				return nil, err
+			}
+
+			cert, err := baseGetCertificate(hello)
+			if err == nil {
+				if leaf, leafErr := firstLeafCertificate(cert); leafErr == nil {
+					UpdateHTTPSStatus(func(status *HTTPSStatus) {
+						setCertificateInfo(status, leaf)
+						status.LastError = ""
+					})
+				}
+			} else {
+				UpdateHTTPSStatus(func(status *HTTPSStatus) {
+					status.LastError = err.Error()
+				})
+			}
+			return cert, err
+		}
+
+		httpsServer = &http.Server{
+			Addr:      fmt.Sprintf(`:%d`, networkConfig.HttpsPort),
+			TLSConfig: baseTLSConfig,
+			Handler:   internalMux,
+			ErrorLog:  log.New(automaticHTTPSLogFilter{}, "", 0),
+		}
+
+		mudlog.Info("HTTPS", "stage", "Starting https server", "mode", "automatic", "host", httpsPlan.host, "port", networkConfig.HttpsPort, "cacheDir", httpsPlan.cacheDir)
+		if httpsPlan.emailNoticeNeeded {
+			mudlog.Warn("HTTPS", "warning", "Automatic HTTPS is enabled without HttpsEmail; certificate expiry notices will not be sent by email.")
+		}
+
+		startHTTPSServer(wg, httpsServer, func() {
+			httpsRedirectReady.Store(true)
+			UpdateHTTPSStatus(func(status *HTTPSStatus) {
+				markHTTPSListenerReady(status, bool(networkConfig.HttpsRedirect))
+			})
+		}, func(err error) {
+			httpsRedirectReady.Store(false)
+			UpdateHTTPSStatus(func(status *HTTPSStatus) {
+				markHTTPSStartupFailure(status, err)
+				status.NextSteps = append(status.NextSteps, describeListenError(int(networkConfig.HttpsPort), err)...)
+			})
+			mudlog.Error("HTTPS", "error", fmt.Errorf("Error starting HTTPS web server: %w", err))
+		})
+	case httpsModeHTTPOnly:
+		status := newHTTPSStatus(httpsPlan, networkConfig)
+		SetHTTPSStatus(status)
+		logHTTPSStatus(status)
 	}
 
 	//
@@ -516,12 +604,16 @@ func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn)) {
 
 	if networkConfig.HttpPort > 0 {
 
-		httpServer = &http.Server{
-			Addr:    fmt.Sprintf(`:%d`, networkConfig.HttpPort),
-			Handler: internalMux,
+		if httpServer == nil {
+			httpServer = &http.Server{
+				Addr:    fmt.Sprintf(`:%d`, networkConfig.HttpPort),
+				Handler: internalMux,
+			}
+		} else if httpServer.Handler == nil {
+			httpServer.Handler = internalMux
 		}
 
-		if networkConfig.HttpsRedirect {
+		if networkConfig.HttpsRedirect && httpsPlan.mode != httpsModeAuto {
 
 			if httpsServer == nil {
 
@@ -536,7 +628,7 @@ func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn)) {
 					http.Redirect(w, r, target, http.StatusMovedPermanently)
 				}
 
-				httpServer.Handler = redirectHandler
+				httpServer.Handler = buildConditionalHTTPSRedirectHandler(redirectHandler, int(networkConfig.HttpsPort), internalMux, &httpsRedirectReady)
 
 			}
 
@@ -550,6 +642,14 @@ func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn)) {
 			defer wg.Done()
 
 			if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				UpdateHTTPSStatus(func(status *HTTPSStatus) {
+					if status.Mode == string(httpsModeAuto) {
+						markAutoHTTPSHTTPFailure(status, err)
+					} else {
+						status.LastError = err.Error()
+					}
+					status.NextSteps = append(status.NextSteps, describeListenError(int(networkConfig.HttpPort), err)...)
+				})
 				mudlog.Error("HTTP", "error", fmt.Errorf("Error starting web server: %w", err))
 			}
 		}()
@@ -557,22 +657,60 @@ func Listen(wg *sync.WaitGroup, webSocketHandler func(*websocket.Conn)) {
 
 }
 
-func buildHTTPSRedirectTarget(host string, httpsPort int, requestURI string) string {
-	if strings.Contains(host, ":") {
-		if splitHost, _, err := net.SplitHostPort(host); err == nil {
-			host = splitHost
+func startHTTPSServer(wg *sync.WaitGroup, server *http.Server, onBound func(), onError func(error)) {
+	listener, err := net.Listen("tcp", server.Addr)
+	if err != nil {
+		onError(err)
+		return
+	}
+
+	if onBound != nil {
+		onBound()
+	}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		tlsListener := tls.NewListener(listener, server.TLSConfig)
+		if err := server.Serve(tlsListener); err != nil && err != http.ErrServerClosed {
+			onError(err)
 		}
+	}()
+}
+
+func buildConditionalHTTPSRedirectHandler(redirect http.Handler, httpsPort int, fallback http.Handler, redirectReady *atomic.Bool) http.Handler {
+	if fallback == nil {
+		fallback = internalMux
 	}
 
-	if strings.Contains(host, ":") && !strings.HasPrefix(host, "[") {
-		host = "[" + host + "]"
+	if redirect == nil {
+		redirect = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			target := buildHTTPSRedirectTarget(r.Host, httpsPort, r.RequestURI)
+			http.Redirect(w, r, target, http.StatusMovedPermanently)
+		})
 	}
 
-	if httpsPort == 443 {
-		return fmt.Sprintf("https://%s%s", host, requestURI)
+	if redirectReady == nil {
+		return redirect
 	}
 
-	return fmt.Sprintf("https://%s:%d%s", host, httpsPort, requestURI)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !redirectReady.Load() {
+			fallback.ServeHTTP(w, r)
+			return
+		}
+
+		redirect.ServeHTTP(w, r)
+	})
+}
+
+func buildAutoHTTPHandler(manager *autocert.Manager, networkConfig configs.Network, fallback http.Handler, redirectReady *atomic.Bool) http.Handler {
+	if bool(networkConfig.HttpsRedirect) {
+		fallback = buildConditionalHTTPSRedirectHandler(nil, int(networkConfig.HttpsPort), fallback, redirectReady)
+	}
+
+	return manager.HTTPHandler(fallback)
 }
 
 // RunWithMUDLocked wraps a handler with the game mutex. Internal requests
@@ -584,13 +722,16 @@ func RunWithMUDLocked(next http.HandlerFunc) http.HandlerFunc {
 			next.ServeHTTP(w, r)
 			return
 		}
+
 		util.LockMud()
 		defer util.UnlockMud()
+
 		next.ServeHTTP(w, r)
 	})
 }
 
 func Shutdown() {
+	httpsRedirectReady.Store(false)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

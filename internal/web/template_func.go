@@ -117,5 +117,11 @@ var (
 		"getconfig": func() configs.Config {
 			return configs.GetConfig()
 		},
+		"httpsDiagnosticHost": func(host string) string {
+			return httpsDiagnosticHost(host)
+		},
+		"httpsUsesExampleHost": func(host string) bool {
+			return httpsUsesExampleHost(host)
+		},
 	}
 )
