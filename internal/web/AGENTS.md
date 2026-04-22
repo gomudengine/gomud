@@ -56,12 +56,15 @@ The web system is built around Go's standard `net/http` package with several key
 |---|---|
 | `web.go` | Server startup, `internalMux`, nav types, `ModuleAdminRegistrar` impl, `buildAdminNav`, `GetAdminRegistrar`, `serveTemplate`, `serveAdminStaticFile`, `RunWithMUDLocked`, `Shutdown`, public route registration |
 | `admin.go` | `adminIndex` handler - admin dashboard page |
-| `admin_config.go` | `adminConfig` handler - live configuration editor page |
+| `admin_items.go` | `adminItems`, `adminItemsAPI`, `adminBuffs`, `adminBuffsAPI`, `adminQuests`, `adminQuestsAPI` handlers + `serveAdminTemplate` helper |
 | `admin_config_api.go` | `adminConfigAPI` handler - Config REST API docs page |
 | `admin_routes.go` | `registerAdminRoutes(mux)` - registers all `/admin/` routes including static asset handler |
 | `api.go` | `APIResponse[T]` generic envelope, `writeJSON`, `writeAPIError`, `RunInTestMode` middleware |
 | `api_routes.go` | `registerAdminAPIRoutes(mux)` - registers all `/admin/api/` routes |
 | `api_v1_config.go` | `apiV1GetConfig` and `apiV1PatchConfig` handlers |
+| `api_v1_items.go` | Item CRUD + script endpoints (`/admin/api/v1/items/...`) |
+| `api_v1_buffs.go` | Buff CRUD + script endpoints (`/admin/api/v1/buffs/...`) |
+| `api_v1_quests.go` | Quest list / patch / delete endpoints (`/admin/api/v1/quests/...`) |
 | `auth.go` | `doBasicAuth`, `handlerToHandlerFunc`, auth cache |
 | `context.go` | `withInternalContext`, `IsInternalRequest`, `withTestModeContext`, `IsTestModeRequest` - request context flags |
 | `internal.go` | `InternalRequest`, `InternalRequestJSON` - in-process API dispatcher |
@@ -88,6 +91,24 @@ All routes are registered on the package-level `internalMux`. Both live HTTP/HTT
 ### API Routes (registered via `registerAdminAPIRoutes`, called from `registerAdminRoutes`)
 - `GET /admin/api/v1/config` - return all config as flat key/value map (auth required, mud-locked)
 - `PATCH /admin/api/v1/config` - update one or more config values (auth required, mud-locked, test-mode aware)
+- `GET /admin/api/v1/items/types` - item types and subtypes
+- `GET /admin/api/v1/items/attack-messages` - all weapon attack message groups
+- `GET /admin/api/v1/items` - all item specs
+- `POST /admin/api/v1/items` - create a new item spec
+- `GET /admin/api/v1/items/{itemId}` - single item spec by id or name
+- `PATCH /admin/api/v1/items/{itemId}` - update item spec properties
+- `DELETE /admin/api/v1/items/{itemId}` - delete item spec and its script
+- `GET /admin/api/v1/items/{itemId}/script` - item script contents
+- `PUT /admin/api/v1/items/{itemId}/script` - replace (or delete) item script
+- `GET /admin/api/v1/buffs` - all buff flags with descriptions
+- `GET /admin/api/v1/buffs/{buffId}` - single buff spec
+- `PATCH /admin/api/v1/buffs/{buffId}` - update buff spec properties
+- `DELETE /admin/api/v1/buffs/{buffId}` - delete buff spec and its script
+- `GET /admin/api/v1/buffs/{buffId}/script` - buff script contents
+- `PUT /admin/api/v1/buffs/{buffId}/script` - replace (or delete) buff script
+- `GET /admin/api/v1/quests` - all quests
+- `PATCH /admin/api/v1/quests` - update a quest (questId in body)
+- `DELETE /admin/api/v1/quests/{questId}` - delete a quest
 - `<METHOD> /admin/api/v1/<slug>` - module-contributed API endpoints, registered dynamically by `RegisterAdminAPIEndpoint`
 
 All `/admin/` routes, including API routes, are wrapped with `RunWithMUDLocked` and `doBasicAuth`. Both wrappers short-circuit for internal requests.
@@ -215,6 +236,12 @@ Located in `_datafiles/html/admin/` (path configured via `FilePaths.AdminHtml`).
 | `index.html` | Dashboard: server name, version, port stats, link card to API docs |
 | `config.html` | Live config editor: inline editing, pending-changes panel, section filter, search |
 | `config-api.html` | Config REST API reference (GET and PATCH `/admin/api/v1/config` with curl examples) |
+| `items.html` | Items editor: searchable sidebar list, full item form with stat mods, buff chips, script editor |
+| `items-api.html` | Items REST API reference |
+| `buffs.html` | Buffs editor: searchable sidebar list, flag checkboxes, stat mods, script editor |
+| `buffs-api.html` | Buffs REST API reference |
+| `quests.html` | Quests editor: searchable sidebar list, step cards, reward fields |
+| `quests-api.html` | Quests REST API reference |
 | `api.js` | `AdminAPI` JS client library served as a static asset at `/admin/api.js` |
 
 Template data passed to all admin page handlers:
@@ -239,7 +266,7 @@ type WebNavSub struct {
 }
 ```
 
-Core nav entries (Dashboard, Config with API Docs sub-item) are hardcoded in `buildAdminNav()`. Module entries are appended from `defaultRegistrar.navItems`.
+Core nav entries (Dashboard, Config with API Docs sub-item, Items, Buffs, Quests — each with View/Edit and API Docs sub-items) are hardcoded in `buildAdminNav()`. Module entries are appended from `defaultRegistrar.navItems`.
 
 ## Module Admin Page and API Registration
 

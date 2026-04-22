@@ -1,0 +1,200 @@
+{{template "header" .}}
+
+<style>
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #555; margin-bottom: 2rem; font-size: 0.9rem; }
+    .api-list { display: flex; flex-direction: column; gap: 0.5rem; }
+    .api-entry { background: #fff; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; }
+    .api-entry summary { display: flex; align-items: baseline; gap: 0.75rem; padding: 0.65rem 1rem; cursor: pointer; user-select: none; list-style: none; }
+    .api-entry summary::-webkit-details-marker { display: none; }
+    .api-entry summary::before { content: "\25B6"; font-size: 0.65rem; color: #888; transition: transform 0.15s; flex-shrink: 0; }
+    .api-entry[open] summary::before { transform: rotate(90deg); }
+    .api-entry summary:hover { background: #fafafa; }
+    .method { font-family: monospace; font-size: 0.8rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 3px; flex-shrink: 0; }
+    .method-get    { background: #e6f4ea; color: #1e6e34; }
+    .method-post   { background: #e3f2fd; color: #0d47a1; }
+    .method-patch  { background: #fff3e0; color: #8a4a00; }
+    .method-put    { background: #f3e5f5; color: #6a1b9a; }
+    .method-delete { background: #fde8e8; color: #8a0000; }
+    .api-path { font-family: monospace; font-size: 0.9rem; color: #1a1a2e; }
+    .api-desc { font-size: 0.85rem; color: #555; margin-left: auto; text-align: right; }
+    .api-body { padding: 0.75rem 1rem 1rem; border-top: 1px solid #eee; background: #fafafa; }
+    .api-body p { font-size: 0.85rem; color: #444; margin-bottom: 0.5rem; }
+    .curl-block { background: #1a1a2e; color: #c9d1d9; font-family: monospace; font-size: 0.82rem; padding: 0.85rem 1rem; border-radius: 5px; white-space: pre; overflow-x: auto; line-height: 1.6; margin-bottom: 0.5rem; }
+    .curl-block .kw   { color: #79c0ff; }
+    .curl-block .str  { color: #a5d6ff; }
+    .curl-block .flag { color: #d2a8ff; }
+    .response-examples { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
+    .resp-entry { border: 1px solid #ddd; border-radius: 4px; overflow: hidden; }
+    .resp-entry summary { display: flex; align-items: baseline; gap: 0.6rem; padding: 0.45rem 0.75rem; cursor: pointer; user-select: none; list-style: none; background: #f5f5f5; font-size: 0.82rem; }
+    .resp-entry summary::-webkit-details-marker { display: none; }
+    .resp-entry summary::before { content: "\25B6"; font-size: 0.6rem; color: #888; transition: transform 0.15s; flex-shrink: 0; }
+    .resp-entry[open] summary::before { transform: rotate(90deg); }
+    .resp-entry summary:hover { background: #efefef; }
+    .resp-body { padding: 0.6rem 0.75rem 0.75rem; border-top: 1px solid #eee; background: #fafafa; }
+    .resp-body p { font-size: 0.82rem; color: #444; margin-bottom: 0.4rem; }
+    .status-ok  { background: #e6f4ea; color: #1e6e34; }
+    .status-err { background: #fde8e8; color: #8a0000; }
+    .resp-label { font-size: 0.8rem; color: #444; }
+    .domain { color: #a5d6ff; }
+</style>
+
+<h1>Items API Reference</h1>
+<p class="subtitle">REST endpoints for browsing, creating, editing, and deleting item definitions.</p>
+
+<div class="api-list">
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-get">GET</span>
+            <span class="api-path">/admin/api/v1/items/types</span>
+            <span class="api-desc">Return all item types and subtypes</span>
+        </summary>
+        <div class="api-body">
+            <p>Returns the full list of item types (with ID ranges) and subtypes (with descriptions).</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/items/types</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"subtypes":[...],"types":[{"Type":"weapon","Description":"...","Count":0,"MinItemId":10000,"MaxItemId":19999},...]}}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-get">GET</span>
+            <span class="api-path">/admin/api/v1/items/attack-messages</span>
+            <span class="api-desc">Return all weapon attack message groups</span>
+        </summary>
+        <div class="api-body">
+            <p>Returns all loaded weapon attack message groups keyed by subtype (generic, slashing, stabbing, etc.).</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/items/attack-messages</span></div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-get">GET</span>
+            <span class="api-path">/admin/api/v1/items</span>
+            <span class="api-desc">Return all item specs</span>
+        </summary>
+        <div class="api-body">
+            <p>Returns an array of every loaded item specification.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/items</span></div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-post">POST</span>
+            <span class="api-path">/admin/api/v1/items</span>
+            <span class="api-desc">Create a new item</span>
+        </summary>
+        <div class="api-body">
+            <p>Creates a new item. The <code>ItemId</code> is assigned automatically based on <code>Type</code>. Returns the created spec.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="flag">-X</span> POST \
+     <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
+     <span class="flag">-d</span> <span class="str">'{"Name":"Rusty Dagger","Type":"weapon","Subtype":"stabbing","Damage":{"DiceRoll":"1d4"},"Hands":1}'</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/items</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">201</span> <span class="resp-label">Created</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"ItemId":10042,"Name":"Rusty Dagger",...}}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"Could not find a new item id to assign."}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-get">GET</span>
+            <span class="api-path">/admin/api/v1/items/{itemId}</span>
+            <span class="api-desc">Get a single item spec by ID or name</span>
+        </summary>
+        <div class="api-body">
+            <p><code>{itemId}</code> can be a numeric item ID or a partial/full item name (uses <code>items.FindItem()</code> matching).</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/items/10042</span>
+<span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/items/rusty%20dagger</span></div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-patch">PATCH</span>
+            <span class="api-path">/admin/api/v1/items/{itemId}</span>
+            <span class="api-desc">Update item properties</span>
+        </summary>
+        <div class="api-body">
+            <p>Merges the supplied fields into the existing spec. The <code>ItemId</code> in the body is ignored — the path parameter is authoritative.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="flag">-X</span> PATCH \
+     <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
+     <span class="flag">-d</span> <span class="str">'{"Description":"A corroded blade."}'</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/items/10042</span></div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-delete">DELETE</span>
+            <span class="api-path">/admin/api/v1/items/{itemId}</span>
+            <span class="api-desc">Delete an item and its script</span>
+        </summary>
+        <div class="api-body">
+            <p>Permanently removes the item YAML and associated JS script from disk and from the in-memory cache.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="flag">-X</span> DELETE \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/items/10042</span></div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-get">GET</span>
+            <span class="api-path">/admin/api/v1/items/{itemId}/script</span>
+            <span class="api-desc">Get the item's JavaScript</span>
+        </summary>
+        <div class="api-body">
+            <p>Returns the raw script content. <code>script</code> is an empty string if no script file exists.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/items/10042/script</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"script":"function onFound(user,item,room){...}"}}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-put">PUT</span>
+            <span class="api-path">/admin/api/v1/items/{itemId}/script</span>
+            <span class="api-desc">Replace (or delete) the item's JavaScript</span>
+        </summary>
+        <div class="api-body">
+            <p>Writes the provided <code>script</code> string to the item's <code>.js</code> file. Send an empty string to delete the script file.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="flag">-X</span> PUT \
+     <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
+     <span class="flag">-d</span> <span class="str">'{"script":"function onFound(user,item,room){}"}'</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/items/10042/script</span></div>
+        </div>
+    </details>
+
+</div>
+
+{{template "footer" .}}

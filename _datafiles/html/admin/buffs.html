@@ -1,0 +1,660 @@
+{{template "header" .}}
+
+<style>
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #555; margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+    .page-layout { display: grid; grid-template-columns: 280px 1fr; gap: 1.25rem; align-items: start; }
+    @media (max-width: 800px) { .page-layout { grid-template-columns: 1fr; } }
+
+    .sidebar { background: #fff; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; }
+    .sidebar-header { padding: 0.75rem 0.9rem; border-bottom: 1px solid #eee; }
+    .sidebar-header input[type="search"] { width: 100%; padding: 0.35rem 0.6rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; }
+    .buff-list { overflow-y: auto; max-height: 72vh; }
+    .buff-row {
+        padding: 0.55rem 0.9rem; cursor: pointer; border-bottom: 1px solid #f0f0f0;
+        display: flex; align-items: baseline; gap: 0.5rem; font-size: 0.875rem;
+    }
+    .buff-row:last-child { border-bottom: none; }
+    .buff-row:hover { background: #f5f7ff; }
+    .buff-row.active { background: #1a1a2e; color: #fff; }
+    .buff-id { font-size: 0.75rem; color: #999; font-family: monospace; flex-shrink: 0; }
+    .buff-row.active .buff-id { color: #8899cc; }
+    .no-buffs { padding: 1.5rem; text-align: center; color: #888; font-size: 0.85rem; }
+
+    .btn-new { margin: 0.6rem 0.9rem; padding: 0.4rem 0.9rem; border: none; border-radius: 4px; background: #1e6e34; color: #fff; font-size: 0.85rem; font-weight: 600; cursor: pointer; text-align: center; }
+    .btn-new:hover { background: #145728; }
+
+    .editor-panel { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 1.25rem; }
+    .editor-placeholder { color: #aaa; text-align: center; padding: 4rem 1rem; font-size: 0.9rem; }
+
+    .status-bar { display: none; padding: 0.55rem 0.9rem; border-radius: 4px; font-size: 0.85rem; margin-bottom: 1rem; }
+    .status-bar.success { background: #e6f4ea; color: #1e6e34; display: block; }
+    .status-bar.error   { background: #fde8e8; color: #8a0000; display: block; }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem 1.25rem; }
+    .form-grid .span2 { grid-column: 1 / -1; }
+    .field label { display: block; font-size: 0.78rem; font-weight: 600; color: #555; margin-bottom: 0.25rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .field input[type="text"], .field input[type="number"], .field select, .field textarea {
+        width: 100%; padding: 0.4rem 0.6rem; border: 1px solid #ccc; border-radius: 4px;
+        font-size: 0.875rem; font-family: inherit; background: #fff;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid #1a1a2e; outline-offset: 1px; border-color: transparent; }
+    .field textarea { resize: vertical; min-height: 80px; }
+    .field-hint { font-size: 0.75rem; color: #888; margin-top: 0.2rem; }
+
+    .section-title { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #666; padding: 0.5rem 0 0.4rem; border-bottom: 1px solid #eee; margin-bottom: 0.75rem; grid-column: 1 / -1; }
+
+    /* ---- stat mods ---- */
+    .statmod-group { margin-bottom: 0.9rem; }
+    .statmod-group-label {
+        font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+        color: #999; margin-bottom: 0.4rem;
+    }
+    .statmod-known-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 0.4rem;
+    }
+    .statmod-known-item {
+        border: 1px solid #e0e0e0; border-radius: 5px; padding: 0.45rem 0.55rem;
+        background: #fafafa; transition: border-color 0.12s, background 0.12s;
+        position: relative;
+    }
+    .statmod-known-item.has-value {
+        border-color: #7986cb; background: #f0f1ff;
+    }
+    .statmod-known-item.negative-value {
+        border-color: #e57373; background: #fff5f5;
+    }
+    .statmod-known-item label {
+        display: block; font-size: 0.75rem; font-weight: 600; color: #444;
+        margin-bottom: 0.2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        cursor: help;
+    }
+    .statmod-known-item.has-value label { color: #3949ab; }
+    .statmod-known-item.negative-value label { color: #c62828; }
+    .statmod-known-item input[type="number"] {
+        width: 100%; padding: 0.25rem 0.4rem; border: 1px solid #ccc; border-radius: 3px;
+        font-size: 0.85rem; font-family: monospace; background: #fff; text-align: center;
+    }
+    .statmod-known-item input[type="number"]:focus { outline: 2px solid #1a1a2e; outline-offset: 1px; }
+    .statmod-zero-hint {
+        font-size: 0.68rem; color: #bbb; text-align: center; margin-top: 0.15rem;
+        pointer-events: none;
+    }
+
+    /* custom / freeform stat mods */
+    .statmods-custom-list { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.4rem; }
+    .statmod-custom-row { display: flex; gap: 0.45rem; align-items: center; }
+    .statmod-custom-row input[type="text"] { flex: 1; font-family: monospace; font-size: 0.82rem; }
+    .statmod-custom-row input[type="number"] { width: 80px; font-family: monospace; font-size: 0.82rem; text-align: center; }
+    .btn-icon { background: none; border: none; cursor: pointer; font-size: 1rem; color: #aaa; padding: 0 0.15rem; line-height: 1; }
+    .btn-icon:hover { color: #c00; }
+    .btn-add-sm { font-size: 0.8rem; padding: 0.3rem 0.7rem; border: 1px dashed #aaa; background: none; border-radius: 4px; cursor: pointer; color: #555; }
+    .btn-add-sm:hover { border-color: #1a1a2e; color: #1a1a2e; }
+
+    /* prefix hint */
+    .prefix-hint {
+        font-size: 0.75rem; color: #888; margin-top: 0.5rem; padding: 0.4rem 0.6rem;
+        background: #f5f5f5; border-radius: 4px; border-left: 3px solid #ccc;
+    }
+    .prefix-hint code { font-size: 0.82em; background: #e8e8e8; padding: 0.05rem 0.3rem; border-radius: 3px; }
+
+    /* flags */
+    .flags-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.4rem; }
+    .flag-item { display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.4rem 0.5rem; border: 1px solid #eee; border-radius: 4px; cursor: pointer; }
+    .flag-item:hover { background: #f5f7ff; border-color: #c5cae9; }
+    .flag-item input[type="checkbox"] { margin-top: 0.15rem; flex-shrink: 0; accent-color: #1a1a2e; }
+    .flag-label { font-size: 0.82rem; }
+    .flag-name { font-weight: 600; color: #1a1a2e; display: block; }
+    .flag-desc { font-size: 0.75rem; color: #777; display: block; margin-top: 0.1rem; }
+
+    /* script */
+    .script-toggle { display: flex; align-items: center; gap: 0.6rem; cursor: pointer; font-size: 0.85rem; color: #1a1a2e; font-weight: 600; padding: 0.5rem 0; user-select: none; }
+    .script-toggle::before { content: "\25B6"; font-size: 0.65rem; transition: transform 0.15s; }
+    .script-toggle.open::before { transform: rotate(90deg); }
+    .script-area { display: none; margin-top: 0.5rem; }
+    .script-area.open { display: block; }
+    .script-area textarea { width: 100%; min-height: 220px; font-family: monospace; font-size: 0.82rem; padding: 0.6rem 0.75rem; border: 1px solid #ccc; border-radius: 4px; resize: vertical; background: #1a1a2e; color: #c9d1d9; line-height: 1.55; }
+    .script-area textarea:focus { outline: 2px solid #4a6fa5; outline-offset: 1px; }
+    .script-hint { font-size: 0.75rem; color: #888; margin-top: 0.3rem; }
+
+    .action-bar { display: flex; gap: 0.6rem; margin-top: 1.25rem; align-items: center; flex-wrap: wrap; }
+    .btn { padding: 0.45rem 1.1rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.875rem; font-weight: 600; }
+    .btn-primary { background: #1a1a2e; color: #fff; }
+    .btn-primary:hover { background: #2d2d4e; }
+    .btn-primary:disabled { background: #999; cursor: default; }
+    .btn-danger { background: #c0392b; color: #fff; }
+    .btn-danger:hover { background: #a93226; }
+    .btn-secondary { background: #eee; color: #333; }
+    .btn-secondary:hover { background: #ddd; }
+    .buff-id-display { font-family: monospace; font-size: 0.82rem; color: #888; margin-left: auto; }
+
+    .editor-header { display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 1rem; }
+    .editor-header h2 { font-size: 1.1rem; flex: 1; }
+</style>
+
+<h1>Buffs</h1>
+<p class="subtitle">Browse, edit, and create buff (status effect) definitions. Click a buff in the list to load its editor.</p>
+
+<div id="status-bar" class="status-bar"></div>
+
+<div class="page-layout">
+    <div class="sidebar">
+        <button class="btn-new" onclick="newBuff()">+ New Buff</button>
+        <div class="sidebar-header">
+            <input type="search" id="buff-search" placeholder="Search buffs..." oninput="filterBuffs()" />
+        </div>
+        <div class="buff-list" id="buff-list">
+            <div class="no-buffs">Loading...</div>
+        </div>
+    </div>
+
+    <div class="editor-panel" id="editor-panel">
+        <div class="editor-placeholder" id="editor-placeholder">
+            Select a buff from the list to edit it,<br>or click <strong>+ New Buff</strong> to create one.
+        </div>
+        <div id="editor-form" style="display:none;">
+            <div class="editor-header">
+                <h2 id="editor-title">Buff Editor</h2>
+            </div>
+
+            <div class="form-grid">
+                <div class="section-title">Identity</div>
+
+                <div class="field">
+                    <label>Name</label>
+                    <input type="text" id="f-name" placeholder="e.g. Fast Healing" />
+                </div>
+                <div class="field">
+                    <label>Secret</label>
+                    <select id="f-secret">
+                        <option value="false">No — visible to player</option>
+                        <option value="true">Yes — hidden from player</option>
+                    </select>
+                </div>
+                <div class="field span2">
+                    <label>Description</label>
+                    <textarea id="f-description" rows="2" placeholder="Describe what this buff does"></textarea>
+                </div>
+
+                <div class="section-title">Timing</div>
+
+                <div class="field">
+                    <label>Trigger Rate</label>
+                    <input type="text" id="f-triggerrate" placeholder="e.g. 1 round, 30 seconds, 1 hour" />
+                    <div class="field-hint">How often the buff fires its effect</div>
+                </div>
+                <div class="field">
+                    <label>Trigger Count</label>
+                    <input type="number" id="f-triggercount" min="1" placeholder="e.g. 10" />
+                    <div class="field-hint">Total number of times it fires before expiring</div>
+                </div>
+                <div class="field">
+                    <label>Trigger Now</label>
+                    <select id="f-triggernow">
+                        <option value="false">No</option>
+                        <option value="true">Yes — fires immediately on application</option>
+                    </select>
+                </div>
+
+                <div class="section-title">Stat Modifications</div>
+
+                <div class="field span2" id="statmods-container">
+                    <!-- Populated by buildStatModsUI() once statmod definitions are loaded -->
+                </div>
+
+                <div class="section-title">Behavioral Flags</div>
+
+                <div class="field span2">
+                    <div class="flags-grid" id="flags-grid"></div>
+                </div>
+            </div>
+
+            <!-- Script editor -->
+            <div style="margin-top:1.25rem; border-top: 1px solid #eee; padding-top: 1rem;">
+                <div class="script-toggle" id="script-toggle" onclick="toggleScript()">Script</div>
+                <div class="script-area" id="script-area">
+                    <textarea id="f-script" spellcheck="false" placeholder="// JavaScript for buff events&#10;// Leave blank to delete the script file."></textarea>
+                    <div class="script-hint">Saved as a .js file alongside the buff's YAML. Clear the field and save to delete the script.</div>
+                </div>
+            </div>
+
+            <div class="action-bar">
+                <button class="btn btn-primary" id="save-btn" onclick="saveBuff()">Save Buff</button>
+                <button class="btn btn-secondary" onclick="cancelEdit()">Cancel</button>
+                <button class="btn btn-danger" id="delete-btn" onclick="deleteBuff()" style="margin-left:auto;">Delete Buff</button>
+                <span class="buff-id-display" id="buff-id-display"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    let allBuffs    = {};  // buffId -> spec
+    let allFlags    = {};  // flag   -> description
+    let allStatMods = {};  // statName -> description  (from /admin/api/v1/statmods)
+    let currentBuffId = null;
+    let isNew = false;
+
+    // Ordered groups for the known-stat grid.
+    // Each entry: { label, keys[] }
+    // Keys must match the StatName string values from statmods.go.
+    const STATMOD_GROUPS = [
+        {
+            label: 'Core Stats',
+            keys: ['strength', 'speed', 'smarts', 'vitality', 'mysticism', 'perception'],
+        },
+        {
+            label: 'Health & Mana',
+            keys: ['healthmax', 'manamax', 'healthrecovery', 'manarecovery'],
+        },
+        {
+            label: 'Combat',
+            keys: ['attacks', 'damage'],
+        },
+        {
+            label: 'Skills',
+            keys: ['picklock', 'tame', 'casting', 'xpscale'],
+        },
+    ];
+
+    // Keys that are prefixes rather than exact names — handled in the custom section.
+    const PREFIX_KEYS = new Set(['racial-bonus-', 'casting-']);
+
+    // All exact known keys (non-prefix).
+    const KNOWN_KEYS = new Set(
+        STATMOD_GROUPS.flatMap(g => g.keys)
+    );
+
+    // -------------------------------------------------------------------------
+    // Init — load buffs, flags, and statmod definitions in parallel
+    // -------------------------------------------------------------------------
+    async function init() {
+        const [buffsRes, statmodsRes] = await AdminAPI.all([
+            AdminAPI.get('/admin/api/v1/buffs'),
+            AdminAPI.get('/admin/api/v1/statmods'),
+        ]);
+
+        if (!buffsRes.ok)    { showStatus('Failed to load buffs: '    + buffsRes.error,    false); return; }
+        if (!statmodsRes.ok) { showStatus('Failed to load statmods: ' + statmodsRes.error, false); return; }
+
+        const buffsData = buffsRes.data.data || {};
+        allFlags    = buffsData.flags || {};
+        allBuffs    = buffsData.specs || {};
+        allStatMods = statmodsRes.data.data || {};
+
+        renderList(Object.values(allBuffs).sort((a, b) => a.BuffId - b.BuffId));
+    }
+
+    // -------------------------------------------------------------------------
+    // Sidebar list
+    // -------------------------------------------------------------------------
+    window.filterBuffs = function () {
+        const q = document.getElementById('buff-search').value.trim().toLowerCase();
+        const list = q
+            ? Object.values(allBuffs).filter(b => b.Name.toLowerCase().includes(q) || String(b.BuffId).includes(q))
+            : Object.values(allBuffs);
+        renderList(list.sort((a, b) => a.BuffId - b.BuffId));
+    };
+
+    function renderList(buffs) {
+        const list = document.getElementById('buff-list');
+        if (!buffs.length) {
+            list.innerHTML = '<div class="no-buffs">No buffs found.</div>';
+            return;
+        }
+        list.innerHTML = '';
+        for (const b of buffs) {
+            const row = document.createElement('div');
+            row.className = 'buff-row' + (b.BuffId === currentBuffId ? ' active' : '');
+            row.dataset.id = b.BuffId;
+            row.innerHTML = `<span class="buff-id">#${b.BuffId}</span><span>${esc(b.Name)}</span>`;
+            row.onclick = () => loadBuff(b.BuffId);
+            list.appendChild(row);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Load buff
+    // -------------------------------------------------------------------------
+    async function loadBuff(buffId) {
+        const [specRes, scriptRes] = await AdminAPI.all([
+            AdminAPI.get('/admin/api/v1/buffs/' + buffId),
+            AdminAPI.get('/admin/api/v1/buffs/' + buffId + '/script'),
+        ]);
+        if (!specRes.ok) { showStatus('Failed to load buff: ' + specRes.error, false); return; }
+
+        const spec   = specRes.data.data;
+        const script = scriptRes.ok ? (scriptRes.data.data.script || '') : '';
+
+        allBuffs[spec.BuffId] = spec;
+        currentBuffId = buffId;
+        isNew = false;
+
+        setActiveRow(buffId);
+        showEditor();
+        fillForm(spec, script);
+    }
+
+    function setActiveRow(id) {
+        document.querySelectorAll('.buff-row').forEach(r =>
+            r.classList.toggle('active', Number(r.dataset.id) === id)
+        );
+    }
+
+    function showEditor() {
+        document.getElementById('editor-placeholder').style.display = 'none';
+        document.getElementById('editor-form').style.display = 'block';
+        document.getElementById('delete-btn').style.display = isNew ? 'none' : '';
+    }
+
+    function fillForm(spec, script) {
+        document.getElementById('editor-title').textContent = isNew ? 'New Buff' : spec.Name;
+        document.getElementById('buff-id-display').textContent = isNew ? '' : 'ID: ' + spec.BuffId;
+
+        setVal('f-name',         spec.Name        || '');
+        setVal('f-description',  spec.Description || '');
+        setVal('f-secret',       spec.Secret      ? 'true' : 'false');
+        setVal('f-triggerrate',  spec.TriggerRate  || '');
+        setVal('f-triggercount', spec.TriggerCount || 1);
+        setVal('f-triggernow',   spec.TriggerNow   ? 'true' : 'false');
+
+        buildStatModsUI(spec.StatMods || {});
+        buildFlagsGrid(spec.Flags || []);
+
+        setVal('f-script', script);
+        document.getElementById('script-toggle').classList.toggle('open', script.length > 0);
+        document.getElementById('script-area').classList.toggle('open', script.length > 0);
+    }
+
+    // -------------------------------------------------------------------------
+    // New buff
+    // -------------------------------------------------------------------------
+    window.newBuff = function () {
+        currentBuffId = null;
+        isNew = true;
+        document.querySelectorAll('.buff-row').forEach(r => r.classList.remove('active'));
+        showEditor();
+        fillForm({ TriggerCount: 1 }, '');
+        document.getElementById('editor-title').textContent = 'New Buff';
+        document.getElementById('buff-id-display').textContent = '';
+        document.getElementById('delete-btn').style.display = 'none';
+    };
+
+    window.cancelEdit = function () {
+        document.getElementById('editor-placeholder').style.display = '';
+        document.getElementById('editor-form').style.display = 'none';
+        document.querySelectorAll('.buff-row').forEach(r => r.classList.remove('active'));
+        currentBuffId = null;
+        isNew = false;
+    };
+
+    // -------------------------------------------------------------------------
+    // Stat Mods UI
+    // -------------------------------------------------------------------------
+
+    // Build the full stat-mods section: known-stat grid + custom freeform rows.
+    function buildStatModsUI(activeMods) {
+        const container = document.getElementById('statmods-container');
+        container.innerHTML = '';
+
+        // --- Known stats grid ---
+        for (const group of STATMOD_GROUPS) {
+            const groupEl = document.createElement('div');
+            groupEl.className = 'statmod-group';
+
+            const labelEl = document.createElement('div');
+            labelEl.className = 'statmod-group-label';
+            labelEl.textContent = group.label;
+            groupEl.appendChild(labelEl);
+
+            const gridEl = document.createElement('div');
+            gridEl.className = 'statmod-known-grid';
+
+            for (const key of group.keys) {
+                const currentVal = activeMods[key] !== undefined ? activeMods[key] : 0;
+                const desc = allStatMods[key] || key;
+
+                const item = document.createElement('div');
+                item.className = 'statmod-known-item' + valueClass(currentVal);
+                item.dataset.statkey = key;
+
+                const lbl = document.createElement('label');
+                lbl.title = desc;
+                lbl.textContent = key;
+
+                const inp = document.createElement('input');
+                inp.type = 'number';
+                inp.value = currentVal;
+                inp.dataset.statkey = key;
+                inp.addEventListener('input', () => refreshKnownItemStyle(item, inp));
+
+                const hint = document.createElement('div');
+                hint.className = 'statmod-zero-hint';
+                hint.textContent = currentVal === 0 ? 'no effect' : '';
+
+                item.appendChild(lbl);
+                item.appendChild(inp);
+                item.appendChild(hint);
+                gridEl.appendChild(item);
+            }
+
+            groupEl.appendChild(gridEl);
+            container.appendChild(groupEl);
+        }
+
+        // --- Prefix hint ---
+        const prefixHint = document.createElement('div');
+        prefixHint.className = 'prefix-hint';
+        prefixHint.innerHTML =
+            'Prefix-based mods go in <strong>Custom</strong> below. ' +
+            'Examples: <code>racial-bonus-orc</code> (bonus damage vs orcs), ' +
+            '<code>casting-restoration</code> (restoration spell bonus).';
+        container.appendChild(prefixHint);
+
+        // --- Custom / freeform section ---
+        const customGroup = document.createElement('div');
+        customGroup.className = 'statmod-group';
+        customGroup.style.marginTop = '0.75rem';
+
+        const customLabel = document.createElement('div');
+        customLabel.className = 'statmod-group-label';
+        customLabel.textContent = 'Custom / Prefix-Based';
+        customGroup.appendChild(customLabel);
+
+        const customList = document.createElement('div');
+        customList.className = 'statmods-custom-list';
+        customList.id = 'statmods-custom-list';
+        customGroup.appendChild(customList);
+
+        // Pre-fill any active mods that aren't in KNOWN_KEYS
+        for (const [k, v] of Object.entries(activeMods)) {
+            if (!KNOWN_KEYS.has(k)) {
+                appendCustomRow(customList, k, v);
+            }
+        }
+
+        const addBtn = document.createElement('button');
+        addBtn.className = 'btn-add-sm';
+        addBtn.textContent = '+ Add Custom Mod';
+        addBtn.onclick = () => appendCustomRow(customList, '', 0);
+        customGroup.appendChild(addBtn);
+
+        container.appendChild(customGroup);
+    }
+
+    function valueClass(val) {
+        const n = Number(val);
+        if (n > 0) return ' has-value';
+        if (n < 0) return ' negative-value';
+        return '';
+    }
+
+    function refreshKnownItemStyle(item, inp) {
+        const n = Number(inp.value);
+        item.className = 'statmod-known-item' + valueClass(n);
+        const hint = item.querySelector('.statmod-zero-hint');
+        if (hint) hint.textContent = n === 0 ? 'no effect' : '';
+    }
+
+    function appendCustomRow(list, key, val) {
+        const row = document.createElement('div');
+        row.className = 'statmod-custom-row';
+        row.innerHTML = `
+            <input type="text"   placeholder="stat name (e.g. racial-bonus-orc)" value="${esc(String(key))}" />
+            <input type="number" placeholder="0" value="${Number(val)}" />
+            <button class="btn-icon" title="Remove" onclick="this.closest('.statmod-custom-row').remove()">&times;</button>`;
+        list.appendChild(row);
+        // Focus the name input for convenience when adding a new row
+        if (!key) row.querySelector('input[type="text"]').focus();
+    }
+
+    function collectStatMods() {
+        const mods = {};
+
+        // Known grid — only include non-zero values
+        document.querySelectorAll('.statmod-known-item input[type="number"]').forEach(inp => {
+            const k = inp.dataset.statkey;
+            const v = parseInt(inp.value, 10);
+            if (k && !isNaN(v) && v !== 0) mods[k] = v;
+        });
+
+        // Custom rows — include any with a non-empty key
+        document.querySelectorAll('#statmods-custom-list .statmod-custom-row').forEach(row => {
+            const inputs = row.querySelectorAll('input');
+            const k = inputs[0].value.trim();
+            const v = parseInt(inputs[1].value, 10);
+            if (k) mods[k] = isNaN(v) ? 0 : v;
+        });
+
+        return mods;
+    }
+
+    // -------------------------------------------------------------------------
+    // Flags grid
+    // -------------------------------------------------------------------------
+    function buildFlagsGrid(activeFlags) {
+        const grid = document.getElementById('flags-grid');
+        grid.innerHTML = '';
+        const active = new Set(activeFlags || []);
+        for (const [flag, desc] of Object.entries(allFlags)) {
+            const label = document.createElement('label');
+            label.className = 'flag-item';
+            label.innerHTML = `
+                <input type="checkbox" value="${esc(flag)}" ${active.has(flag) ? 'checked' : ''} />
+                <span class="flag-label">
+                    <span class="flag-name">${esc(flag)}</span>
+                    <span class="flag-desc">${esc(desc)}</span>
+                </span>`;
+            grid.appendChild(label);
+        }
+    }
+
+    function collectFlags() {
+        return Array.from(
+            document.querySelectorAll('#flags-grid input[type="checkbox"]:checked')
+        ).map(c => c.value);
+    }
+
+    // -------------------------------------------------------------------------
+    // Save
+    // -------------------------------------------------------------------------
+    window.saveBuff = async function () {
+        const btn = document.getElementById('save-btn');
+        btn.disabled = true; btn.textContent = 'Saving...';
+
+        const payload = {
+            Name:         document.getElementById('f-name').value.trim(),
+            Description:  document.getElementById('f-description').value.trim(),
+            Secret:       document.getElementById('f-secret').value === 'true',
+            TriggerRate:  document.getElementById('f-triggerrate').value.trim(),
+            TriggerCount: parseInt(document.getElementById('f-triggercount').value, 10) || 1,
+            TriggerNow:   document.getElementById('f-triggernow').value === 'true',
+            StatMods:     collectStatMods(),
+            Flags:        collectFlags(),
+        };
+
+        const scriptContent = document.getElementById('f-script').value;
+
+        if (isNew) {
+            showStatus('To create a new buff, assign it a BuffId and use PATCH /admin/api/v1/buffs/{id}.', false);
+            btn.disabled = false; btn.textContent = 'Save Buff';
+            return;
+        }
+
+        const res = await AdminAPI.patch('/admin/api/v1/buffs/' + currentBuffId, payload);
+        btn.disabled = false; btn.textContent = 'Save Buff';
+
+        if (!res.ok) { showStatus('Save failed: ' + res.error, false); return; }
+
+        const saved = res.data.data;
+        allBuffs[saved.BuffId] = saved;
+
+        const scriptRes = await AdminAPI.put('/admin/api/v1/buffs/' + saved.BuffId + '/script', { script: scriptContent });
+        showStatus(
+            scriptRes.ok ? 'Buff saved successfully.' : 'Buff saved but script update failed: ' + scriptRes.error,
+            scriptRes.ok
+        );
+
+        document.getElementById('editor-title').textContent = saved.Name;
+        document.getElementById('buff-id-display').textContent = 'ID: ' + saved.BuffId;
+        filterBuffs();
+        setActiveRow(saved.BuffId);
+    };
+
+    // -------------------------------------------------------------------------
+    // Delete
+    // -------------------------------------------------------------------------
+    window.deleteBuff = async function () {
+        if (!currentBuffId) return;
+        if (!confirm('Delete buff #' + currentBuffId + '? This cannot be undone.')) return;
+        const res = await AdminAPI.delete('/admin/api/v1/buffs/' + currentBuffId);
+        if (!res.ok) { showStatus('Delete failed: ' + res.error, false); return; }
+        delete allBuffs[currentBuffId];
+        filterBuffs();
+        cancelEdit();
+        showStatus('Buff deleted.', true);
+    };
+
+    // -------------------------------------------------------------------------
+    // Script toggle
+    // -------------------------------------------------------------------------
+    window.toggleScript = function () {
+        document.getElementById('script-toggle').classList.toggle('open');
+        document.getElementById('script-area').classList.toggle('open');
+    };
+
+    // -------------------------------------------------------------------------
+    // Utilities
+    // -------------------------------------------------------------------------
+    function showStatus(msg, ok) {
+        const bar = document.getElementById('status-bar');
+        bar.textContent = msg;
+        bar.className = 'status-bar ' + (ok ? 'success' : 'error');
+        clearTimeout(bar._t);
+        bar._t = setTimeout(() => { bar.className = 'status-bar'; }, 6000);
+    }
+
+    function setVal(id, val) {
+        const el = document.getElementById(id);
+        if (el) el.value = val;
+    }
+
+    function esc(s) {
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    init();
+})();
+</script>
+
+{{template "footer" .}}

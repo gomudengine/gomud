@@ -303,6 +303,26 @@ type ItemSpec struct {
 // when ItemOwnership events are fired
 ```
 
+## Admin / Persistence Helpers (`admin.go`)
+
+```go
+// GetAllAttackMessages returns a copy of the loaded attack message groups keyed
+// by weapon subtype.
+func GetAllAttackMessages() map[ItemSubType]*WeaponAttackMessageGroup
+
+// SaveItemSpec validates, saves to disk, and updates the in-memory cache.
+// ItemId must already be set.
+func SaveItemSpec(spec *ItemSpec) error
+
+// DeleteItemSpec removes the YAML file and any associated JS script from disk
+// and purges the entry from the in-memory cache.
+func DeleteItemSpec(itemId int) error
+
+// SaveItemScript writes content to the item's script path.  An empty content
+// string deletes the script file.
+func SaveItemScript(itemId int, content string) error
+```
+
 ## Search and Discovery
 
 ### Item Finding Functions

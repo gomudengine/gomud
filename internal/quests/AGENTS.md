@@ -126,6 +126,21 @@ func GetAllQuests() []Quest
 func GetQuestCt(includeSecret bool) int
 ```
 
+## Admin / Persistence Helpers (`admin.go`)
+
+```go
+// GetQuestById returns the quest with the given id, or nil if not found.
+func GetQuestById(questId int) *Quest
+
+// SaveQuest validates, saves to disk, and updates the in-memory cache.
+// QuestId must already be set.
+func SaveQuest(q *Quest) error
+
+// DeleteQuest removes the YAML file from disk and purges the entry from the
+// in-memory cache.
+func DeleteQuest(questId int) error
+```
+
 ## File Management and Validation
 
 ### Quest File Operations

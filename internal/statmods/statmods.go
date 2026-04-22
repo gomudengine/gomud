@@ -10,8 +10,8 @@ type StatName string
 
 var (
 	// specific skills
-	Tame     StatName = `tame`
 	Picklock StatName = `picklock`
+	Tame     StatName = `tame`
 
 	// Not an exhaustive list, but ideally keep track of
 	RacialBonusPrefix StatName = `racial-bonus-`
@@ -19,9 +19,13 @@ var (
 	// any statnames/prefixes here
 	Casting        StatName = `casting`        // also used for `casting-` prefix followed by spell School
 	CastingPrefix  StatName = `casting-`       // followed by spell School
-	XPScale        StatName = `xpscale`        // Used for scaling xp after kills
-	HealthRecovery StatName = `healthrecovery` // Augments HP recovery speed
-	ManaRecovery   StatName = `manarecovery`   // Augments MP recovery speed
+	XPScale        StatName = `xpscale`        // Used for scaling xp after kills by this %
+	HealthRecovery StatName = `healthrecovery` // When recovering HP naturally, recover this much extra
+	ManaRecovery   StatName = `manarecovery`   // When recovering MP naturally, recover this much extra
+
+	// Combat
+	Attacks StatName = `attacks` // Additional attacks per combat round
+	Damage  StatName = `damage`  // Flat bonus damage added to every hit
 
 	// Stat based
 	Strength   StatName = `strength`
@@ -33,6 +37,29 @@ var (
 	HealthMax  StatName = `healthmax`
 	ManaMax    StatName = `manamax`
 )
+
+func GetStatMods() map[StatName]string {
+	return map[StatName]string{
+		Picklock:          "Reduces the difficulty of a lock-picking attempt by this many pins.",
+		Tame:              "Increases the chance to successfully tame a creature.",
+		RacialBonusPrefix: "Flat bonus damage against a specific race in combat. Format: `racial-bonus-giant spider`.",
+		Casting:           "Increases spell casting success chance by this percentage.",
+		CastingPrefix:     "Increases casting success chance for a specific school of magic. Format: `casting-restoration`.",
+		XPScale:           "Scales experience gained from kills by this percentage (stacks additively with the server XPScale setting).",
+		HealthRecovery:    "Extra HP recovered each round during natural regeneration.",
+		ManaRecovery:      "Extra MP recovered each round during natural regeneration.",
+		Attacks:           "Additional attacks granted per combat round.",
+		Damage:            "Flat bonus damage added to every successful hit.",
+		Strength:          "Increases the Strength stat, affecting melee damage and carrying capacity.",
+		Speed:             "Increases the Speed stat, affecting hit chance, dodge, and attack frequency.",
+		Smarts:            "Increases the Smarts stat, affecting spell power and skill learning.",
+		Vitality:          "Increases the Vitality stat, affecting maximum HP and physical endurance.",
+		Mysticism:         "Increases the Mysticism stat, affecting maximum MP and spell effectiveness.",
+		Perception:        "Increases the Perception stat, affecting detection, awareness, and ranged accuracy.",
+		HealthMax:         "Directly increases maximum HP (added after stat-based calculation).",
+		ManaMax:           "Directly increases maximum MP (added after stat-based calculation).",
+	}
+}
 
 func (s StatMods) Get(statName ...string) int {
 
