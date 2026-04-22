@@ -100,21 +100,13 @@ When the GoMud server is running, you can connect it via the Terminal, or with a
 
 ### HTTPS With Certificate Files
 
-GoMud can serve HTTPS when you provide a certificate and private key.
+GoMud can serve HTTPS when you provide a certificate and private key, or can be automated using LetsEncrypt provisioning.
 
-- Set `FilePaths.HttpsCertFile` to the certificate path.
-- Set `FilePaths.HttpsKeyFile` to the private key path.
-- Set `Network.HttpsPort` to the HTTPS port players should use.
-- Set `Network.HttpsRedirect` to `true` if plain HTTP should redirect to HTTPS.
-
-For a guided config update, run:
+For a guided HTTPS setup process, run:
 
 ```shell
 make https-setup
 ```
-
-The helper does not edit the bundled base config directly.
-It can PATCH a running GoMud server through `/admin/api/v1/config`, or print a `config-overrides.yaml` snippet for manual save.
 
 ### Automatic HTTPS
 
@@ -130,6 +122,7 @@ GoMud can now obtain and renew Let's Encrypt certificates itself for simple sing
 If automatic HTTPS cannot be completed, GoMud keeps serving HTTP and logs the exact reason. Local development on `localhost` should continue to use plain HTTP.
 
 When the admin interface is enabled, `/admin/https/` shows the current HTTPS mode, the checks GoMud ran, and the next steps needed to finish setup.
+
 Default seeded credentials in the bundled world:
 
 - Username: `admin`
