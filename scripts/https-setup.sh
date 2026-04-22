@@ -11,13 +11,17 @@ if [ ! -f "$CONFIG_FILE" ]; then
 fi
 
 read_yaml_value() {
-	awk -F': ' -v key="$1" '
+	read_yaml_value_from_file "$CONFIG_FILE" "$1"
+}
+
+read_yaml_value_from_file() {
+	awk -F': ' -v key="$2" '
 		$1 ~ "^[[:space:]]*" key "$" {
 			gsub(/^"|"$/, "", $2)
 			print $2
 			exit
 		}
-	' "$CONFIG_FILE"
+	' "$1"
 }
 
 canonicalize_path() {
@@ -82,23 +86,36 @@ is_public_hostname() {
 }
 
 current_data_files=$(read_yaml_value DataFiles)
-current_https_cert=$(read_yaml_value HttpsCertFile)
-current_https_key=$(read_yaml_value HttpsKeyFile)
-current_web_domain=$(read_yaml_value WebDomain)
-current_http_port=$(read_yaml_value HttpPort)
-current_https_port=$(read_yaml_value HttpsPort)
-current_https_redirect=$(read_yaml_value HttpsRedirect)
-current_https_email=$(read_yaml_value HttpsEmail)
-
+bundled_config_path=$(canonicalize_path "$CONFIG_FILE")
 default_override_file="${current_data_files:-_datafiles/world/default}/config-overrides.yaml"
 override_file="${CONFIG_PATH:-$default_override_file}"
-bundled_config_path=$(canonicalize_path "$CONFIG_FILE")
 override_path=$(canonicalize_path "$override_file")
 
 if [ "$override_path" = "$bundled_config_path" ]; then
 	printf 'Ignoring CONFIG_PATH=%s because https-setup must not target the bundled base config.\n' "$override_file" >&2
 	override_file=$default_override_file
 fi
+
+read_effective_yaml_value() {
+	if [ -f "$override_file" ]; then
+		override_value=$(read_yaml_value_from_file "$override_file" "$1")
+		if [ -n "$override_value" ]; then
+			printf '%s' "$override_value"
+			return 0
+		fi
+	fi
+
+	read_yaml_value "$1"
+}
+
+current_data_files=$(read_effective_yaml_value DataFiles)
+current_https_cert=$(read_effective_yaml_value HttpsCertFile)
+current_https_key=$(read_effective_yaml_value HttpsKeyFile)
+current_web_domain=$(read_effective_yaml_value WebDomain)
+current_http_port=$(read_effective_yaml_value HttpPort)
+current_https_port=$(read_effective_yaml_value HttpsPort)
+current_https_redirect=$(read_effective_yaml_value HttpsRedirect)
+current_https_email=$(read_effective_yaml_value HttpsEmail)
 
 https_cert_file=$current_https_cert
 https_key_file=$current_https_key

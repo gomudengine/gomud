@@ -273,6 +273,51 @@ func TestHTTPSSetupAutoModeAPIApplyRequiresRestart(t *testing.T) {
 	}
 }
 
+func TestHTTPSSetupAutoModeLoadsDefaultAdminURLFromActiveOverride(t *testing.T) {
+	overrideDir := t.TempDir()
+	configPath := writeHTTPSSetupTempConfig(t, "FilePaths:\n  DataFiles: "+overrideDir+"\nNetwork:\n  HttpPort: 8080\n")
+	overridePath := filepath.Join(overrideDir, "config-overrides.yaml")
+	overrideConfig := `FilePaths:
+  WebDomain: "play.example.com"
+Network:
+  HttpPort: 9090
+`
+	if err := os.WriteFile(overridePath, []byte(overrideConfig), 0o600); err != nil {
+		t.Fatalf("os.WriteFile() error = %v", err)
+	}
+
+	curlDir := t.TempDir()
+	curlStub := filepath.Join(curlDir, "curl-stub.sh")
+	curlScript := "#!/usr/bin/env sh\nexit 0\n"
+	if err := os.WriteFile(curlStub, []byte(curlScript), 0o755); err != nil {
+		t.Fatalf("os.WriteFile() error = %v", err)
+	}
+
+	input := strings.Join([]string{
+		"2",
+		"",
+		"",
+		"1",
+		"",
+		"",
+		"password",
+		"",
+	}, "\n")
+
+	output := runHTTPSSetup(t, configPath, input, map[string]string{
+		"CURL_BIN": curlStub,
+	})
+	if !strings.Contains(output, "Override target: "+overridePath) {
+		t.Fatalf("https-setup output did not show the active override target:\n%s", output)
+	}
+	if !strings.Contains(output, "Admin base URL [http://127.0.0.1:9090]") {
+		t.Fatalf("https-setup output did not derive the admin URL from the active override:\n%s", output)
+	}
+	if !strings.Contains(output, "WebDomain: play.example.com") {
+		t.Fatalf("https-setup output did not load hostname from the active override:\n%s", output)
+	}
+}
+
 func TestHTTPSSetupAPIApplyFailureExplainsRetryAndFallback(t *testing.T) {
 	configPath := writeHTTPSSetupTempConfig(t, sampleHTTPSConfig)
 	curlDir := t.TempDir()
