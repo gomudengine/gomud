@@ -104,7 +104,7 @@ func Emote(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		return true, nil
 	}
 
-	// emoteAliases are sent without regard to Mute/Deafened (Not marked as a communication)
+	// emoteAliases are sent without regard to Mute (Not marked as a communication)
 	// This is because they are pre-written.
 	if emoteText, ok := emoteAliases[rest]; ok {
 		user.SendText(fmt.Sprintf(`You Emote: <ansi fg="username">%s</ansi> <ansi fg="20">%s</ansi>`, user.Character.Name, emoteText))

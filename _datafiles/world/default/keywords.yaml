@@ -125,7 +125,6 @@ help:
       - build
       - command
       - copyover
-      - deafen
       - item
       - grant
       - locate

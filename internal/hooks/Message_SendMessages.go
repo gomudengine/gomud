@@ -25,11 +25,6 @@ func Message_SendMessage(e events.Event) events.ListenerReturn {
 
 		if user := users.GetByUserId(message.UserId); user != nil {
 
-			// If they are deafened, they cannot hear user communications
-			if message.IsCommunication && user.Deafened {
-				return events.Continue
-			}
-
 			textOut := templates.AnsiParse(message.Text)
 			if user.ScreenReader {
 				textOut = util.StripCharsForScreenReaders(textOut)
@@ -70,11 +65,6 @@ func Message_SendMessage(e events.Event) events.ListenerReturn {
 			}
 
 			if user := users.GetByUserId(userId); user != nil {
-
-				// If they are deafened, they cannot hear user communications
-				if message.IsCommunication && user.Deafened {
-					continue
-				}
 
 				// If this is a quiet message, make sure the player can hear it
 				if message.IsQuiet {
