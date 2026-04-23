@@ -296,7 +296,7 @@ func ApplyColors(input string, patternValues []int, method ...ColorizeStyle) str
 
 			newString.WriteString(fmt.Sprintf(`<ansi fg="%d">%s</ansi>`, patternValues[patternPosition], string(runeChar)))
 			subCounter++
-			if patternPosition < patternValueLength-1 && runeChar != 32 { // space
+			if patternPosition < patternValueLength-1 {
 				if subCounter%stretchAmount == 0 {
 					patternPosition += 1 // advance the color token position
 				}
