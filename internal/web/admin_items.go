@@ -114,3 +114,11 @@ func adminKeywords(w http.ResponseWriter, r *http.Request) {
 func adminKeywordsAPI(w http.ResponseWriter, r *http.Request) {
 	serveAdminTemplate(w, r, "keywords-api.html", nil)
 }
+
+func adminMobs(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "mobs.html", nil)
+}
+
+func adminMobsAPI(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "mobs-api.html", nil)
+}

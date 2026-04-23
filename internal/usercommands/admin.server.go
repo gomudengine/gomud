@@ -6,6 +6,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -18,8 +19,9 @@ import (
 )
 
 var (
-	memoryReportCache = map[string]util.MemoryResult{}
-	errValueLocked    = errors.New("This config value is locked. You must edit the config file directly.")
+	memoryReportCacheMu sync.Mutex
+	memoryReportCache   = map[string]util.MemoryResult{}
+	errValueLocked      = errors.New("This config value is locked. You must edit the config file directly.")
 )
 
 const (
@@ -196,6 +198,7 @@ func Server(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 
 		sectionNames, memReports := util.GetMemoryReport()
 
+		memoryReportCacheMu.Lock()
 		for idx, memReport := range memReports {
 
 			sectionName := sectionNames[idx]
@@ -205,10 +208,11 @@ func Server(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 			var memRepTotal uint64 = 0
 
 			for name, memResult := range memReport {
-				usage := memResult.Memory
 				memRepRowNames = append(memRepRowNames, name)
 				tmpRowStorage[name] = memResult
-				memRepTotal += usage
+				if memResult.Unit == util.UnitBytes {
+					memRepTotal += memResult.Memory
+				}
 			}
 
 			memRepRows = append(memRepRows, []string{`[ ` + sectionName + ` ]`, ``, ``, ``, ``, ``})
@@ -216,41 +220,54 @@ func Server(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 			for _, name := range memRepRowNames {
 
 				var rowData []string
+				current := tmpRowStorage[name]
 
 				var prevString string = ``
 				var prevCtString string = ``
 				if cachedMemResult, ok := memoryReportCache[name]; ok {
 					val := cachedMemResult.Memory
-					if val > tmpRowStorage[name].Memory { // It has gone down
-						prevString = fmt.Sprintf(`↓%s`, util.FormatBytes(val-tmpRowStorage[name].Memory))
-					} else if val < tmpRowStorage[name].Memory {
-						prevString = fmt.Sprintf(`↑%s`, util.FormatBytes(tmpRowStorage[name].Memory-val))
+					if val > current.Memory {
+						if current.Unit == util.UnitBytes {
+							prevString = fmt.Sprintf(`↓%s`, util.FormatBytes(val-current.Memory))
+						} else {
+							prevString = fmt.Sprintf(`↓%d`, val-current.Memory)
+						}
+					} else if val < current.Memory {
+						if current.Unit == util.UnitBytes {
+							prevString = fmt.Sprintf(`↑%s`, util.FormatBytes(current.Memory-val))
+						} else {
+							prevString = fmt.Sprintf(`↑%d`, current.Memory-val)
+						}
 					}
 
 					ct := cachedMemResult.Count
-					if ct > tmpRowStorage[name].Count { // It has gone down
-						prevCtString = fmt.Sprintf(`(↓%d)`, ct-tmpRowStorage[name].Count)
-					} else if ct < tmpRowStorage[name].Count {
-						prevCtString = fmt.Sprintf(`(↑%d)`, tmpRowStorage[name].Count-ct)
+					if ct > current.Count {
+						prevCtString = fmt.Sprintf(`(↓%d)`, ct-current.Count)
+					} else if ct < current.Count {
+						prevCtString = fmt.Sprintf(`(↑%d)`, current.Count-ct)
 					}
 				}
-				memoryReportCache[name] = tmpRowStorage[name] // Cache the new val
+				memoryReportCache[name] = current
 
-				// foramt the new val
-				bFormatted := util.FormatBytes(tmpRowStorage[name].Memory)
-
-				count := ``
-				if tmpRowStorage[name].Count > 0 {
-					count = fmt.Sprintf(`%d %s`, tmpRowStorage[name].Count, prevCtString)
-				}
-				if strings.Contains(bFormatted, `KB`) {
-					rowData = []string{name, count, bFormatted, ``, ``, prevString}
-				} else if strings.Contains(bFormatted, `MB`) {
-					rowData = []string{name, count, ``, bFormatted, ``, prevString}
-				} else if strings.Contains(bFormatted, `GB`) {
-					rowData = []string{name, count, ``, ``, bFormatted, prevString}
+				if current.Unit == util.UnitCount {
+					// Non-bytes metric: display the raw count in the Items column.
+					rowData = []string{name, fmt.Sprintf(`%d`, current.Memory), ``, ``, ``, prevString}
 				} else {
-					rowData = []string{name, count, ``, ``, ``, prevString}
+					bFormatted := util.FormatBytes(current.Memory)
+
+					count := ``
+					if current.Count > 0 {
+						count = fmt.Sprintf(`%d %s`, current.Count, prevCtString)
+					}
+					if strings.Contains(bFormatted, `KB`) {
+						rowData = []string{name, count, bFormatted, ``, ``, prevString}
+					} else if strings.Contains(bFormatted, `MB`) {
+						rowData = []string{name, count, ``, bFormatted, ``, prevString}
+					} else if strings.Contains(bFormatted, `GB`) {
+						rowData = []string{name, count, ``, ``, bFormatted, prevString}
+					} else {
+						rowData = []string{name, count, ``, ``, ``, prevString}
+					}
 				}
 
 				memRepRows = append(memRepRows, rowData)
@@ -260,7 +277,6 @@ func Server(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 			if sectionName != `Go` {
 				memRepTotalTotal += memRepTotal
 			}
-			memRepTotal = 0
 		}
 
 		var rowData []string
@@ -269,14 +285,15 @@ func Server(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 		var prevString string = ``
 		if cachedMemResult, ok := memoryReportCache[name]; ok {
 			val := cachedMemResult.Memory
-			if val > memRepTotalTotal { // It has gone down
+			if val > memRepTotalTotal {
 				prevString = fmt.Sprintf(`↓%s`, util.FormatBytes(val-memRepTotalTotal))
 			} else if val < memRepTotalTotal {
 				prevString = fmt.Sprintf(`↑%s`, util.FormatBytes(memRepTotalTotal-val))
 			}
 		}
 
-		memoryReportCache[name] = util.MemoryResult{Memory: memRepTotalTotal, Count: 0} // Cache the new val
+		memoryReportCache[name] = util.MemoryResult{Memory: memRepTotalTotal, Unit: util.UnitBytes}
+		memoryReportCacheMu.Unlock()
 
 		bFormatted := util.FormatBytes(memRepTotalTotal)
 		if strings.Contains(bFormatted, `KB`) {

@@ -14,6 +14,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/templates"
+	"github.com/GoMudEngine/GoMud/internal/usercommands"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
@@ -212,7 +213,13 @@ func (l *LeaderboardModule) Update() {
 			l.LB_Kills.Consider(u.UserId, *u.Character, u.Character.KD.TotalKills)
 		}
 
-		for _, char := range characters.LoadAlts(u.UserId) {
+		var altChars []characters.Character
+		if fn, ok := usercommands.GetExportedFunction(`LoadAlts`); ok {
+			if loadAlts, ok := fn.(func(int) []characters.Character); ok {
+				altChars = loadAlts(u.UserId)
+			}
+		}
+		for _, char := range altChars {
 
 			characterCount++
 
@@ -250,7 +257,13 @@ func (l *LeaderboardModule) Update() {
 			l.LB_Kills.Consider(u.UserId, *u.Character, u.Character.KD.TotalKills)
 		}
 
-		for _, char := range characters.LoadAlts(u.UserId) {
+		var altChars []characters.Character
+		if fn, ok := usercommands.GetExportedFunction(`LoadAlts`); ok {
+			if loadAlts, ok := fn.(func(int) []characters.Character); ok {
+				altChars = loadAlts(u.UserId)
+			}
+		}
+		for _, char := range altChars {
 
 			characterCount++
 

@@ -5,6 +5,7 @@
  * -----
  * Single request:
  *   const res = await AdminAPI.get('/admin/api/v1/config');
+ *   const res = await AdminAPI.get('/admin/api/v1/stats/memory', true); // bypass cache
  *   const res = await AdminAPI.patch('/admin/api/v1/config', { 'Server.MudName': 'My MUD' });
  *
  * Parallel requests (all settle before the callback fires):
@@ -96,12 +97,16 @@ const AdminAPI = (() => {
 
     /**
      * GET request.
-     * @param {string} path
+     * @param {string}  path
+     * @param {boolean} [bypassCache=false] - when true, skips the cache read and
+     *                                        writes the fresh result back into it.
      * @returns {Promise<APIResult>}
      */
-    async function get(path) {
-        const cached = _cache.get(path);
-        if (cached && Date.now() < cached.expires) return cached.result;
+    async function get(path, bypassCache = false) {
+        if (!bypassCache) {
+            const cached = _cache.get(path);
+            if (cached && Date.now() < cached.expires) return cached.result;
+        }
 
         const result = await request('GET', path);
         if (result.ok) {
@@ -181,11 +186,12 @@ const AdminAPI = (() => {
 
         const q = {
             /**
-             * @param {string} path
+             * @param {string}  path
+             * @param {boolean} [bypassCache=false]
              * @returns {typeof q}
              */
-            get(path) {
-                pending.push(get(path));
+            get(path, bypassCache = false) {
+                pending.push(get(path, bypassCache));
                 return q;
             },
             /**

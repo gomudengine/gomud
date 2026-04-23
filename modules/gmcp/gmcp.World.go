@@ -174,9 +174,6 @@ func (g *GMCPWorldModule) buildWorldMap(user *users.UserRecord) []GMCPWorldMap_R
 			for _, tag := range room.Tags {
 				entry.Details = append(entry.Details, tag)
 			}
-			if room.IsCharacterRoom {
-				entry.Details = append(entry.Details, `character`)
-			}
 			if room.IsPvp() {
 				entry.Details = append(entry.Details, `pvp`)
 			}

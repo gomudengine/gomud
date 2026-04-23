@@ -32,19 +32,6 @@ var (
 	recentlyDied = map[int]int{}
 )
 
-type ItemTrade struct {
-	AcceptedItemIds []int         `yaml:"accepteditemids,omitempty,flow"` // Must provide every item id in this list.
-	AcceptedGold    int           `yaml:"acceptedgold,omitempty,flow"`    // Must provide at least this much gold.
-	PrizeItemIds    []int         `yaml:"prizeitemids,omitempty,flow"`    // Will give these items in exchange.
-	PrizeBuffIds    []int         `yaml:"prizebuffids,omitempty,flow"`    // Will give these buffs in exchange.
-	PrizeRoomId     int           `yaml:"prizeroomid,omitempty,flow"`     // Will move player to this room in exchange.
-	PrizeQuestIds   []string      `yaml:"prizequestids,omitempty,flow"`   // What quest id's will be awarded?
-	PrizeGold       int           `yaml:"prizegold,omitempty,flow"`       // How much gold are they given?
-	PrizeCommands   []string      `yaml:"prizecommands,omitempty,flow"`   // What commands will be executed?
-	GivenItems      map[int][]int `yaml:"-"`                              // key = userId, value = Items given. Should only contain items from AcceptedItemIds
-	GivenGold       map[int]int   `yaml:"-"`                              // key = userId, value = how much gold is given
-}
-
 type MobForHire struct {
 	MobId    MobId
 	Price    int
@@ -775,7 +762,6 @@ func LoadDataFiles() {
 	clear(mobNameCache)
 
 	for _, mob := range mobs {
-		mob.Character.CacheDescription()
 		allMobNames = append(allMobNames, mob.Character.Name)
 		// Keep track of all original names associated with a given mobId
 		mobNameCache[mob.MobId] = mob.Character.Name

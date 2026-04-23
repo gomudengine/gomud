@@ -1,6 +1,5 @@
 roomid: 271
 zone: Frostfang
-ischaracterroom: true
 title: Soldiers Barracks
 description: The main hall is lined with rows of simple, sturdy bunk beds, each neatly
   made with crisp, gray blankets and a small wooden locker at the foot for personal
@@ -23,3 +22,5 @@ spawninfo:
   questflags: [4-start, 4-return]
   levelmod: 18
   respawnrate: 7 real minutes
+tags:
+- character

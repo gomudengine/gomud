@@ -1,0 +1,244 @@
+/*
+ * theme-mint-fresh.css
+ *
+ * Mint fresh — clean white surfaces with cool spearmint greens
+ * and crisp teal accents. Light, modern, and easy on the eyes.
+ */
+
+/* ════════════════════════════════════════════════════════════
+   PALETTE — edit only these to retheme.
+   ════════════════════════════════════════════════════════════ */
+:root {
+    --p-bg:          #f2faf6;  /* window/panel body background; dock slots, row fills, party HP track | Theme Swatch 1 */
+    --p-bg-deep:     #081810;  /* deepest surface: input fields, scrollbar track, modal terminal bg */
+    --p-bg-dark:     #e4f4ec;  /* panel chrome: sidebar panel bg, cmd bar, input bg */
+    --p-text:        #0c2018;  /* primary readable text; input text, online name, modal terminal fg | Theme Swatch 5 */
+    --p-text-sub:    #3a8860;  /* secondary / label text; button text, online align, map hover | Theme Swatch 4 */
+    --p-accent:      #10b878;  /* bright accent: tab underline, active toggle, progress bar end, glow | Theme Swatch 3 */
+    --p-accent-mid:  #0a8050;  /* mid accent: borders, scrollbar thumb, hover bg, titlebar bg | Theme Swatch 2 */
+    --p-accent-dark: #d8f4e8;  /* darkest accent tint: accent-bg, exit-open bg */
+    --p-neutral:     #a8d4be;  /* neutral mid-tone: disabled text, off-toggle, invited border */
+}
+
+/* ════════════════════════════════════════════════════════════
+   SEMANTIC TOKENS — derived from palette + theme-specific values.
+   ════════════════════════════════════════════════════════════ */
+:root {
+    /* ── Surfaces ────────────────────────────────────────────── */
+    --t-bg:              var(--p-bg);
+    --t-bg-deep:         #e8f6f0;
+    --t-bg-panel:        var(--p-bg-dark);
+    --t-bg-surface:      #d4eee0;
+    --t-bg-surface-alt:  #c8e8d8;
+    --t-bg-input:        #fff;
+    --t-bg-hover:        #bce0cc;
+    --t-bg-selected:     #acd8c0;
+    --t-bg-row:          #eaf6f0;
+    --t-bg-col-header:   #e0f0e8;
+
+    /* ── Text ────────────────────────────────────────────────── */
+    --t-text:            var(--p-text);
+    --t-text-secondary:  var(--p-text-sub);
+    --t-text-muted:      #4a9870;
+    --t-text-dim:        #88c0a4;
+    --t-text-disabled:   var(--p-neutral);
+    --t-text-heading:    #0a8050;
+    --t-text-white:      #fff;
+
+    /* ── Accent ──────────────────────────────────────────────── */
+    --t-accent:          var(--p-accent);
+    --t-accent-dim:      var(--p-accent-mid);
+    --t-accent-bg:       var(--p-accent-dark);
+
+    /* ── Borders ─────────────────────────────────────────────── */
+    --t-border:          #b8d8c8;
+    --t-border-accent:   var(--p-accent-mid);
+    --t-border-bright:   var(--p-accent);
+    --t-border-faint:    #d4ece0;
+    --t-border-row:      #cce4d8;
+
+    /* ── Buttons ─────────────────────────────────────────────── */
+    --t-btn-bg:          #d4eee0;
+    --t-btn-text:        var(--p-accent-mid);
+    --t-btn-border:      var(--p-accent-mid);
+    --t-btn-hover-bg:    var(--p-accent-mid);
+    --t-btn-hover-text:  #fff;
+    --t-btn-accent:      var(--p-accent);
+
+    /* ── Inputs ──────────────────────────────────────────────── */
+    --t-input-bg:        #fff;
+    --t-input-border:    var(--p-accent-mid);
+    --t-input-text:      var(--p-text);
+    --t-input-focus:     var(--p-accent);
+
+    /* ── Scrollbar ───────────────────────────────────────────── */
+    --t-scrollbar-track: var(--p-bg-dark);
+    --t-scrollbar-thumb: var(--p-accent-mid);
+
+    /* ── Toggle / Slider ─────────────────────────────────────── */
+    --t-toggle-off:      var(--p-neutral);
+    --t-toggle-on:       var(--p-accent);
+    --t-slider-track:    var(--p-neutral);
+    --t-slider-thumb:    var(--p-accent);
+    --t-slider-border:   var(--p-accent-mid);
+
+    /* ── Dock ────────────────────────────────────────────────── */
+    --t-dock-resize:     #d8ece4;
+    --t-dock-resize-border: var(--p-accent-mid);
+
+    /* ── Connect / Command ───────────────────────────────────── */
+    --t-connect-bg:         #88c0a4;
+    --t-connect-pulse-bg:   #c02840;
+    --t-connect-pulse-text: #f09090;
+    --t-cmd-bg:             #dceee6;
+
+    /* ── Menu Icon ───────────────────────────────────────────── */
+    --t-menu-icon-bg:    rgba(242, 250, 246, 0.92);
+
+    /* ── Modal ───────────────────────────────────────────────── */
+    --t-backdrop:        rgba(12, 32, 24, 0.45);
+    --t-modal-shadow:    0 8px 40px rgba(12, 32, 24, 0.18);
+    --t-panel-shadow:    0 1px 3px rgba(0, 0, 0, 0.08);
+
+    /* ── Semantic ────────────────────────────────────────────── */
+    --t-error:           #d02030;
+    --t-warning:         #b07010;
+    --t-success:         var(--p-accent);
+
+    /* ── Progress bars ───────────────────────────────────────── */
+    --t-progress-from:   var(--p-accent-mid);
+    --t-progress-to:     var(--p-accent);
+
+    /* ── Health / Mana ───────────────────────────────────────── */
+    --t-hp-low:          #d02030;
+    --t-hp-mid:          #b07010;
+    --t-hp-high:         var(--p-accent);
+    --t-mana-from:       #3040a8;
+    --t-mana-to:         #5060d8;
+    --t-bar-empty:       #cce4d8;
+
+    /* ── Party HP ────────────────────────────────────────────── */
+    --t-party-hp-high:   var(--p-accent);
+    --t-party-hp-mid:    #b07010;
+    --t-party-hp-low:    #d02030;
+    --t-party-hp-bg:     #eaf6f0;
+    --t-party-hp-border: #cce4d8;
+
+    /* ── Alignment ───────────────────────────────────────────── */
+    --t-good-align:      var(--p-accent);
+    --t-neutral-align:   #88c0a4;
+    --t-evil-align:      #d02030;
+
+    /* ── Room badges ─────────────────────────────────────────── */
+    --t-badge-pvp-bg:            #fce8e8;
+    --t-badge-pvp-text:          #d02030;
+    --t-badge-pvp-border:        #f0c0c0;
+    --t-badge-bank-bg:           #e4f8ec;
+    --t-badge-bank-text:         #0a8050;
+    --t-badge-bank-border:       #b0d8c0;
+    --t-badge-trainer-bg:        #e4eef8;
+    --t-badge-trainer-text:      #2858a8;
+    --t-badge-trainer-border:    #b0c8e8;
+    --t-badge-storage-bg:        #fdf8e4;
+    --t-badge-storage-text:      #a07010;
+    --t-badge-storage-border:    #e4d898;
+    --t-badge-ephemeral-bg:      #f4eafc;
+    --t-badge-ephemeral-text:    #7038b0;
+    --t-badge-ephemeral-border:  #d8b8f0;
+    --t-badge-char-bg:           #e4f8f4;
+    --t-badge-char-text:         #108868;
+    --t-badge-char-border:       #a8d8cc;
+    --t-badge-root-bg:           #e4f8ec;
+    --t-badge-root-text:         #0a8050;
+    --t-badge-root-border:       #b0d8c0;
+
+    /* ── Exit badges ─────────────────────────────────────────── */
+    --t-exit-open-bg:            var(--p-accent-dark);
+    --t-exit-open-text:          var(--p-accent-mid);
+    --t-exit-open-border:        var(--p-accent-mid);
+    --t-exit-open-hover:         var(--p-accent);
+    --t-exit-locked-bg:          #fdf8e4;
+    --t-exit-locked-text:        #a07010;
+    --t-exit-locked-border:      #e4d898;
+    --t-exit-locked-hover:       #f0e890;
+    --t-exit-locked-hover-text:  #806010;
+    --t-exit-secret-bg:          #e8f4ee;
+    --t-exit-secret-text:        #a8d4be;
+    --t-exit-secret-border:      #cce4d8;
+    --t-exit-secret-hover:       #dceee6;
+    --t-exit-secret-hover-text:  #3a8860;
+
+    /* ── Aggro ───────────────────────────────────────────────── */
+    --t-aggro-bg:        #fce8e8;
+    --t-aggro-hover:     #f8d8d8;
+    --t-aggro-text:      #b01828;
+
+    /* ── Debuff ──────────────────────────────────────────────── */
+    --t-debuff-text:     #d02030;
+    --t-debuff-secondary:#e07070;
+    --t-debuff-border:   #f0c0c0;
+    --t-debuff-bg:       #fce8e8;
+    --t-debuff-perm:     #b01828;
+
+    /* ── Gear badges ─────────────────────────────────────────── */
+    --t-cursed-text:          #d02030;
+    --t-cursed-badge-bg:      #fce8e8;
+    --t-cursed-badge-border:  #f0c0c0;
+    --t-quest-text:           #a07010;
+    --t-quest-badge-bg:       #fdf8e4;
+    --t-quest-badge-border:   #e4d898;
+    --t-uses-badge-bg:        #e4eef8;
+    --t-uses-badge-text:      #2858a8;
+    --t-uses-badge-border:    #b0c8e8;
+
+    /* ── Kill Stats ──────────────────────────────────────────── */
+    --t-kd-good:         var(--p-accent);
+    --t-kd-bad:          #d02030;
+    --t-kd-even:         #b07010;
+
+    /* ── Online ──────────────────────────────────────────────── */
+    --t-online-level:    var(--p-accent);
+    --t-online-name:     var(--p-text);
+    --t-online-prof:     #2858a8;
+    --t-online-align:    var(--p-text-sub);
+    --t-online-time:     #7038b0;
+    --t-online-role:     #906820;
+
+    /* ── Modal terminal ──────────────────────────────────────── */
+    --t-modal-term-bg:   #081810;
+    --t-modal-term-fg:   #e4f8f0;
+    --t-modal-term-cursor: var(--p-accent);
+
+    /* ── Gametime ────────────────────────────────────────────── */
+    --t-gametime-time:   var(--p-accent-mid);
+    --t-gametime-date:   #3a8860;
+    --t-gametime-label-bg: rgba(242, 250, 246, 0.88);
+
+    /* ── Comm ────────────────────────────────────────────────── */
+    --t-glow-bg:           var(--p-accent);
+    --t-comm-broadcast:    #a020a8;
+    --t-comm-whisper:      #88c0a4;
+    --t-comm-mob:          #108868;
+    --t-comm-player:       #a07010;
+
+    /* ── Party ───────────────────────────────────────────────── */
+    --t-party-leader:        var(--p-accent);
+    --t-party-invited-border:var(--p-neutral);
+    --t-party-invited-bg:    var(--p-bg);
+    --t-party-invited-text:  #88c0a4;
+    --t-party-location:      var(--p-text-sub);
+
+    /* ── Map UI ──────────────────────────────────────────────── */
+    --t-map-tab-bg:          #eaf6f0;
+    --t-map-tab-border:      #cce4d8;
+    --t-map-tab-text:        #88c0a4;
+    --t-map-tab-hover:       var(--p-text-sub);
+    --t-map-tab-active-text: var(--p-text);
+    --t-map-tab-active-border:var(--p-accent);
+    --t-map-controls-bg:     rgba(242, 250, 246, 0.9);
+    --t-map-controls-hover:  rgba(228, 244, 236, 0.96);
+    --t-map-controls-text:   var(--p-text-sub);
+    --t-map-controls-border: #b8d8c8;
+    --t-map-controls-active: rgba(16, 184, 120, 0.7);
+    --t-map-badge-bg:        #d4eee0;
+}

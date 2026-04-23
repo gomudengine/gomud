@@ -294,12 +294,6 @@ GamePlay:
   # - ContainerSizeMax -
   #   Maximum number of objects a container can hold before stuff overflows
   ContainerSizeMax: 10
-  # - MaxAltCharacters -
-  #   How many characters beyond their original character can they create? Players
-  #   can swap between characters and work on them independently if this is set
-  #   greater than 0. Otherwise they are locked to a signle character and have to
-  #   sign up with a new user login if they intend to create a new character.
-  MaxAltCharacters: 3
   # - ConsistentAttackMessages -
   #   If true, each weapon ID will consistently use the same message for each type
   #   of attack. If false, it will randomize messages. Setting this to true gives

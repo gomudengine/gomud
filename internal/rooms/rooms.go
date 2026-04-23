@@ -68,8 +68,6 @@ type Room struct {
 	Zone              string                            `yaml:"zone"`                                // zone is a way to partition rooms into groups. Also into folders.
 	MusicFile         string                            `yaml:"musicfile,omitempty"`                 // background music to play when in this room
 	IsBank            bool                              `yaml:"isbank,omitempty"`                    // Is this a bank room? If so, players can deposit/withdraw gold here.
-	IsStorage         bool                              `yaml:"isstorage,omitempty"`                 // Is this a storage room? If so, players can add/remove objects here.
-	IsCharacterRoom   bool                              `yaml:"ischaracterroom,omitempty"`           // Is this a room where characters can create new characters to swap between them?
 	Title             string                            `yaml:"title"`                               // Title shown to the user
 	Description       string                            `yaml:"description"`                         // Description shown to the user
 	MapSymbol         string                            `yaml:"mapsymbol,omitempty"`                 // The symbol to use when generating a map of the zone

@@ -31,11 +31,6 @@
         <div class="value">{{if .STATS.SSHPort}}{{.STATS.SSHPort}}{{else}}&mdash;{{end}}</div>
         <div class="detail">{{.STATS.SSHConnections}} connected</div>
     </div>
-    <div class="card">
-        <h2>API Reference</h2>
-        <div class="detail">REST endpoints for configuration and module management.</div>
-        <a href="/admin/config-api">Config API Docs &rarr;</a>
-    </div>
 </div>
 
 {{template "footer" .}}

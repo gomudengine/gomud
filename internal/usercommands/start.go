@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -128,11 +127,15 @@ func Start(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 			return true, nil
 		}
 
-		for _, c := range characters.LoadAlts(user.UserId) {
-			if strings.EqualFold(question.Response, c.Name) {
-				user.SendText(`Your already have a character named that!`)
-				question.RejectResponse()
-				return true, nil
+		if fn, ok := GetExportedFunction(`GetAltNames`); ok {
+			if getAltNamesFn, ok := fn.(func(int) []string); ok {
+				for _, name := range getAltNamesFn(user.UserId) {
+					if strings.EqualFold(question.Response, name) {
+						user.SendText(`Your already have a character named that!`)
+						question.RejectResponse()
+						return true, nil
+					}
+				}
 			}
 		}
 

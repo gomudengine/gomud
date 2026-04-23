@@ -1,62 +1,301 @@
-package usercommands
+package altcharacters
 
 import (
-	"errors"
+	"embed"
 	"fmt"
+	"os"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
-	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
+	"github.com/GoMudEngine/GoMud/internal/plugins"
 	"github.com/GoMudEngine/GoMud/internal/races"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/templates"
 	"github.com/GoMudEngine/GoMud/internal/term"
+	"github.com/GoMudEngine/GoMud/internal/usercommands"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
+	"gopkg.in/yaml.v2"
+
+	mobs "github.com/GoMudEngine/GoMud/internal/mobs"
 )
 
-func Character(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
+var (
+	//go:embed files/*
+	files embed.FS
+)
 
-	if !room.IsCharacterRoom {
-		return false, fmt.Errorf(`not in a IsCharacterRoom`)
+const (
+	characterTag = "character"
+)
+
+func init() {
+	m := &AltCharactersModule{
+		plug: plugins.New(`alt-characters`, `1.0`),
+	}
+
+	if err := m.plug.AttachFileSystem(files); err != nil {
+		panic(err)
+	}
+
+	m.plug.AddUserCommand(`character`, m.characterCommand, true, false)
+
+	m.plug.ReserveTags(characterTag)
+
+	rooms.OnRoomLook.Register(m.onRoomLook)
+
+	// Export functions so core packages can call alt-character functionality
+	// via usercommands.GetExportedFunction / users.GetExportedFunction.
+
+	// LoadAlts: used by leaderboards and other modules.
+	m.plug.ExportFunction(`LoadAlts`, func(userId int) []characters.Character {
+		return loadAlts(userId)
+	})
+
+	// MaxAltCharacters: read the module config value.
+	m.plug.ExportFunction(`MaxAltCharacters`, func() int {
+		return maxAltCharacters(m)
+	})
+
+	// GetAltNames: returns the alt character names for a userId.
+	// Consumed by internal/usercommands/start.go via usercommands.GetExportedFunction.
+	m.plug.ExportFunction(`GetAltNames`, func(userId int) []string {
+		var names []string
+		for _, c := range loadAlts(userId) {
+			names = append(names, c.Name)
+		}
+		return names
+	})
+
+	// SwapToAlt: performs the alt-character swap on behalf of users.UserRecord.
+	// Consumed by internal/users/userrecord.go via users.GetExportedFunction.
+	m.plug.ExportFunction(`SwapToAlt`, func(u *users.UserRecord, targetAltName string) bool {
+		return swapToAlt(u, targetAltName)
+	})
+
+	// AltNameSearch: searches a user's alts for a character name match.
+	// Consumed by internal/users/users.go via users.GetExportedFunction.
+	m.plug.ExportFunction(`AltNameSearch`, func(userId int, username, nameToFind string) (int, string) {
+		for _, char := range loadAlts(userId) {
+			if strings.EqualFold(char.Name, nameToFind) {
+				return userId, username
+			}
+		}
+		return 0, ``
+	})
+}
+
+type AltCharactersModule struct {
+	plug *plugins.Plugin
+}
+
+// maxAltCharacters reads MaxAltCharacters from the module config.
+func maxAltCharacters(m *AltCharactersModule) int {
+	v := m.plug.Config.Get(`MaxAltCharacters`)
+	if v == nil {
+		return 0
+	}
+	switch val := v.(type) {
+	case int:
+		return val
+	case float64:
+		return int(val)
+	}
+	return 0
+}
+
+// ---------------------------------------------------------------------------
+// Alt file I/O (module-internal)
+// ---------------------------------------------------------------------------
+
+func altsFilePath(userId int) string {
+	return util.FilePath(string(configs.GetFilePathsConfig().DataFiles), `/users/`, strconv.Itoa(userId)+`.alts.yaml`)
+}
+
+func altsExists(userId int) bool {
+	_, err := os.Stat(altsFilePath(userId))
+	return !os.IsNotExist(err)
+}
+
+func loadAlts(userId int) []characters.Character {
+	if !altsExists(userId) {
+		return nil
+	}
+
+	data, err := os.ReadFile(altsFilePath(userId))
+	if err != nil {
+		mudlog.Error("loadAlts", "error", err.Error())
+		return nil
+	}
+
+	var alts []characters.Character
+	if err := yaml.Unmarshal(data, &alts); err != nil {
+		mudlog.Error("loadAlts", "error", err.Error())
+	}
+	return alts
+}
+
+func saveAlts(userId int, alts []characters.Character) bool {
+
+	fileWritten := false
+	tmpSaved := false
+	tmpCopied := false
+	completed := false
+
+	defer func() {
+		mudlog.Info("saveAlts()", "userId", strconv.Itoa(userId), "wrote-file", fileWritten, "tmp-file", tmpSaved, "tmp-copied", tmpCopied, "completed", completed)
+	}()
+
+	data, err := yaml.Marshal(&alts)
+	if err != nil {
+		mudlog.Error("saveAlts", "error", err.Error())
+		return false
+	}
+
+	carefulSave := configs.GetFilePathsConfig().CarefulSaveFiles
+	path := altsFilePath(userId)
+	saveFilePath := path
+	if carefulSave {
+		saveFilePath += `.new`
+	}
+
+	if err := os.WriteFile(saveFilePath, data, 0777); err != nil {
+		mudlog.Error("saveAlts", "error", err.Error())
+		return false
+	}
+	fileWritten = true
+	if carefulSave {
+		tmpSaved = true
+	}
+
+	if carefulSave {
+		if err := os.Rename(saveFilePath, path); err != nil {
+			mudlog.Error("saveAlts", "error", err.Error())
+			return false
+		}
+		tmpCopied = true
+	}
+
+	completed = true
+	return true
+}
+
+// ---------------------------------------------------------------------------
+// SwapToAlt – moved here from users.UserRecord
+// ---------------------------------------------------------------------------
+
+func swapToAlt(u *users.UserRecord, targetAltName string) bool {
+
+	altNames := []string{}
+	nameToAlt := map[string]characters.Character{}
+
+	for _, char := range loadAlts(u.UserId) {
+		altNames = append(altNames, char.Name)
+		nameToAlt[char.Name] = char
+	}
+
+	match, closeMatch := util.FindMatchIn(targetAltName, altNames...)
+	if match == `` {
+		match = closeMatch
+	}
+	if match == `` {
+		return false
+	}
+
+	selectedChar, ok := nameToAlt[match]
+	if !ok {
+		return false
+	}
+
+	retiredCharName := u.Character.Name
+
+	newAlts := []characters.Character{}
+	for _, altChar := range nameToAlt {
+		if altChar.Name != selectedChar.Name {
+			newAlts = append(newAlts, altChar)
+		}
+	}
+
+	newAlts = append(newAlts, *u.Character)
+	saveAlts(u.UserId, newAlts)
+
+	selectedChar.Validate()
+	selectedChar.SetUserId(u.UserId)
+	u.Character = &selectedChar
+
+	users.SaveUser(*u)
+
+	events.AddToQueue(events.CharacterChanged{
+		UserId:            u.UserId,
+		LastCharacterName: retiredCharName,
+		CharacterName:     u.Character.Name,
+	})
+
+	return true
+}
+
+// ---------------------------------------------------------------------------
+// Room look hook
+// ---------------------------------------------------------------------------
+
+func (m *AltCharactersModule) onRoomLook(d rooms.RoomTemplateDetails) rooms.RoomTemplateDetails {
+	for _, t := range d.Tags {
+		if strings.EqualFold(t, characterTag) {
+			d.RoomAlerts = append(d.RoomAlerts,
+				`      <ansi fg="yellow-bold">This is a character room!</ansi> Type <ansi fg="command">character</ansi> to interact.`,
+			)
+			return d
+		}
+	}
+	return d
+}
+
+func roomIsCharacter(room *rooms.Room) bool {
+	for _, t := range room.Tags {
+		if strings.EqualFold(t, characterTag) {
+			return true
+		}
+	}
+	return false
+}
+
+// ---------------------------------------------------------------------------
+// character command
+// ---------------------------------------------------------------------------
+
+func (m *AltCharactersModule) characterCommand(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
+
+	if !roomIsCharacter(room) {
+		return false, fmt.Errorf(`not in a character room`)
 	}
 
 	altNames := []string{}
 	nameToAlt := map[string]characters.Character{}
 
-	for _, char := range characters.LoadAlts(user.UserId) {
+	for _, char := range loadAlts(user.UserId) {
 		altNames = append(altNames, char.Name)
 		nameToAlt[char.Name] = char
 	}
 
-	// All possible commands:
-	// new - reroll current character (if no alts enabled, or create a new one and store the current one)
-	// change - change to another character in storage
-	// delete - dlete a character from storage
+	maxAlts := maxAltCharacters(m)
 
-	/*
-		user.Character = characters.New()
-		rooms.MoveToRoom(user.UserId, -1)
-	*/
-	c := configs.GetGamePlayConfig()
-
-	if c.MaxAltCharacters == 0 {
+	if maxAlts == 0 {
 		user.SendText(`<ansi fg="203">Alt character are disabled on this server.</ansi>`)
-		return true, errors.New(`alt characters disabled`)
+		return true, fmt.Errorf(`alt characters disabled`)
 	}
 
 	if user.Character.Level < 5 && len(nameToAlt) < 1 {
 		user.SendText(`<ansi fg="203">You must reach level 5 with this character to access character alts.</ansi>`)
-		return true, errors.New(`level 5 minimum`)
+		return true, fmt.Errorf(`level 5 minimum`)
 	}
 
-	// Form a set of all mobs currently charmed (and possibly hired)
 	hiredOutChars := map[string]characters.Character{}
 	for _, mobInstanceId := range user.Character.GetCharmIds() {
 		mob := mobs.GetInstance(mobInstanceId)
@@ -71,7 +310,6 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 	cmdPrompt, isNew := user.StartPrompt(`character`, rest)
 
 	if isNew {
-
 		if len(altNames) > 0 {
 			menuOptions = append(menuOptions, `view`)
 			menuOptions = append(menuOptions, `change`)
@@ -80,11 +318,10 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 		}
 
 		if len(nameToAlt) > 0 {
-			altTblTxt := getAltTable(nameToAlt, hiredOutChars, user.UserId)
+			altTblTxt := getAltTable(nameToAlt, hiredOutChars, user.UserId, maxAlts)
 			user.SendText(``)
 			user.SendText(altTblTxt)
 		}
-
 	}
 
 	menuOptions = append(menuOptions, `quit`)
@@ -94,9 +331,6 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 		return true, nil
 	}
 
-	/////////////////////////
-	// Leave menu
-	/////////////////////////
 	if question.Response == `quit` {
 		user.ClearPrompt()
 		return true, nil
@@ -107,10 +341,9 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 	/////////////////////////
 	if question.Response == `new` {
 
-		if len(altNames) >= int(c.MaxAltCharacters) {
+		if len(altNames) >= maxAlts {
 			user.SendText(`<ansi fg="203">You already have too many alts.</ansi>`)
 			user.SendText(`<ansi fg="203">You'll need to delete one to create a new one.</ansi>`)
-
 			question.RejectResponse()
 			return true, nil
 		}
@@ -130,9 +363,8 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 			newAlts = append(newAlts, char)
 		}
 		newAlts = append(newAlts, *user.Character)
-		characters.SaveAlts(user.UserId, newAlts)
+		saveAlts(user.UserId, newAlts)
 
-		// Send them back to start with a fresh/empty character
 		user.Character = characters.New()
 		user.Character.Name = user.TempName()
 
@@ -147,7 +379,7 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 	if question.Response == `delete` {
 
 		if len(nameToAlt) > 0 {
-			altTblTxt := getAltTable(nameToAlt, hiredOutChars, user.UserId)
+			altTblTxt := getAltTable(nameToAlt, hiredOutChars, user.UserId, maxAlts)
 			user.SendText(``)
 			user.SendText(altTblTxt)
 		}
@@ -166,7 +398,6 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 
 			delChar := nameToAlt[match]
 
-			// Do they already have this mob hired??
 			if friend, ok := hiredOutChars[delChar.Name]; ok && friend.Description == delChar.Description {
 				user.SendText(fmt.Sprintf(`<ansi fg="mobname">%s</ansi> is currently hired out.`, delChar.Name))
 				user.ClearPrompt()
@@ -190,21 +421,17 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 					newAlts = append(newAlts, char)
 				}
 			}
-			characters.SaveAlts(user.UserId, newAlts)
+			saveAlts(user.UserId, newAlts)
 
 			user.EventLog.Add(`char`, `Deleted alt character: <ansi fg="username">`+match+`</ansi>`)
-
 			user.SendText(`<ansi fg="username">` + match + `</ansi> <ansi fg="red">is deleted.</ansi>`)
 			user.ClearPrompt()
 			return true, nil
-
 		}
 
 		user.SendText(`<ansi fg="203">No character with the name <ansi fg="username">` + question.Response + `</ansi> found.</ansi>`)
-
 		user.ClearPrompt()
 		return true, nil
-
 	}
 
 	/////////////////////////
@@ -213,7 +440,7 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 	if question.Response == `change` {
 
 		if len(nameToAlt) > 0 {
-			altTblTxt := getAltTable(nameToAlt, hiredOutChars, user.UserId)
+			altTblTxt := getAltTable(nameToAlt, hiredOutChars, user.UserId, maxAlts)
 			user.SendText(``)
 			user.SendText(altTblTxt)
 		}
@@ -232,7 +459,6 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 
 			char := nameToAlt[match]
 
-			// Do they already have this mob hired??
 			if friend, ok := hiredOutChars[char.Name]; ok && friend.Description == char.Description {
 				user.SendText(fmt.Sprintf(`<ansi fg="mobname">%s</ansi> is currently hired out.`, char.Name))
 				user.ClearPrompt()
@@ -252,8 +478,8 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 
 			oldName := user.Character.Name
 
-			succes := user.SwapToAlt(match)
-			if !succes {
+			success := swapToAlt(user, match)
+			if !success {
 				user.SendText(`<ansi fg="203">Something went wrong.</ansi>`)
 				user.ClearPrompt()
 				return true, nil
@@ -265,9 +491,7 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 				newRoom = rooms.LoadRoom(user.Character.RoomId)
 			}
 
-			// Remove from old room
 			room.RemovePlayer(user.UserId)
-			// add to new room
 			newRoom.AddPlayer(user.UserId)
 
 			users.SaveUser(*user)
@@ -279,18 +503,14 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 
 			user.ClearPrompt()
 
-			// Trigger a player changed event
 			events.AddToQueue(events.PlayerChanged{UserId: user.UserId})
 
 			return true, nil
-
 		}
 
 		user.SendText(`<ansi fg="203">No character with the name <ansi fg="username">` + question.Response + `</ansi> found.</ansi>`)
-
 		user.ClearPrompt()
 		return true, nil
-
 	}
 
 	/////////////////////////
@@ -299,7 +519,7 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 	if question.Response == `view` {
 
 		if len(nameToAlt) > 0 {
-			altTblTxt := getAltTable(nameToAlt, hiredOutChars, user.UserId)
+			altTblTxt := getAltTable(nameToAlt, hiredOutChars, user.UserId, maxAlts)
 			user.SendText(``)
 			user.SendText(altTblTxt)
 		}
@@ -318,7 +538,6 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 
 			char := nameToAlt[match]
 
-			// Do they already have this mob hired??
 			if friend, ok := hiredOutChars[char.Name]; ok && friend.Description == char.Description {
 				user.SendText(fmt.Sprintf(`<ansi fg="mobname">%s</ansi> is currently hired out.`, char.Name))
 				user.ClearPrompt()
@@ -330,39 +549,28 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 			tmpChar := user.Character
 			user.Character = &char
 
-			Status(``, user, room, flags)
+			usercommands.TryCommand(`status`, ``, user.UserId, flags)
 
 			user.Character = tmpChar
 
-			m := mobs.NewMobById(59, user.Character.RoomId)
-			m.Character = char
-			room.AddMob(m.InstanceId)
-			m.Character.Charm(user.UserId, -1, `suicide vanish`)
+			mob := mobs.NewMobById(59, user.Character.RoomId)
+			mob.Character = char
+			room.AddMob(mob.InstanceId)
+			mob.Character.Charm(user.UserId, -1, `suicide vanish`)
 
 			user.ClearPrompt()
 			return true, nil
-
 		}
 
 		user.SendText(`<ansi fg="203">No character with the name <ansi fg="username">` + question.Response + `</ansi> found.</ansi>`)
-
 		user.ClearPrompt()
 		return true, nil
-
 	}
 
 	/////////////////////////
-	// Spawn a helper clone - experimental
+	// Spawn a helper clone
 	/////////////////////////
 	if question.Response == `hire` {
-
-		/*
-			if len(nameToAlt) > 0 {
-				altTblTxt := getAltTable(nameToAlt, hiredOutChars, user.UserId)
-				user.SendText(``)
-				user.SendText(altTblTxt)
-			}
-		*/
 
 		question := cmdPrompt.Ask(`Enter the name of the character you wish to hire:`, []string{})
 		if !question.Done {
@@ -378,7 +586,6 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 
 			char := nameToAlt[match]
 
-			// Do they already have this mob hired??
 			if friend, ok := hiredOutChars[char.Name]; ok && friend.Description == char.Description {
 				user.SendText(fmt.Sprintf(`<ansi fg="mobname">%s</ansi> is already hired out.`, char.Name))
 				user.ClearPrompt()
@@ -388,7 +595,6 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 			char.Validate()
 
 			gearValue := char.GetGearValue()
-
 			charValue := gearValue + (250 * char.Level)
 
 			mudlog.Debug(`Hire Alt`, `UserId`, user.UserId, `alt-name`, char.Name, `gear-value`, gearValue, `level`, char.Level, `total`, charValue)
@@ -409,7 +615,6 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 				return true, nil
 			}
 
-			// Prevent follower overage
 			maxCharmed := user.Character.GetSkillLevel(skills.Tame) + 1
 			if len(hiredOutChars) >= maxCharmed {
 				user.SendText(fmt.Sprintf(`You can only have %d mobs following you at a time.`, maxCharmed))
@@ -419,45 +624,41 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 
 			user.Character.Gold -= charValue
 
-			m := mobs.NewMobById(59, user.Character.RoomId)
-			m.Character = char
+			mob := mobs.NewMobById(59, user.Character.RoomId)
+			mob.Character = char
 
-			// To prevent dupes/exploits, clear vulnerable copied data
-			m.Character.Items = []items.Item{}   // Clear items
-			m.Character.Gold = 0                 // Clear gold
-			m.Character.Bank = 0                 // Clear bank
-			m.Character.Shop = characters.Shop{} // Clear shop
+			mob.Character.Items = []items.Item{}
+			mob.Character.Gold = 0
+			mob.Character.Bank = 0
+			mob.Character.Shop = characters.Shop{}
 
-			m.Character.AddBuff(36, true) // Give a perma-gear buff, so that items can't be removed.
+			mob.Character.AddBuff(36, true)
 
-			room.AddMob(m.InstanceId)
+			room.AddMob(mob.InstanceId)
 
-			m.Character.Charm(user.UserId, -1, `suicide vanish`)
-			user.Character.TrackCharmed(m.InstanceId, true)
+			mob.Character.Charm(user.UserId, -1, `suicide vanish`)
+			user.Character.TrackCharmed(mob.InstanceId, true)
 
-			user.EventLog.Add(`char`, `Hired an alt character to help you out: <ansi fg="username">`+m.Character.Name+`</ansi>`)
+			user.EventLog.Add(`char`, `Hired an alt character to help you out: <ansi fg="username">`+mob.Character.Name+`</ansi>`)
 
-			user.SendText(`<ansi fg="username">` + m.Character.Name + `</ansi> appears to help you out!`)
-			room.SendText(`<ansi fg="username">`+m.Character.Name+`</ansi> appears to help <ansi fg="username">`+user.Character.Name+`</ansi>!`, user.UserId)
+			user.SendText(`<ansi fg="username">` + mob.Character.Name + `</ansi> appears to help you out!`)
+			room.SendText(`<ansi fg="username">`+mob.Character.Name+`</ansi> appears to help <ansi fg="username">`+user.Character.Name+`</ansi>!`, user.UserId)
 
-			m.Command(`emote waves sheepishly.`, 2)
+			mob.Command(`emote waves sheepishly.`, 2)
 
 			user.ClearPrompt()
 			return true, nil
-
 		}
 
 		user.SendText(`<ansi fg="203">No character with the name <ansi fg="username">` + question.Response + `</ansi> found.</ansi>`)
-
 		user.ClearPrompt()
 		return true, nil
-
 	}
 
 	return true, nil
 }
 
-func getAltTable(nameToAlt map[string]characters.Character, charmedChars map[string]characters.Character, viewingUserId int) string {
+func getAltTable(nameToAlt map[string]characters.Character, charmedChars map[string]characters.Character, viewingUserId int, maxAlts int) string {
 
 	headers := []string{"Name", "Level", "Race", "Profession", "Alignment", "Status"}
 	rows := [][]string{}
@@ -485,7 +686,6 @@ func getAltTable(nameToAlt map[string]characters.Character, charmedChars map[str
 			fmt.Sprintf(`<ansi fg="%s">%s</ansi>`, char.AlignmentName(), char.AlignmentName()),
 			mobBusy,
 		})
-
 	}
 
 	sort.Slice(rows, func(i, j int) bool {
@@ -494,7 +694,7 @@ func getAltTable(nameToAlt map[string]characters.Character, charmedChars map[str
 		return num1 < num2
 	})
 
-	altTableData := templates.GetTable(fmt.Sprintf(`Your alt characters (%d/%d)`, len(nameToAlt), configs.GetGamePlayConfig().MaxAltCharacters), headers, rows)
+	altTableData := templates.GetTable(fmt.Sprintf(`Your alt characters (%d/%d)`, len(nameToAlt), maxAlts), headers, rows)
 	tplTxt, _ := templates.Process("tables/generic", altTableData, viewingUserId)
 
 	return tplTxt

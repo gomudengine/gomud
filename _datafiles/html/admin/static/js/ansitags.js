@@ -1,5 +1,5 @@
 /**
- * ansitags.js
+ * ansitags.js - https://github.com/GoMudEngine/ansitags
  *
  * Parses strings containing <ansi> tags and converts them to HTML <span> tags
  * with inline color styles. This is a JavaScript port of the ansitags Go library,

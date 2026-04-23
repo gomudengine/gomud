@@ -1,0 +1,1211 @@
+{{template "header" .}}
+
+<style>
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #555; margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+    /* layout */
+    .page-layout { display: grid; grid-template-columns: 300px 1fr; gap: 1.25rem; align-items: start; }
+    @media (max-width: 860px) { .page-layout { grid-template-columns: 1fr; } }
+
+    /* sidebar */
+    .sidebar { background: #fff; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; }
+    .sidebar-header { padding: 0.75rem 0.9rem; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 0.5rem; }
+    .sidebar-header input[type="search"] { flex: 1; padding: 0.35rem 0.6rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; }
+    .sidebar-header select { padding: 0.35rem 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.82rem; background: #fff; max-width: 110px; }
+    .mob-list { overflow-y: auto; max-height: 72vh; }
+    .mob-row {
+        padding: 0.55rem 0.9rem; cursor: pointer; border-bottom: 1px solid #f0f0f0;
+        display: flex; align-items: baseline; gap: 0.5rem; font-size: 0.875rem;
+    }
+    .mob-row:last-child { border-bottom: none; }
+    .mob-row:hover { background: #f5f7ff; }
+    .mob-row.active { background: #1a1a2e; color: #fff; }
+    .mob-row.active .mob-id { color: #8899cc; }
+    .mob-id { font-size: 0.75rem; color: #999; font-family: monospace; flex-shrink: 0; }
+    .mob-zone-badge {
+        font-size: 0.68rem; padding: 0.1rem 0.35rem; border-radius: 3px;
+        background: #e8eaf6; color: #3949ab; flex-shrink: 0; margin-left: auto;
+    }
+    .mob-row.active .mob-zone-badge { background: #3949ab; color: #fff; }
+    .mob-script-badge {
+        font-size: 0.65rem; padding: 0.1rem 0.35rem; border-radius: 3px;
+        background: #fff3e0; color: #8a4a00; flex-shrink: 0;
+    }
+    .mob-row.active .mob-script-badge { background: #8a4a00; color: #fff; }
+    .mob-hostile-badge {
+        font-size: 0.65rem; padding: 0.1rem 0.35rem; border-radius: 3px;
+        background: #fde8e8; color: #8a0000; flex-shrink: 0;
+    }
+    .mob-row.active .mob-hostile-badge { background: #8a0000; color: #fff; }
+    .no-mobs { padding: 1.5rem; text-align: center; color: #888; font-size: 0.85rem; }
+
+    /* new mob btn */
+    .btn-new {
+        margin: 0.6rem 0.9rem; padding: 0.4rem 0.9rem; border: none; border-radius: 4px;
+        background: #1e6e34; color: #fff; font-size: 0.85rem; font-weight: 600;
+        cursor: pointer; text-align: center;
+    }
+    .btn-new:hover { background: #145728; }
+
+    /* editor panel */
+    .editor-panel { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 1.25rem; }
+    .editor-placeholder { color: #aaa; text-align: center; padding: 4rem 1rem; font-size: 0.9rem; }
+
+    /* status */
+    .status-bar {
+        display: none; padding: 0.55rem 0.9rem; border-radius: 4px;
+        font-size: 0.85rem; margin-bottom: 1rem;
+    }
+    .status-bar.success { background: #e6f4ea; color: #1e6e34; display: block; }
+    .status-bar.error   { background: #fde8e8; color: #8a0000; display: block; }
+
+    /* form */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem 1.25rem; }
+    .form-grid .span2 { grid-column: 1 / -1; }
+    .field label { display: block; font-size: 0.78rem; font-weight: 600; color: #555; margin-bottom: 0.25rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .field input[type="text"],
+    .field input[type="number"],
+    .field select,
+    .field textarea {
+        width: 100%; padding: 0.4rem 0.6rem; border: 1px solid #ccc; border-radius: 4px;
+        font-size: 0.875rem; font-family: inherit; background: #fff;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid #1a1a2e; outline-offset: 1px; border-color: transparent; }
+    .field textarea { resize: vertical; min-height: 80px; }
+    .field-hint { font-size: 0.75rem; color: #888; margin-top: 0.2rem; }
+
+    /* range sliders */
+    .range-wrap { display: flex; align-items: center; gap: 0.6rem; }
+    .range-wrap input[type="range"] { flex: 1; accent-color: #1a1a2e; }
+    .range-val {
+        font-family: monospace; font-size: 0.85rem; font-weight: 600;
+        min-width: 2.5rem; text-align: center; color: #1a1a2e;
+    }
+
+    /* section headings inside editor */
+    .section-title {
+        font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.06em; color: #666; padding: 0.5rem 0 0.4rem;
+        border-bottom: 1px solid #eee; margin-bottom: 0.75rem; grid-column: 1 / -1;
+    }
+
+    /* tags editor */
+    .tags-wrap { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+    .tag-chip {
+        display: inline-flex; align-items: center; gap: 0.3rem;
+        background: #e8eaf6; color: #3949ab; border-radius: 12px;
+        padding: 0.2rem 0.6rem; font-size: 0.8rem;
+    }
+    .tag-chip button { background: none; border: none; cursor: pointer; color: #3949ab; font-size: 0.85rem; line-height: 1; padding: 0; }
+    .tag-chip button:hover { color: #c00; }
+    .tag-add-input { width: 140px; padding: 0.25rem 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.82rem; }
+    .btn-add-sm {
+        font-size: 0.8rem; padding: 0.3rem 0.7rem; border: 1px dashed #aaa;
+        background: none; border-radius: 4px; cursor: pointer; color: #555; margin-top: 0.25rem;
+    }
+    .btn-add-sm:hover { border-color: #1a1a2e; color: #1a1a2e; }
+
+    /* buff ids */
+    .buff-ids-wrap { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+    .buff-chip {
+        display: inline-flex; align-items: center; gap: 0.3rem;
+        background: #e8eaf6; color: #3949ab; border-radius: 12px;
+        padding: 0.2rem 0.6rem; font-size: 0.8rem;
+    }
+    .buff-chip button { background: none; border: none; cursor: pointer; color: #3949ab; font-size: 0.85rem; line-height: 1; padding: 0; }
+    .buff-chip button:hover { color: #c00; }
+    .buff-add-input { width: 80px; padding: 0.25rem 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.82rem; }
+
+    /* inventory rows */
+    .inv-list { display: flex; flex-direction: column; gap: 0.4rem; }
+    .inv-row { display: flex; gap: 0.5rem; align-items: center; }
+    .inv-row select { flex: 1; padding: 0.3rem 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.82rem; }
+    .btn-icon {
+        background: none; border: none; cursor: pointer; font-size: 1rem;
+        color: #888; padding: 0 0.2rem; line-height: 1;
+    }
+    .btn-icon:hover { color: #c00; }
+
+    /* shop entries */
+    .shop-entries { display: flex; flex-direction: column; gap: 0.75rem; }
+    .shop-card {
+        border: 1px solid #ddd; border-radius: 6px; padding: 0.75rem 0.9rem;
+        background: #fafafa; position: relative;
+    }
+    .shop-card-header {
+        display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.6rem;
+    }
+    .shop-card-header select {
+        padding: 0.3rem 0.5rem; border: 1px solid #ccc; border-radius: 4px;
+        font-size: 0.82rem; background: #fff; font-weight: 600;
+    }
+    .shop-card-type-badge {
+        font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 3px;
+        font-weight: 600; text-transform: uppercase;
+    }
+    .shop-type-item   { background: #e6f4ea; color: #1e6e34; }
+    .shop-type-mob    { background: #e3f2fd; color: #0d47a1; }
+    .shop-type-buff   { background: #f3e5f5; color: #6a1b9a; }
+    .shop-type-pet    { background: #fff3e0; color: #8a4a00; }
+    .shop-card-remove {
+        position: absolute; top: 0.5rem; right: 0.6rem;
+        background: none; border: none; cursor: pointer; font-size: 1.1rem;
+        color: #999; line-height: 1;
+    }
+    .shop-card-remove:hover { color: #c00; }
+    .shop-card-fields {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 0.5rem 0.75rem;
+    }
+    .shop-field label {
+        display: block; font-size: 0.72rem; font-weight: 600; color: #666;
+        margin-bottom: 0.15rem; text-transform: uppercase; letter-spacing: 0.02em;
+    }
+    .shop-field input, .shop-field select {
+        width: 100%; padding: 0.3rem 0.5rem; border: 1px solid #ccc;
+        border-radius: 4px; font-size: 0.82rem; background: #fff;
+    }
+    .shop-field .field-hint { font-size: 0.7rem; color: #999; margin-top: 0.1rem; }
+
+    /* script editor */
+    .script-toggle {
+        display: flex; align-items: center; gap: 0.6rem; cursor: pointer;
+        font-size: 0.85rem; color: #1a1a2e; font-weight: 600; padding: 0.5rem 0;
+        user-select: none;
+    }
+    .script-toggle::before { content: "\25B6"; font-size: 0.65rem; transition: transform 0.15s; }
+    .script-toggle.open::before { transform: rotate(90deg); }
+    .script-area { display: none; margin-top: 0.5rem; }
+    .script-area.open { display: block; }
+    .script-area textarea {
+        width: 100%; min-height: 660px; font-family: monospace; font-size: 0.82rem;
+        padding: 0.6rem 0.75rem; border: 1px solid #ccc; border-radius: 4px;
+        resize: vertical; background: #1a1a2e; color: #c9d1d9; line-height: 1.55;
+    }
+    .script-area textarea:focus { outline: 2px solid #4a6fa5; outline-offset: 1px; }
+    .script-hint { font-size: 0.75rem; color: #888; margin-top: 0.3rem; }
+
+    /* action bar */
+    .action-bar { display: flex; gap: 0.6rem; margin-top: 1.25rem; align-items: center; flex-wrap: wrap; }
+    .btn { padding: 0.45rem 1.1rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.875rem; font-weight: 600; }
+    .btn-primary { background: #1a1a2e; color: #fff; }
+    .btn-primary:hover { background: #2d2d4e; }
+    .btn-primary:disabled { background: #999; cursor: default; }
+    .btn-danger { background: #c0392b; color: #fff; }
+    .btn-danger:hover { background: #a93226; }
+    .btn-secondary { background: #eee; color: #333; }
+    .btn-secondary:hover { background: #ddd; }
+    .mob-id-display { font-family: monospace; font-size: 0.82rem; color: #888; margin-left: auto; }
+
+    /* editor header */
+    .editor-header { display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 1rem; }
+    .editor-header h2 { font-size: 1.1rem; flex: 1; }
+    .editor-header .badge { font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 3px; background: #e8eaf6; color: #3949ab; }
+</style>
+
+<h1>Mobs</h1>
+<p class="subtitle">Browse, edit, and create mob definitions.</p>
+
+<div id="status-bar" class="status-bar"></div>
+
+<div class="page-layout">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <button class="btn-new" onclick="newMob()">+ New Mob</button>
+        <div class="sidebar-header">
+            <input type="search" id="mob-search" placeholder="Search mobs..." oninput="filterMobs()" />
+            <select id="zone-filter" onchange="filterMobs()">
+                <option value="">All zones</option>
+            </select>
+        </div>
+        <div class="mob-list" id="mob-list">
+            <div class="no-mobs">Loading...</div>
+        </div>
+    </div>
+
+    <!-- Editor -->
+    <div class="editor-panel" id="editor-panel">
+        <div class="editor-placeholder" id="editor-placeholder">
+            Select a mob from the list to edit it,<br>or click <strong>+ New Mob</strong> to create one.
+        </div>
+        <div id="editor-form" style="display:none;">
+            <div class="editor-header">
+                <h2 id="editor-title">Mob Editor</h2>
+                <span class="badge" id="editor-zone-badge"></span>
+            </div>
+
+            <div class="form-grid">
+                <div class="section-title">Identity</div>
+
+                <div class="field">
+                    <label>Name</label>
+                    <input type="text" id="f-name" placeholder="e.g. goblin" />
+                </div>
+                <div class="field">
+                    <label>Zone</label>
+                    <input type="text" id="f-zone" placeholder="e.g. Frostfang" />
+                    <div class="field-hint">Zone folder for file storage</div>
+                </div>
+
+                <div class="field span2">
+                    <label>Description</label>
+                    <textarea id="f-description" rows="10" placeholder="Description shown to players"></textarea>
+                </div>
+
+                <div class="field">
+                    <label>Race</label>
+                    <select id="f-raceid">
+                        <option value="0">&mdash; none &mdash;</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Level</label>
+                    <input type="number" id="f-level" min="1" placeholder="1" />
+                </div>
+
+                <div class="section-title">Behavior</div>
+
+                <div class="field">
+                    <label>Hostile</label>
+                    <select id="f-hostile">
+                        <option value="false">No</option>
+                        <option value="true">Yes - attacks on sight</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Activity Level</label>
+                    <div class="range-wrap">
+                        <input type="range" id="f-activitylevel" min="1" max="100" value="10"
+                               oninput="document.getElementById('f-activitylevel-val').textContent=this.value" />
+                        <span class="range-val" id="f-activitylevel-val">10</span>
+                    </div>
+                    <div class="field-hint">1-100% chance of acting each round</div>
+                </div>
+                <div class="field">
+                    <label>Max Wander</label>
+                    <input type="number" id="f-maxwander" min="0" placeholder="0" />
+                    <div class="field-hint">Max rooms to wander from home (0 = stationary)</div>
+                </div>
+                <div class="field">
+                    <label>Item Drop Chance</label>
+                    <input type="number" id="f-itemdropchance" min="0" max="100" placeholder="0" />
+                    <div class="field-hint">% chance of dropping items on death</div>
+                </div>
+
+                <div class="section-title">Character</div>
+
+                <div class="field">
+                    <label>Alignment</label>
+                    <div class="range-wrap">
+                        <input type="range" id="f-alignment" min="-100" max="100" value="0"
+                               oninput="document.getElementById('f-alignment-val').textContent=this.value" />
+                        <span class="range-val" id="f-alignment-val">0</span>
+                    </div>
+                    <div class="field-hint">-100 (evil) to 100 (good), 0 = default from race</div>
+                </div>
+                <div class="field">
+                    <label>Gold</label>
+                    <input type="number" id="f-gold" min="0" placeholder="0" />
+                </div>
+
+                <div class="section-title">Groups</div>
+
+                <div class="field span2">
+                    <label>Groups (allegiances)</label>
+                    <div class="tags-wrap" id="groups-list"></div>
+                    <div style="display:flex; gap:0.4rem; align-items:center; margin-top:0.4rem;">
+                        <input type="text" class="tag-add-input" id="groups-input" placeholder="group name"
+                               onkeydown="if(event.key==='Enter'){addTag('groups-list','groups-input');}" />
+                        <button class="btn-add-sm" onclick="addTag('groups-list','groups-input')">+ Add</button>
+                    </div>
+                    <div class="field-hint">Groups this mob belongs to for ally/hate detection</div>
+                </div>
+
+                <div class="field span2">
+                    <label>Hates (groups/races)</label>
+                    <div class="tags-wrap" id="hates-list"></div>
+                    <div style="display:flex; gap:0.4rem; align-items:center; margin-top:0.4rem;">
+                        <input type="text" class="tag-add-input" id="hates-input" placeholder="group or race"
+                               onkeydown="if(event.key==='Enter'){addTag('hates-list','hates-input');}" />
+                        <button class="btn-add-sm" onclick="addTag('hates-list','hates-input')">+ Add</button>
+                    </div>
+                    <div class="field-hint">Groups or race names this mob will attack. Use * for all.</div>
+                </div>
+
+                <div class="section-title">Commands</div>
+
+                <div class="field span2">
+                    <label>Idle Commands</label>
+                    <textarea id="f-idlecommands" rows="4" placeholder="One command per line, e.g.&#10;emote looks around.&#10;wander&#10;say Welcome!"></textarea>
+                    <div class="field-hint">Randomly chosen each idle round</div>
+                </div>
+                <div class="field span2">
+                    <label>Angry Commands</label>
+                    <textarea id="f-angrycommands" rows="3" placeholder="One command per line, e.g.&#10;emote snarls!&#10;say You'll regret that!"></textarea>
+                    <div class="field-hint">Randomly chosen when entering combat</div>
+                </div>
+                <div class="field span2">
+                    <label>Combat Commands</label>
+                    <textarea id="f-combatcommands" rows="3" placeholder="One command per line, e.g.&#10;callforhelp 7:guard:calls for the guards."></textarea>
+                    <div class="field-hint">Randomly chosen during combat</div>
+                </div>
+
+                <div class="section-title">Quest &amp; Buffs</div>
+
+                <div class="field span2">
+                    <label>Quest Flags</label>
+                    <div class="tags-wrap" id="questflags-list"></div>
+                    <div style="display:flex; gap:0.4rem; align-items:center; margin-top:0.4rem;">
+                        <input type="text" class="tag-add-input" id="questflags-input" placeholder="e.g. 5-start"
+                               onkeydown="if(event.key==='Enter'){addTag('questflags-list','questflags-input');}" />
+                        <button class="btn-add-sm" onclick="addTag('questflags-list','questflags-input')">+ Add</button>
+                    </div>
+                    <div class="field-hint">Quest flags set on this mob (e.g. 5-start, 5-return). If the quest is available to a player, this will cause a symbol to show next to the mob name.</div>
+                </div>
+
+                <div class="field span2">
+                    <label>Buff IDs (applied on spawn)</label>
+                    <div class="buff-ids-wrap" id="buffids-wrap">
+                        <select id="buffids-input" style="max-width:260px; padding:0.25rem 0.5rem; border:1px solid #ccc; border-radius:4px; font-size:0.82rem;">
+                            <option value="0">&mdash; select buff &mdash;</option>
+                        </select>
+                        <button class="btn-add-sm" onclick="addBuffId('buffids-list','buffids-input')">+ Add</button>
+                    </div>
+                    <div class="buff-ids-wrap" id="buffids-list" style="margin-top:0.4rem;"></div>
+                </div>
+
+                <div class="field">
+                    <label>Script Tag</label>
+                    <input type="text" id="f-scripttag" placeholder="e.g. winterfire" />
+                    <div class="field-hint">Identifier used in the script filename</div>
+                </div>
+
+                <div class="section-title">Stats (Training Bonuses)</div>
+
+                <div class="field">
+                    <label>Strength</label>
+                    <input type="number" id="f-stat-strength" value="0" />
+                </div>
+                <div class="field">
+                    <label>Speed</label>
+                    <input type="number" id="f-stat-speed" value="0" />
+                </div>
+                <div class="field">
+                    <label>Smarts</label>
+                    <input type="number" id="f-stat-smarts" value="0" />
+                </div>
+                <div class="field">
+                    <label>Vitality</label>
+                    <input type="number" id="f-stat-vitality" value="0" />
+                </div>
+                <div class="field">
+                    <label>Mysticism</label>
+                    <input type="number" id="f-stat-mysticism" value="0" />
+                </div>
+                <div class="field">
+                    <label>Perception</label>
+                    <input type="number" id="f-stat-perception" value="0" />
+                </div>
+
+                <div class="section-title">Equipment</div>
+
+                <div class="field">
+                    <label>Weapon</label>
+                    <select id="f-eq-weapon"><option value="0">Nothing</option></select>
+                </div>
+                <div class="field">
+                    <label>Offhand</label>
+                    <select id="f-eq-offhand"><option value="0">Nothing</option></select>
+                </div>
+                <div class="field">
+                    <label>Head</label>
+                    <select id="f-eq-head"><option value="0">Nothing</option></select>
+                </div>
+                <div class="field">
+                    <label>Neck</label>
+                    <select id="f-eq-neck"><option value="0">Nothing</option></select>
+                </div>
+                <div class="field">
+                    <label>Body</label>
+                    <select id="f-eq-body"><option value="0">Nothing</option></select>
+                </div>
+                <div class="field">
+                    <label>Belt</label>
+                    <select id="f-eq-belt"><option value="0">Nothing</option></select>
+                </div>
+                <div class="field">
+                    <label>Gloves</label>
+                    <select id="f-eq-gloves"><option value="0">Nothing</option></select>
+                </div>
+                <div class="field">
+                    <label>Ring</label>
+                    <select id="f-eq-ring"><option value="0">Nothing</option></select>
+                </div>
+                <div class="field">
+                    <label>Legs</label>
+                    <select id="f-eq-legs"><option value="0">Nothing</option></select>
+                </div>
+                <div class="field">
+                    <label>Feet</label>
+                    <select id="f-eq-feet"><option value="0">Nothing</option></select>
+                </div>
+
+                <div class="section-title">Inventory</div>
+
+                <div class="field span2">
+                    <div class="inv-list" id="items-list"></div>
+                    <button class="btn-add-sm" onclick="addItemRow()">+ Add Item</button>
+                    <div class="field-hint">Items the mob carries (Item ID)</div>
+                </div>
+
+                <div class="section-title">Shop</div>
+
+                <div class="field span2">
+                    <div class="shop-entries" id="shop-list"></div>
+                    <div style="display:flex; gap:0.5rem; margin-top:0.5rem; flex-wrap:wrap;">
+                        <button class="btn-add-sm" onclick="addShopEntry('item')">+ Item</button>
+                        <button class="btn-add-sm" onclick="addShopEntry('mob')">+ Mob for Hire</button>
+                        <button class="btn-add-sm" onclick="addShopEntry('buff')">+ Buff</button>
+                        <button class="btn-add-sm" onclick="addShopEntry('pet')">+ Pet</button>
+                    </div>
+                    <div class="field-hint">Leave empty if not a shopkeeper. QuantityMax: 0 = always in stock, -1 = never restocks (temporary).</div>
+                </div>
+            </div>
+
+            <!-- Script editor -->
+            <div style="margin-top:1.25rem; border-top: 1px solid #eee; padding-top: 1rem;">
+                <div class="script-toggle" id="script-toggle" onclick="toggleScript()">Script</div>
+                <div class="script-area" id="script-area">
+                    <textarea id="f-script" spellcheck="false" placeholder="// JavaScript for this mob's events (onAsk, onGive, onIdle, onShow)&#10;// Leave blank to delete the script file."></textarea>
+                    <div class="script-hint">Saved as a .js file alongside the mob's YAML. Clear the field and save to delete the script.</div>
+                </div>
+            </div>
+
+            <div class="action-bar">
+                <button class="btn btn-primary" id="save-btn" onclick="saveMob()">Save Mob</button>
+                <button class="btn btn-secondary" onclick="cancelEdit()">Cancel</button>
+                <button class="btn btn-danger" id="delete-btn" onclick="deleteMob()" style="margin-left:auto;">Delete Mob</button>
+                <span class="mob-id-display" id="mob-id-display"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    let allMobs = [];
+    let allItems = [];
+    let buffSpecs = {};
+    let currentMobId = null;
+    let isNew = false;
+    let scriptSync = null;
+
+    async function init() {
+        const [mobsRes, racesRes, buffsRes, itemsRes] = await AdminAPI.all([
+            AdminAPI.get('/admin/api/v1/mobs'),
+            AdminAPI.get('/admin/api/v1/races'),
+            AdminAPI.get('/admin/api/v1/buffs'),
+            AdminAPI.get('/admin/api/v1/items'),
+        ]);
+
+        if (!mobsRes.ok) { showStatus('Failed to load mobs: ' + mobsRes.error, false); return; }
+
+        allMobs = (mobsRes.data.data || []).sort((a, b) => a.MobId - b.MobId);
+
+        if (racesRes.ok) populateRaceSelect(racesRes.data.data || {});
+        if (buffsRes.ok) {
+            buffSpecs = (buffsRes.data.data && buffsRes.data.data.specs) || {};
+            populateBuffSelect(buffSpecs);
+        }
+        if (itemsRes.ok) {
+            allItems = (itemsRes.data.data || []).sort((a, b) => a.ItemId - b.ItemId);
+            populateEquipSelects(allItems);
+        }
+
+        populateZoneFilter();
+        renderList(allMobs);
+        scriptSync = ScriptEditor.init('f-script');
+    }
+
+    function populateRaceSelect(races) {
+        const sel = document.getElementById('f-raceid');
+        const sorted = Object.values(races).sort((a, b) => a.RaceId - b.RaceId);
+        for (const r of sorted) {
+            const o = document.createElement('option');
+            o.value = r.RaceId;
+            o.textContent = '#' + r.RaceId + ' — ' + r.Name;
+            sel.appendChild(o);
+        }
+    }
+
+    function populateBuffSelect(specs) {
+        const sel = document.getElementById('buffids-input');
+        const sorted = Object.values(specs).sort((a, b) => a.BuffId - b.BuffId);
+        for (const b of sorted) {
+            const o = document.createElement('option');
+            o.value = b.BuffId;
+            o.textContent = '#' + b.BuffId + ' — ' + b.Name;
+            sel.appendChild(o);
+        }
+    }
+
+    function populateEquipSelects(items) {
+        const ids = ['f-eq-weapon','f-eq-offhand','f-eq-head','f-eq-neck','f-eq-body',
+                     'f-eq-belt','f-eq-gloves','f-eq-ring','f-eq-legs','f-eq-feet'];
+        const fragment = document.createDocumentFragment();
+        for (const item of items) {
+            const o = document.createElement('option');
+            o.value = item.ItemId;
+            o.textContent = '#' + item.ItemId + ' — ' + item.Name;
+            fragment.appendChild(o);
+        }
+        for (const id of ids) {
+            const sel = document.getElementById(id);
+            sel.appendChild(fragment.cloneNode(true));
+        }
+    }
+
+    function buffName(id) {
+        const b = buffSpecs[String(id)];
+        return b ? b.Name : '#' + id;
+    }
+
+    function itemName(id) {
+        const it = allItems.find(i => i.ItemId === id);
+        return it ? it.Name : '#' + id;
+    }
+
+    function mobName(id) {
+        const m = allMobs.find(mob => mob.MobId === id);
+        return m && m.Character ? m.Character.Name : '#' + id;
+    }
+
+    function buildItemOptions(selectedId) {
+        let html = `<option value="0">&mdash; none &mdash;</option>`;
+        for (const item of allItems) {
+            html += `<option value="${item.ItemId}"${item.ItemId === selectedId ? ' selected' : ''}>#${item.ItemId} — ${esc(item.Name)}</option>`;
+        }
+        return html;
+    }
+
+    function buildBuffOptions(selectedId) {
+        let html = `<option value="0">&mdash; none &mdash;</option>`;
+        const sorted = Object.values(buffSpecs).sort((a, b) => a.BuffId - b.BuffId);
+        for (const b of sorted) {
+            html += `<option value="${b.BuffId}"${b.BuffId === selectedId ? ' selected' : ''}>#${b.BuffId} — ${esc(b.Name)}</option>`;
+        }
+        return html;
+    }
+
+    function buildMobOptions(selectedId) {
+        let html = `<option value="0">&mdash; none &mdash;</option>`;
+        for (const m of allMobs) {
+            const name = (m.Character && m.Character.Name) || '(unnamed)';
+            html += `<option value="${m.MobId}"${m.MobId === selectedId ? ' selected' : ''}>#${m.MobId} — ${esc(name)}</option>`;
+        }
+        return html;
+    }
+
+    // -------------------------------------------------------------------------
+    // Sidebar
+    // -------------------------------------------------------------------------
+    function populateZoneFilter() {
+        const sel = document.getElementById('zone-filter');
+        const zones = new Set();
+        for (const m of allMobs) {
+            if (m.Zone) zones.add(m.Zone);
+        }
+        Array.from(zones).sort().forEach(z => {
+            const o = document.createElement('option');
+            o.value = z; o.textContent = z;
+            sel.appendChild(o);
+        });
+    }
+
+    function renderList(mobsList) {
+        const list = document.getElementById('mob-list');
+        if (mobsList.length === 0) {
+            list.innerHTML = '<div class="no-mobs">No mobs found.</div>';
+            return;
+        }
+        list.innerHTML = '';
+        for (const mob of mobsList) {
+            const row = document.createElement('div');
+            row.className = 'mob-row' + (mob.MobId === currentMobId ? ' active' : '');
+            row.dataset.id = mob.MobId;
+            const name = (mob.Character && mob.Character.Name) || '(unnamed)';
+            row.innerHTML = `
+                <span class="mob-id">#${mob.MobId}</span>
+                <span>${esc(name)}</span>
+                ${mob.Hostile ? '<span class="mob-hostile-badge">AGG</span>' : ''}
+                ${mob.HasScript ? '<span class="mob-script-badge">JS</span>' : ''}
+                <span class="mob-zone-badge">${esc(mob.Zone || '')}</span>`;
+            row.onclick = () => loadMob(mob.MobId);
+            list.appendChild(row);
+        }
+    }
+
+    window.filterMobs = function () {
+        const q = document.getElementById('mob-search').value.toLowerCase();
+        const z = document.getElementById('zone-filter').value;
+        const filtered = allMobs.filter(mob => {
+            const name = (mob.Character && mob.Character.Name) || '';
+            const nameMatch = !q || name.toLowerCase().includes(q) || String(mob.MobId).includes(q);
+            const zoneMatch = !z || mob.Zone === z;
+            return nameMatch && zoneMatch;
+        });
+        renderList(filtered);
+    };
+
+    // -------------------------------------------------------------------------
+    // Load mob into editor
+    // -------------------------------------------------------------------------
+    async function loadMob(mobId) {
+        const [mobRes, scriptRes] = await AdminAPI.all([
+            AdminAPI.get('/admin/api/v1/mobs/' + mobId),
+            AdminAPI.get('/admin/api/v1/mobs/' + mobId + '/script'),
+        ]);
+
+        if (!mobRes.ok) { showStatus('Failed to load mob: ' + mobRes.error, false); return; }
+
+        const mob = mobRes.data.data;
+        const script = scriptRes.ok ? (scriptRes.data.data.script || '') : '';
+
+        currentMobId = mobId;
+        isNew = false;
+
+        setActiveRow(mobId);
+        showEditor();
+        fillForm(mob, script);
+    }
+
+    function setActiveRow(mobId) {
+        document.querySelectorAll('.mob-row').forEach(r => {
+            r.classList.toggle('active', Number(r.dataset.id) === mobId);
+        });
+    }
+
+    function showEditor() {
+        document.getElementById('editor-placeholder').style.display = 'none';
+        document.getElementById('editor-form').style.display = 'block';
+        document.getElementById('delete-btn').style.display = isNew ? 'none' : '';
+    }
+
+    function fillForm(mob, script) {
+        const ch = mob.Character || {};
+
+        document.getElementById('editor-title').textContent = isNew ? 'New Mob' : (ch.Name || 'Mob');
+        document.getElementById('editor-zone-badge').textContent = mob.Zone || '';
+        document.getElementById('mob-id-display').textContent = isNew ? '' : 'ID: ' + mob.MobId;
+
+        setVal('f-name', ch.Name || '');
+        setVal('f-zone', mob.Zone || '');
+        setVal('f-description', ch.Description || '');
+        setVal('f-raceid', ch.RaceId || 0);
+        setVal('f-level', ch.Level || 1);
+        setVal('f-hostile', mob.Hostile ? 'true' : 'false');
+
+        const actLvl = mob.ActivityLevel || 10;
+        setVal('f-activitylevel', actLvl);
+        document.getElementById('f-activitylevel-val').textContent = actLvl;
+
+        setVal('f-maxwander', mob.MaxWander || 0);
+        setVal('f-itemdropchance', mob.ItemDropChance || 0);
+
+        const align = ch.Alignment || 0;
+        setVal('f-alignment', align);
+        document.getElementById('f-alignment-val').textContent = align;
+
+        setVal('f-gold', ch.Gold || 0);
+        setVal('f-scripttag', mob.ScriptTag || '');
+
+        // Groups, Hates, QuestFlags
+        renderTags('groups-list', mob.Groups || []);
+        renderTags('hates-list', mob.Hates || []);
+        renderTags('questflags-list', mob.QuestFlags || []);
+
+        // Commands
+        setVal('f-idlecommands', (mob.IdleCommands || []).join('\n'));
+        setVal('f-angrycommands', (mob.AngryCommands || []).join('\n'));
+        setVal('f-combatcommands', (mob.CombatCommands || []).join('\n'));
+
+        // Buff IDs
+        renderBuffChips('buffids-list', mob.BuffIds || []);
+
+        // Stats
+        const st = ch.Stats || {};
+        setVal('f-stat-strength', (st.Strength && st.Strength.Training) || 0);
+        setVal('f-stat-speed', (st.Speed && st.Speed.Training) || 0);
+        setVal('f-stat-smarts', (st.Smarts && st.Smarts.Training) || 0);
+        setVal('f-stat-vitality', (st.Vitality && st.Vitality.Training) || 0);
+        setVal('f-stat-mysticism', (st.Mysticism && st.Mysticism.Training) || 0);
+        setVal('f-stat-perception', (st.Perception && st.Perception.Training) || 0);
+
+        // Equipment
+        const eq = ch.Equipment || {};
+        setVal('f-eq-weapon', eqItemId(eq.Weapon));
+        setVal('f-eq-offhand', eqItemId(eq.Offhand));
+        setVal('f-eq-head', eqItemId(eq.Head));
+        setVal('f-eq-neck', eqItemId(eq.Neck));
+        setVal('f-eq-body', eqItemId(eq.Body));
+        setVal('f-eq-belt', eqItemId(eq.Belt));
+        setVal('f-eq-gloves', eqItemId(eq.Gloves));
+        setVal('f-eq-ring', eqItemId(eq.Ring));
+        setVal('f-eq-legs', eqItemId(eq.Legs));
+        setVal('f-eq-feet', eqItemId(eq.Feet));
+
+        // Inventory items
+        renderItemRows(ch.Items || []);
+
+        // Shop
+        renderShopEntries(ch.Shop || []);
+
+        // Script
+        setVal('f-script', script);
+        if (scriptSync) scriptSync();
+        document.getElementById('script-toggle').classList.toggle('open', script.length > 0);
+        document.getElementById('script-area').classList.toggle('open', script.length > 0);
+    }
+
+    function eqItemId(slot) {
+        if (!slot) return 0;
+        return slot.ItemId || 0;
+    }
+
+    // -------------------------------------------------------------------------
+    // New mob
+    // -------------------------------------------------------------------------
+    window.newMob = function () {
+        currentMobId = null;
+        isNew = true;
+        document.querySelectorAll('.mob-row').forEach(r => r.classList.remove('active'));
+        showEditor();
+        fillForm({}, '');
+        document.getElementById('editor-title').textContent = 'New Mob';
+        document.getElementById('mob-id-display').textContent = '';
+        document.getElementById('delete-btn').style.display = 'none';
+    };
+
+    window.cancelEdit = function () {
+        document.getElementById('editor-placeholder').style.display = '';
+        document.getElementById('editor-form').style.display = 'none';
+        document.querySelectorAll('.mob-row').forEach(r => r.classList.remove('active'));
+        currentMobId = null;
+        isNew = false;
+    };
+
+    // -------------------------------------------------------------------------
+    // Tags (groups, hates, quest flags)
+    // -------------------------------------------------------------------------
+    function renderTags(listId, values) {
+        const list = document.getElementById(listId);
+        list.innerHTML = '';
+        for (const v of values) appendTagChip(list, v);
+    }
+
+    function appendTagChip(list, value) {
+        const chip = document.createElement('span');
+        chip.className = 'tag-chip';
+        chip.dataset.value = value;
+        chip.innerHTML = `${esc(value)} <button title="Remove" onclick="this.closest('.tag-chip').remove()">&times;</button>`;
+        list.appendChild(chip);
+    }
+
+    window.addTag = function (listId, inputId) {
+        const input = document.getElementById(inputId);
+        const val = input.value.trim();
+        if (!val) return;
+        appendTagChip(document.getElementById(listId), val);
+        input.value = '';
+    };
+
+    function collectTags(listId) {
+        return Array.from(document.querySelectorAll('#' + listId + ' .tag-chip')).map(c => c.dataset.value);
+    }
+
+    // -------------------------------------------------------------------------
+    // Buff chips
+    // -------------------------------------------------------------------------
+    function renderBuffChips(listId, ids) {
+        const list = document.getElementById(listId);
+        list.innerHTML = '';
+        for (const id of ids) appendBuffChip(list, id);
+    }
+
+    function appendBuffChip(list, id) {
+        const chip = document.createElement('span');
+        chip.className = 'buff-chip';
+        chip.dataset.id = id;
+        chip.innerHTML = `#${id} ${esc(buffName(id))} <button title="Remove" onclick="this.closest('.buff-chip').remove()">&times;</button>`;
+        list.appendChild(chip);
+    }
+
+    window.addBuffId = function (listId, inputId) {
+        const input = document.getElementById(inputId);
+        const id = parseInt(input.value, 10);
+        if (!id || id < 1) return;
+        appendBuffChip(document.getElementById(listId), id);
+        input.value = '0';
+    };
+
+    function collectBuffIds(listId) {
+        return Array.from(document.querySelectorAll('#' + listId + ' .buff-chip')).map(c => parseInt(c.dataset.id, 10));
+    }
+
+    // -------------------------------------------------------------------------
+    // Inventory items
+    // -------------------------------------------------------------------------
+    function renderItemRows(items) {
+        const list = document.getElementById('items-list');
+        list.innerHTML = '';
+        for (const it of items) {
+            appendItemRow(list, it.ItemId || 0);
+        }
+    }
+
+    function appendItemRow(list, itemId) {
+        const row = document.createElement('div');
+        row.className = 'inv-row';
+        row.innerHTML = `
+            <select data-field="itemid">${buildItemOptions(itemId)}</select>
+            <button class="btn-icon" title="Remove" onclick="this.closest('.inv-row').remove()">&times;</button>`;
+        list.appendChild(row);
+    }
+
+    window.addItemRow = function () {
+        appendItemRow(document.getElementById('items-list'), 0);
+    };
+
+    function collectItems() {
+        const items = [];
+        document.querySelectorAll('#items-list .inv-row').forEach(row => {
+            const id = parseInt(row.querySelector('select').value, 10);
+            if (id > 0) items.push({ ItemId: id });
+        });
+        return items;
+    }
+
+    // -------------------------------------------------------------------------
+    // Shop entries
+    // -------------------------------------------------------------------------
+    function detectShopType(entry) {
+        if (entry.PetType) return 'pet';
+        if (entry.BuffId)  return 'buff';
+        if (entry.MobId)   return 'mob';
+        return 'item';
+    }
+
+    const shopTypeMeta = {
+        item: { label: 'Item',         badge: 'shop-type-item', idField: 'ItemId',  idLabel: 'Item' },
+        mob:  { label: 'Mob for Hire', badge: 'shop-type-mob',  idField: 'MobId',   idLabel: 'Mob' },
+        buff: { label: 'Buff',         badge: 'shop-type-buff', idField: 'BuffId',   idLabel: 'Buff' },
+        pet:  { label: 'Pet',          badge: 'shop-type-pet',  idField: 'PetType',  idLabel: 'Pet Type' },
+    };
+
+    const restockOptions = [
+        { value: '',              label: 'Default (server config)' },
+        { value: '1 hour',       label: '1 hour' },
+        { value: '4 hours',      label: '4 hours' },
+        { value: '1 day',        label: '1 day' },
+        { value: '1 week',       label: '1 week' },
+        { value: '1 month',      label: '1 month' },
+        { value: '1 real hour',  label: '1 real hour' },
+        { value: '4 real hours', label: '4 real hours' },
+        { value: '1 real day',   label: '1 real day' },
+        { value: '1 real week',  label: '1 real week' },
+    ];
+
+    function renderShopEntries(shop) {
+        const list = document.getElementById('shop-list');
+        list.innerHTML = '';
+        for (const entry of shop) {
+            appendShopCard(list, entry);
+        }
+    }
+
+    function buildIdField(type, selectedId) {
+        if (type === 'item') return `<select data-field="id">${buildItemOptions(selectedId)}</select>`;
+        if (type === 'mob')  return `<select data-field="id">${buildMobOptions(selectedId)}</select>`;
+        if (type === 'buff') return `<select data-field="id">${buildBuffOptions(selectedId)}</select>`;
+        return `<input type="text" data-field="id" value="${esc(String(selectedId || ''))}" placeholder="e.g. cat, mule" />`;
+    }
+
+    function shopTradeChange(sel) {
+        const card = sel.closest('.shop-card');
+        const priceInput = card.querySelector('[data-field="price"]');
+        const hasTrade = parseInt(sel.value, 10) > 0;
+        priceInput.disabled = hasTrade;
+        if (hasTrade) priceInput.value = '0';
+    }
+
+    function appendShopCard(list, entry) {
+        const e = entry || {};
+        const type = detectShopType(e);
+        const meta = shopTypeMeta[type];
+
+        const card = document.createElement('div');
+        card.className = 'shop-card';
+        card.dataset.shopType = type;
+
+        const idVal = type === 'pet' ? (e.PetType || '') : (e[meta.idField] || 0);
+        const qtyMax = e.QuantityMax != null ? e.QuantityMax : 0;
+        const restockVal = e.RestockRate || '';
+        const tradeVal = e.TradeItemId || 0;
+        const hasTrade = tradeVal > 0;
+
+        let qtyOpts = `<option value="-1"${qtyMax === -1 ? ' selected' : ''}>-1 — Does not Restock</option>`;
+        qtyOpts += `<option value="0"${qtyMax === 0 ? ' selected' : ''}>0 — Always in Stock</option>`;
+        for (let i = 1; i <= 98; i++) {
+            qtyOpts += `<option value="${i}"${qtyMax === i ? ' selected' : ''}>${i}</option>`;
+        }
+        if (qtyMax > 98) {
+            qtyOpts += `<option value="${qtyMax}" selected>${qtyMax}</option>`;
+        }
+
+        let restockOpts = restockOptions.map(o =>
+            `<option value="${esc(o.value)}"${o.value === restockVal ? ' selected' : ''}>${esc(o.label)}</option>`
+        ).join('');
+        if (restockVal && !restockOptions.find(o => o.value === restockVal)) {
+            restockOpts += `<option value="${esc(restockVal)}" selected>${esc(restockVal)}</option>`;
+        }
+
+        card.innerHTML = `
+            <button class="shop-card-remove" title="Remove entry" onclick="this.closest('.shop-card').remove()">&times;</button>
+            <div class="shop-card-header">
+                <span class="shop-card-type-badge ${meta.badge}">${esc(meta.label)}</span>
+            </div>
+            <div class="shop-card-fields">
+                <div class="shop-field">
+                    <label>${esc(meta.idLabel)}</label>
+                    ${buildIdField(type, idVal)}
+                </div>
+                <div class="shop-field">
+                    <label>Price</label>
+                    <input type="number" data-field="price" value="${hasTrade ? 0 : (e.Price || 0)}" min="0" placeholder="0 = auto"${hasTrade ? ' disabled' : ''} />
+                    <div class="field-hint">0 = calculated from item value</div>
+                </div>
+                <div class="shop-field">
+                    <label>Quantity Max</label>
+                    <select data-field="qtymax">${qtyOpts}</select>
+                </div>
+                <div class="shop-field">
+                    <label>Trade Item</label>
+                    <select data-field="tradeitemid" onchange="shopTradeChange(this)">${buildItemOptions(tradeVal)}</select>
+                    <div class="field-hint">Required item for trade</div>
+                </div>
+                <div class="shop-field">
+                    <label>Restock Rate</label>
+                    <select data-field="restockrate">${restockOpts}</select>
+                </div>
+            </div>`;
+
+        list.appendChild(card);
+    }
+
+    window.addShopEntry = function (type) {
+        const defaults = {};
+        if (type === 'item') defaults.ItemId = 0;
+        else if (type === 'mob') defaults.MobId = 0;
+        else if (type === 'buff') defaults.BuffId = 0;
+        else if (type === 'pet') defaults.PetType = '';
+        appendShopCard(document.getElementById('shop-list'), defaults);
+    };
+
+    function collectShop() {
+        const shop = [];
+        document.querySelectorAll('#shop-list .shop-card').forEach(card => {
+            const type = card.dataset.shopType;
+            const meta = shopTypeMeta[type];
+            const idEl = card.querySelector('[data-field="id"]');
+            const entry = {};
+
+            if (type === 'pet') {
+                entry.PetType = idEl.value.trim();
+                if (!entry.PetType) return;
+            } else {
+                const idVal = parseInt(idEl.value, 10) || 0;
+                if (idVal < 1) return;
+                entry[meta.idField] = idVal;
+            }
+
+            entry.Price = parseInt(card.querySelector('[data-field="price"]').value, 10) || 0;
+            entry.QuantityMax = parseInt(card.querySelector('[data-field="qtymax"]').value, 10) || 0;
+            entry.TradeItemId = parseInt(card.querySelector('[data-field="tradeitemid"]').value, 10) || 0;
+            entry.RestockRate = card.querySelector('[data-field="restockrate"]').value;
+
+            shop.push(entry);
+        });
+        return shop;
+    }
+
+    // -------------------------------------------------------------------------
+    // Save
+    // -------------------------------------------------------------------------
+    window.saveMob = async function () {
+        const btn = document.getElementById('save-btn');
+        btn.disabled = true; btn.textContent = 'Saving...';
+
+        function eqSlot(id) {
+            const val = parseInt(document.getElementById(id).value, 10) || 0;
+            if (val === 0) return { ItemId: 0 };
+            return { ItemId: val };
+        }
+
+        const payload = {
+            Zone:           document.getElementById('f-zone').value.trim(),
+            Hostile:        document.getElementById('f-hostile').value === 'true',
+            ActivityLevel:  parseInt(document.getElementById('f-activitylevel').value, 10) || 10,
+            MaxWander:      parseInt(document.getElementById('f-maxwander').value, 10) || 0,
+            ItemDropChance: parseInt(document.getElementById('f-itemdropchance').value, 10) || 0,
+            ScriptTag:      document.getElementById('f-scripttag').value.trim(),
+            Groups:         collectTags('groups-list'),
+            Hates:          collectTags('hates-list'),
+            QuestFlags:     collectTags('questflags-list'),
+            BuffIds:        collectBuffIds('buffids-list'),
+            IdleCommands:   textToArray('f-idlecommands'),
+            AngryCommands:  textToArray('f-angrycommands'),
+            CombatCommands: textToArray('f-combatcommands'),
+            Character: {
+                Name:        document.getElementById('f-name').value.trim(),
+                Description: document.getElementById('f-description').value.trim(),
+                RaceId:      parseInt(document.getElementById('f-raceid').value, 10) || 0,
+                Level:       parseInt(document.getElementById('f-level').value, 10) || 1,
+                Alignment:   parseInt(document.getElementById('f-alignment').value, 10) || 0,
+                Gold:        parseInt(document.getElementById('f-gold').value, 10) || 0,
+                Stats: {
+                    Strength:   { Training: parseInt(document.getElementById('f-stat-strength').value, 10) || 0 },
+                    Speed:      { Training: parseInt(document.getElementById('f-stat-speed').value, 10) || 0 },
+                    Smarts:     { Training: parseInt(document.getElementById('f-stat-smarts').value, 10) || 0 },
+                    Vitality:   { Training: parseInt(document.getElementById('f-stat-vitality').value, 10) || 0 },
+                    Mysticism:  { Training: parseInt(document.getElementById('f-stat-mysticism').value, 10) || 0 },
+                    Perception: { Training: parseInt(document.getElementById('f-stat-perception').value, 10) || 0 },
+                },
+                Equipment: {
+                    Weapon:  eqSlot('f-eq-weapon'),
+                    Offhand: eqSlot('f-eq-offhand'),
+                    Head:    eqSlot('f-eq-head'),
+                    Neck:    eqSlot('f-eq-neck'),
+                    Body:    eqSlot('f-eq-body'),
+                    Belt:    eqSlot('f-eq-belt'),
+                    Gloves:  eqSlot('f-eq-gloves'),
+                    Ring:    eqSlot('f-eq-ring'),
+                    Legs:    eqSlot('f-eq-legs'),
+                    Feet:    eqSlot('f-eq-feet'),
+                },
+                Items: collectItems(),
+                Shop:  collectShop(),
+            },
+        };
+
+        const scriptContent = document.getElementById('f-script').value;
+
+        let mobRes;
+        if (isNew) {
+            mobRes = await AdminAPI.post('/admin/api/v1/mobs', payload);
+        } else {
+            mobRes = await AdminAPI.patch('/admin/api/v1/mobs/' + currentMobId, payload);
+        }
+
+        btn.disabled = false; btn.textContent = 'Save Mob';
+
+        if (!mobRes.ok) {
+            showStatus('Save failed: ' + mobRes.error, false);
+            return;
+        }
+
+        const saved = mobRes.data.data;
+        const savedId = saved.MobId;
+
+        const scriptRes = await AdminAPI.put('/admin/api/v1/mobs/' + savedId + '/script', { script: scriptContent });
+        if (!scriptRes.ok) {
+            showStatus('Mob saved but script update failed: ' + scriptRes.error, false);
+        } else {
+            showStatus('Mob saved successfully.', true);
+        }
+
+        // Refresh list
+        const listEntry = Object.assign({}, saved, { HasScript: scriptContent.length > 0 });
+        if (isNew) {
+            allMobs.push(listEntry);
+            allMobs.sort((a, b) => a.MobId - b.MobId);
+        } else {
+            const idx = allMobs.findIndex(i => i.MobId === savedId);
+            if (idx !== -1) allMobs[idx] = listEntry;
+        }
+
+        currentMobId = savedId;
+        isNew = false;
+        filterMobs();
+        setActiveRow(savedId);
+        document.getElementById('editor-title').textContent = saved.Character.Name || 'Mob';
+        document.getElementById('editor-zone-badge').textContent = saved.Zone || '';
+        document.getElementById('mob-id-display').textContent = 'ID: ' + savedId;
+        document.getElementById('delete-btn').style.display = '';
+    };
+
+    // -------------------------------------------------------------------------
+    // Delete
+    // -------------------------------------------------------------------------
+    window.deleteMob = async function () {
+        if (!currentMobId) return;
+        if (!confirm('Delete mob #' + currentMobId + '? This cannot be undone.')) return;
+
+        const res = await AdminAPI.delete('/admin/api/v1/mobs/' + currentMobId);
+        if (!res.ok) { showStatus('Delete failed: ' + res.error, false); return; }
+
+        allMobs = allMobs.filter(i => i.MobId !== currentMobId);
+        filterMobs();
+        cancelEdit();
+        showStatus('Mob deleted.', true);
+    };
+
+    // -------------------------------------------------------------------------
+    // Script toggle
+    // -------------------------------------------------------------------------
+    window.toggleScript = function () {
+        const toggle = document.getElementById('script-toggle');
+        const area = document.getElementById('script-area');
+        toggle.classList.toggle('open');
+        area.classList.toggle('open');
+    };
+
+    // -------------------------------------------------------------------------
+    // Status
+    // -------------------------------------------------------------------------
+    function showStatus(msg, ok) {
+        const bar = document.getElementById('status-bar');
+        bar.textContent = msg;
+        bar.className = 'status-bar ' + (ok ? 'success' : 'error');
+        clearTimeout(bar._t);
+        bar._t = setTimeout(() => { bar.className = 'status-bar'; }, 6000);
+    }
+
+    // -------------------------------------------------------------------------
+    // Utilities
+    // -------------------------------------------------------------------------
+    function setVal(id, val) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (el.tagName === 'SELECT') {
+            el.value = String(val);
+        } else {
+            el.value = val;
+        }
+    }
+
+    function esc(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function textToArray(id) {
+        return document.getElementById(id).value.split('\n').map(s => s.trim()).filter(Boolean);
+    }
+
+    init();
+})();
+</script>
+
+{{template "footer" .}}
