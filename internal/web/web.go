@@ -351,19 +351,24 @@ func buildAdminNav() []WebNavItem {
 			},
 		},
 		{
-			Name:   "Config",
-			Target: "/admin/config",
-			SubItems: []WebNavSub{
-				{Label: "View / Edit", Target: "/admin/config"},
-				{Label: "API Docs", Target: "/admin/config-api"},
-			},
-		},
-		{
-			Name:   "Stats",
-			Target: "/admin/stats",
-			SubItems: []WebNavSub{
-				{Label: "View", Target: "/admin/stats"},
-				{Label: "API Docs", Target: "/admin/stats-api"},
+			Name: "Server",
+			SubMenus: []WebNavItem{
+				{
+					Name:   "Config",
+					Target: "/admin/config",
+					SubItems: []WebNavSub{
+						{Label: "View / Edit", Target: "/admin/config"},
+						{Label: "API Docs", Target: "/admin/config-api"},
+					},
+				},
+				{
+					Name:   "Stats",
+					Target: "/admin/stats",
+					SubItems: []WebNavSub{
+						{Label: "View", Target: "/admin/stats"},
+						{Label: "API Docs", Target: "/admin/stats-api"},
+					},
+				},
 			},
 		},
 	}
@@ -460,11 +465,10 @@ func serveTemplate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	templateData := map[string]any{
-		"REQUEST":        r,
-		"PATH":           reqPath,
-		"CONFIG":         configs.GetConfig(),
-		"STATS":          GetStats(),
-		"ASSET_BASE_URL": publicAssetBase(r, configs.GetFilePathsConfig().WebCDNLocation.String()),
+		"REQUEST": r,
+		"PATH":    reqPath,
+		"CONFIG":  configs.GetConfig(),
+		"STATS":   GetStats(),
 		"NAV": []WebNav{
 			{`Home`, `/`},
 			{`Who's Online`, `/online`},
