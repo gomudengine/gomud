@@ -1,0 +1,225 @@
+/*
+ * theme-grayscale.css
+ *
+ * Pure achromatic theme — every color is a shade of gray.
+ * Clean, stark, and distraction-free.
+ */
+:root {
+    /* ── Surfaces ────────────────────────────────────────────── */
+    --t-bg:              #1a1a1a;
+    --t-bg-deep:         #0c0c0c;
+    --t-bg-panel:        #141414;
+    --t-bg-surface:      #282828;
+    --t-bg-surface-alt:  #202020;
+    --t-bg-input:        #141414;
+    --t-bg-hover:        #383838;
+    --t-bg-selected:     #484848;
+    --t-bg-row:          #1e1e1e;
+    --t-bg-col-header:   #181818;
+
+    /* ── Text ────────────────────────────────────────────────── */
+    --t-text:            #e8e8e8;
+    --t-text-secondary:  #b0b0b0;
+    --t-text-muted:      #909090;
+    --t-text-dim:        #505050;
+    --t-text-disabled:   #606060;
+    --t-text-heading:    #d0d0d0;
+    --t-text-white:      #fff;
+
+    /* ── Accent ──────────────────────────────────────────────── */
+    --t-accent:          #c0c0c0;
+    --t-accent-dim:      #909090;
+    --t-accent-bg:       #282828;
+
+    /* ── Borders ─────────────────────────────────────────────── */
+    --t-border:          #303030;
+    --t-border-accent:   #909090;
+    --t-border-bright:   #d0d0d0;
+    --t-border-faint:    #202020;
+    --t-border-row:      #282828;
+
+    /* ── Buttons ─────────────────────────────────────────────── */
+    --t-btn-bg:          #282828;
+    --t-btn-text:        #d0d0d0;
+    --t-btn-border:      #707070;
+    --t-btn-hover-bg:    #505050;
+    --t-btn-hover-text:  #f0f0f0;
+    --t-btn-accent:      #e0e0e0;
+
+    /* ── Inputs ──────────────────────────────────────────────── */
+    --t-input-bg:        #141414;
+    --t-input-border:    #707070;
+    --t-input-text:      #e8e8e8;
+    --t-input-focus:     #c0c0c0;
+
+    /* ── Scrollbar ───────────────────────────────────────────── */
+    --t-scrollbar-track: #141414;
+    --t-scrollbar-thumb: #505050;
+
+    /* ── Toggle / Slider ─────────────────────────────────────── */
+    --t-toggle-off:      #505050;
+    --t-toggle-on:       #a0a0a0;
+    --t-slider-track:    #505050;
+    --t-slider-thumb:    #a0a0a0;
+    --t-slider-border:   #c0c0c0;
+
+    /* ── Dock ────────────────────────────────────────────────── */
+    --t-dock-resize:     #202020;
+    --t-dock-resize-border: #707070;
+
+    /* ── Connect / Command ───────────────────────────────────── */
+    --t-connect-bg:         #505050;
+    --t-connect-pulse-bg:   #909090;
+    --t-connect-pulse-text: #e0e0e0;
+    --t-cmd-bg:             #282828;
+
+    /* ── Menu Icon ───────────────────────────────────────────── */
+    --t-menu-icon-bg:    rgba(26, 26, 26, 0.8);
+
+    /* ── Modal ───────────────────────────────────────────────── */
+    --t-backdrop:        rgba(0, 0, 0, 0.7);
+    --t-modal-shadow:    0 8px 40px rgba(0, 0, 0, 0.8);
+    --t-panel-shadow:    inset 0 0 0 1px rgba(192, 192, 192, 0.06);
+
+    /* ── Semantic ────────────────────────────────────────────── */
+    --t-error:           #e0e0e0;
+    --t-warning:         #b0b0b0;
+    --t-success:         #808080;
+
+    /* ── Progress bars ───────────────────────────────────────── */
+    --t-progress-from:   #707070;
+    --t-progress-to:     #c0c0c0;
+
+    /* ── Health / Mana ───────────────────────────────────────── */
+    --t-hp-low:          #d8d8d8;
+    --t-hp-mid:          #a0a0a0;
+    --t-hp-high:         #686868;
+    --t-mana-from:       #404040;
+    --t-mana-to:         #808080;
+    --t-bar-empty:       #282828;
+
+    /* ── Party HP ────────────────────────────────────────────── */
+    --t-party-hp-high:   #686868;
+    --t-party-hp-mid:    #a0a0a0;
+    --t-party-hp-low:    #d8d8d8;
+    --t-party-hp-bg:     #1e1e1e;
+    --t-party-hp-border: #282828;
+
+    /* ── Alignment ───────────────────────────────────────────── */
+    --t-good-align:      #b0b0b0;
+    --t-neutral-align:   #707070;
+    --t-evil-align:      #e0e0e0;
+
+    /* ── Room badges ─────────────────────────────────────────── */
+    --t-badge-pvp-bg:            #2a2a2a;
+    --t-badge-pvp-text:          #e0e0e0;
+    --t-badge-pvp-border:        #585858;
+    --t-badge-bank-bg:           #222222;
+    --t-badge-bank-text:         #989898;
+    --t-badge-bank-border:       #404040;
+    --t-badge-trainer-bg:        #262626;
+    --t-badge-trainer-text:      #b8b8b8;
+    --t-badge-trainer-border:    #4a4a4a;
+    --t-badge-storage-bg:        #242424;
+    --t-badge-storage-text:      #a8a8a8;
+    --t-badge-storage-border:    #444444;
+    --t-badge-ephemeral-bg:      #282828;
+    --t-badge-ephemeral-text:    #c8c8c8;
+    --t-badge-ephemeral-border:  #505050;
+    --t-badge-char-bg:           #202020;
+    --t-badge-char-text:         #909090;
+    --t-badge-char-border:       #3c3c3c;
+    --t-badge-root-bg:           #1e1e1e;
+    --t-badge-root-text:         #888888;
+    --t-badge-root-border:       #383838;
+
+    /* ── Exit badges ─────────────────────────────────────────── */
+    --t-exit-open-bg:            #282828;
+    --t-exit-open-text:          #c0c0c0;
+    --t-exit-open-border:        #707070;
+    --t-exit-open-hover:         #606060;
+    --t-exit-locked-bg:          #242424;
+    --t-exit-locked-text:        #a0a0a0;
+    --t-exit-locked-border:      #505050;
+    --t-exit-locked-hover:       #383838;
+    --t-exit-locked-hover-text:  #c0c0c0;
+    --t-exit-secret-bg:          #161616;
+    --t-exit-secret-text:        #303030;
+    --t-exit-secret-border:      #202020;
+    --t-exit-secret-hover:       #1c1c1c;
+    --t-exit-secret-hover-text:  #606060;
+
+    /* ── Aggro ───────────────────────────────────────────────── */
+    --t-aggro-bg:        #2a2a2a;
+    --t-aggro-hover:     #323232;
+    --t-aggro-text:      #d8d8d8;
+
+    /* ── Debuff ──────────────────────────────────────────────── */
+    --t-debuff-text:     #d8d8d8;
+    --t-debuff-secondary:#a0a0a0;
+    --t-debuff-border:   #585858;
+    --t-debuff-bg:       #2a2a2a;
+    --t-debuff-perm:     #e8e8e8;
+
+    /* ── Gear badges ─────────────────────────────────────────── */
+    --t-cursed-text:          #e0e0e0;
+    --t-cursed-badge-bg:      #2a2a2a;
+    --t-cursed-badge-border:  #585858;
+    --t-quest-text:           #c0c0c0;
+    --t-quest-badge-bg:       #242424;
+    --t-quest-badge-border:   #484848;
+    --t-uses-badge-bg:        #222222;
+    --t-uses-badge-text:      #989898;
+    --t-uses-badge-border:    #404040;
+
+    /* ── Kill Stats ──────────────────────────────────────────── */
+    --t-kd-good:         #808080;
+    --t-kd-bad:          #e0e0e0;
+    --t-kd-even:         #b0b0b0;
+
+    /* ── Online ──────────────────────────────────────────────── */
+    --t-online-level:    #c0c0c0;
+    --t-online-name:     #e8e8e8;
+    --t-online-prof:     #909090;
+    --t-online-align:    #b0b0b0;
+    --t-online-time:     #787878;
+    --t-online-role:     #a0a0a0;
+
+    /* ── Modal terminal ──────────────────────────────────────── */
+    --t-modal-term-bg:     #0c0c0c;
+    --t-modal-term-fg:     #e8e8e8;
+    --t-modal-term-cursor: #c0c0c0;
+
+    /* ── Gametime ────────────────────────────────────────────── */
+    --t-gametime-time:     #d0d0d0;
+    --t-gametime-date:     #909090;
+    --t-gametime-label-bg: rgba(0, 0, 0, 0.55);
+
+    /* ── Comm ────────────────────────────────────────────────── */
+    --t-glow-bg:           #b0b0b0;
+    --t-comm-broadcast:    #e0e0e0;
+    --t-comm-whisper:      #606060;
+    --t-comm-mob:          #989898;
+    --t-comm-player:       #c8c8c8;
+
+    /* ── Party ───────────────────────────────────────────────── */
+    --t-party-leader:        #c0c0c0;
+    --t-party-invited-border:#505050;
+    --t-party-invited-bg:    #0c0c0c;
+    --t-party-invited-text:  #606060;
+    --t-party-location:      #909090;
+
+    /* ── Map UI ──────────────────────────────────────────────── */
+    --t-map-tab-bg:          #1e1e1e;
+    --t-map-tab-border:      #282828;
+    --t-map-tab-text:        #606060;
+    --t-map-tab-hover:       #b0b0b0;
+    --t-map-tab-active-text: #e8e8e8;
+    --t-map-tab-active-border:#909090;
+    --t-map-controls-bg:     rgba(0, 0, 0, 0.55);
+    --t-map-controls-hover:  rgba(0, 0, 0, 0.8);
+    --t-map-controls-text:   #b0b0b0;
+    --t-map-controls-border: #505050;
+    --t-map-controls-active: rgba(160, 160, 160, 0.7);
+    --t-map-badge-bg:        #282828;
+}
