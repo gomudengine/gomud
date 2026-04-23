@@ -8,7 +8,7 @@ name: Release
   workflow_dispatch:
     inputs:
       release_tag:
-        description: Existing or new release tag to publish assets to
+        description: Existing/new release tag, or latest, to publish assets to
         required: false
         type: string
 
@@ -22,6 +22,8 @@ permissions:
 jobs:
   prep:
     runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     outputs:
       binary_version: ${{ steps.meta.outputs.binary_version }}
       release_tag: ${{ steps.meta.outputs.release_tag }}
@@ -50,19 +52,34 @@ jobs:
           fi
 
           if [ -n "$requested_release_tag" ]; then
-            case "$requested_release_tag" in
-              *[!A-Za-z0-9._-]*)
-                echo \
-                  "release_tag may contain only letters, digits, ., _, and -" \
-                  >&2
+            if [ "$requested_release_tag" = "latest" ]; then
+              release_tag="$(
+                gh api "repos/${GITHUB_REPOSITORY}/releases/latest" \
+                  --jq '.tag_name'
+              )"
+              if [ -z "$release_tag" ]; then
+                echo "Could not determine latest release tag" >&2
                 exit 1
-                ;;
-            esac
+              fi
+              release_title="$release_tag"
+              release_notes_intro="Manual release build for current latest \
+          release \`${release_tag}\` from \`${GITHUB_REF_NAME}\`."
+            else
+              case "$requested_release_tag" in
+                *[!A-Za-z0-9._-]*)
+                  echo \
+                    "release_tag may contain only letters, digits, ., _, and \
+          -" \
+                    >&2
+                  exit 1
+                  ;;
+              esac
 
-            release_tag="$requested_release_tag"
-            release_title="$requested_release_tag"
-            release_notes_intro="Manual release build for \
+              release_tag="$requested_release_tag"
+              release_title="$requested_release_tag"
+              release_notes_intro="Manual release build for \
           \`${requested_release_tag}\` from \`${GITHUB_REF_NAME}\`."
+            fi
             release_notes_summary="This run publishes assets to the \
           requested release tag."
           elif [ "$GITHUB_REF" = "refs/heads/master" ]; then
