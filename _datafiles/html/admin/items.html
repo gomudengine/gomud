@@ -197,6 +197,7 @@
                     <div class="field-with-btn">
                         <input type="text" id="f-displayname" placeholder="e.g. :rainbow or &lt;ansi fg=&quot;red&quot;&gt;...&lt;/ansi&gt;" />
                         <button class="btn-search" onclick="pickColorPattern()" title="Browse color patterns">&#x1F50D;</button>
+                        <button class="btn-search" onclick="openAnsiComposer()" title="ANSI tag composer">&#x1F6E0;</button>
                     </div>
                     <div class="field-hint">Leave blank to use Name. Prefix with <code>:</code> for a color pattern.</div>
                 </div>
@@ -791,6 +792,16 @@
         display.textContent = 'none';
         display.style.color = '#aaa';
         display.style.fontStyle = 'italic';
+    };
+
+    window.openAnsiComposer = function () {
+        const input = document.getElementById('f-displayname');
+        AnsiComposerPicker.open({
+            initial: input.value,
+            onApply: (result) => {
+                input.value = result;
+            },
+        });
     };
 
     window.pickColorPattern = function () {
