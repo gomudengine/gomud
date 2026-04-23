@@ -29,8 +29,8 @@ Recommended versioning for the next release line:
    - Run the `Release` workflow with `workflow_dispatch`.
    - Optionally set `release_tag` if you want the run to upload assets to a
      specific existing or new release tag instead of the default prerelease tag.
-   - Set `release_tag=latest` to target the repo's current latest GitHub
-     release tag automatically.
+   - Run `Release Latest Assets` when you want the Actions UI path that updates
+     the repo's current latest GitHub release tag without any manual input.
 
 2. **Monitor Release**
    - GitHub Actions will:
@@ -61,8 +61,8 @@ Recommended versioning for the next release line:
    - `workflow_dispatch` can be used to refresh the rolling `prerelease`
      without merging.
    - If you provide `release_tag`, the run publishes to that tag instead.
-   - If you set `release_tag=latest`, the run resolves the current latest
-     GitHub release tag and publishes to it.
+   - `Release Latest Assets` is the no-input manual workflow that resolves the
+     current latest GitHub release tag and publishes to it.
 
 4. **Rolling release naming**
    - The release tag is always `prerelease`.
@@ -79,8 +79,9 @@ Recommended versioning for the next release line:
    - Leave `release_tag` blank to use the default manual prerelease naming.
    - Set `release_tag` when you want the run to upload assets to a specific
      existing or new release tag.
-   - Set `release_tag=latest` when you want the run to upload assets to
-     whichever tag GitHub currently considers the latest release.
+   - Run `Release Latest Assets` when you want the no-input Actions UI path
+     that uploads assets to whichever tag GitHub currently considers the latest
+     release.
 
 2. **Verify the GitHub release**
    - Confirm the workflow succeeds.
@@ -113,7 +114,8 @@ Recommended versioning for the next release line:
   Yes - run the `Release` workflow manually with `workflow_dispatch`. That keeps PR
   submissions clean while still allowing an on-demand refresh of `prerelease`.
   Set `release_tag` when you want the run to publish assets to a specific tag.
-  Set `release_tag=latest` when you want it to target the current latest release.
+  Run `Release Latest Assets` when you want the no-input path that targets the
+  current latest release.
 
 - **Are workflow-created releases stable releases?**
   No - the workflow creates prereleases. A repo owner must manually promote a release
