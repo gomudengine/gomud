@@ -52,6 +52,7 @@ func init() {
 		"storage",
 		"html/admin/storage.html",
 		true,
+		"Modules",
 		"Storage",
 		nil,
 	)
@@ -61,6 +62,7 @@ func init() {
 		"storage-api",
 		"html/admin/storage-api.html",
 		true,
+		"Modules",
 		"Storage",
 		nil,
 	)

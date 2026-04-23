@@ -64,8 +64,8 @@ function injectStyles(css) {
         menuEl.style.cssText = [
             'position:fixed',
             'z-index:2147483647',
-            'background:#0d2e28',
-            'border:1px solid #1c6b60',
+            'background:var(--t-bg-surface)',
+            'border:1px solid var(--t-btn-border)',
             'border-radius:4px',
             'box-shadow:0 4px 14px rgba(0,0,0,0.7)',
             'padding:3px 0',
@@ -79,18 +79,18 @@ function injectStyles(css) {
             entry.textContent = item.label;
             entry.style.cssText = [
                 'padding:5px 12px',
-                'color:#dffbd1',
+                'color:var(--t-text)',
                 'cursor:pointer',
                 'white-space:nowrap',
                 'letter-spacing:0.03em',
             ].join(';');
             entry.addEventListener('mouseenter', function() {
-                entry.style.background = '#1c6b60';
-                entry.style.color      = '#ffffff';
+                entry.style.background = 'var(--t-accent-dim)';
+                entry.style.color      = 'var(--t-text-white)';
             });
             entry.addEventListener('mouseleave', function() {
                 entry.style.background = '';
-                entry.style.color      = '#dffbd1';
+                entry.style.color      = 'var(--t-text)';
             });
             entry.addEventListener('mousedown', function(e) {
                 e.stopPropagation();

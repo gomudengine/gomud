@@ -6,7 +6,7 @@
  */
 
 .wb-body {
-    background: #000;
+    background: var(--t-bg-deep);
     overflow: hidden;
 }
 
@@ -33,16 +33,16 @@
     min-width: 0;
     overflow-x: hidden;
     overflow-y: auto;
-    background: #111;
+    background: var(--t-bg-panel);
     position: relative;
 }
 
 #dock-left::-webkit-scrollbar,
 #dock-right::-webkit-scrollbar       { width: 4px; }
 #dock-left::-webkit-scrollbar-track,
-#dock-right::-webkit-scrollbar-track  { background: #111; }
+#dock-right::-webkit-scrollbar-track  { background: var(--t-scrollbar-track); }
 #dock-left::-webkit-scrollbar-thumb,
-#dock-right::-webkit-scrollbar-thumb  { background: #1c6b60; border-radius: 2px; }
+#dock-right::-webkit-scrollbar-thumb  { background: var(--t-scrollbar-thumb); border-radius: 2px; }
 
 #dock-left.has-panels  { width: var(--dock-left-width,  363px); min-width: 80px; }
 #dock-right.has-panels { width: var(--dock-right-width, 363px); min-width: 80px; }
@@ -61,17 +61,17 @@
     flex-direction: column;
     position: relative;
     margin: 4px;
-    border: 1px solid #1c6b60;
+    border: 1px solid var(--t-border-accent);
     border-radius: 3px;
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+    box-shadow: var(--t-panel-shadow);
 }
 
 .dock-panel-titlebar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: #1c6b60;
-    color: #fff;
+    background: var(--t-accent-dim);
+    color: var(--t-text-white);
     font-size: 12px;
     font-family: Arial, sans-serif;
     padding: 0 6px;
@@ -96,10 +96,10 @@
     pointer-events: none;
     z-index: 99999;
     opacity: 0.85;
-    border: 1px solid #3ad4b8;
+    border: 1px solid var(--t-accent);
     border-radius: 3px;
-    background: #1c6b60;
-    color: #fff;
+    background: var(--t-accent-dim);
+    color: var(--t-text-white);
     font-size: 12px;
     font-family: Arial, sans-serif;
     padding: 0 6px;
@@ -115,11 +115,11 @@
     left: 4px;
     right: 4px;
     height: 2px;
-    background: #3ad4b8;
+    background: var(--t-accent);
     border-radius: 1px;
     pointer-events: none;
     z-index: 100;
-    box-shadow: 0 0 4px #3ad4b8;
+    box-shadow: 0 0 4px var(--t-accent);
 }
 
 .dock-panel-title {
@@ -152,9 +152,9 @@
     height: 6px;
     flex-shrink: 0;
     cursor: row-resize;
-    background: #222;
-    border-top: 1px solid #444;
-    border-bottom: 1px solid #444;
+    background: var(--t-dock-resize);
+    border-top: 1px solid var(--t-border-row);
+    border-bottom: 1px solid var(--t-border-row);
 }
 
 /* Dock button injected into WinBox header via addControl() */
@@ -194,12 +194,12 @@
     flex-shrink: 0;
     width: 5px;
     cursor: col-resize;
-    background: #2a2a2a;
-    border-left:  1px solid #1c6b60;
-    border-right: 1px solid #1c6b60;
+    background: var(--t-dock-resize);
+    border-left:  1px solid var(--t-dock-resize-border);
+    border-right: 1px solid var(--t-dock-resize-border);
     z-index: 10;
 }
 .dock-slot-resize:hover,
 .dock-slot-resize.dragging {
-    background: #1c6b60;
+    background: var(--t-accent-dim);
 }

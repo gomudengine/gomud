@@ -21,7 +21,7 @@
             height: 100%;
             display: flex;
             flex-direction: column;
-            background: #161e1d;
+            background: var(--t-bg);
             overflow: hidden;
         }
 
@@ -30,13 +30,13 @@
             align-items: center;
             justify-content: space-between;
             padding: 6px 10px 5px;
-            background: #0d2e28;
-            border-bottom: 1px solid #0f3333;
+            background: var(--t-bg-surface);
+            border-bottom: 1px solid var(--t-border);
             flex-shrink: 0;
         }
 
         #online-header-label {
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             font-family: Arial, sans-serif;
             font-size: 10px;
             text-transform: uppercase;
@@ -44,8 +44,8 @@
         }
 
         #online-count-badge {
-            background: #1c6b60;
-            color: #dffbd1;
+            background: var(--t-accent-dim);
+            color: var(--t-text);
             font-family: Arial, sans-serif;
             font-size: 10px;
             font-weight: bold;
@@ -60,8 +60,8 @@
             display: flex;
             align-items: center;
             padding: 4px 10px 3px;
-            background: #111a19;
-            border-bottom: 1px solid #0f3333;
+            background: var(--t-bg-col-header);
+            border-bottom: 1px solid var(--t-border);
             flex-shrink: 0;
         }
 
@@ -106,7 +106,7 @@
         }
 
         .online-col-header-text {
-            color: #3a6e5e;
+            color: var(--t-text-heading);
             font-family: Arial, sans-serif;
             font-size: 9px;
             text-transform: uppercase;
@@ -119,14 +119,14 @@
         }
 
         #online-list::-webkit-scrollbar       { width: 4px; }
-        #online-list::-webkit-scrollbar-track  { background: #111; }
-        #online-list::-webkit-scrollbar-thumb  { background: #1c6b60; border-radius: 2px; }
+        #online-list::-webkit-scrollbar-track  { background: var(--t-scrollbar-track); }
+        #online-list::-webkit-scrollbar-thumb  { background: var(--t-accent-dim); border-radius: 2px; }
 
         .online-player-row {
             display: flex;
             align-items: baseline;
             padding: 5px 10px;
-            border-bottom: 1px solid #1a2a27;
+            border-bottom: 1px solid var(--t-border-faint);
             transition: background 0.1s;
         }
 
@@ -135,11 +135,11 @@
         }
 
         .online-player-row:hover {
-            background: #0d2e28;
+            background: var(--t-bg-surface);
         }
 
         .online-player-level {
-            color: #3ad4b8;
+            color: var(--t-online-level);
             font-family: monospace;
             font-size: 0.75em;
             width: 32px;
@@ -148,7 +148,7 @@
         }
 
         .online-player-name {
-            color: #dffbd1;
+            color: var(--t-text);
             font-family: monospace;
             font-size: 0.82em;
             font-weight: bold;
@@ -161,7 +161,7 @@
         }
 
         .online-player-profession {
-            color: #c8e0ff;
+            color: var(--t-online-prof);
             font-family: Arial, sans-serif;
             font-size: 0.75em;
             flex: 1;
@@ -173,7 +173,7 @@
         }
 
         .online-player-alignment {
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             font-family: Arial, sans-serif;
             font-size: 0.75em;
             width: 68px;
@@ -185,7 +185,7 @@
         }
 
         .online-player-time {
-            color: #a07ab8;
+            color: var(--t-online-time);
             font-family: monospace;
             font-size: 0.75em;
             width: 44px;
@@ -197,7 +197,7 @@
         }
 
         .online-player-role {
-            color: #b8a07a;
+            color: var(--t-online-role);
             font-family: Arial, sans-serif;
             font-size: 0.75em;
             width: 44px;
@@ -210,7 +210,7 @@
 
         #online-empty {
             padding: 14px 10px;
-            color: #3a5a50;
+            color: var(--t-text-dim);
             font-family: Arial, sans-serif;
             font-size: 0.75em;
             text-align: center;
@@ -281,7 +281,7 @@
             return {
                 title:      'Online',
                 mount:      el,
-                background: '#161e1d',
+                background: 'var(--t-bg)',
                 border:     1,
                 x:          'right',
                 y:          0,

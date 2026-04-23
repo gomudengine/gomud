@@ -255,13 +255,14 @@ Template data passed to all admin page handlers:
 
 ## Admin Navigation
 
-The admin nav is driven by `buildAdminNav()` which returns `[]WebNavItem`. Each handler passes `NAV: buildAdminNav()` in its template data. The nav supports dropdown sub-items rendered by `_header.html`.
+The admin nav is driven by `buildAdminNav()` which returns `[]WebNavItem`. Each handler passes `NAV: buildAdminNav()` in its template data. The nav supports two-level dropdowns (core items) and three-level flyout groups (module items).
 
 ```go
 type WebNavItem struct {
     Name     string
     Target   string       // primary href; empty if dropdown-only
-    SubItems []WebNavSub
+    SubItems []WebNavSub  // two-level dropdown items
+    SubMenus []WebNavItem // three-level: group contains sub-menus, each with SubItems
 }
 
 type WebNavSub struct {
@@ -270,7 +271,7 @@ type WebNavSub struct {
 }
 ```
 
-Core nav entries (Dashboard, Config with API Docs sub-item, Items, Buffs, Quests — each with View/Edit and API Docs sub-items) are hardcoded in `buildAdminNav()`. Module entries are appended from `defaultRegistrar.navItems`.
+Core nav entries (Dashboard, Config, Items, Buffs, Quests, Users, Colors, Races, Keywords) are hardcoded in `buildAdminNav()`. Module entries are appended from `defaultRegistrar.navItems`.
 
 ## Module Admin Page and API Registration
 
@@ -278,16 +279,33 @@ Modules register admin pages and API endpoints via `plugins.WebConfig` without i
 
 ```go
 // In a module init():
-plug.Web.AdminPage("Mudmail", "mudmail", "html/admin/mudmail.html", true, "",
+// navGroup places the entry inside a top-level group dropdown (e.g. "Modules").
+// navParent nests it as a sub-item under that parent within the group.
+plugin.Web.AdminPage("View / Edit", "storage", "html/admin/storage.html", true, "Modules", "Storage",
     func(r *http.Request) map[string]any {
-        return map[string]any{"INBOX_COUNT": getCount()}
+        return map[string]any{"ITEM_COUNT": getCount()}
     },
 )
 
-plug.Web.AdminAPIEndpoint("GET", "mudmail", func(r *http.Request) (int, bool, any) {
+// Second sub-item under the same group+parent
+plugin.Web.AdminPage("API Docs", "storage-api", "html/admin/storage-api.html", true, "Modules", "Storage",
+    nil,
+)
+
+plugin.Web.AdminAPIEndpoint("GET", "storage", func(r *http.Request) (int, bool, any) {
     return http.StatusOK, true, getStats()
 })
 ```
+
+This produces a nav entry like:
+```
+Modules
+  +-> Storage
+        +-> View / Edit
+        +-> API Docs
+```
+
+To place a page at the top level (no group), pass empty strings for both `navGroup` and `navParent`.
 
 `main.go` wires the registrar before `plugins.Load()`:
 

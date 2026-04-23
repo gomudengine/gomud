@@ -17,7 +17,8 @@ type AdminWebPage struct {
 	Path         string // "/admin/mudmail"
 	HTMLFile     string // path inside plugin FS, relative to datafiles/html/admin/
 	AddToNav     bool
-	NavParent    string // if non-empty, nest under this parent nav entry name
+	NavGroup     string // if non-empty, place inside this top-level group dropdown
+	NavParent    string // if non-empty, nest under this parent entry within the group (or top-level)
 	DataFunction func(*http.Request) map[string]any
 }
 
@@ -72,15 +73,17 @@ func (w *WebConfig) WebPage(name string, path string, file string, addToNav bool
 //   - slug      - URL path segment, e.g. "mudmail" -> /admin/mudmail
 //   - htmlFile  - path inside the plugin's embedded FS, relative to datafiles/html/admin/
 //   - addToNav  - whether to add a nav entry
-//   - navParent - if non-empty, adds this page as a sub-item under the named parent nav entry
+//   - navGroup  - if non-empty, places the nav entry inside a top-level group dropdown
+//   - navParent - if non-empty, nests the entry under this parent within the group (or top-level)
 //   - dataFunc  - optional function to supply extra template data; receives *http.Request
-func (w *WebConfig) AdminPage(name, slug, htmlFile string, addToNav bool, navParent string, dataFunc func(*http.Request) map[string]any) {
+func (w *WebConfig) AdminPage(name, slug, htmlFile string, addToNav bool, navGroup, navParent string, dataFunc func(*http.Request) map[string]any) {
 	w.adminPages = append(w.adminPages, AdminWebPage{
 		Name:         name,
 		Slug:         slug,
 		Path:         "/admin/" + slug,
 		HTMLFile:     htmlFile,
 		AddToNav:     addToNav,
+		NavGroup:     navGroup,
 		NavParent:    navParent,
 		DataFunction: dataFunc,
 	})

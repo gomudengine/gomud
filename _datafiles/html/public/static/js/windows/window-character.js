@@ -38,28 +38,28 @@
             height: 100%;
             display: flex;
             flex-direction: column;
-            background: #1e1e1e;
+            background: var(--t-bg);
         }
 
         #character-window .cw-tab-bar {
             display: flex;
             flex-shrink: 0;
-            border-bottom: 1px solid #0f3333;
+            border-bottom: 1px solid var(--t-border);
         }
 
         #character-window .cw-tab-btn {
             flex: 1;
             padding: 5px 4px;
-            background: #0d2e28;
+            background: var(--t-bg-surface);
             border: none;
             cursor: pointer;
             font: inherit;
             font-size: 0.7em;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.04em;
             transition: background 0.15s, color 0.15s;
-            border-right: 1px solid #0f3333;
+            border-right: 1px solid var(--t-border);
         }
 
         #character-window .cw-tab-btn:last-child {
@@ -67,14 +67,14 @@
         }
 
         #character-window .cw-tab-btn:hover {
-            background: #0f3333;
-            color: #dffbd1;
+            background: var(--t-border);
+            color: var(--t-text);
         }
 
         #character-window .cw-tab-btn.active {
-            background: #1e1e1e;
-            color: #dffbd1;
-            border-bottom: 2px solid #3ad4b8;
+            background: var(--t-bg);
+            color: var(--t-text);
+            border-bottom: 2px solid var(--t-accent);
         }
 
         #character-window .cw-tab-panel {
@@ -84,8 +84,8 @@
         }
 
         #character-window .cw-tab-panel::-webkit-scrollbar       { width: 4px; }
-        #character-window .cw-tab-panel::-webkit-scrollbar-track  { background: #111; }
-        #character-window .cw-tab-panel::-webkit-scrollbar-thumb  { background: #1c6b60; border-radius: 2px; }
+        #character-window .cw-tab-panel::-webkit-scrollbar-track  { background: var(--t-scrollbar-track); }
+        #character-window .cw-tab-panel::-webkit-scrollbar-thumb  { background: var(--t-accent-dim); border-radius: 2px; }
 
         #character-window .cw-tab-panel.active {
             display: flex;
@@ -100,7 +100,7 @@
 
         #cw-char-name {
             font-size: 0.88em;
-            color: #dffbd1;
+            color: var(--t-text);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -111,12 +111,12 @@
         }
 
         #cw-char-name .cw-char-race:hover {
-            color: #3ad4b8;
+            color: var(--t-accent);
         }
 
         #cw-char-level {
             font-size: 0.74em;
-            color: #aaa;
+            color: var(--t-text-muted);
         }
 
         #cw-char-alignment {
@@ -125,9 +125,9 @@
             margin-bottom: 2px;
         }
 
-        .cw-align-good    { color: #7ecfff; }
-        .cw-align-neutral { color: #666;    }
-        .cw-align-evil    { color: #e06060; }
+        .cw-align-good    { color: var(--t-good-align); }
+        .cw-align-neutral { color: var(--t-neutral-align);    }
+        .cw-align-evil    { color: var(--t-evil-align); }
 
         /* ---- Stats grid (inside Overview) ---- */
         #cw-stats-grid {
@@ -135,8 +135,8 @@
             grid-template-columns: 1fr 1fr 1fr;
             gap: 3px 6px;
             padding: 4px 0 2px;
-            border-top: 1px solid #0f3333;
-            border-bottom: 1px solid #0f3333;
+            border-top: 1px solid var(--t-border);
+            border-bottom: 1px solid var(--t-border);
         }
 
         /* ---- Points row (below stats grid) ---- */
@@ -144,7 +144,7 @@
             display: flex;
             gap: 6px;
             padding: 4px 0 2px;
-            border-bottom: 1px solid #0f3333;
+            border-bottom: 1px solid var(--t-border);
         }
 
         .cw-point-badge {
@@ -153,20 +153,20 @@
             align-items: center;
             justify-content: space-between;
             padding: 2px 6px;
-            background: #0d2e28;
-            border: 1px solid #1c6b60;
+            background: var(--t-bg-surface);
+            border: 1px solid var(--t-accent-dim);
             border-radius: 3px;
             cursor: help;
             gap: 4px;
         }
 
         .cw-point-badge:hover {
-            background: #0f3333;
+            background: var(--t-border);
         }
 
         .cw-point-badge-label {
             font-size: 0.62em;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.04em;
             white-space: nowrap;
@@ -174,17 +174,17 @@
 
         .cw-point-badge-value {
             font-size: 0.8em;
-            color: #dffbd1;
+            color: var(--t-text);
             font-weight: bold;
         }
 
         .cw-point-badge.has-points {
-            border-color: #3ad4b8;
-            background: #0d3d35;
+            border-color: var(--t-accent);
+            background: var(--t-bg-hover);
         }
 
         .cw-point-badge.has-points .cw-point-badge-value {
-            color: #3ad4b8;
+            color: var(--t-accent);
         }
 
         .cw-stat-cell {
@@ -197,12 +197,12 @@
 
         .cw-stat-cell:hover .cw-stat-abbr,
         .cw-stat-cell:hover .cw-stat-num {
-            color: #3ad4b8;
+            color: var(--t-accent);
         }
 
         .cw-stat-abbr {
             font-size: 0.64em;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.04em;
             flex-shrink: 0;
@@ -210,13 +210,13 @@
 
         .cw-stat-num {
             font-size: 0.78em;
-            color: #dffbd1;
+            color: var(--t-text);
             font-weight: bold;
         }
 
         .cw-stat-mod {
             font-size: 0.68em;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             font-weight: normal;
             cursor: help;
         }
@@ -225,13 +225,13 @@
             position: fixed;
             z-index: 99999;
             pointer-events: none;
-            background: #0d2e28;
-            border: 1px solid #1c6b60;
+            background: var(--t-bg-surface);
+            border: 1px solid var(--t-accent-dim);
             border-radius: 6px;
             box-shadow: 0 4px 16px rgba(0,0,0,0.7);
             padding: 6px 9px;
             font-size: 0.75em;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             font-style: italic;
             max-width: 200px;
             display: none;
@@ -244,7 +244,7 @@
         }
 
         #cw-quests .cq-empty {
-            color: #444;
+            color: var(--t-text-dim);
             font-size: 0.78em;
             font-style: italic;
             text-align: center;
@@ -252,8 +252,8 @@
         }
 
         #cw-quests .cq-item {
-            background: #0a1e1a;
-            border: 1px solid #1c6b60;
+            background: var(--t-bg-surface-alt);
+            border: 1px solid var(--t-accent-dim);
             border-radius: 4px;
             padding: 5px 7px;
             display: flex;
@@ -266,7 +266,7 @@
 
         #cw-quests .cq-item:hover,
         #cw-quests .cq-item.expanded {
-            background: #0d2e28;
+            background: var(--t-bg-surface);
         }
 
         #cw-quests .cq-header {
@@ -278,7 +278,7 @@
 
         #cw-quests .cq-name {
             font-size: 0.82em;
-            color: #dffbd1;
+            color: var(--t-text);
             font-weight: bold;
             white-space: nowrap;
             overflow: hidden;
@@ -287,59 +287,59 @@
 
         #cw-quests .cq-pct {
             font-size: 0.7em;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             flex-shrink: 0;
         }
 
         #cw-quests .cq-bar-track {
             width: 100%;
             height: 5px;
-            background: #1a1a1a;
+            background: var(--t-bg-row);
             border-radius: 3px;
             overflow: hidden;
-            border: 1px solid #1a2e28;
+            border: 1px solid var(--t-party-hp-border);
         }
 
         #cw-quests .cq-bar-fill {
             height: 100%;
             border-radius: 3px;
-            background: linear-gradient(to right, #1c6b60, #3ad4b8);
+            background: linear-gradient(to right, var(--t-progress-from), var(--t-progress-to));
             transition: width 0.4s ease-out;
         }
 
         #cw-quests .cq-item.complete {
-            background: #060e0c;
-            border-color: #1a3a30;
+            background: var(--t-bg-deep);
+            border-color: var(--t-border-accent);
             opacity: 0.6;
         }
 
         #cw-quests .cq-item.complete:hover,
         #cw-quests .cq-item.complete.expanded {
             opacity: 1;
-            background: #0a1e1a;
+            background: var(--t-bg-surface-alt);
         }
 
         #cw-quests .cq-item.complete .cq-name {
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             text-decoration: line-through;
         }
 
         #cw-quests .cq-item.complete .cq-pct {
-            color: #3ad4b8;
+            color: var(--t-accent);
             font-weight: bold;
         }
 
         #cw-quests .cq-bar-fill.complete {
-            background: #3ad4b8;
+            background: var(--t-accent);
         }
 
         #cw-quests .cq-desc {
             font-size: 0.73em;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             line-height: 1.4;
             display: none;
             padding-top: 2px;
-            border-top: 1px solid #0f3333;
+            border-top: 1px solid var(--t-border);
         }
 
         #cw-quests .cq-item.expanded .cq-desc {
@@ -353,7 +353,7 @@
         }
 
         #cw-skills .csk-empty {
-            color: #444;
+            color: var(--t-text-dim);
             font-size: 0.78em;
             font-style: italic;
             text-align: center;
@@ -365,7 +365,7 @@
             align-items: center;
             gap: 6px;
             min-height: 20px;
-            border-bottom: 1px solid #0a1a16;
+            border-bottom: 1px solid var(--t-border-faint);
             padding: 3px 2px;
             flex-shrink: 0;
         }
@@ -375,7 +375,7 @@
         .csk-name {
             flex: 1;
             font-size: 0.78em;
-            color: #dffbd1;
+            color: var(--t-text);
             text-transform: capitalize;
         }
 
@@ -389,18 +389,18 @@
             width: 9px;
             height: 9px;
             border-radius: 2px;
-            border: 1px solid #1c6b60;
-            background: #0a1e1a;
+            border: 1px solid var(--t-accent-dim);
+            background: var(--t-bg-surface-alt);
         }
 
         .csk-pip.filled {
-            background: #3ad4b8;
-            border-color: #3ad4b8;
+            background: var(--t-accent);
+            border-color: var(--t-accent);
         }
 
         .csk-pip.filled.max {
-            background: #d4a843;
-            border-color: #d4a843;
+            background: var(--t-warning);
+            border-color: var(--t-warning);
         }
 
         .csk-badge {
@@ -408,9 +408,9 @@
             padding: 1px 4px;
             border-radius: 3px;
             flex-shrink: 0;
-            background: #2e2000;
-            color: #d4a843;
-            border: 1px solid #6b5010;
+            background: var(--t-quest-badge-bg);
+            color: var(--t-warning);
+            border: 1px solid var(--t-quest-badge-border);
         }
 
         /* ---- Jobs tab ---- */
@@ -420,7 +420,7 @@
         }
 
         #cw-jobs .cjb-empty {
-            color: #444;
+            color: var(--t-text-dim);
             font-size: 0.78em;
             font-style: italic;
             text-align: center;
@@ -428,8 +428,8 @@
         }
 
         .cjb-item {
-            background: #0a1e1a;
-            border: 1px solid #1c6b60;
+            background: var(--t-bg-surface-alt);
+            border: 1px solid var(--t-accent-dim);
             border-radius: 4px;
             padding: 5px 7px;
             display: flex;
@@ -447,7 +447,7 @@
 
         .cjb-name {
             font-size: 0.82em;
-            color: #dffbd1;
+            color: var(--t-text);
             font-weight: bold;
             text-transform: capitalize;
             white-space: nowrap;
@@ -464,42 +464,42 @@
 
         .cjb-proficiency {
             font-size: 0.68em;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             text-transform: capitalize;
         }
 
         .cjb-pct {
             font-size: 0.7em;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
         }
 
         .cjb-bar-track {
             width: 100%;
             height: 5px;
-            background: #1a1a1a;
+            background: var(--t-bg-row);
             border-radius: 3px;
             overflow: hidden;
-            border: 1px solid #1a2e28;
+            border: 1px solid var(--t-party-hp-border);
         }
 
         .cjb-bar-fill {
             height: 100%;
             border-radius: 3px;
-            background: linear-gradient(to right, #1c6b60, #3ad4b8);
+            background: linear-gradient(to right, var(--t-progress-from), var(--t-progress-to));
             transition: width 0.4s ease-out;
         }
 
         .cjb-item.complete .cjb-name {
-            color: #d4a843;
+            color: var(--t-warning);
         }
 
         .cjb-item.complete .cjb-pct {
-            color: #d4a843;
+            color: var(--t-warning);
             font-weight: bold;
         }
 
         .cjb-bar-fill.complete {
-            background: #d4a843;
+            background: var(--t-warning);
         }
 
         /* ---- Effects tab ---- */
@@ -513,7 +513,7 @@
 
         .cw-affect-empty {
             grid-column: 1 / -1;
-            color: #444;
+            color: var(--t-text-dim);
             font-size: 0.76em;
             font-style: italic;
             text-align: center;
@@ -521,8 +521,8 @@
         }
 
         .cw-affect-item {
-            background: #0a1e1a;
-            border: 1px solid #1c6b60;
+            background: var(--t-bg-surface-alt);
+            border: 1px solid var(--t-accent-dim);
             border-radius: 4px;
             padding: 4px 6px;
             display: flex;
@@ -533,8 +533,8 @@
         }
 
         .cw-affect-item.debuff {
-            border-color: #6b1c1c;
-            background: #1e0a0a;
+            border-color: var(--t-debuff-border);
+            background: var(--t-debuff-bg);
         }
 
         .cw-affect-header {
@@ -546,38 +546,38 @@
 
         .cw-affect-name {
             font-size: 0.5em;
-            color: #dffbd1;
+            color: var(--t-text);
             font-weight: bold;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
-        .cw-affect-item.debuff .cw-affect-name { color: #f4a0a0; }
+        .cw-affect-item.debuff .cw-affect-name { color: var(--t-debuff-text); }
 
         .cw-affect-source {
             font-size: 0.63em;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             white-space: nowrap;
             flex-shrink: 0;
         }
 
-        .cw-affect-item.debuff .cw-affect-source { color: #b87a7a; }
+        .cw-affect-item.debuff .cw-affect-source { color: var(--t-debuff-secondary); }
 
         .cw-affect-mods {
             font-size: 0.66em;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
-        .cw-affect-item.debuff .cw-affect-mods { color: #b87a7a; }
+        .cw-affect-item.debuff .cw-affect-mods { color: var(--t-debuff-secondary); }
 
         .cw-affect-dur-track {
             width: 100%;
             height: 4px;
-            background: #1a1a1a;
+            background: var(--t-bg-row);
             border-radius: 2px;
             overflow: hidden;
         }
@@ -585,18 +585,18 @@
         .cw-affect-dur-fill {
             height: 100%;
             border-radius: 2px;
-            background: #1c6b60;
+            background: var(--t-accent-dim);
             transition: width 1s linear;
         }
 
-        .cw-affect-item.debuff .cw-affect-dur-fill { background: #6b1c1c; }
+        .cw-affect-item.debuff .cw-affect-dur-fill { background: var(--t-debuff-border); }
 
         .cw-affect-dur-fill.permanent {
-            background: #3ad4b8;
+            background: var(--t-accent);
             width: 100% !important;
         }
 
-        .cw-affect-item.debuff .cw-affect-dur-fill.permanent { background: #d43a3a; }
+        .cw-affect-item.debuff .cw-affect-dur-fill.permanent { background: var(--t-debuff-perm); }
     `);
 
     // -----------------------------------------------------------------------
@@ -760,7 +760,7 @@
             return {
                 title:      'Character',
                 mount:      el,
-                background: '#1e1e1e',
+                background: 'var(--t-bg)',
                 border:     1,
                 x:          0,
                 y:          0,

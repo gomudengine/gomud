@@ -42,11 +42,12 @@ func init() {
 
 	// Admin page: Mudmail management UI.
 	m.plug.Web.AdminPage(
-		"Mudmail",
+		"View / Edit",
 		"mudmail",
 		"html/admin/mudmail.html",
 		true,
-		"",
+		"Modules",
+		"Mudmail",
 		nil,
 	)
 
@@ -56,6 +57,7 @@ func init() {
 		"mudmail-api",
 		"html/admin/mudmail-api.html",
 		true,
+		"Modules",
 		"Mudmail",
 		nil,
 	)

@@ -30,6 +30,24 @@
             color: #b0b8d0; font-size: 0.85rem; text-decoration: none;
         }
         .nav-dropdown-menu a:hover { background: #2d2d4e; color: #fff; }
+        .nav-submenu { position: relative; }
+        .nav-submenu-label {
+            display: block; padding: 0.4rem 0.85rem;
+            color: #b0b8d0; font-size: 0.85rem; cursor: default;
+            white-space: nowrap;
+        }
+        .nav-submenu-label:hover { background: #2d2d4e; color: #fff; }
+        .nav-submenu-menu {
+            display: none; position: absolute; left: 100%; top: 0;
+            background: #1a1a2e; border: 1px solid #333; border-radius: 4px;
+            min-width: 140px; z-index: 101; padding: 0.25rem 0;
+        }
+        .nav-submenu:hover .nav-submenu-menu { display: block; }
+        .nav-submenu-menu a {
+            display: block; padding: 0.4rem 0.85rem;
+            color: #b0b8d0; font-size: 0.85rem; text-decoration: none;
+        }
+        .nav-submenu-menu a:hover { background: #2d2d4e; color: #fff; }
         main { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
     </style>
     <script src="/admin/static/js/highlight.js"></script>
@@ -43,7 +61,27 @@
     <nav>
         <a class="brand" href="/admin/">GoMud Admin</a>
         {{range .NAV}}
-          {{if .SubItems}}
+          {{if .SubMenus}}
+            <div class="nav-dropdown">
+              <button class="nav-btn">{{.Name}} &#9660;</button>
+              <div class="nav-dropdown-menu">
+                {{range .SubMenus}}
+                  {{if .SubItems}}
+                    <div class="nav-submenu">
+                      <span class="nav-submenu-label">{{.Name}} &#9658;</span>
+                      <div class="nav-submenu-menu">
+                        {{range .SubItems}}
+                          <a href="{{.Target}}">{{.Label}}</a>
+                        {{end}}
+                      </div>
+                    </div>
+                  {{else}}
+                    <a href="{{.Target}}">{{.Name}}</a>
+                  {{end}}
+                {{end}}
+              </div>
+            </div>
+          {{else if .SubItems}}
             <div class="nav-dropdown">
               <button class="nav-btn">{{.Name}} &#9660;</button>
               <div class="nav-dropdown-menu">

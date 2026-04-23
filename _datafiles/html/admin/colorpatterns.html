@@ -47,7 +47,9 @@
 
     .preview-section { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid #eee; }
     .preview-section h3 { font-size: 0.85rem; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.6rem; }
-    .preview-output { font-family: monospace; font-size: 1rem; display: flex; flex-wrap: wrap; gap: 0; min-height: 2rem; padding: 0.5rem 0.6rem; background: #1a1a2e; border-radius: 4px; color: #fff; }
+    .preview-rows { display: flex; flex-direction: column; gap: 0.5rem; }
+    .preview-row-label { font-size: 0.72rem; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.2rem; }
+    .preview-output { font-family: monospace; font-size: 1rem; white-space: pre; min-height: 2rem; padding: 0.5rem 0.6rem; background: #1a1a2e; border-radius: 4px; color: #fff; overflow-x: auto; }
 
     .btn-row { display: flex; gap: 0.6rem; margin-top: 1.25rem; }
     .btn-save { padding: 0.45rem 1.2rem; background: #1a1a2e; color: #fff; border: none; border-radius: 4px; font-size: 0.875rem; font-weight: 600; cursor: pointer; }
@@ -95,7 +97,24 @@
 
             <div class="preview-section">
                 <h3>Preview</h3>
-                <div id="previewOutput" class="preview-output"></div>
+                <div class="preview-rows">
+                    <div>
+                        <div class="preview-row-label">Default (per-character, reversing)</div>
+                        <div id="previewDefault" class="preview-output"></div>
+                    </div>
+                    <div>
+                        <div class="preview-row-label">Words (per-word)</div>
+                        <div id="previewWords" class="preview-output"></div>
+                    </div>
+                    <div>
+                        <div class="preview-row-label">Once (advances once, holds final color)</div>
+                        <div id="previewOnce" class="preview-output"></div>
+                    </div>
+                    <div>
+                        <div class="preview-row-label">Stretch (pattern spread across full string)</div>
+                        <div id="previewStretch" class="preview-output"></div>
+                    </div>
+                </div>
             </div>
 
             <div class="btn-row">
@@ -197,10 +216,13 @@ function refreshSwatch() {
 }
 
 function renderPreview() {
-    const text = 'The quick brown fox jumps over the lazy dog';
+    const text = 'The quick brown fox jumped all the way over the lazy dog\'s back 1234567890';
     const colors = parseColors();
-    document.getElementById('previewOutput').innerHTML =
-        colors.length ? AnsiColors.previewTextHtml(text, colors) : escHtml(text);
+    const plain = escHtml(text);
+    document.getElementById('previewDefault').innerHTML  = colors.length ? AnsiColors.previewDefault(text, colors)  : plain;
+    document.getElementById('previewWords').innerHTML    = colors.length ? AnsiColors.previewWords(text, colors)    : plain;
+    document.getElementById('previewOnce').innerHTML     = colors.length ? AnsiColors.previewOnce(text, colors)     : plain;
+    document.getElementById('previewStretch').innerHTML  = colors.length ? AnsiColors.previewStretch(text, colors)  : plain;
 }
 
 document.addEventListener('DOMContentLoaded', () => {

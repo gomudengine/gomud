@@ -22,7 +22,7 @@
             height: 100%;
             display: flex;
             flex-direction: column;
-            background: #1e1e1e;
+            background: var(--t-bg);
             padding: 8px 10px;
             gap: 8px;
             justify-content: flex-start;
@@ -31,8 +31,8 @@
         }
 
         #status-window::-webkit-scrollbar       { width: 4px; }
-        #status-window::-webkit-scrollbar-track  { background: #111; }
-        #status-window::-webkit-scrollbar-thumb  { background: #1c6b60; border-radius: 2px; }
+        #status-window::-webkit-scrollbar-track  { background: var(--t-scrollbar-track); }
+        #status-window::-webkit-scrollbar-thumb  { background: var(--t-scrollbar-thumb); border-radius: 2px; }
 
         .sw-xp-section {
             display: flex;
@@ -44,7 +44,7 @@
             display: flex;
             justify-content: space-between;
             font-size: 0.7em;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.04em;
         }
@@ -52,16 +52,16 @@
         .sw-xp-track {
             width: 100%;
             height: 10px;
-            background: #1a1a1a;
+            background: var(--t-bg-row);
             border-radius: 5px;
             overflow: hidden;
-            border: 1px solid #222;
+            border: 1px solid var(--t-border-faint);
         }
 
         .sw-xp-fill {
             height: 100%;
             border-radius: 5px;
-            background: linear-gradient(to right, #1c6b60, #3ad4b8);
+            background: linear-gradient(to right, var(--t-progress-from), var(--t-progress-to));
             transition: width 0.4s ease-out;
         }
 
@@ -79,14 +79,14 @@
 
         .sw-worth-cell-label {
             font-size: 0.66em;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.04em;
         }
 
         .sw-worth-cell-value {
             font-size: 0.85em;
-            color: #dffbd1;
+            color: var(--t-text);
         }
     `);
 
@@ -122,7 +122,7 @@
             return {
                 title:      'Worth',
                 mount:      el,
-                background: '#1e1e1e',
+                background: 'var(--t-bg)',
                 border:     1,
                 x:          0,
                 y:          0,

@@ -54,11 +54,13 @@ type WebNav struct {
 	Target string
 }
 
-// WebNavItem represents a top-level admin nav entry, optionally with sub-items.
+// WebNavItem represents a top-level admin nav entry, optionally with sub-items
+// or nested sub-menus (groups).
 type WebNavItem struct {
 	Name     string
 	Target   string // primary href; empty if dropdown-only
 	SubItems []WebNavSub
+	SubMenus []WebNavItem // nested groups, each with their own SubItems
 }
 
 // WebNavSub is a single item inside a dropdown.
@@ -72,7 +74,9 @@ type WebNavSub struct {
 type ModuleAdminRegistrar interface {
 	// RegisterAdminPage registers a module admin page.
 	// htmlContent is the raw HTML read from the plugin's embedded FS.
-	RegisterAdminPage(name, slug, htmlContent string, addToNav bool, navParent string, dataFunc func(*http.Request) map[string]any)
+	// navGroup, if non-empty, places the page's nav entry inside a group dropdown.
+	// navParent, if non-empty, nests the page as a sub-item under that parent within the group.
+	RegisterAdminPage(name, slug, htmlContent string, addToNav bool, navGroup, navParent string, dataFunc func(*http.Request) map[string]any)
 	// RegisterAdminAPIEndpoint registers a module API handler.
 	// handler receives the request and returns (statusCode, success, data).
 	RegisterAdminAPIEndpoint(method, slug string, handler func(*http.Request) (int, bool, any))
@@ -94,7 +98,7 @@ func GetAdminRegistrar() ModuleAdminRegistrar {
 func (reg *moduleAdminRegistrarImpl) RegisterAdminPage(
 	name, slug, htmlContent string,
 	addToNav bool,
-	navParent string,
+	navGroup, navParent string,
 	dataFunc func(*http.Request) map[string]any,
 ) {
 	path := "/admin/" + slug
@@ -143,9 +147,57 @@ func (reg *moduleAdminRegistrarImpl) RegisterAdminPage(
 		return
 	}
 
-	if navParent == "" {
-		// Top-level nav item with a single sub-item pointing to itself.
+	if navGroup == "" {
+		// No group: place directly in the top-level nav.
+		if navParent == "" {
+			// Top-level nav item with a single sub-item pointing to itself.
+			reg.navItems = append(reg.navItems, WebNavItem{
+				Name:   name,
+				Target: path,
+				SubItems: []WebNavSub{
+					{Label: "View", Target: path},
+				},
+			})
+			return
+		}
+		// Attach as sub-item to an existing top-level nav entry.
+		for i, item := range reg.navItems {
+			if item.Name == navParent {
+				reg.navItems[i].SubItems = append(reg.navItems[i].SubItems, WebNavSub{
+					Label:  name,
+					Target: path,
+				})
+				return
+			}
+		}
+		// Parent not found yet — add as top-level with the sub-item.
 		reg.navItems = append(reg.navItems, WebNavItem{
+			Name:   navParent,
+			Target: "",
+			SubItems: []WebNavSub{
+				{Label: name, Target: path},
+			},
+		})
+		return
+	}
+
+	// navGroup is set: find or create the group, then find or create the parent
+	// sub-menu within it, then append the sub-item.
+	groupIdx := -1
+	for i, item := range reg.navItems {
+		if item.Name == navGroup {
+			groupIdx = i
+			break
+		}
+	}
+	if groupIdx == -1 {
+		reg.navItems = append(reg.navItems, WebNavItem{Name: navGroup})
+		groupIdx = len(reg.navItems) - 1
+	}
+
+	if navParent == "" {
+		// No parent within the group: add a sub-menu entry for this page directly.
+		reg.navItems[groupIdx].SubMenus = append(reg.navItems[groupIdx].SubMenus, WebNavItem{
 			Name:   name,
 			Target: path,
 			SubItems: []WebNavSub{
@@ -155,20 +207,19 @@ func (reg *moduleAdminRegistrarImpl) RegisterAdminPage(
 		return
 	}
 
-	// Attach as sub-item to an existing nav entry.
-	for i, item := range reg.navItems {
-		if item.Name == navParent {
-			reg.navItems[i].SubItems = append(reg.navItems[i].SubItems, WebNavSub{
-				Label:  name,
-				Target: path,
-			})
+	// navParent is set within the group: find or create the sub-menu for navParent.
+	for i, sm := range reg.navItems[groupIdx].SubMenus {
+		if sm.Name == navParent {
+			reg.navItems[groupIdx].SubMenus[i].SubItems = append(
+				reg.navItems[groupIdx].SubMenus[i].SubItems,
+				WebNavSub{Label: name, Target: path},
+			)
 			return
 		}
 	}
-	// Parent not found yet — add as top-level with the sub-item.
-	reg.navItems = append(reg.navItems, WebNavItem{
-		Name:   navParent,
-		Target: "",
+	// Sub-menu for navParent not found yet — create it.
+	reg.navItems[groupIdx].SubMenus = append(reg.navItems[groupIdx].SubMenus, WebNavItem{
+		Name: navParent,
 		SubItems: []WebNavSub{
 			{Label: name, Target: path},
 		},
@@ -198,22 +249,48 @@ func buildAdminNav() []WebNavItem {
 			Name:   "Dashboard",
 			Target: "/admin/",
 		},
+
 		{
-			Name:   "Config",
-			Target: "/admin/config",
-			SubItems: []WebNavSub{
-				{Label: "View / Edit", Target: "/admin/config"},
-				{Label: "API Docs", Target: "/admin/config-api"},
+			Name: "Lifeforms",
+			SubMenus: []WebNavItem{
+				{
+					Name:   "Users",
+					Target: "/admin/users",
+					SubItems: []WebNavSub{
+						{Label: "View / Edit", Target: "/admin/users"},
+						{Label: "API Docs", Target: "/admin/users-api"},
+					},
+				},
+				{
+					Name:   "Races",
+					Target: "/admin/races",
+					SubItems: []WebNavSub{
+						{Label: "View / Edit", Target: "/admin/races"},
+						{Label: "API Docs", Target: "/admin/races-api"},
+					},
+				},
 			},
 		},
+
 		{
-			Name:   "Items",
-			Target: "/admin/items",
-			SubItems: []WebNavSub{
-				{Label: "View / Edit", Target: "/admin/items"},
-				{Label: "API Docs", Target: "/admin/items-api"},
-				{Label: "Attack Messages", Target: "/admin/items-attack-messages"},
-				{Label: "Attack Messages API Docs", Target: "/admin/items-attack-messages-api"},
+			Name: "Items",
+			SubMenus: []WebNavItem{
+				{
+					Name:   "Items",
+					Target: "/admin/items",
+					SubItems: []WebNavSub{
+						{Label: "View / Edit", Target: "/admin/items"},
+						{Label: "API Docs", Target: "/admin/items-api"},
+					},
+				},
+				{
+					Name:   "Attack Messages",
+					Target: "/admin/items-attack-messages",
+					SubItems: []WebNavSub{
+						{Label: "View / Edit", Target: "/admin/items-attack-messages"},
+						{Label: "API Docs", Target: "/admin/items-attack-messages-api"},
+					},
+				},
 			},
 		},
 		{
@@ -233,30 +310,28 @@ func buildAdminNav() []WebNavItem {
 			},
 		},
 		{
-			Name:   "Users",
-			Target: "/admin/users",
-			SubItems: []WebNavSub{
-				{Label: "View / Search", Target: "/admin/users"},
-				{Label: "API Docs", Target: "/admin/users-api"},
-			},
-		},
-		{
-			Name:   "Colors",
-			Target: "",
-			SubItems: []WebNavSub{
-				{Label: "Color Patterns", Target: "/admin/colorpatterns"},
-				{Label: "Color Patterns API Docs", Target: "/admin/colorpatterns-api"},
-				{Label: "Color Aliases", Target: "/admin/color-aliases"},
-				{Label: "Color Aliases API Docs", Target: "/admin/color-aliases-api"},
-				{Label: "Color Tester", Target: "/admin/color-tester"},
-			},
-		},
-		{
-			Name:   "Races",
-			Target: "/admin/races",
-			SubItems: []WebNavSub{
-				{Label: "View / Edit", Target: "/admin/races"},
-				{Label: "API Docs", Target: "/admin/races-api"},
+			Name: "Colors",
+			SubMenus: []WebNavItem{
+				{
+					Name:   "Patterns",
+					Target: "/admin/colorpatterns",
+					SubItems: []WebNavSub{
+						{Label: "View / Edit", Target: "/admin/colorpatterns"},
+						{Label: "API Docs", Target: "/admin/colorpatterns-api"},
+					},
+				},
+				{
+					Name:   "Aliases",
+					Target: "/admin/color-aliases",
+					SubItems: []WebNavSub{
+						{Label: "View / Edit", Target: "/admin/color-aliases"},
+						{Label: "API Docs", Target: "/admin/color-aliases-api"},
+					},
+				},
+				{
+					Name:   "Message Crafter",
+					Target: "/admin/color-tester",
+				},
 			},
 		},
 		{
@@ -265,6 +340,14 @@ func buildAdminNav() []WebNavItem {
 			SubItems: []WebNavSub{
 				{Label: "View / Edit", Target: "/admin/keywords"},
 				{Label: "API Docs", Target: "/admin/keywords-api"},
+			},
+		},
+		{
+			Name:   "Config",
+			Target: "/admin/config",
+			SubItems: []WebNavSub{
+				{Label: "View / Edit", Target: "/admin/config"},
+				{Label: "API Docs", Target: "/admin/config-api"},
 			},
 		},
 	}

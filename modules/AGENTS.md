@@ -137,15 +137,14 @@ plugin.Web.NavLink("Leaderboards", "/leaderboards")
 ### **Admin Page Integration**
 ```go
 // Add an authenticated admin page at /admin/<slug>
-// navParent: if non-empty, nests this page as a sub-item under that parent nav entry
-plugin.Web.AdminPage("Mudmail", "mudmail", "html/admin/mudmail.html", true, "",
-    func(r *http.Request) map[string]any {
-        return map[string]any{"INBOX_COUNT": getCount()}
-    },
+// navGroup: if non-empty, places the entry inside a top-level group dropdown
+// navParent: if non-empty, nests this page as a sub-item under that parent within the group
+plugin.Web.AdminPage("Mudmail", "mudmail", "html/admin/mudmail.html", true, "Modules", "Mudmail",
+    nil,
 )
 
-// Nested under an existing nav parent
-plugin.Web.AdminPage("Mudmail API", "mudmail-api", "html/admin/mudmail-api.html", true, "Mudmail",
+// Sub-item within the same group and parent
+plugin.Web.AdminPage("API Docs", "mudmail-api", "html/admin/mudmail-api.html", true, "Modules", "Mudmail",
     nil,
 )
 ```
