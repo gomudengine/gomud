@@ -1048,10 +1048,45 @@
         .stats-ns-payload.open { display: block; }
 
         /* Theme selector */
-        #theme-list {
+        #theme-dropdown {
+            border: 1px solid var(--t-border);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        #theme-dropdown-header {
             display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            background: var(--t-bg-surface);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        #theme-dropdown-header:hover {
+            background: var(--t-bg-panel);
+        }
+
+        #theme-dropdown-arrow {
+            margin-left: auto;
+            font-size: 10px;
+            color: var(--t-text-dim);
+            transition: transform 0.2s;
+        }
+
+        #theme-dropdown.open #theme-dropdown-arrow {
+            transform: rotate(180deg);
+        }
+
+        #theme-list {
+            display: none;
             flex-direction: column;
-            gap: 6px;
+            border-top: 1px solid var(--t-border);
+        }
+
+        #theme-dropdown.open #theme-list {
+            display: flex;
         }
 
         .theme-option {
@@ -1060,28 +1095,32 @@
             gap: 12px;
             padding: 10px 12px;
             background: var(--t-bg-surface);
-            border: 2px solid var(--t-border);
-            border-radius: 6px;
             cursor: pointer;
-            transition: border-color 0.15s, background 0.15s;
+            transition: background 0.15s;
+            border-bottom: 1px solid var(--t-border);
+        }
+
+        .theme-option:last-child {
+            border-bottom: none;
         }
 
         .theme-option:hover {
-            border-color: var(--t-accent-dim);
+            background: var(--t-bg-panel);
         }
 
         .theme-option.selected {
-            border-color: var(--t-accent);
+            background: var(--t-accent-bg);
         }
 
         .theme-preview {
             display: flex;
             gap: 4px;
+            flex-shrink: 0;
         }
 
         .theme-swatch {
-            width: 22px;
-            height: 22px;
+            width: 18px;
+            height: 18px;
             border-radius: 50%;
             border: 1px solid rgba(128,128,128,0.3);
         }
@@ -1091,7 +1130,36 @@
             font-size: 13px;
             font-family: Arial, sans-serif;
             font-weight: bold;
+            flex: 1;
         }
+
+        .theme-badges {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .theme-badge {
+            font-size: 10px;
+            font-family: Arial, sans-serif;
+            padding: 2px 6px;
+            border-radius: 10px;
+            border: 1px solid currentColor;
+            opacity: 0.75;
+            white-space: nowrap;
+        }
+
+        .theme-badge-dark    { color: #aaa; }
+        .theme-badge-light   { color: #f0c060; }
+        .theme-badge-vibrant { color: #60d0ff; }
+        .theme-badge-muted   { color: #a0b8a0; }
+        .theme-badge-warm    { color: #e88040; }
+        .theme-badge-cool    { color: #60a8e0; }
+        .theme-badge-fantasy { color: #c080f0; }
+        .theme-badge-neon    { color: #00f0f8; }
+        .theme-badge-nature  { color: #60c860; }
+        .theme-badge-gothic  { color: #c04060; }
     </style>
 
     <link rel="stylesheet" href="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/css/xterm.css" />
@@ -1216,96 +1284,308 @@
                 <div class="settings-tab-panel" id="tab-theme">
                     <div class="settings-section">
                         <div class="settings-section-title">Theme</div>
-                        <div id="theme-list">
-                            <div class="theme-option selected" data-theme="brooding">
-                                <div class="theme-preview">
-                                    <span class="theme-swatch" style="background:#1e1e1e"></span>
-                                    <span class="theme-swatch" style="background:#1c6b60"></span>
-                                    <span class="theme-swatch" style="background:#3ad4b8"></span>
-                                    <span class="theme-swatch" style="background:#dffbd1"></span>
-                                </div>
-                                <span class="theme-label">Brooding</span>
+                        <div id="theme-dropdown">
+                            <div id="theme-dropdown-header">
+                                <div class="theme-preview" id="theme-dropdown-preview"></div>
+                                <span class="theme-label" id="theme-dropdown-label">Brooding</span>
+                                <span id="theme-dropdown-arrow">&#9660;</span>
                             </div>
-                            <div class="theme-option" data-theme="notepad">
-                                <div class="theme-preview">
-                                    <span class="theme-swatch" style="background:#f8fafc"></span>
-                                    <span class="theme-swatch" style="background:#1d4ed8"></span>
-                                    <span class="theme-swatch" style="background:#60a5fa"></span>
-                                    <span class="theme-swatch" style="background:#0f1729"></span>
+                            <div id="theme-list">
+                                <div class="theme-option selected" data-theme="brooding">
+                                    <div class="theme-preview">
+                                        <span class="theme-swatch" style="background:#1e1e1e"></span>
+                                        <span class="theme-swatch" style="background:#1c6b60"></span>
+                                        <span class="theme-swatch" style="background:#3ad4b8"></span>
+                                        <span class="theme-swatch" style="background:#7ab8a0"></span>
+                                        <span class="theme-swatch" style="background:#dffbd1"></span>
+                                    </div>
+                                    <span class="theme-label">Brooding</span>
+                                    <div class="theme-badges">
+                                        <span class="theme-badge theme-badge-dark">dark</span>
+                                        <span class="theme-badge theme-badge-muted">muted</span>
+                                        <span class="theme-badge theme-badge-cool">cool</span>
+                                    </div>
                                 </div>
-                                <span class="theme-label">Notepad</span>
-                            </div>
-                            <div class="theme-option" data-theme="sorcerers-dusk">
-                                <div class="theme-preview">
-                                    <span class="theme-swatch" style="background:#18162a"></span>
-                                    <span class="theme-swatch" style="background:#7c3aed"></span>
-                                    <span class="theme-swatch" style="background:#a855f7"></span>
-                                    <span class="theme-swatch" style="background:#e8c870"></span>
+                                <div class="theme-option" data-theme="notepad">
+                                    <div class="theme-preview">
+                                        <span class="theme-swatch" style="background:#f8fafc"></span>
+                                        <span class="theme-swatch" style="background:#1d4ed8"></span>
+                                        <span class="theme-swatch" style="background:#2563eb"></span>
+                                        <span class="theme-swatch" style="background:#4a6080"></span>
+                                        <span class="theme-swatch" style="background:#0f1729"></span>
+                                    </div>
+                                    <span class="theme-label">Notepad</span>
+                                    <div class="theme-badges">
+                                        <span class="theme-badge theme-badge-light">light</span>
+                                        <span class="theme-badge theme-badge-cool">cool</span>
+                                    </div>
                                 </div>
-                                <span class="theme-label">Sorcerer's Dusk</span>
-                            </div>
-                            <div class="theme-option" data-theme="ember-glow">
-                                <div class="theme-preview">
-                                    <span class="theme-swatch" style="background:#1c1814"></span>
-                                    <span class="theme-swatch" style="background:#b06820"></span>
-                                    <span class="theme-swatch" style="background:#e8882a"></span>
-                                    <span class="theme-swatch" style="background:#f0e4d0"></span>
+                                <div class="theme-option" data-theme="sorcerers-dusk">
+                                    <div class="theme-preview">
+                                        <span class="theme-swatch" style="background:#18162a"></span>
+                                        <span class="theme-swatch" style="background:#7c3aed"></span>
+                                        <span class="theme-swatch" style="background:#a855f7"></span>
+                                        <span class="theme-swatch" style="background:#9888c0"></span>
+                                        <span class="theme-swatch" style="background:#e0d8f0"></span>
+                                    </div>
+                                    <span class="theme-label">Sorcerer's Dusk</span>
+                                    <div class="theme-badges">
+                                        <span class="theme-badge theme-badge-dark">dark</span>
+                                        <span class="theme-badge theme-badge-fantasy">fantasy</span>
+                                        <span class="theme-badge theme-badge-vibrant">vibrant</span>
+                                    </div>
                                 </div>
-                                <span class="theme-label">Ember Glow</span>
-                            </div>
-                            <div class="theme-option" data-theme="tropical">
-                                <div class="theme-preview">
-                                    <span class="theme-swatch" style="background:#d9e51a"></span>
-                                    <span class="theme-swatch" style="background:#dbbe11"></span>
-                                    <span class="theme-swatch" style="background:#ec7e0f"></span>
-                                    <span class="theme-swatch" style="background:#dd2c0c"></span>
+                                <div class="theme-option" data-theme="ember-glow">
+                                    <div class="theme-preview">
+                                        <span class="theme-swatch" style="background:#1c1814"></span>
+                                        <span class="theme-swatch" style="background:#b06820"></span>
+                                        <span class="theme-swatch" style="background:#e8882a"></span>
+                                        <span class="theme-swatch" style="background:#b89870"></span>
+                                        <span class="theme-swatch" style="background:#f0e4d0"></span>
+                                    </div>
+                                    <span class="theme-label">Ember Glow</span>
+                                    <div class="theme-badges">
+                                        <span class="theme-badge theme-badge-dark">dark</span>
+                                        <span class="theme-badge theme-badge-warm">warm</span>
+                                    </div>
                                 </div>
-                                <span class="theme-label">Tropical</span>
-                            </div>
-                            <div class="theme-option" data-theme="circus">
-                                <div class="theme-preview">
-                                    <span class="theme-swatch" style="background:#18080e"></span>
-                                    <span class="theme-swatch" style="background:#e01030"></span>
-                                    <span class="theme-swatch" style="background:#ffd000"></span>
-                                    <span class="theme-swatch" style="background:#f8f0e8"></span>
+                                <div class="theme-option" data-theme="circus">
+                                    <div class="theme-preview">
+                                        <span class="theme-swatch" style="background:#18080e"></span>
+                                        <span class="theme-swatch" style="background:#b00820"></span>
+                                        <span class="theme-swatch" style="background:#e01030"></span>
+                                        <span class="theme-swatch" style="background:#e0b050"></span>
+                                        <span class="theme-swatch" style="background:#f8f0e8"></span>
+                                    </div>
+                                    <span class="theme-label">Circus</span>
+                                    <div class="theme-badges">
+                                        <span class="theme-badge theme-badge-dark">dark</span>
+                                        <span class="theme-badge theme-badge-vibrant">vibrant</span>
+                                        <span class="theme-badge theme-badge-warm">warm</span>
+                                    </div>
                                 </div>
-                                <span class="theme-label">Circus</span>
-                            </div>
-                            <div class="theme-option" data-theme="grayscale">
-                                <div class="theme-preview">
-                                    <span class="theme-swatch" style="background:#1a1a1a"></span>
-                                    <span class="theme-swatch" style="background:#505050"></span>
-                                    <span class="theme-swatch" style="background:#909090"></span>
-                                    <span class="theme-swatch" style="background:#d0d0d0"></span>
+                                <div class="theme-option" data-theme="grayscale">
+                                    <div class="theme-preview">
+                                        <span class="theme-swatch" style="background:#1a1a1a"></span>
+                                        <span class="theme-swatch" style="background:#505050"></span>
+                                        <span class="theme-swatch" style="background:#909090"></span>
+                                        <span class="theme-swatch" style="background:#c0c0c0"></span>
+                                        <span class="theme-swatch" style="background:#e8e8e8"></span>
+                                    </div>
+                                    <span class="theme-label">Grayscale</span>
+                                    <div class="theme-badges">
+                                        <span class="theme-badge theme-badge-dark">dark</span>
+                                        <span class="theme-badge theme-badge-muted">muted</span>
+                                    </div>
                                 </div>
-                                <span class="theme-label">Grayscale</span>
-                            </div>
-                            <div class="theme-option" data-theme="aurora">
-                                <div class="theme-preview">
-                                    <span class="theme-swatch" style="background:#08081a"></span>
-                                    <span class="theme-swatch" style="background:#a060ff"></span>
-                                    <span class="theme-swatch" style="background:#40ff90"></span>
-                                    <span class="theme-swatch" style="background:#ff50a0"></span>
+                                <div class="theme-option" data-theme="aurora">
+                                    <div class="theme-preview">
+                                        <span class="theme-swatch" style="background:#08081a"></span>
+                                        <span class="theme-swatch" style="background:#303860"></span>
+                                        <span class="theme-swatch" style="background:#20c870"></span>
+                                        <span class="theme-swatch" style="background:#40ff90"></span>
+                                        <span class="theme-swatch" style="background:#80c8b8"></span>
+                                    </div>
+                                    <span class="theme-label">Aurora</span>
+                                    <div class="theme-badges">
+                                        <span class="theme-badge theme-badge-dark">dark</span>
+                                        <span class="theme-badge theme-badge-vibrant">vibrant</span>
+                                        <span class="theme-badge theme-badge-cool">cool</span>
+                                    </div>
                                 </div>
-                                <span class="theme-label">Aurora</span>
-                            </div>
-                            <div class="theme-option" data-theme="heart">
-                                <div class="theme-preview">
-                                    <span class="theme-swatch" style="background:#1e1418"></span>
-                                    <span class="theme-swatch" style="background:#db2777"></span>
-                                    <span class="theme-swatch" style="background:#f472b6"></span>
-                                    <span class="theme-swatch" style="background:#f9a8d4"></span>
+                                <div class="theme-option" data-theme="heart">
+                                    <div class="theme-preview">
+                                        <span class="theme-swatch" style="background:#1e1418"></span>
+                                        <span class="theme-swatch" style="background:#db2777"></span>
+                                        <span class="theme-swatch" style="background:#f472b6"></span>
+                                        <span class="theme-swatch" style="background:#c088a0"></span>
+                                        <span class="theme-swatch" style="background:#f0e0e8"></span>
+                                    </div>
+                                    <span class="theme-label">Heart</span>
+                                    <div class="theme-badges">
+                                        <span class="theme-badge theme-badge-dark">dark</span>
+                                        <span class="theme-badge theme-badge-vibrant">vibrant</span>
+                                    </div>
                                 </div>
-                                <span class="theme-label">Heart</span>
-                            </div>
-                            <div class="theme-option" data-theme="duran">
-                                <div class="theme-preview">
-                                    <span class="theme-swatch" style="background:#191717"></span>
-                                    <span class="theme-swatch" style="background:#4d2a2a"></span>
-                                    <span class="theme-swatch" style="background:#bf3f3e"></span>
-                                    <span class="theme-swatch" style="background:#eec2a9"></span>
+                                <div class="theme-option" data-theme="duran">
+                                    <div class="theme-preview">
+                                        <span class="theme-swatch" style="background:#1e1a1a"></span>
+                                        <span class="theme-swatch" style="background:#8a2a2a"></span>
+                                        <span class="theme-swatch" style="background:#bf3f3e"></span>
+                                        <span class="theme-swatch" style="background:#eec2a9"></span>
+                                        <span class="theme-swatch" style="background:#f9f2f1"></span>
+                                    </div>
+                                    <span class="theme-label">Duran</span>
+                                    <div class="theme-badges">
+                                        <span class="theme-badge theme-badge-dark">dark</span>
+                                        <span class="theme-badge theme-badge-warm">warm</span>
+                                        <span class="theme-badge theme-badge-muted">muted</span>
+                                    </div>
                                 </div>
-                                <span class="theme-label">Duran</span>
+                                <div class="theme-option" data-theme="midnight-ocean">
+                                    <div class="theme-preview">
+                                        <span class="theme-swatch" style="background:#0d1b2a"></span>
+                                        <span class="theme-swatch" style="background:#0080b0"></span>
+                                        <span class="theme-swatch" style="background:#00d4ff"></span>
+                                        <span class="theme-swatch" style="background:#7ab8d8"></span>
+                                        <span class="theme-swatch" style="background:#d4eef8"></span>
+                                    </div>
+                                    <span class="theme-label">Midnight Ocean</span>
+                                    <div class="theme-badges">
+                                        <span class="theme-badge theme-badge-dark">dark</span>
+                                        <span class="theme-badge theme-badge-cool">cool</span>
+                                        <span class="theme-badge theme-badge-vibrant">vibrant</span>
+                                    </div>
+                                </div>
+                                <div class="theme-option" data-theme="parchment">
+                                    <div class="theme-preview">
+                                        <span class="theme-swatch" style="background:#f5edd8"></span>
+                                        <span class="theme-swatch" style="background:#7a3810"></span>
+                                        <span class="theme-swatch" style="background:#b05820"></span>
+                                        <span class="theme-swatch" style="background:#7a4a20"></span>
+                                        <span class="theme-swatch" style="background:#2a1a08"></span>
+                                    </div>
+                                    <span class="theme-label">Parchment</span>
+                                    <div class="theme-badges">
+                                        <span class="theme-badge theme-badge-light">light</span>
+                                        <span class="theme-badge theme-badge-warm">warm</span>
+                                        <span class="theme-badge theme-badge-fantasy">fantasy</span>
+                                    </div>
+                                </div>
+                                <div class="theme-option" data-theme="neon-city">
+                                    <div class="theme-preview">
+                                        <span class="theme-swatch" style="background:#0e0e14"></span>
+                                        <span class="theme-swatch" style="background:#c800e8"></span>
+                                        <span class="theme-swatch" style="background:#00f0f8"></span>
+                                        <span class="theme-swatch" style="background:#80a8e0"></span>
+                                        <span class="theme-swatch" style="background:#e8f0ff"></span>
+                                    </div>
+                                    <span class="theme-label">Neon City</span>
+                                    <div class="theme-badges">
+                                        <span class="theme-badge theme-badge-dark">dark</span>
+                                        <span class="theme-badge theme-badge-neon">neon</span>
+                                        <span class="theme-badge theme-badge-vibrant">vibrant</span>
+                                    </div>
+                                </div>
+                                <div class="theme-option" data-theme="sakura">
+                                    <div class="theme-preview">
+                                        <span class="theme-swatch" style="background:#fdf6f8"></span>
+                                        <span class="theme-swatch" style="background:#c03060"></span>
+                                        <span class="theme-swatch" style="background:#e8608a"></span>
+                                        <span class="theme-swatch" style="background:#a05878"></span>
+                                        <span class="theme-swatch" style="background:#2a1020"></span>
+                                    </div>
+                                    <span class="theme-label">Sakura</span>
+                                    <div class="theme-badges">
+                                        <span class="theme-badge theme-badge-light">light</span>
+                                        <span class="theme-badge theme-badge-warm">warm</span>
+                                    </div>
+                                </div>
+                                <div class="theme-option" data-theme="deep-forest">
+                                    <div class="theme-preview">
+                                        <span class="theme-swatch" style="background:#0c1208"></span>
+                                        <span class="theme-swatch" style="background:#4a7830"></span>
+                                        <span class="theme-swatch" style="background:#d4c060"></span>
+                                        <span class="theme-swatch" style="background:#a0c870"></span>
+                                        <span class="theme-swatch" style="background:#e8f0d0"></span>
+                                    </div>
+                                    <span class="theme-label">Deep Forest</span>
+                                    <div class="theme-badges">
+                                        <span class="theme-badge theme-badge-dark">dark</span>
+                                        <span class="theme-badge theme-badge-nature">nature</span>
+                                        <span class="theme-badge theme-badge-muted">muted</span>
+                                    </div>
+                                </div>
+                                <div class="theme-option" data-theme="lavender-mist">
+                                    <div class="theme-preview">
+                                        <span class="theme-swatch" style="background:#f4f0fc"></span>
+                                        <span class="theme-swatch" style="background:#4828b0"></span>
+                                        <span class="theme-swatch" style="background:#6848d8"></span>
+                                        <span class="theme-swatch" style="background:#7060a8"></span>
+                                        <span class="theme-swatch" style="background:#1e1630"></span>
+                                    </div>
+                                    <span class="theme-label">Lavender Mist</span>
+                                    <div class="theme-badges">
+                                        <span class="theme-badge theme-badge-light">light</span>
+                                        <span class="theme-badge theme-badge-cool">cool</span>
+                                        <span class="theme-badge theme-badge-fantasy">fantasy</span>
+                                    </div>
+                                </div>
+                                <div class="theme-option" data-theme="obsidian-gold">
+                                    <div class="theme-preview">
+                                        <span class="theme-swatch" style="background:#0e0e0e"></span>
+                                        <span class="theme-swatch" style="background:#a07820"></span>
+                                        <span class="theme-swatch" style="background:#f0c040"></span>
+                                        <span class="theme-swatch" style="background:#c8a850"></span>
+                                        <span class="theme-swatch" style="background:#f8f0d8"></span>
+                                    </div>
+                                    <span class="theme-label">Obsidian Gold</span>
+                                    <div class="theme-badges">
+                                        <span class="theme-badge theme-badge-dark">dark</span>
+                                        <span class="theme-badge theme-badge-warm">warm</span>
+                                        <span class="theme-badge theme-badge-vibrant">vibrant</span>
+                                    </div>
+                                </div>
+                                <div class="theme-option" data-theme="arctic">
+                                    <div class="theme-preview">
+                                        <span class="theme-swatch" style="background:#f0f4f8"></span>
+                                        <span class="theme-swatch" style="background:#0660a0"></span>
+                                        <span class="theme-swatch" style="background:#0890d8"></span>
+                                        <span class="theme-swatch" style="background:#4878a0"></span>
+                                        <span class="theme-swatch" style="background:#0c1e30"></span>
+                                    </div>
+                                    <span class="theme-label">Arctic</span>
+                                    <div class="theme-badges">
+                                        <span class="theme-badge theme-badge-light">light</span>
+                                        <span class="theme-badge theme-badge-cool">cool</span>
+                                        <span class="theme-badge theme-badge-muted">muted</span>
+                                    </div>
+                                </div>
+                                <div class="theme-option" data-theme="blood-moon">
+                                    <div class="theme-preview">
+                                        <span class="theme-swatch" style="background:#120608"></span>
+                                        <span class="theme-swatch" style="background:#901010"></span>
+                                        <span class="theme-swatch" style="background:#e02020"></span>
+                                        <span class="theme-swatch" style="background:#c07070"></span>
+                                        <span class="theme-swatch" style="background:#f0e8d8"></span>
+                                    </div>
+                                    <span class="theme-label">Blood Moon</span>
+                                    <div class="theme-badges">
+                                        <span class="theme-badge theme-badge-dark">dark</span>
+                                        <span class="theme-badge theme-badge-gothic">gothic</span>
+                                        <span class="theme-badge theme-badge-vibrant">vibrant</span>
+                                    </div>
+                                </div>
+                                <div class="theme-option" data-theme="mint-fresh">
+                                    <div class="theme-preview">
+                                        <span class="theme-swatch" style="background:#f2faf6"></span>
+                                        <span class="theme-swatch" style="background:#0a8050"></span>
+                                        <span class="theme-swatch" style="background:#10b878"></span>
+                                        <span class="theme-swatch" style="background:#3a8860"></span>
+                                        <span class="theme-swatch" style="background:#0c2018"></span>
+                                    </div>
+                                    <span class="theme-label">Mint Fresh</span>
+                                    <div class="theme-badges">
+                                        <span class="theme-badge theme-badge-light">light</span>
+                                        <span class="theme-badge theme-badge-nature">nature</span>
+                                        <span class="theme-badge theme-badge-cool">cool</span>
+                                    </div>
+                                </div>
+                                <div class="theme-option" data-theme="steel-punk">
+                                    <div class="theme-preview">
+                                        <span class="theme-swatch" style="background:#1a1c1e"></span>
+                                        <span class="theme-swatch" style="background:#a05020"></span>
+                                        <span class="theme-swatch" style="background:#e87830"></span>
+                                        <span class="theme-swatch" style="background:#c09060"></span>
+                                        <span class="theme-swatch" style="background:#e0ddd8"></span>
+                                    </div>
+                                    <span class="theme-label">Steel Punk</span>
+                                    <div class="theme-badges">
+                                        <span class="theme-badge theme-badge-dark">dark</span>
+                                        <span class="theme-badge theme-badge-warm">warm</span>
+                                        <span class="theme-badge theme-badge-muted">muted</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1332,13 +1612,31 @@
         // ---------------------------------------------------------------
         // Theme switching
         // ---------------------------------------------------------------
-        function setTheme(name) {
+        function setTheme(name, keepOpen) {
             var link = document.getElementById('theme-css');
             link.href = link.href.replace(/theme-[\w-]+\.css/, 'theme-' + name + '.css');
             localStorage.setItem('gomud-theme', name);
             document.querySelectorAll('.theme-option').forEach(function(el) {
                 el.classList.toggle('selected', el.dataset.theme === name);
             });
+            _updateThemeDropdownHeader(name);
+            if (!keepOpen) {
+                var dd = document.getElementById('theme-dropdown');
+                if (dd) { dd.classList.remove('open'); }
+            }
+        }
+
+        function _updateThemeDropdownHeader(name) {
+            var selected = document.querySelector('.theme-option[data-theme="' + name + '"]');
+            if (!selected) { return; }
+            var previewEl = document.getElementById('theme-dropdown-preview');
+            var labelEl   = document.getElementById('theme-dropdown-label');
+            if (previewEl) {
+                previewEl.innerHTML = selected.querySelector('.theme-preview').innerHTML;
+            }
+            if (labelEl) {
+                labelEl.textContent = selected.querySelector('.theme-label').textContent;
+            }
         }
 
         // Tab switching for the settings modal
@@ -1350,9 +1648,41 @@
                 themeList.querySelectorAll('.theme-option').forEach(function(el) {
                     el.classList.toggle('selected', el.dataset.theme === saved);
                 });
+                _updateThemeDropdownHeader(saved);
                 themeList.addEventListener('click', function(e) {
                     var option = e.target.closest('.theme-option');
                     if (option) { setTheme(option.dataset.theme); }
+                });
+            }
+            var themeDropdownHeader = document.getElementById('theme-dropdown-header');
+            if (themeDropdownHeader) {
+                themeDropdownHeader.setAttribute('tabindex', '0');
+                themeDropdownHeader.addEventListener('click', function() {
+                    var dd = document.getElementById('theme-dropdown');
+                    if (dd) { dd.classList.toggle('open'); }
+                });
+                themeDropdownHeader.addEventListener('keydown', function(e) {
+                    var options = Array.prototype.slice.call(
+                        document.querySelectorAll('#theme-list .theme-option')
+                    );
+                    if (!options.length) { return; }
+                    var current = options.findIndex(function(el) {
+                        return el.classList.contains('selected');
+                    });
+                    if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        setTheme(options[(current + 1) % options.length].dataset.theme, true);
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        setTheme(options[(current - 1 + options.length) % options.length].dataset.theme, true);
+                    } else if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        var dd = document.getElementById('theme-dropdown');
+                        if (dd) { dd.classList.toggle('open'); }
+                    } else if (e.key === 'Escape') {
+                        var dd = document.getElementById('theme-dropdown');
+                        if (dd) { dd.classList.remove('open'); }
+                    }
                 });
             }
             var tabBar = document.getElementById('settings-tab-bar');
