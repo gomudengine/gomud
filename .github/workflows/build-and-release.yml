@@ -6,6 +6,11 @@ name: Release
     branches:
       - master
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing or new release tag to publish assets to
+        required: false
+        type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -35,6 +40,7 @@ jobs:
         run: |
           short_sha="$(printf '%s' "$GITHUB_SHA" | cut -c1-7)"
           timestamp="$(date -u +'%Y%m%d%H%M%S')"
+          requested_release_tag="${{ github.event.inputs.release_tag || '' }}"
           binary_version="$(
             awk -F'"' '/^const VERSION = "/ { print $2; exit }' main.go
           )"
@@ -43,7 +49,23 @@ jobs:
             exit 1
           fi
 
-          if [ "$GITHUB_REF" = "refs/heads/master" ]; then
+          if [ -n "$requested_release_tag" ]; then
+            case "$requested_release_tag" in
+              *[!A-Za-z0-9._-]*)
+                echo \
+                  "release_tag may contain only letters, digits, ., _, and -" \
+                  >&2
+                exit 1
+                ;;
+            esac
+
+            release_tag="$requested_release_tag"
+            release_title="$requested_release_tag"
+            release_notes_intro="Manual release build for \
+          \`${requested_release_tag}\` from \`${GITHUB_REF_NAME}\`."
+            release_notes_summary="This run publishes assets to the \
+          requested release tag."
+          elif [ "$GITHUB_REF" = "refs/heads/master" ]; then
             release_tag="prerelease"
             release_title="prerelease"
             release_notes_intro="Rolling prerelease build from \`master\`."
@@ -141,6 +163,7 @@ jobs:
       DATAFILES_ARCHIVE: ${{ needs.prep.outputs.datafiles_archive }}
       CHECKSUMS_FILE: ${{ needs.prep.outputs.checksums_file }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REQUESTED_RELEASE_TAG: ${{ github.event.inputs.release_tag || '' }}
     steps:
       - uses: actions/checkout@v6.0.2
         with:
@@ -221,20 +244,36 @@ jobs:
             "bin/$CHECKSUMS_FILE"
           )
 
-          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
-            gh release edit "$RELEASE_TAG" \
-              --title "$RELEASE_TITLE" \
-              --target "$GITHUB_SHA" \
-              --prerelease \
-              --latest=false \
-              --notes-file release-notes.md
+          if [ -n "$REQUESTED_RELEASE_TAG" ]; then
+            if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+              gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
+              gh release edit "$RELEASE_TAG" \
+                --title "$RELEASE_TITLE" \
+                --target "$GITHUB_SHA" \
+                --notes-file release-notes.md
+            else
+              gh release create "$RELEASE_TAG" \
+                "${assets[@]}" \
+                --title "$RELEASE_TITLE" \
+                --target "$GITHUB_SHA" \
+                --notes-file release-notes.md
+            fi
           else
-            gh release create "$RELEASE_TAG" \
-              "${assets[@]}" \
-              --title "$RELEASE_TITLE" \
-              --target "$GITHUB_SHA" \
-              --prerelease \
-              --latest=false \
-              --notes-file release-notes.md
+            if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+              gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
+              gh release edit "$RELEASE_TAG" \
+                --title "$RELEASE_TITLE" \
+                --target "$GITHUB_SHA" \
+                --prerelease \
+                --latest=false \
+                --notes-file release-notes.md
+            else
+              gh release create "$RELEASE_TAG" \
+                "${assets[@]}" \
+                --title "$RELEASE_TITLE" \
+                --target "$GITHUB_SHA" \
+                --prerelease \
+                --latest=false \
+                --notes-file release-notes.md
+            fi
           fi
