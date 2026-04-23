@@ -165,6 +165,54 @@ func apiV1GetItemScript(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// PUT /admin/api/v1/items/attack-messages/{subtype}/{intensity}/{proximity}/{target}
+func apiV1PutItemAttackMessage(w http.ResponseWriter, r *http.Request) {
+	subtype := items.ItemSubType(r.PathValue("subtype"))
+	intensity := items.Intensity(r.PathValue("intensity"))
+	proximity := r.PathValue("proximity")
+	target := r.PathValue("target")
+
+	var body struct {
+		Message string `json:"message"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeAPIError(w, http.StatusBadRequest, "malformed request body: "+err.Error())
+		return
+	}
+	if body.Message == "" {
+		writeAPIError(w, http.StatusBadRequest, "message is required")
+		return
+	}
+
+	if err := items.AddAttackMessage(subtype, intensity, proximity, target, body.Message); err != nil {
+		writeAPIError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, APIResponse[struct{}]{Success: true})
+}
+
+// DELETE /admin/api/v1/items/attack-messages/{subtype}/{intensity}/{proximity}/{target}/{index}
+func apiV1DeleteItemAttackMessage(w http.ResponseWriter, r *http.Request) {
+	subtype := items.ItemSubType(r.PathValue("subtype"))
+	intensity := items.Intensity(r.PathValue("intensity"))
+	proximity := r.PathValue("proximity")
+	target := r.PathValue("target")
+
+	index, err := strconv.Atoi(r.PathValue("index"))
+	if err != nil {
+		writeAPIError(w, http.StatusBadRequest, "invalid index: "+r.PathValue("index"))
+		return
+	}
+
+	if err := items.DeleteAttackMessage(subtype, intensity, proximity, target, index); err != nil {
+		writeAPIError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, APIResponse[struct{}]{Success: true})
+}
+
 // PUT /admin/api/v1/items/{itemId}/script
 func apiV1PutItemScript(w http.ResponseWriter, r *http.Request) {
 	idOrName := r.PathValue("itemId")

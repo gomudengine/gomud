@@ -47,6 +47,14 @@ func adminItemsAPI(w http.ResponseWriter, r *http.Request) {
 	serveAdminTemplate(w, r, "items-api.html", nil)
 }
 
+func adminItemsAttackMessages(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "items-attack-messages.html", nil)
+}
+
+func adminItemsAttackMessagesAPI(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "items-attack-messages-api.html", nil)
+}
+
 func adminBuffs(w http.ResponseWriter, r *http.Request) {
 	serveAdminTemplate(w, r, "buffs.html", nil)
 }
@@ -77,6 +85,18 @@ func adminColorPatterns(w http.ResponseWriter, r *http.Request) {
 
 func adminColorPatternsAPI(w http.ResponseWriter, r *http.Request) {
 	serveAdminTemplate(w, r, "colorpatterns-api.html", nil)
+}
+
+func adminColorAliases(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "color-aliases.html", nil)
+}
+
+func adminColorAliasesAPI(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "color-aliases-api.html", nil)
+}
+
+func adminColorTester(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "color-tester.html", nil)
 }
 
 func adminRaces(w http.ResponseWriter, r *http.Request) {

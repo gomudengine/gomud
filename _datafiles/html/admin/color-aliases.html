@@ -1,0 +1,280 @@
+{{template "header" .}}
+
+<style>
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #555; margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+    .page-layout { display: grid; grid-template-columns: 280px 1fr; gap: 1.25rem; align-items: start; }
+    @media (max-width: 800px) { .page-layout { grid-template-columns: 1fr; } }
+
+    .sidebar { background: #fff; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; }
+    .sidebar-header { padding: 0.75rem 0.9rem; border-bottom: 1px solid #eee; display: flex; gap: 0.5rem; }
+    .sidebar-header input[type="search"] { flex: 1; padding: 0.35rem 0.6rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; }
+    .alias-list { overflow-y: auto; max-height: 72vh; }
+    .alias-row {
+        padding: 0.45rem 0.9rem; cursor: pointer; border-bottom: 1px solid #f0f0f0;
+        display: flex; align-items: center; gap: 0.6rem; font-size: 0.875rem;
+    }
+    .alias-row:last-child { border-bottom: none; }
+    .alias-row:hover { background: #f5f7ff; }
+    .alias-row.active { background: #1a1a2e; color: #fff; }
+    .alias-swatch {
+        width: 18px; height: 18px; border-radius: 3px; flex-shrink: 0;
+        border: 1px solid rgba(0,0,0,0.15);
+    }
+    .alias-name { flex: 1; font-family: monospace; font-size: 0.82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .alias-value { font-size: 0.75rem; color: #999; font-family: monospace; flex-shrink: 0; }
+    .alias-row.active .alias-value { color: #8899cc; }
+    .no-aliases { padding: 1.5rem; text-align: center; color: #888; font-size: 0.85rem; }
+    .btn-new { margin: 0.6rem 0.9rem; padding: 0.4rem 0.9rem; border: none; border-radius: 4px; background: #1e6e34; color: #fff; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: block; text-align: center; }
+    .btn-new:hover { background: #145728; }
+
+    .editor-panel { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 1.25rem; }
+    .editor-placeholder { color: #aaa; text-align: center; padding: 4rem 1rem; font-size: 0.9rem; }
+
+    .status-bar { display: none; padding: 0.55rem 0.9rem; border-radius: 4px; font-size: 0.85rem; margin-bottom: 1rem; }
+    .status-bar.success { background: #e6f4ea; color: #1e6e34; display: block; }
+    .status-bar.error   { background: #fde8e8; color: #8a0000; display: block; }
+
+    .section-title { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #666; padding: 0.5rem 0 0.4rem; border-bottom: 1px solid #eee; margin-bottom: 0.9rem; }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem 1.25rem; }
+    .field label { display: block; font-size: 0.78rem; font-weight: 600; color: #555; margin-bottom: 0.25rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .field input[type="text"], .field input[type="number"] {
+        width: 100%; padding: 0.4rem 0.6rem; border: 1px solid #ccc;
+        border-radius: 4px; font-size: 0.875rem; font-family: inherit; background: #fff;
+    }
+    .field input:focus { outline: 2px solid #1a1a2e; outline-offset: 1px; border-color: transparent; }
+    .field-hint { font-size: 0.75rem; color: #888; margin-top: 0.2rem; }
+
+    .value-row { display: flex; gap: 0.5rem; align-items: center; }
+    .value-row input { flex: 1; }
+    .color-swatch-lg {
+        width: 36px; height: 36px; border-radius: 4px; flex-shrink: 0;
+        border: 1px solid #ccc; background: #000;
+    }
+
+    .preview-section { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid #eee; }
+    .preview-section h3 { font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #555; margin-bottom: 0.5rem; }
+    .preview-output {
+        font-family: monospace; font-size: 1rem; padding: 0.6rem 0.8rem;
+        background: #000; border-radius: 4px; color: #ccc; min-height: 2.4rem;
+        display: flex; align-items: center; gap: 0.5rem;
+    }
+    .preview-swatch { width: 22px; height: 22px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.2); flex-shrink: 0; }
+    .preview-sample { font-size: 0.95rem; }
+
+    .btn-row { display: flex; gap: 0.6rem; margin-top: 1.25rem; }
+    .btn-save { padding: 0.45rem 1.2rem; background: #1a1a2e; color: #fff; border: none; border-radius: 4px; font-size: 0.875rem; font-weight: 600; cursor: pointer; }
+    .btn-save:hover { background: #2d2d4e; }
+    .btn-delete { padding: 0.45rem 1rem; background: #fff; color: #8a0000; border: 1px solid #e0a0a0; border-radius: 4px; font-size: 0.875rem; font-weight: 600; cursor: pointer; }
+    .btn-delete:hover { background: #fde8e8; }
+</style>
+
+<h1>Color Aliases</h1>
+<p class="subtitle">Manage named ANSI color aliases used in game templates and markup. <a href="/admin/color-aliases-api">API Docs &rarr;</a></p>
+
+<div class="page-layout">
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <input type="search" id="aliasSearch" placeholder="Search aliases…" oninput="filterAliases()" />
+        </div>
+        <div id="aliasList" class="alias-list">
+            <div class="no-aliases">Loading…</div>
+        </div>
+        <button class="btn-new" onclick="newAlias()">+ New Alias</button>
+    </div>
+
+    <div class="editor-panel">
+        <div id="editorPlaceholder" class="editor-placeholder">Select an alias to edit, or click "New Alias".</div>
+        <div id="editorForm" style="display:none">
+            <div id="statusBar" class="status-bar"></div>
+            <p class="section-title" id="editorTitle">Edit Alias</p>
+
+            <div class="form-grid">
+                <div class="field">
+                    <label for="fieldName">Alias Name</label>
+                    <input type="text" id="fieldName" placeholder="e.g. username" />
+                    <div class="field-hint" id="nameHint"></div>
+                </div>
+
+                <div class="field">
+                    <label for="fieldValue">ANSI Color Code (0–255)</label>
+                    <div class="value-row">
+                        <input type="number" id="fieldValue" min="0" max="255" placeholder="0–255" oninput="updatePreview()" />
+                        <div class="color-swatch-lg" id="valueSwatch"></div>
+                    </div>
+                    <div class="field-hint">Enter a numeric ANSI 256-color code.</div>
+                </div>
+            </div>
+
+            <div class="preview-section">
+                <h3>Preview</h3>
+                <div class="preview-output" id="previewOutput">
+                    <div class="preview-swatch" id="previewSwatch"></div>
+                    <span class="preview-sample" id="previewSample"></span>
+                </div>
+            </div>
+
+            <div class="btn-row">
+                <button class="btn-save" onclick="saveAlias()">Save</button>
+                <button class="btn-delete" id="btnDelete" onclick="deleteAlias()" style="display:none">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let aliasData = {};   // name -> numeric code
+let activeName = null;
+let isNew = false;
+
+// ---- Load ----
+async function loadAliases() {
+    const res = await AdminAPI.get('/admin/api/v1/color-aliases');
+    if (!res.ok) { console.error('Load failed:', res.error); return; }
+    const raw = (res.data && res.data.data) || {};
+    // Normalise: values may arrive as int or string (named alias references).
+    // Only keep numeric entries for display; string refs are internal.
+    aliasData = {};
+    for (const [k, v] of Object.entries(raw)) {
+        const n = parseInt(v, 10);
+        if (!isNaN(n)) aliasData[k] = n;
+    }
+    renderList();
+}
+
+function filterAliases() {
+    const q = document.getElementById('aliasSearch').value.toLowerCase();
+    document.querySelectorAll('.alias-row').forEach(row => {
+        row.style.display = row.dataset.name.includes(q) ? '' : 'none';
+    });
+}
+
+function renderList() {
+    const list = document.getElementById('aliasList');
+    const names = Object.keys(aliasData).sort();
+    if (names.length === 0) {
+        list.innerHTML = '<div class="no-aliases">No aliases found.</div>';
+        return;
+    }
+    list.innerHTML = names.map(name => {
+        const code = aliasData[name];
+        const hex = AnsiColors.toHex(code);
+        const isActive = name === activeName;
+        return `<div class="alias-row${isActive ? ' active' : ''}" data-name="${escAttr(name)}" onclick="selectAlias(${JSON.stringify(name)})">
+            <div class="alias-swatch" style="background:${hex}"></div>
+            <span class="alias-name">${escHtml(name)}</span>
+            <span class="alias-value">${code}</span>
+        </div>`;
+    }).join('');
+}
+
+function highlightRow(name) {
+    document.querySelectorAll('.alias-row').forEach(r => r.classList.remove('active'));
+    const row = document.querySelector(`.alias-row[data-name="${escAttr(name)}"]`);
+    if (row) {
+        row.classList.add('active');
+        row.scrollIntoView({ block: 'nearest' });
+    }
+}
+
+// ---- Select / New ----
+function selectAlias(name) {
+    activeName = name;
+    isNew = false;
+    highlightRow(name);
+    showEditor(name, aliasData[name]);
+}
+
+function newAlias() {
+    activeName = null;
+    isNew = true;
+    document.querySelectorAll('.alias-row').forEach(r => r.classList.remove('active'));
+    showEditor('', null);
+}
+
+function showEditor(name, code) {
+    document.getElementById('editorPlaceholder').style.display = 'none';
+    document.getElementById('editorForm').style.display = '';
+    document.getElementById('statusBar').className = 'status-bar';
+    document.getElementById('fieldName').value = name;
+    document.getElementById('fieldName').readOnly = !isNew;
+    document.getElementById('nameHint').textContent = isNew ? '' : 'Name cannot be changed. Delete and recreate to rename.';
+    document.getElementById('editorTitle').textContent = isNew ? 'New Alias' : 'Edit: ' + name;
+    document.getElementById('fieldValue').value = code !== null && code !== undefined ? code : '';
+    document.getElementById('btnDelete').style.display = isNew ? 'none' : '';
+    updatePreview();
+}
+
+// ---- Preview ----
+function updatePreview() {
+    const code = parseInt(document.getElementById('fieldValue').value, 10);
+    if (isNaN(code) || code < 0 || code > 255) {
+        document.getElementById('valueSwatch').style.background = '#000';
+        document.getElementById('previewSwatch').style.background = '#333';
+        document.getElementById('previewSample').innerHTML = '<span style="color:#666">Enter a valid code (0–255)</span>';
+        return;
+    }
+    const hex = AnsiColors.toHex(code);
+    document.getElementById('valueSwatch').style.background = hex;
+    document.getElementById('previewSwatch').style.background = hex;
+
+    const name = document.getElementById('fieldName').value || 'alias-name';
+    document.getElementById('previewSample').innerHTML =
+        ansitags.parse('<ansi fg="' + code + '">The quick brown fox — code ' + escHtml(String(code)) + '</ansi>');
+}
+
+// ---- Save / Delete ----
+async function saveAlias() {
+    const name = document.getElementById('fieldName').value.trim();
+    const code = parseInt(document.getElementById('fieldValue').value, 10);
+
+    if (!name) { showStatus('error', 'Alias name is required.'); return; }
+    if (isNaN(code) || code < 0 || code > 255) { showStatus('error', 'Color code must be 0–255.'); return; }
+
+    const res = await AdminAPI.patch('/admin/api/v1/color-aliases', { alias: name, value: code });
+    if (!res.ok) { showStatus('error', res.error || 'Save failed.'); return; }
+
+    aliasData[name] = code;
+    if (isNew) {
+        activeName = name;
+        isNew = false;
+        document.getElementById('fieldName').readOnly = true;
+        document.getElementById('nameHint').textContent = 'Name cannot be changed. Delete and recreate to rename.';
+        document.getElementById('editorTitle').textContent = 'Edit: ' + name;
+        document.getElementById('btnDelete').style.display = '';
+    }
+    renderList();
+    highlightRow(name);
+    showStatus('success', 'Alias "' + name + '" saved.');
+}
+
+async function deleteAlias() {
+    if (!activeName) return;
+    if (!confirm('Delete alias "' + activeName + '"? This cannot be undone.')) return;
+
+    const res = await AdminAPI.delete('/admin/api/v1/color-aliases/' + encodeURIComponent(activeName));
+    if (!res.ok) { showStatus('error', res.error || 'Delete failed.'); return; }
+
+    delete aliasData[activeName];
+    activeName = null;
+    renderList();
+    document.getElementById('editorForm').style.display = 'none';
+    document.getElementById('editorPlaceholder').style.display = '';
+}
+
+function showStatus(type, msg) {
+    const bar = document.getElementById('statusBar');
+    bar.className = 'status-bar ' + type;
+    bar.textContent = msg;
+    if (type === 'success') setTimeout(() => { bar.className = 'status-bar'; }, 3000);
+}
+
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escAttr(s) { return String(s).replace(/"/g,'&quot;'); }
+
+loadAliases();
+</script>
+
+{{template "footer" .}}

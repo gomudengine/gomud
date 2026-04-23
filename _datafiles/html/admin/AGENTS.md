@@ -497,6 +497,7 @@ These are loaded by `_header.html` and available on every page:
 | `SelectDialog` | `static/js/select-dialog.js` | Reusable search/select modal |
 | `ScriptEditor` | `static/js/script-editor.js` | Syntax-highlighted textarea for JS scripts |
 | `hljs` | `static/js/highlight.js` | Code syntax highlighting engine |
+| `AnsiTags` | `static/js/ansitags.js` | ANSI tag parsing and rendering |
 
 ### AdminAPI (`static/js/api.js`)
 
@@ -855,7 +856,7 @@ Contents:
 - Minimal HTML5 shell (`<!DOCTYPE html>`, `<head>`, `<body>`)
 - Inline CSS reset and base styles (system font stack, nav bar, `<main>` container)
 - Top navigation bar built from `.NAV` template data, with support for nested dropdowns via `.SubItems`
-- `<script>` tags loading shared JS libraries from `/admin/static/js/` — `api.js`, `ansi-colors.js`, `select-dialog.js`, `script-editor.js`, and `highlight.js`
+- `<script>` tags loading shared JS libraries from `/admin/static/js/` — `api.js`, `ansi-colors.js`, `select-dialog.js`, `script-editor.js`, `highlight.js`, and `ansitags.js`
 - `<link>` to `/admin/static/css/highlight.css`
 
 ### `_footer.html`

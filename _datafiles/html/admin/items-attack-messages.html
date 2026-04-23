@@ -1,0 +1,535 @@
+{{template "header" .}}
+
+<style>
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #555; margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+    .page-layout { display: grid; grid-template-columns: 220px 1fr; gap: 1.25rem; align-items: start; }
+    @media (max-width: 800px) { .page-layout { grid-template-columns: 1fr; } }
+
+    .sidebar { background: #fff; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; }
+    .subtype-list { overflow-y: auto; max-height: 72vh; }
+    .subtype-row {
+        padding: 0.6rem 0.9rem; cursor: pointer; border-bottom: 1px solid #f0f0f0;
+        font-size: 0.875rem; text-transform: capitalize;
+    }
+    .subtype-row:hover { background: #f5f7ff; }
+    .subtype-row.active { background: #1a1a2e; color: #fff; }
+
+    .editor-panel { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 1.25rem; }
+    .editor-placeholder { color: #888; font-size: 0.9rem; padding: 2rem 1rem; text-align: center; }
+
+    .status-bar { display: none; padding: 0.55rem 0.9rem; border-radius: 4px; font-size: 0.85rem; margin-bottom: 1rem; }
+    .status-bar.success { background: #e6f4ea; color: #1e6e34; display: block; }
+    .status-bar.error   { background: #fde8e8; color: #8a0000; display: block; }
+
+    .tab-bar { display: flex; gap: 0; border-bottom: 2px solid #1a1a2e; margin-bottom: 1.25rem; flex-wrap: wrap; }
+    .tab-btn {
+        padding: 0.5rem 0.85rem; border: none; background: #eee; color: #555;
+        font-size: 0.82rem; font-weight: 600; cursor: pointer; border-radius: 4px 4px 0 0;
+        margin-bottom: -2px; border: 2px solid transparent; border-bottom: none;
+    }
+    .tab-btn:hover { background: #e0e0e0; }
+    .tab-btn.active { background: #fff; color: #1a1a2e; border-color: #1a1a2e; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .proximity-section { margin-bottom: 1.25rem; }
+    .proximity-header {
+        font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+        color: #1a1a2e; padding: 0.5rem 0; border-bottom: 1px solid #ddd; margin-bottom: 0.75rem;
+        cursor: pointer; user-select: none; display: flex; align-items: center; gap: 0.5rem;
+    }
+    .proximity-header .arrow { font-size: 0.6rem; color: #888; transition: transform 0.15s; }
+    .proximity-section.open .arrow { transform: rotate(90deg); }
+    .proximity-body { display: none; }
+    .proximity-section.open .proximity-body { display: block; }
+    .proximity-hint { font-size: 0.75rem; color: #888; font-weight: normal; text-transform: none; letter-spacing: normal; }
+
+    .target-group { margin-bottom: 1rem; padding-left: 0.5rem; }
+    .target-label {
+        font-size: 0.78rem; font-weight: 600; color: #555; margin-bottom: 0.4rem;
+        text-transform: uppercase; letter-spacing: 0.03em;
+    }
+    .msg-list { list-style: none; padding: 0; margin: 0 0 0.4rem 0; }
+    .msg-item {
+        display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.35rem 0;
+        border-bottom: 1px solid #f5f5f5; font-size: 0.84rem;
+    }
+    .msg-index {
+        font-size: 0.72rem; color: #999; font-family: monospace; min-width: 1.5rem;
+        text-align: right; padding-top: 0.15rem; flex-shrink: 0;
+    }
+    .msg-text { flex: 1; word-break: break-word; line-height: 1.4; font-family: monospace; font-size: 0.8rem; }
+    .msg-delete {
+        background: none; border: none; cursor: pointer; color: #bbb; font-size: 1rem; padding: 0 0.2rem;
+        flex-shrink: 0;
+    }
+    .msg-delete:hover { color: #c00; }
+
+    .msg-add-row { display: flex; gap: 0.4rem; margin-top: 0.4rem; }
+    .msg-add-row textarea {
+        flex: 1; padding: 0.35rem 0.5rem; border: 1px solid #ccc; border-radius: 4px;
+        font-size: 0.82rem; font-family: monospace; resize: vertical; min-height: 2.2rem;
+    }
+    .msg-add-row textarea:focus { outline: 2px solid #1a1a2e; outline-offset: 1px; border-color: transparent; }
+    .btn-add {
+        padding: 0.35rem 0.7rem; background: #1e6e34; color: #fff; border: none;
+        border-radius: 4px; font-size: 0.8rem; font-weight: 600; cursor: pointer; align-self: flex-end;
+    }
+    .btn-add:hover { background: #145728; }
+
+    .token-ref { margin-bottom: 1.25rem; }
+    .token-ref summary {
+        font-size: 0.82rem; font-weight: 600; color: #555; cursor: pointer; user-select: none;
+        text-transform: uppercase; letter-spacing: 0.03em;
+    }
+    .token-table { width: 100%; border-collapse: collapse; margin-top: 0.6rem; font-size: 0.8rem; }
+    .token-table th {
+        text-align: left; font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.04em; color: #666; padding: 0.3rem 0.6rem;
+        border-bottom: 2px solid #e0e0e0; white-space: nowrap;
+    }
+    .token-table td { padding: 0.35rem 0.6rem; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+    .token-table tr:last-child td { border-bottom: none; }
+    .token-table tr:hover td { background: #f9f9ff; }
+    .tok-name { font-family: monospace; color: #1a1a2e; white-space: nowrap; }
+    .tok-resolves { color: #444; }
+    .tok-context { color: #666; line-height: 1.45; }
+    .tok-badge {
+        display: inline-block; font-size: 0.68rem; padding: 0.1rem 0.4rem; border-radius: 3px;
+        white-space: nowrap; margin-top: 0.15rem;
+    }
+    .badge-always  { background: #e6f4ea; color: #1e6e34; }
+    .badge-separate { background: #e3f2fd; color: #0d47a1; }
+    .badge-limited { background: #fff3e0; color: #8a4a00; }
+
+    .empty-msg { font-size: 0.82rem; color: #aaa; font-style: italic; padding: 0.3rem 0; }
+
+    .msg-add-warning {
+        display: none; font-size: 0.78rem; color: #8a0000; background: #fde8e8;
+        border: 1px solid #f5c6c6; border-radius: 4px; padding: 0.3rem 0.55rem;
+        margin-top: 0.3rem; line-height: 1.4;
+    }
+    .msg-add-warning.visible { display: block; }
+
+    .msg-add-preview {
+        display: none;
+        font-family: monospace;
+        font-size: 0.8rem;
+        background: #000;
+        color: #ccc;
+        border-radius: 4px;
+        padding: 0.3rem 0.55rem;
+        margin-top: 0.3rem;
+        min-height: 1.4em;
+        word-break: break-word;
+    }
+    .msg-add-preview.visible { display: block; }
+
+    .ansi-tooltip {
+        display: none;
+        position: fixed;
+        background: #000;
+        color: #ccc;
+        border: 1px solid #444;
+        border-radius: 4px;
+        padding: 0.35rem 0.6rem;
+        font-size: 0.82rem;
+        font-family: monospace;
+        white-space: pre;
+        pointer-events: none;
+        z-index: 9999;
+        max-width: 600px;
+    }
+</style>
+
+<h1>Attack Messages</h1>
+<p class="subtitle">Edit combat messages by weapon subtype and intensity. <a href="/admin/items-attack-messages-api">API Docs &rarr;</a></p>
+
+<div id="ansiTooltip" class="ansi-tooltip"></div>
+
+<div class="page-layout">
+    <div class="sidebar">
+        <div id="subtypeList" class="subtype-list">
+            <div class="editor-placeholder">Loading...</div>
+        </div>
+    </div>
+
+    <div class="editor-panel">
+        <div id="editorPlaceholder" class="editor-placeholder">
+            Select a weapon subtype to view and edit its attack messages.
+        </div>
+        <div id="editorContent" style="display:none">
+            <div id="statusBar" class="status-bar"></div>
+
+            <details class="token-ref">
+                <summary>Available Tokens</summary>
+                <table class="token-table">
+                    <thead>
+                        <tr>
+                            <th>Token</th>
+                            <th>Resolves To</th>
+                            <th>Context</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="tok-name">{source}</td>
+                            <td class="tok-resolves">Attacker's display name</td>
+                            <td class="tok-context">
+                                Always available. Use in messages shown to the defender or the room so they know who is attacking.
+                                <br><span class="tok-badge badge-always">always set</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="tok-name">{sourcetype}</td>
+                            <td class="tok-resolves"><code>username</code> or <code>mobname</code></td>
+                            <td class="tok-context">
+                                Always available. Used as an ANSI color tag foreground value to color the attacker's name correctly, e.g. <code>&lt;ansi fg="{sourcetype}"&gt;{source}&lt;/ansi&gt;</code>.
+                                <br><span class="tok-badge badge-always">always set</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="tok-name">{target}</td>
+                            <td class="tok-resolves">Defender's display name</td>
+                            <td class="tok-context">
+                                Always available. Use in messages shown to the attacker or the room so they know who is being hit.
+                                <br><span class="tok-badge badge-always">always set</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="tok-name">{targettype}</td>
+                            <td class="tok-resolves"><code>username</code> or <code>mobname</code></td>
+                            <td class="tok-context">
+                                Always available. Used as an ANSI color tag foreground value to color the defender's name correctly, e.g. <code>&lt;ansi fg="{targettype}"&gt;{target}&lt;/ansi&gt;</code>.
+                                <br><span class="tok-badge badge-always">always set</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="tok-name">{itemname}</td>
+                            <td class="tok-resolves">Weapon display name, or unarmed attack name</td>
+                            <td class="tok-context">
+                                Always available. Falls back to the race's unarmed attack name when no weapon is equipped. Useful in all message targets to describe what was used.
+                                <br><span class="tok-badge badge-always">always set</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="tok-name">{damage}</td>
+                            <td class="tok-resolves">Numeric damage dealt (e.g. <code>14</code>)</td>
+                            <td class="tok-context">
+                                Available for all non-prepare, non-wait, non-miss intensities. Not meaningful in <em>prepare</em> or <em>wait</em> messages since no damage has been dealt yet. Best used in <em>To Attacker</em> messages for feedback.
+                                <br><span class="tok-badge badge-always">always set</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="tok-name">{exitname}</td>
+                            <td class="tok-resolves">Exit direction from attacker's room toward defender (e.g. <code>north</code>)</td>
+                            <td class="tok-context">
+                                Only meaningful in <strong>Separate Rooms</strong> messages. Resolves to <code>unknown</code> in same-room combat. Use in <em>To Attacker</em> or <em>To Attacker Room</em> to indicate which direction the attack was fired.
+                                <br><span class="tok-badge badge-separate">separate rooms only</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="tok-name">{entrancename}</td>
+                            <td class="tok-resolves">Exit direction from defender's room back toward attacker (e.g. <code>south</code>)</td>
+                            <td class="tok-context">
+                                Only meaningful in <strong>Separate Rooms</strong> messages. Resolves to <code>unknown</code> in same-room combat. Use in <em>To Defender</em> or <em>To Defender Room</em> to show where the attack came from.
+                                <br><span class="tok-badge badge-separate">separate rooms only</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </details>
+
+            <div class="tab-bar" id="intensityTabs"></div>
+            <div id="intensityPanels"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const INTENSITIES = ['prepare','wait','miss','weak','normal','heavy','critical'];
+    const TOGETHER_TARGETS = ['toattacker','todefender','toroom'];
+    const SEPARATE_TARGETS = ['toattacker','todefender','toattackerroom','todefenderroom'];
+    const TARGET_LABELS = {
+        toattacker: 'To Attacker',
+        todefender: 'To Defender',
+        toroom: 'To Room',
+        toattackerroom: 'To Attacker Room',
+        todefenderroom: 'To Defender Room'
+    };
+
+    let allData = {};
+    let activeSubtype = null;
+    let activeIntensity = null;
+
+    async function loadData() {
+        const [aliasRes, dataRes] = await AdminAPI.all([
+            AdminAPI.get('/admin/api/v1/color-aliases'),
+            AdminAPI.get('/admin/api/v1/items/attack-messages'),
+        ]);
+        if (aliasRes.ok) {
+            ansitags.loadAliases((aliasRes.data && aliasRes.data.data) || {});
+        }
+        if (!dataRes.ok) { console.error('Load failed:', dataRes.error); return; }
+        allData = (dataRes.data && dataRes.data.data) || {};
+        renderSubtypeList();
+    }
+
+    function renderSubtypeList() {
+        const list = document.getElementById('subtypeList');
+        const subtypes = Object.keys(allData).sort();
+        if (subtypes.length === 0) {
+            list.innerHTML = '<div class="editor-placeholder">No attack messages found.</div>';
+            return;
+        }
+        list.innerHTML = subtypes.map(st =>
+            '<div class="subtype-row' + (st === activeSubtype ? ' active' : '') + '" data-st="' + escAttr(st) + '" onclick="selectSubtype(\'' + escAttr(st) + '\')">' +
+                escHtml(st) +
+            '</div>'
+        ).join('');
+    }
+
+    function selectSubtype(st) {
+        activeSubtype = st;
+        activeIntensity = activeIntensity || INTENSITIES[0];
+        renderSubtypeList();
+        renderEditor();
+    }
+
+    function renderEditor() {
+        document.getElementById('editorPlaceholder').style.display = 'none';
+        document.getElementById('editorContent').style.display = '';
+        document.getElementById('statusBar').className = 'status-bar';
+
+        const group = allData[activeSubtype];
+        if (!group) return;
+        const options = group.Options || {};
+
+        const tabBar = document.getElementById('intensityTabs');
+        tabBar.innerHTML = INTENSITIES.map(int =>
+            '<button class="tab-btn' + (int === activeIntensity ? ' active' : '') + '" onclick="switchIntensity(\'' + int + '\')">' +
+                escHtml(int.charAt(0).toUpperCase() + int.slice(1)) +
+            '</button>'
+        ).join('');
+
+        const panels = document.getElementById('intensityPanels');
+        panels.innerHTML = INTENSITIES.map(int => {
+            const opts = options[int] || {};
+            const tog = opts.Together || {};
+            const sep = opts.Separate || {};
+            const isActive = int === activeIntensity;
+
+            return '<div class="tab-panel' + (isActive ? ' active' : '') + '" id="panel-' + int + '">' +
+                renderProximitySection('together', 'Same Room', 'Both combatants are in the same room', TOGETHER_TARGETS, tog, int) +
+                renderProximitySection('separate', 'Separate Rooms', 'Combatants are in different rooms (ranged only)', SEPARATE_TARGETS, sep, int) +
+            '</div>';
+        }).join('');
+
+        document.querySelectorAll('.proximity-section').forEach(function(s) {
+            s.classList.add('open');
+        });
+    }
+
+    function renderProximitySection(proximity, title, hint, targets, data, intensity) {
+        var html = '<div class="proximity-section open">' +
+            '<div class="proximity-header" onclick="this.parentElement.classList.toggle(\'open\')">' +
+                '<span class="arrow">&#9654;</span> ' + escHtml(title) +
+                ' <span class="proximity-hint">(' + escHtml(hint) + ')</span>' +
+            '</div>' +
+            '<div class="proximity-body">';
+
+        for (var i = 0; i < targets.length; i++) {
+            var t = targets[i];
+            var key = t.charAt(0).toUpperCase() === t.charAt(0) ? t : capitalizeTarget(t);
+            var msgs = data[key] || [];
+            html += renderTargetGroup(intensity, proximity, t, msgs);
+        }
+
+        html += '</div></div>';
+        return html;
+    }
+
+    function capitalizeTarget(t) {
+        var map = {
+            toattacker: 'ToAttacker',
+            todefender: 'ToDefender',
+            toroom: 'ToRoom',
+            toattackerroom: 'ToAttackerRoom',
+            todefenderroom: 'ToDefenderRoom'
+        };
+        return map[t] || t;
+    }
+
+    function renderTargetGroup(intensity, proximity, target, msgs) {
+        var id = intensity + '-' + proximity + '-' + target;
+        var html = '<div class="target-group">' +
+            '<div class="target-label">' + escHtml(TARGET_LABELS[target] || target) + '</div>' +
+            '<ul class="msg-list" id="msgs-' + id + '">';
+
+        if (msgs.length === 0) {
+            html += '<li class="empty-msg">No messages defined.</li>';
+        } else {
+            for (var i = 0; i < msgs.length; i++) {
+                html += '<li class="msg-item">' +
+                    '<span class="msg-index">' + i + '</span>' +
+                    '<span class="msg-text" onmouseenter="showAnsiTooltip(event,this)" onmouseleave="hideAnsiTooltip()">' + escHtml(msgs[i]) + '</span>' +
+                    '<button class="msg-delete" title="Delete" onclick="deleteMsg(\'' + escAttr(intensity) + '\',\'' + escAttr(proximity) + '\',\'' + escAttr(target) + '\',' + i + ')">&times;</button>' +
+                '</li>';
+            }
+        }
+
+        var isTogether = (proximity === 'together');
+        html += '</ul>' +
+            '<div class="msg-add-row">' +
+                '<textarea id="add-' + id + '" placeholder="New message..." rows="1"' +
+                    ' oninput="updateAddPreview(this,\'' + escAttr(id) + '\')' + (isTogether ? ';checkTogetherTokens(this,\'' + escAttr(id) + '\')' : '') + '"' +
+                    ' onkeydown="if(event.ctrlKey&&event.key===\'Enter\')addMsg(\'' + escAttr(intensity) + '\',\'' + escAttr(proximity) + '\',\'' + escAttr(target) + '\')"></textarea>' +
+                '<button class="btn-add" onclick="addMsg(\'' + escAttr(intensity) + '\',\'' + escAttr(proximity) + '\',\'' + escAttr(target) + '\')">Add</button>' +
+            '</div>' +
+            '<div class="msg-add-preview" id="preview-' + id + '"></div>' +
+            '<div class="msg-add-warning" id="warn-' + id + '"></div>' +
+        '</div>';
+        return html;
+    }
+
+    function switchIntensity(int) {
+        activeIntensity = int;
+        document.querySelectorAll('.tab-btn').forEach(function(b) {
+            b.classList.toggle('active', b.textContent.toLowerCase() === int);
+        });
+        document.querySelectorAll('.tab-panel').forEach(function(p) {
+            p.classList.toggle('active', p.id === 'panel-' + int);
+        });
+    }
+
+    // Returns an array of same-room-invalid token names found in the message string.
+    function separateOnlyTokensIn(message) {
+        var bad = [];
+        if (message.indexOf('{exitname}') !== -1)     bad.push('{exitname}');
+        if (message.indexOf('{entrancename}') !== -1) bad.push('{entrancename}');
+        return bad;
+    }
+
+    function checkTogetherTokens(textarea, id) {
+        var warn = document.getElementById('warn-' + id);
+        if (!warn) return;
+        var bad = separateOnlyTokensIn(textarea.value);
+        if (bad.length > 0) {
+            warn.textContent = bad.join(' and ') + (bad.length === 1 ? ' is' : ' are') +
+                ' only valid in Separate Rooms messages and will always resolve to "unknown" here.';
+            warn.classList.add('visible');
+        } else {
+            warn.classList.remove('visible');
+        }
+    }
+
+    async function addMsg(intensity, proximity, target) {
+        var id = intensity + '-' + proximity + '-' + target;
+        var textarea = document.getElementById('add-' + id);
+        var message = textarea.value.trim();
+        if (!message) { showStatus('error', 'Message cannot be empty.'); return; }
+
+        if (proximity === 'together') {
+            var bad = separateOnlyTokensIn(message);
+            if (bad.length > 0) {
+                showStatus('error',
+                    bad.join(' and ') + (bad.length === 1 ? ' is' : ' are') +
+                    ' only valid in Separate Rooms messages and will always resolve to "unknown" in Same Room messages.');
+                return;
+            }
+        }
+
+        var url = '/admin/api/v1/items/attack-messages/' +
+            encodeURIComponent(activeSubtype) + '/' +
+            encodeURIComponent(intensity) + '/' +
+            encodeURIComponent(proximity) + '/' +
+            encodeURIComponent(target);
+
+        var res = await AdminAPI.put(url, { message: message });
+        if (!res.ok) { showStatus('error', res.error || 'Add failed.'); return; }
+
+        textarea.value = '';
+        showStatus('success', 'Message added.');
+        await reloadAndRender();
+    }
+
+    async function deleteMsg(intensity, proximity, target, index) {
+        if (!confirm('Delete message #' + index + '?')) return;
+
+        var url = '/admin/api/v1/items/attack-messages/' +
+            encodeURIComponent(activeSubtype) + '/' +
+            encodeURIComponent(intensity) + '/' +
+            encodeURIComponent(proximity) + '/' +
+            encodeURIComponent(target) + '/' + index;
+
+        var res = await AdminAPI.delete(url);
+        if (!res.ok) { showStatus('error', res.error || 'Delete failed.'); return; }
+
+        showStatus('success', 'Message deleted.');
+        await reloadAndRender();
+    }
+
+    async function reloadAndRender() {
+        var res = await AdminAPI.get('/admin/api/v1/items/attack-messages');
+        if (!res.ok) { return; }
+        allData = (res.data && res.data.data) || {};
+        renderSubtypeList();
+        renderEditor();
+    }
+
+    function showStatus(type, msg) {
+        var bar = document.getElementById('statusBar');
+        bar.className = 'status-bar ' + type;
+        bar.textContent = msg;
+        if (type === 'success') setTimeout(function() { bar.className = 'status-bar'; }, 3000);
+    }
+
+    function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function escAttr(s) { return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+    function updateAddPreview(textarea, id) {
+        var el = document.getElementById('preview-' + id);
+        if (!el) return;
+        var raw = textarea.value
+            .replace(/\{sourcetype\}/g, 'username')
+            .replace(/\{targettype\}/g, 'mobname');
+        if (!raw.trim()) {
+            el.classList.remove('visible');
+            el.innerHTML = '';
+        } else {
+            el.innerHTML = ansitags.parse(raw);
+            el.classList.add('visible');
+        }
+    }
+
+    var _ansiTooltip = null;
+    function showAnsiTooltip(event, el) {
+        if (!_ansiTooltip) _ansiTooltip = document.getElementById('ansiTooltip');
+        var raw = el.textContent
+            .replace(/\{sourcetype\}/g, 'username')
+            .replace(/\{targettype\}/g, 'mobname');
+        _ansiTooltip.innerHTML = ansitags.parse(raw);
+        _ansiTooltip.style.display = 'block';
+        positionTooltip(event);
+    }
+    function hideAnsiTooltip() {
+        if (!_ansiTooltip) _ansiTooltip = document.getElementById('ansiTooltip');
+        _ansiTooltip.style.display = 'none';
+    }
+    function positionTooltip(event) {
+        var tip = _ansiTooltip;
+        var x = event.clientX + 14;
+        var y = event.clientY + 14;
+        tip.style.left = x + 'px';
+        tip.style.top  = y + 'px';
+    }
+    document.addEventListener('mousemove', function(event) {
+        if (_ansiTooltip && _ansiTooltip.style.display === 'block') positionTooltip(event);
+    });
+
+    loadData();
+</script>
+
+{{template "footer" .}}

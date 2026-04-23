@@ -1,0 +1,129 @@
+{{template "header" .}}
+
+<style>
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #555; margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+    .api-list { display: flex; flex-direction: column; gap: 0.75rem; }
+    .api-entry { border: 1px solid #ddd; border-radius: 6px; overflow: hidden; }
+    .api-entry summary {
+        display: flex; align-items: center; gap: 0.75rem; padding: 0.7rem 1rem;
+        cursor: pointer; background: #fafafa; list-style: none; font-size: 0.875rem;
+        user-select: none;
+    }
+    .api-entry summary::-webkit-details-marker { display: none; }
+    .api-entry[open] summary { background: #f0f0f8; border-bottom: 1px solid #ddd; }
+    .method {
+        font-size: 0.72rem; font-weight: 700; padding: 0.2rem 0.5rem;
+        border-radius: 3px; text-transform: uppercase; white-space: nowrap; color: #fff;
+    }
+    .method-get    { background: #1e6e34; }
+    .method-patch  { background: #8a5a00; }
+    .method-delete { background: #8a0000; }
+    .api-path { font-family: monospace; font-size: 0.82rem; color: #1a1a2e; }
+    .api-desc { margin-left: auto; font-size: 0.8rem; color: #666; }
+    .api-body { padding: 1rem 1.25rem; font-size: 0.875rem; line-height: 1.6; }
+    .api-body p { margin-bottom: 0.75rem; color: #333; }
+    .curl-block {
+        background: #1a1a2e; color: #ccc; font-family: monospace; font-size: 0.8rem;
+        padding: 0.75rem 1rem; border-radius: 4px; white-space: pre-wrap; word-break: break-all;
+        margin: 0.5rem 0 1rem;
+    }
+    .kw   { color: #79c0ff; }
+    .flag { color: #d2a8ff; }
+    .str  { color: #a5d6ff; }
+    .response-examples { margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.4rem; }
+    .resp-entry { border: 1px solid #eee; border-radius: 4px; overflow: hidden; }
+    .resp-entry summary { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.75rem; cursor: pointer; background: #fafafa; list-style: none; font-size: 0.8rem; }
+    .resp-entry summary::-webkit-details-marker { display: none; }
+    .resp-entry[open] summary { background: #f5f5f5; border-bottom: 1px solid #eee; }
+    .resp-body { padding: 0.5rem 0.75rem; }
+    .resp-label { font-size: 0.75rem; font-weight: 600; }
+    .status-ok  { background: #e6f4ea; color: #1e6e34; padding: 0.15rem 0.45rem; border-radius: 3px; }
+    .status-err { background: #fde8e8; color: #8a0000; padding: 0.15rem 0.45rem; border-radius: 3px; }
+</style>
+
+<h1>Color Aliases API Reference</h1>
+<p class="subtitle">REST endpoints for managing named ANSI color aliases.</p>
+
+<div class="api-list">
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-get">GET</span>
+            <span class="api-path">/admin/api/v1/color-aliases</span>
+            <span class="api-desc">Return all color aliases</span>
+        </summary>
+        <div class="api-body">
+            <p>Returns all currently loaded ANSI color aliases as a flat object mapping alias name to numeric color code (0–255).</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/color-aliases</span></div>
+            <div class="response-examples">
+                <details class="resp-entry" open>
+                    <summary><span class="method resp-label status-ok">200</span><span class="resp-label">Success</span></summary>
+                    <div class="resp-body">
+                        <div class="curl-block">{"success":true,"data":{"username":11,"mobname":51,"gold":220}}</div>
+                    </div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-patch">PATCH</span>
+            <span class="api-path">/admin/api/v1/color-aliases</span>
+            <span class="api-desc">Set or update an alias</span>
+        </summary>
+        <div class="api-body">
+            <p>Sets a single alias to the given ANSI 256-color code. If the alias already exists it is overwritten. The change is persisted to <code>ansi-aliases.yaml</code> and aliases are reloaded immediately.</p>
+            <p><strong>Body fields:</strong></p>
+            <ul style="margin:0 0 0.75rem 1.25rem; font-size:0.85rem; color:#333;">
+                <li><code>alias</code> (string, required) — alias name</li>
+                <li><code>value</code> (integer 0–255, required) — ANSI color code</li>
+            </ul>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="flag">-X</span> <span class="str">PATCH</span> \
+     <span class="flag">-H</span> <span class="str">'Content-Type: application/json'</span> \
+     <span class="flag">-d</span> <span class="str">'{"alias":"username","value":195}'</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/color-aliases</span></div>
+            <div class="response-examples">
+                <details class="resp-entry" open>
+                    <summary><span class="method resp-label status-ok">200</span><span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">400</span><span class="resp-label">Bad Request</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"value must be between 0 and 255"}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-delete">DELETE</span>
+            <span class="api-path">/admin/api/v1/color-aliases/{alias}</span>
+            <span class="api-desc">Delete an alias</span>
+        </summary>
+        <div class="api-body">
+            <p>Removes the named alias from <code>ansi-aliases.yaml</code> and reloads aliases. The alias name is URL-encoded in the path.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="flag">-X</span> <span class="str">DELETE</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/color-aliases/username</span></div>
+            <div class="response-examples">
+                <details class="resp-entry" open>
+                    <summary><span class="method resp-label status-ok">200</span><span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">404</span><span class="resp-label">Not Found</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"alias not found: username"}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+</div>
+
+{{template "footer" .}}

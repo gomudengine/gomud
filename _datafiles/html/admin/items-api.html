@@ -40,7 +40,7 @@
 </style>
 
 <h1>Items API Reference</h1>
-<p class="subtitle">REST endpoints for browsing, creating, editing, and deleting item definitions.</p>
+<p class="subtitle">REST endpoints for browsing, creating, editing, and deleting item definitions. For attack message endpoints see <a href="/admin/items-attack-messages-api">Attack Messages API Docs</a>.</p>
 
 <div class="api-list">
 
@@ -58,25 +58,6 @@
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
                     <div class="resp-body"><div class="curl-block">{"success":true,"data":{"subtypes":[...],"types":[{"Type":"weapon","Description":"...","Count":0,"MinItemId":10000,"MaxItemId":19999},...]}}</div></div>
-                </details>
-            </div>
-        </div>
-    </details>
-
-    <details class="api-entry">
-        <summary>
-            <span class="method method-get">GET</span>
-            <span class="api-path">/admin/api/v1/items/attack-messages</span>
-            <span class="api-desc">Return all weapon attack message groups</span>
-        </summary>
-        <div class="api-body">
-            <p>Returns all loaded weapon attack message groups keyed by subtype (generic, slashing, stabbing, etc.).</p>
-            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
-     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/items/attack-messages</span></div>
-            <div class="response-examples">
-                <details class="resp-entry">
-                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
-                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"generic":{"Intensity":{...}},"slashing":{...},...}}</div></div>
                 </details>
             </div>
         </div>
