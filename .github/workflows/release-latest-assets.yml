@@ -27,11 +27,18 @@ jobs:
     steps:
       - uses: actions/checkout@v6.0.2
         with:
+          ref: master
           persist-credentials: false
 
       - name: Compute release metadata
         id: meta
         run: |
+          if [ "$GITHUB_REF" != "refs/heads/master" ]; then
+            echo \
+              "Release Latest Assets may only be run from master" \
+              >&2
+            exit 1
+          fi
           release_tag="$(
             gh api "repos/${GITHUB_REPOSITORY}/releases/latest" \
               --jq '.tag_name'
@@ -68,6 +75,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6.0.2
         with:
+          ref: master
           persist-credentials: false
       - uses: ./.github/actions/setup-go
 
@@ -136,6 +144,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6.0.2
         with:
+          ref: master
           persist-credentials: false
 
       - name: Download builds
