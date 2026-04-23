@@ -4,111 +4,884 @@
     h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
     .subtitle { color: #555; margin-bottom: 1.5rem; font-size: 0.9rem; }
 
-    .search-bar { display: flex; gap: 0.6rem; align-items: center; margin-bottom: 1.25rem; }
-    .search-bar input[type="search"] { flex: 1; max-width: 400px; padding: 0.45rem 0.7rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; }
-    .btn { padding: 0.45rem 1.1rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.875rem; font-weight: 600; }
-    .btn-primary { background: #1a1a2e; color: #fff; }
-    .btn-primary:hover { background: #2d2d4e; }
-    .btn-primary:disabled { background: #999; cursor: default; }
+    /* picker bar */
+    .picker-bar { display: flex; gap: 0.6rem; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; }
+    .user-display {
+        display: flex; align-items: center; gap: 0.6rem;
+        background: #fff; border: 1px solid #ddd; border-radius: 4px;
+        padding: 0.35rem 0.75rem; font-size: 0.875rem; min-width: 220px;
+    }
+    .user-display .uid { font-family: monospace; color: #888; font-size: 0.8rem; }
+    .user-display.empty { color: #aaa; font-style: italic; }
 
+    /* status */
     .status-bar { display: none; padding: 0.55rem 0.9rem; border-radius: 4px; font-size: 0.85rem; margin-bottom: 1rem; }
     .status-bar.success { background: #e6f4ea; color: #1e6e34; display: block; }
     .status-bar.error   { background: #fde8e8; color: #8a0000; display: block; }
 
-    .results-table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; font-size: 0.875rem; }
-    .results-table th { background: #1a1a2e; color: #fff; padding: 0.6rem 0.9rem; text-align: left; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
-    .results-table td { padding: 0.55rem 0.9rem; border-bottom: 1px solid #f0f0f0; }
-    .results-table tr:last-child td { border-bottom: none; }
-    .results-table tr:hover td { background: #f5f7ff; }
-    .results-table .empty-row td { text-align: center; color: #888; padding: 2.5rem; font-style: italic; }
+    /* editor panel */
+    .editor-panel { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 1.25rem; }
+    .editor-placeholder { color: #aaa; text-align: center; padding: 4rem 1rem; font-size: 0.9rem; }
 
+    /* form */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem 1.25rem; }
+    .form-grid .span2 { grid-column: 1 / -1; }
+    .field label { display: block; font-size: 0.78rem; font-weight: 600; color: #555; margin-bottom: 0.25rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .field input[type="text"],
+    .field input[type="number"],
+    .field input[type="password"],
+    .field select,
+    .field textarea {
+        width: 100%; padding: 0.4rem 0.6rem; border: 1px solid #ccc; border-radius: 4px;
+        font-size: 0.875rem; font-family: inherit; background: #fff;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid #1a1a2e; outline-offset: 1px; border-color: transparent; }
+    .field textarea { resize: vertical; min-height: 80px; }
+    .field-hint { font-size: 0.75rem; color: #888; margin-top: 0.2rem; }
+
+    /* range sliders */
+    .range-wrap { display: flex; align-items: center; gap: 0.6rem; }
+    .range-wrap input[type="range"] { flex: 1; accent-color: #1a1a2e; }
+    .range-val { font-family: monospace; font-size: 0.85rem; font-weight: 600; min-width: 2.5rem; text-align: center; color: #1a1a2e; }
+
+    /* section headings */
+    .section-title {
+        font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.06em; color: #666; padding: 0.5rem 0 0.4rem;
+        border-bottom: 1px solid #eee; margin-bottom: 0.75rem; grid-column: 1 / -1;
+    }
+
+    /* tags editor */
+    .tags-wrap { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+    .tag-chip {
+        display: inline-flex; align-items: center; gap: 0.3rem;
+        background: #e8eaf6; color: #3949ab; border-radius: 12px;
+        padding: 0.2rem 0.6rem; font-size: 0.8rem;
+    }
+    .tag-chip button { background: none; border: none; cursor: pointer; color: #3949ab; font-size: 0.85rem; line-height: 1; padding: 0; }
+    .tag-chip button:hover { color: #c00; }
+    .tag-add-input { width: 140px; padding: 0.25rem 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.82rem; }
+    .btn-add-sm {
+        font-size: 0.8rem; padding: 0.3rem 0.7rem; border: 1px dashed #aaa;
+        background: none; border-radius: 4px; cursor: pointer; color: #555; margin-top: 0.25rem;
+    }
+    .btn-add-sm:hover { border-color: #1a1a2e; color: #1a1a2e; }
+
+    /* buff chips / item chips */
+    .buff-ids-wrap { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+    .buff-chip {
+        display: inline-flex; align-items: center; gap: 0.3rem;
+        background: #e8eaf6; color: #3949ab; border-radius: 12px;
+        padding: 0.2rem 0.6rem; font-size: 0.8rem;
+    }
+    .buff-chip button { background: none; border: none; cursor: pointer; color: #3949ab; font-size: 0.85rem; line-height: 1; padding: 0; }
+    .buff-chip button:hover { color: #c00; }
+
+    .btn-icon { background: none; border: none; cursor: pointer; font-size: 1rem; color: #888; padding: 0 0.2rem; line-height: 1; }
+    .btn-icon:hover { color: #c00; }
+
+    /* equipment picker */
+    .shop-picker-wrap { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
+    .shop-picker-display { font-size: 0.82rem; color: #333; font-family: monospace; }
+    .shop-picker-display.empty { color: #aaa; font-style: italic; font-family: inherit; }
+
+    /* shop cards */
+    .shop-entries { display: flex; flex-direction: column; gap: 0.75rem; }
+    .shop-card { border: 1px solid #ddd; border-radius: 6px; padding: 0.75rem 0.9rem; background: #fafafa; position: relative; }
+    .shop-card-header { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.6rem; }
+    .shop-card-type-badge { font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 3px; font-weight: 600; text-transform: uppercase; }
+    .shop-type-item  { background: #e6f4ea; color: #1e6e34; }
+    .shop-type-mob   { background: #e3f2fd; color: #0d47a1; }
+    .shop-type-buff  { background: #f3e5f5; color: #6a1b9a; }
+    .shop-type-pet   { background: #fff3e0; color: #8a4a00; }
+    .shop-card-remove { position: absolute; top: 0.5rem; right: 0.6rem; background: none; border: none; cursor: pointer; font-size: 1.1rem; color: #999; line-height: 1; }
+    .shop-card-remove:hover { color: #c00; }
+    .shop-card-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.5rem 0.75rem; }
+    .shop-field label { display: block; font-size: 0.72rem; font-weight: 600; color: #666; margin-bottom: 0.15rem; text-transform: uppercase; letter-spacing: 0.02em; }
+    .shop-field input, .shop-field select { width: 100%; padding: 0.3rem 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.82rem; background: #fff; }
+    .shop-field .field-hint { font-size: 0.7rem; color: #999; margin-top: 0.1rem; }
+
+    /* action bar */
+    .action-bar { display: flex; gap: 0.6rem; margin-top: 1.25rem; align-items: center; flex-wrap: wrap; }
+    .btn { padding: 0.45rem 1.1rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.875rem; font-weight: 600; }
+    .btn-primary { background: #1a1a2e; color: #fff; }
+    .btn-primary:hover { background: #2d2d4e; }
+    .btn-primary:disabled { background: #999; cursor: default; }
+    .btn-secondary { background: #eee; color: #333; }
+    .btn-secondary:hover { background: #ddd; }
+    .user-id-display { font-family: monospace; font-size: 0.82rem; color: #888; margin-left: auto; }
+
+    /* editor header */
+    .editor-header { display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 1rem; }
+    .editor-header h2 { font-size: 1.1rem; flex: 1; }
+
+    /* role badge */
     .role-badge { display: inline-block; font-size: 0.72rem; padding: 0.15rem 0.45rem; border-radius: 3px; font-weight: 600; text-transform: uppercase; }
     .role-admin { background: #fde8e8; color: #8a0000; }
     .role-user  { background: #e6f4ea; color: #1e6e34; }
     .role-guest { background: #f0f0f0; color: #555; }
-
-    .uid { font-family: monospace; color: #888; font-size: 0.82rem; }
 </style>
 
 <h1>Users</h1>
-<p class="subtitle">Search for user accounts by username. Exact matches are returned first; prefix matches are shown when no exact match is found.</p>
+<p class="subtitle">Search for a user account, then edit their details.</p>
 
 <div id="status-bar" class="status-bar"></div>
 
-<div class="search-bar">
-    <input type="search" id="user-search" placeholder="Search by username..." />
-    <button class="btn btn-primary" id="search-btn" onclick="doSearch()">Search</button>
+<div class="picker-bar">
+    <div class="user-display empty" id="user-display">No user selected</div>
+    <button class="btn btn-primary" onclick="openUserPicker()">Find User&hellip;</button>
 </div>
 
-<table class="results-table">
-    <thead>
-        <tr>
-            <th>User ID</th>
-            <th>Username</th>
-            <th>Role</th>
-            <th>Email</th>
-        </tr>
-    </thead>
-    <tbody id="results-body">
-        <tr class="empty-row"><td colspan="4">Enter a username above and click Search.</td></tr>
-    </tbody>
-</table>
+<div class="editor-panel" id="editor-panel">
+    <div class="editor-placeholder" id="editor-placeholder">
+        Click <strong>Find User&hellip;</strong> to search for a user account to edit.
+    </div>
+    <div id="editor-form" style="display:none;">
+        <div class="editor-header">
+            <h2 id="editor-title">User Editor</h2>
+        </div>
+
+        <div class="form-grid">
+            <div class="section-title">Account</div>
+
+            <div class="field">
+                <label>Username</label>
+                <input type="text" id="f-username" placeholder="username" />
+                <div class="field-hint">Changing the username does not update the login index — use with care.</div>
+            </div>
+            <div class="field">
+                <label>Role</label>
+                <select id="f-role">
+                    <option value="user">user</option>
+                    <option value="admin">admin</option>
+                    <option value="guest">guest</option>
+                </select>
+            </div>
+
+            <div class="field">
+                <label>Email Address</label>
+                <input type="text" id="f-email" placeholder="optional" />
+            </div>
+            <div class="field">
+                <label>New Password</label>
+                <input type="password" id="f-password" placeholder="leave blank to keep current" autocomplete="new-password" />
+                <div class="field-hint">Will be bcrypt-hashed before saving. Leave blank to keep the existing password.</div>
+            </div>
+
+            <div class="field">
+                <label>Muted</label>
+                <select id="f-muted">
+                    <option value="false">No</option>
+                    <option value="true">Yes — cannot send custom communications</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Deafened</label>
+                <select id="f-deafened">
+                    <option value="false">No</option>
+                    <option value="true">Yes — cannot hear custom communications</option>
+                </select>
+            </div>
+
+            <div class="field">
+                <label>Screen Reader</label>
+                <select id="f-screenreader">
+                    <option value="false">No</option>
+                    <option value="true">Yes — strip excess symbols</option>
+                </select>
+            </div>
+
+            <div class="section-title">Character</div>
+
+            <div class="field">
+                <label>Character Name</label>
+                <input type="text" id="f-name" placeholder="e.g. Aldric" />
+            </div>
+            <div class="field">
+                <label>Race</label>
+                <select id="f-raceid">
+                    <option value="0">&mdash; none &mdash;</option>
+                </select>
+            </div>
+
+            <div class="field span2">
+                <label>Description</label>
+                <textarea id="f-description" rows="6" placeholder="Description shown to other players"></textarea>
+            </div>
+
+            <div class="field">
+                <label>Level</label>
+                <input type="number" id="f-level" min="1" placeholder="1" />
+            </div>
+            <div class="field">
+                <label>Gold</label>
+                <input type="number" id="f-gold" min="0" placeholder="0" />
+            </div>
+
+            <div class="field">
+                <label>Alignment</label>
+                <div class="range-wrap">
+                    <input type="range" id="f-alignment" min="-100" max="100" value="0"
+                           oninput="document.getElementById('f-alignment-val').textContent=this.value" />
+                    <span class="range-val" id="f-alignment-val">0</span>
+                </div>
+                <div class="field-hint">-100 (evil) to 100 (good)</div>
+            </div>
+
+            <div class="section-title">Stats (Training Bonuses)</div>
+
+            <div class="field">
+                <label>Strength</label>
+                <input type="number" id="f-stat-strength" value="0" />
+            </div>
+            <div class="field">
+                <label>Speed</label>
+                <input type="number" id="f-stat-speed" value="0" />
+            </div>
+            <div class="field">
+                <label>Smarts</label>
+                <input type="number" id="f-stat-smarts" value="0" />
+            </div>
+            <div class="field">
+                <label>Vitality</label>
+                <input type="number" id="f-stat-vitality" value="0" />
+            </div>
+            <div class="field">
+                <label>Mysticism</label>
+                <input type="number" id="f-stat-mysticism" value="0" />
+            </div>
+            <div class="field">
+                <label>Perception</label>
+                <input type="number" id="f-stat-perception" value="0" />
+            </div>
+
+            <div class="section-title">Equipment</div>
+
+            <div class="field">
+                <label>Weapon</label>
+                <div class="shop-picker-wrap" id="f-eq-weapon" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-weapon')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-weapon')">&times;</button></div>
+            </div>
+            <div class="field">
+                <label>Offhand</label>
+                <div class="shop-picker-wrap" id="f-eq-offhand" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-offhand')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-offhand')">&times;</button></div>
+            </div>
+            <div class="field">
+                <label>Head</label>
+                <div class="shop-picker-wrap" id="f-eq-head" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-head')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-head')">&times;</button></div>
+            </div>
+            <div class="field">
+                <label>Neck</label>
+                <div class="shop-picker-wrap" id="f-eq-neck" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-neck')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-neck')">&times;</button></div>
+            </div>
+            <div class="field">
+                <label>Body</label>
+                <div class="shop-picker-wrap" id="f-eq-body" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-body')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-body')">&times;</button></div>
+            </div>
+            <div class="field">
+                <label>Belt</label>
+                <div class="shop-picker-wrap" id="f-eq-belt" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-belt')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-belt')">&times;</button></div>
+            </div>
+            <div class="field">
+                <label>Gloves</label>
+                <div class="shop-picker-wrap" id="f-eq-gloves" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-gloves')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-gloves')">&times;</button></div>
+            </div>
+            <div class="field">
+                <label>Ring</label>
+                <div class="shop-picker-wrap" id="f-eq-ring" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-ring')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-ring')">&times;</button></div>
+            </div>
+            <div class="field">
+                <label>Legs</label>
+                <div class="shop-picker-wrap" id="f-eq-legs" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-legs')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-legs')">&times;</button></div>
+            </div>
+            <div class="field">
+                <label>Feet</label>
+                <div class="shop-picker-wrap" id="f-eq-feet" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-feet')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-feet')">&times;</button></div>
+            </div>
+
+            <div class="section-title">Inventory</div>
+
+            <div class="field span2">
+                <div class="buff-ids-wrap" id="items-list"></div>
+                <button class="btn-add-sm" style="margin-top:0.4rem;" onclick="pickItem()">+ Add Item</button>
+                <div class="field-hint">Items the character is carrying</div>
+            </div>
+
+            <div class="section-title">Shop</div>
+
+            <div class="field span2">
+                <div class="shop-entries" id="shop-list"></div>
+                <div style="display:flex; gap:0.5rem; margin-top:0.5rem; flex-wrap:wrap;">
+                    <button class="btn-add-sm" onclick="addShopEntry('item')">+ Item</button>
+                    <button class="btn-add-sm" onclick="addShopEntry('mob')">+ Mob for Hire</button>
+                    <button class="btn-add-sm" onclick="addShopEntry('buff')">+ Buff</button>
+                    <button class="btn-add-sm" onclick="addShopEntry('pet')">+ Pet</button>
+                </div>
+                <div class="field-hint">Leave empty if not a shopkeeper. QuantityMax: 0 = always in stock, -1 = never restocks.</div>
+            </div>
+        </div>
+
+        <div class="action-bar">
+            <button class="btn btn-primary" id="save-btn" onclick="saveUser()">Save User</button>
+            <button class="btn btn-secondary" onclick="cancelEdit()">Cancel</button>
+            <span class="user-id-display" id="user-id-display"></span>
+        </div>
+    </div>
+</div>
 
 <script>
 (function () {
     'use strict';
 
-    const searchInput = document.getElementById('user-search');
-    const searchBtn   = document.getElementById('search-btn');
+    let allItems  = [];
+    let buffSpecs = {};
+    let currentUserId = null;
 
-    searchInput.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') doSearch();
-    });
+    async function init() {
+        const [racesRes, buffsRes, itemsRes] = await AdminAPI.all([
+            AdminAPI.get('/admin/api/v1/races'),
+            AdminAPI.get('/admin/api/v1/buffs'),
+            AdminAPI.get('/admin/api/v1/items'),
+        ]);
 
-    window.doSearch = async function () {
-        const name = searchInput.value.trim();
-        if (!name) { showStatus('Enter a username to search.', false); return; }
-
-        searchBtn.disabled = true;
-        searchBtn.textContent = 'Searching...';
-
-        const res = await AdminAPI.get('/admin/api/v1/users/search?name=' + encodeURIComponent(name));
-
-        searchBtn.disabled = false;
-        searchBtn.textContent = 'Search';
-
-        if (!res.ok) {
-            showStatus('Search failed: ' + res.error, false);
-            renderResults([]);
-            return;
+        if (racesRes.ok) populateRaceSelect(racesRes.data.data || {});
+        if (buffsRes.ok) {
+            buffSpecs = (buffsRes.data.data && buffsRes.data.data.specs) || {};
         }
-
-        const users = res.data.data || [];
-        renderResults(users);
-
-        if (users.length === 0) {
-            showStatus('No users found matching "' + esc(name) + '".', false);
-        } else {
-            showStatus('Found ' + users.length + ' result' + (users.length === 1 ? '' : 's') + '.', true);
+        if (itemsRes.ok) {
+            allItems = (itemsRes.data.data || []).sort((a, b) => a.ItemId - b.ItemId);
         }
+    }
+
+    function populateRaceSelect(races) {
+        const sel = document.getElementById('f-raceid');
+        const sorted = Object.values(races).sort((a, b) => a.RaceId - b.RaceId);
+        for (const r of sorted) {
+            const o = document.createElement('option');
+            o.value = r.RaceId;
+            o.textContent = '#' + r.RaceId + ' \u2014 ' + r.Name;
+            sel.appendChild(o);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // User picker
+    // -------------------------------------------------------------------------
+    window.openUserPicker = function () {
+        UserPicker.open({
+            onSelect: (u) => loadUser(u.user_id),
+        });
     };
 
-    function renderResults(users) {
-        const tbody = document.getElementById('results-body');
-        if (!users.length) {
-            tbody.innerHTML = '<tr class="empty-row"><td colspan="4">No results.</td></tr>';
+    // -------------------------------------------------------------------------
+    // Load user into editor
+    // -------------------------------------------------------------------------
+    async function loadUser(userId) {
+        const res = await AdminAPI.get('/admin/api/v1/users/' + userId);
+        if (!res.ok) { showStatus('Failed to load user: ' + res.error, false); return; }
+
+        const user = res.data.data;
+        currentUserId = user.UserId;
+
+        const display = document.getElementById('user-display');
+        display.className = 'user-display';
+        display.innerHTML = '<span>' + esc(user.Username) + '</span>' +
+            '<span class="uid">#' + user.UserId + '</span>' +
+            '<span class="role-badge role-' + esc((user.Role||'user').toLowerCase()) + '">' + esc(user.Role||'user') + '</span>';
+
+        showEditor();
+        fillForm(user);
+    }
+
+    function showEditor() {
+        document.getElementById('editor-placeholder').style.display = 'none';
+        document.getElementById('editor-form').style.display = 'block';
+    }
+
+    function fillForm(user) {
+        const ch = user.Character || {};
+
+        document.getElementById('editor-title').textContent = user.Username || 'User';
+        document.getElementById('user-id-display').textContent = 'ID: ' + user.UserId;
+
+        setVal('f-username',     user.Username     || '');
+        setVal('f-role',         user.Role         || 'user');
+        setVal('f-email',        user.EmailAddress || '');
+        setVal('f-muted',        user.Muted        ? 'true' : 'false');
+        setVal('f-deafened',     user.Deafened     ? 'true' : 'false');
+        setVal('f-screenreader', user.ScreenReader  ? 'true' : 'false');
+        document.getElementById('f-password').value = '';
+
+        // Character fields
+        setVal('f-name',    ch.Name        || '');
+        setVal('f-raceid',  ch.RaceId      || 0);
+        setVal('f-description', ch.Description || '');
+        setVal('f-level',   ch.Level       || 1);
+        setVal('f-gold',    ch.Gold        || 0);
+
+        const align = ch.Alignment || 0;
+        setVal('f-alignment', align);
+        document.getElementById('f-alignment-val').textContent = align;
+
+        // Stats
+        const st = ch.Stats || {};
+        setVal('f-stat-strength',  (st.Strength   && st.Strength.Training)   || 0);
+        setVal('f-stat-speed',     (st.Speed      && st.Speed.Training)      || 0);
+        setVal('f-stat-smarts',    (st.Smarts     && st.Smarts.Training)     || 0);
+        setVal('f-stat-vitality',  (st.Vitality   && st.Vitality.Training)   || 0);
+        setVal('f-stat-mysticism', (st.Mysticism  && st.Mysticism.Training)  || 0);
+        setVal('f-stat-perception',(st.Perception && st.Perception.Training) || 0);
+
+        // Equipment
+        const eq = ch.Equipment || {};
+        setEquipSlot('f-eq-weapon',  eqItemId(eq.Weapon));
+        setEquipSlot('f-eq-offhand', eqItemId(eq.Offhand));
+        setEquipSlot('f-eq-head',    eqItemId(eq.Head));
+        setEquipSlot('f-eq-neck',    eqItemId(eq.Neck));
+        setEquipSlot('f-eq-body',    eqItemId(eq.Body));
+        setEquipSlot('f-eq-belt',    eqItemId(eq.Belt));
+        setEquipSlot('f-eq-gloves',  eqItemId(eq.Gloves));
+        setEquipSlot('f-eq-ring',    eqItemId(eq.Ring));
+        setEquipSlot('f-eq-legs',    eqItemId(eq.Legs));
+        setEquipSlot('f-eq-feet',    eqItemId(eq.Feet));
+
+        // Inventory
+        renderItemRows(ch.Items || []);
+
+        // Shop
+        renderShopEntries(ch.Shop || []);
+    }
+
+    function eqItemId(slot) {
+        if (!slot) return 0;
+        return slot.ItemId || 0;
+    }
+
+    window.cancelEdit = function () {
+        document.getElementById('editor-placeholder').style.display = '';
+        document.getElementById('editor-form').style.display = 'none';
+        const display = document.getElementById('user-display');
+        display.className = 'user-display empty';
+        display.textContent = 'No user selected';
+        currentUserId = null;
+    };
+
+    // -------------------------------------------------------------------------
+    // Equipment slots
+    // -------------------------------------------------------------------------
+    function setEquipSlot(slotId, itemId) {
+        const wrap = document.getElementById(slotId);
+        if (!wrap) return;
+        wrap.dataset.value = itemId || 0;
+        const display = wrap.querySelector('.shop-picker-display');
+        if (!display) return;
+        if (!itemId || itemId === 0) {
+            display.textContent = 'nothing';
+            display.className = 'shop-picker-display empty';
+        } else {
+            display.textContent = '#' + itemId + ' ' + itemName(itemId);
+            display.className = 'shop-picker-display';
+        }
+    }
+
+    window.pickEquip = function (slotId) {
+        Picker.open({
+            ...PickerConfigs.items,
+            onSelect: (item) => {
+                setEquipSlot(slotId, item.ItemId);
+                const wrap = document.getElementById(slotId);
+                const display = wrap && wrap.querySelector('.shop-picker-display');
+                if (display) {
+                    display.textContent = '#' + item.ItemId + ' ' + item.Name;
+                    display.className = 'shop-picker-display';
+                }
+            },
+        });
+    };
+
+    window.clearEquip = function (slotId) {
+        setEquipSlot(slotId, 0);
+    };
+
+    // -------------------------------------------------------------------------
+    // Inventory items
+    // -------------------------------------------------------------------------
+    function renderItemRows(items) {
+        const list = document.getElementById('items-list');
+        list.innerHTML = '';
+        for (const it of items) appendItemChip(list, it.ItemId || 0, null);
+    }
+
+    function appendItemChip(list, itemId, name) {
+        const chip = document.createElement('span');
+        chip.className = 'buff-chip';
+        chip.dataset.id = itemId;
+        const label = name != null ? '#' + itemId + ' ' + esc(name) : '#' + itemId + ' ' + esc(itemName(itemId));
+        chip.innerHTML = label + ' <button title="Remove" onclick="this.closest(\'.buff-chip\').remove()">&times;</button>';
+        list.appendChild(chip);
+    }
+
+    window.pickItem = function () {
+        const listEl = document.getElementById('items-list');
+        const existing = collectItems().map(i => i.ItemId);
+        Picker.open({
+            ...PickerConfigs.items,
+            multi:    true,
+            selected: existing,
+            onSelect: (items) => {
+                listEl.innerHTML = '';
+                for (const item of items) appendItemChip(listEl, item.ItemId, item.Name);
+            },
+        });
+    };
+
+    function collectItems() {
+        return Array.from(document.querySelectorAll('#items-list .buff-chip'))
+            .map(c => ({ ItemId: parseInt(c.dataset.id, 10) }));
+    }
+
+    // -------------------------------------------------------------------------
+    // Shop entries (shared logic with mobs page)
+    // -------------------------------------------------------------------------
+    function detectShopType(entry) {
+        if (entry.PetType) return 'pet';
+        if (entry.BuffId)  return 'buff';
+        if (entry.MobId)   return 'mob';
+        return 'item';
+    }
+
+    const shopTypeMeta = {
+        item: { label: 'Item',         badge: 'shop-type-item', idField: 'ItemId',  idLabel: 'Item' },
+        mob:  { label: 'Mob for Hire', badge: 'shop-type-mob',  idField: 'MobId',   idLabel: 'Mob' },
+        buff: { label: 'Buff',         badge: 'shop-type-buff', idField: 'BuffId',  idLabel: 'Buff' },
+        pet:  { label: 'Pet',          badge: 'shop-type-pet',  idField: 'PetType', idLabel: 'Pet Type' },
+    };
+
+    const restockOptions = [
+        { value: '',              label: 'Default (server config)' },
+        { value: '1 hour',       label: '1 hour' },
+        { value: '4 hours',      label: '4 hours' },
+        { value: '1 day',        label: '1 day' },
+        { value: '1 week',       label: '1 week' },
+        { value: '1 month',      label: '1 month' },
+        { value: '1 real hour',  label: '1 real hour' },
+        { value: '4 real hours', label: '4 real hours' },
+        { value: '1 real day',   label: '1 real day' },
+        { value: '1 real week',  label: '1 real week' },
+    ];
+
+    function renderShopEntries(shop) {
+        const list = document.getElementById('shop-list');
+        list.innerHTML = '';
+        for (const entry of shop) appendShopCard(list, entry);
+    }
+
+    function buildPickerField(type, initialId, initialName) {
+        const wrap = document.createElement('div');
+        wrap.className = 'shop-picker-wrap';
+        wrap.dataset.value = initialId || 0;
+
+        const display = document.createElement('span');
+        display.className = 'shop-picker-display' + (initialId ? '' : ' empty');
+        display.textContent = initialId
+            ? ('#' + initialId + (initialName ? ' ' + initialName : ''))
+            : 'none selected';
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn-add-sm';
+        btn.style.marginTop = '0';
+        btn.textContent = 'Pick\u2026';
+
+        const pickerConfig = type === 'item' ? PickerConfigs.items
+            : type === 'mob'  ? PickerConfigs.mobs
+            : PickerConfigs.buffs;
+
+        btn.addEventListener('click', () => {
+            Picker.open({
+                ...pickerConfig,
+                onSelect: (picked) => {
+                    const id   = picked[pickerConfig.idKey];
+                    const name = type === 'mob'
+                        ? ((picked.Character && picked.Character.Name) || '(unnamed)')
+                        : picked.Name;
+                    wrap.dataset.value = id;
+                    display.textContent = '#' + id + ' ' + name;
+                    display.className = 'shop-picker-display';
+                },
+            });
+        });
+
+        wrap.appendChild(display);
+        wrap.appendChild(btn);
+        return wrap;
+    }
+
+    function buildTradeItemField(initialId) {
+        const wrap = document.createElement('div');
+        wrap.className = 'shop-picker-wrap';
+        wrap.dataset.value = initialId || 0;
+
+        const display = document.createElement('span');
+        display.className = 'shop-picker-display' + (initialId ? '' : ' empty');
+        display.textContent = initialId ? ('#' + initialId) : 'none';
+
+        const pickBtn = document.createElement('button');
+        pickBtn.type = 'button';
+        pickBtn.className = 'btn-add-sm';
+        pickBtn.style.marginTop = '0';
+        pickBtn.textContent = 'Pick\u2026';
+        pickBtn.addEventListener('click', () => {
+            Picker.open({
+                ...PickerConfigs.items,
+                onSelect: (item) => {
+                    wrap.dataset.value = item.ItemId;
+                    display.textContent = '#' + item.ItemId + ' ' + item.Name;
+                    display.className = 'shop-picker-display';
+                    const card = wrap.closest('.shop-card');
+                    if (card) {
+                        const priceInput = card.querySelector('[data-field="price"]');
+                        if (priceInput) { priceInput.disabled = true; priceInput.value = '0'; }
+                    }
+                },
+            });
+        });
+
+        const clearBtn = document.createElement('button');
+        clearBtn.type = 'button';
+        clearBtn.className = 'btn-icon';
+        clearBtn.title = 'Clear';
+        clearBtn.textContent = '\u00d7';
+        clearBtn.addEventListener('click', () => {
+            wrap.dataset.value = 0;
+            display.textContent = 'none';
+            display.className = 'shop-picker-display empty';
+            const card = wrap.closest('.shop-card');
+            if (card) {
+                const priceInput = card.querySelector('[data-field="price"]');
+                if (priceInput) priceInput.disabled = false;
+            }
+        });
+
+        wrap.appendChild(display);
+        wrap.appendChild(pickBtn);
+        wrap.appendChild(clearBtn);
+        return wrap;
+    }
+
+    function appendShopCard(list, entry) {
+        const e    = entry || {};
+        const type = detectShopType(e);
+        const meta = shopTypeMeta[type];
+
+        const card = document.createElement('div');
+        card.className = 'shop-card';
+        card.dataset.shopType = type;
+
+        const idVal      = type === 'pet' ? (e.PetType || '') : (e[meta.idField] || 0);
+        const qtyMax     = e.QuantityMax != null ? e.QuantityMax : 0;
+        const restockVal = e.RestockRate || '';
+        const tradeVal   = e.TradeItemId || 0;
+        const hasTrade   = tradeVal > 0;
+
+        let qtyOpts = `<option value="-1"${qtyMax === -1 ? ' selected' : ''}>-1 \u2014 Does not Restock</option>`;
+        qtyOpts += `<option value="0"${qtyMax === 0 ? ' selected' : ''}>0 \u2014 Always in Stock</option>`;
+        for (let i = 1; i <= 98; i++) qtyOpts += `<option value="${i}"${qtyMax === i ? ' selected' : ''}>${i}</option>`;
+        if (qtyMax > 98) qtyOpts += `<option value="${qtyMax}" selected>${qtyMax}</option>`;
+
+        let restockOpts = restockOptions.map(o =>
+            `<option value="${esc(o.value)}"${o.value === restockVal ? ' selected' : ''}>${esc(o.label)}</option>`
+        ).join('');
+        if (restockVal && !restockOptions.find(o => o.value === restockVal)) {
+            restockOpts += `<option value="${esc(restockVal)}" selected>${esc(restockVal)}</option>`;
+        }
+
+        card.innerHTML = `
+            <button class="shop-card-remove" title="Remove entry" onclick="this.closest('.shop-card').remove()">&times;</button>
+            <div class="shop-card-header">
+                <span class="shop-card-type-badge ${meta.badge}">${esc(meta.label)}</span>
+            </div>
+            <div class="shop-card-fields">
+                <div class="shop-field" data-slot="id"><label>${esc(meta.idLabel)}</label></div>
+                <div class="shop-field">
+                    <label>Price</label>
+                    <input type="number" data-field="price" value="${hasTrade ? 0 : (e.Price || 0)}" min="0" placeholder="0 = auto"${hasTrade ? ' disabled' : ''} />
+                    <div class="field-hint">0 = calculated from item value</div>
+                </div>
+                <div class="shop-field">
+                    <label>Quantity Max</label>
+                    <select data-field="qtymax">${qtyOpts}</select>
+                </div>
+                <div class="shop-field" data-slot="trade">
+                    <label>Trade Item</label>
+                    <div class="field-hint">Required item for trade</div>
+                </div>
+                <div class="shop-field">
+                    <label>Restock Rate</label>
+                    <select data-field="restockrate">${restockOpts}</select>
+                </div>
+            </div>`;
+
+        const idSlot = card.querySelector('[data-slot="id"]');
+        if (type === 'pet') {
+            const inp = document.createElement('input');
+            inp.type = 'text';
+            inp.setAttribute('data-field', 'id');
+            inp.value = String(idVal);
+            inp.placeholder = 'e.g. cat, mule';
+            idSlot.appendChild(inp);
+        } else {
+            const pickerWrap = buildPickerField(type, idVal, null);
+            pickerWrap.setAttribute('data-field', 'id');
+            idSlot.appendChild(pickerWrap);
+        }
+
+        const tradeSlot = card.querySelector('[data-slot="trade"]');
+        const tradeWrap = buildTradeItemField(tradeVal);
+        tradeWrap.setAttribute('data-field', 'tradeitemid');
+        tradeSlot.insertBefore(tradeWrap, tradeSlot.querySelector('.field-hint'));
+
+        list.appendChild(card);
+    }
+
+    window.addShopEntry = function (type) {
+        const defaults = {};
+        if (type === 'item')      defaults.ItemId  = 0;
+        else if (type === 'mob')  defaults.MobId   = 0;
+        else if (type === 'buff') defaults.BuffId  = 0;
+        else if (type === 'pet')  defaults.PetType = '';
+        appendShopCard(document.getElementById('shop-list'), defaults);
+    };
+
+    function collectShop() {
+        const shop = [];
+        document.querySelectorAll('#shop-list .shop-card').forEach(card => {
+            const type = card.dataset.shopType;
+            const meta = shopTypeMeta[type];
+            const idEl = card.querySelector('[data-field="id"]');
+            const entry = {};
+
+            if (type === 'pet') {
+                entry.PetType = idEl.value.trim();
+                if (!entry.PetType) return;
+            } else {
+                const idVal = parseInt(idEl.dataset.value, 10) || 0;
+                if (idVal < 1) return;
+                entry[meta.idField] = idVal;
+            }
+
+            entry.Price       = parseInt(card.querySelector('[data-field="price"]').value, 10) || 0;
+            entry.QuantityMax = parseInt(card.querySelector('[data-field="qtymax"]').value, 10) || 0;
+            const tradeEl     = card.querySelector('[data-field="tradeitemid"]');
+            entry.TradeItemId = tradeEl ? (parseInt(tradeEl.dataset.value, 10) || 0) : 0;
+            entry.RestockRate = card.querySelector('[data-field="restockrate"]').value;
+
+            shop.push(entry);
+        });
+        return shop;
+    }
+
+    // -------------------------------------------------------------------------
+    // Save
+    // -------------------------------------------------------------------------
+    window.saveUser = async function () {
+        if (!currentUserId) return;
+
+        const btn = document.getElementById('save-btn');
+        btn.disabled = true; btn.textContent = 'Saving...';
+
+        function eqSlot(id) {
+            const el = document.getElementById(id);
+            const val = el ? (parseInt(el.dataset.value, 10) || 0) : 0;
+            return { ItemId: val };
+        }
+
+        const payload = {
+            Username:     document.getElementById('f-username').value.trim(),
+            Role:         document.getElementById('f-role').value,
+            EmailAddress: document.getElementById('f-email').value.trim(),
+            Muted:        document.getElementById('f-muted').value === 'true',
+            Deafened:     document.getElementById('f-deafened').value === 'true',
+            ScreenReader: document.getElementById('f-screenreader').value === 'true',
+            character: {
+                Name:        document.getElementById('f-name').value.trim(),
+                Description: document.getElementById('f-description').value.trim(),
+                RaceId:      parseInt(document.getElementById('f-raceid').value, 10) || 0,
+                Level:       parseInt(document.getElementById('f-level').value, 10) || 1,
+                Alignment:   parseInt(document.getElementById('f-alignment').value, 10) || 0,
+                Gold:        parseInt(document.getElementById('f-gold').value, 10) || 0,
+                Stats: {
+                    Strength:   { Training: parseInt(document.getElementById('f-stat-strength').value, 10) || 0 },
+                    Speed:      { Training: parseInt(document.getElementById('f-stat-speed').value, 10) || 0 },
+                    Smarts:     { Training: parseInt(document.getElementById('f-stat-smarts').value, 10) || 0 },
+                    Vitality:   { Training: parseInt(document.getElementById('f-stat-vitality').value, 10) || 0 },
+                    Mysticism:  { Training: parseInt(document.getElementById('f-stat-mysticism').value, 10) || 0 },
+                    Perception: { Training: parseInt(document.getElementById('f-stat-perception').value, 10) || 0 },
+                },
+                Equipment: {
+                    Weapon:  eqSlot('f-eq-weapon'),
+                    Offhand: eqSlot('f-eq-offhand'),
+                    Head:    eqSlot('f-eq-head'),
+                    Neck:    eqSlot('f-eq-neck'),
+                    Body:    eqSlot('f-eq-body'),
+                    Belt:    eqSlot('f-eq-belt'),
+                    Gloves:  eqSlot('f-eq-gloves'),
+                    Ring:    eqSlot('f-eq-ring'),
+                    Legs:    eqSlot('f-eq-legs'),
+                    Feet:    eqSlot('f-eq-feet'),
+                },
+                Items: collectItems(),
+                Shop:  collectShop(),
+            },
+        };
+
+        // Only include password if the admin typed a new one.
+        const pw = document.getElementById('f-password').value;
+        if (pw) payload.Password = pw;
+
+        const res = await AdminAPI.patch('/admin/api/v1/users/' + currentUserId, payload);
+
+        btn.disabled = false; btn.textContent = 'Save User';
+
+        if (!res.ok) {
+            showStatus('Save failed: ' + res.error, false);
             return;
         }
-        tbody.innerHTML = '';
-        for (const u of users) {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td class="uid">${u.user_id}</td>
-                <td>${esc(u.username)}</td>
-                <td><span class="role-badge role-${esc(u.role)}">${esc(u.role)}</span></td>
-                <td>${u.email ? esc(u.email) : '<span style="color:#bbb">—</span>'}</td>`;
-            tbody.appendChild(tr);
-        }
+
+        const saved = res.data.data;
+
+        // Refresh the picker bar display.
+        const display = document.getElementById('user-display');
+        display.className = 'user-display';
+        display.innerHTML = '<span>' + esc(saved.Username) + '</span>' +
+            '<span class="uid">#' + saved.UserId + '</span>' +
+            '<span class="role-badge role-' + esc((saved.Role||'user').toLowerCase()) + '">' + esc(saved.Role||'user') + '</span>';
+
+        document.getElementById('editor-title').textContent = saved.Username || 'User';
+
+        // Clear the password field after a successful save.
+        document.getElementById('f-password').value = '';
+
+        showStatus('User saved successfully.', true);
+    };
+
+    // -------------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------------
+    function buffName(id) {
+        const b = buffSpecs[String(id)];
+        return b ? b.Name : '#' + id;
+    }
+
+    function itemName(id) {
+        const it = allItems.find(i => i.ItemId === id);
+        return it ? it.Name : '#' + id;
+    }
+
+    function setVal(id, val) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (el.tagName === 'SELECT') el.value = String(val);
+        else el.value = val;
     }
 
     function showStatus(msg, ok) {
@@ -116,12 +889,14 @@
         bar.textContent = msg;
         bar.className = 'status-bar ' + (ok ? 'success' : 'error');
         clearTimeout(bar._t);
-        bar._t = setTimeout(() => { bar.className = 'status-bar'; }, 7000);
+        bar._t = setTimeout(() => { bar.className = 'status-bar'; }, 6000);
     }
 
     function esc(s) {
         return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
+
+    init();
 })();
 </script>
 

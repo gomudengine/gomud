@@ -357,6 +357,17 @@ func CreateUser(u *UserRecord) error {
 	return nil
 }
 
+func LoadUserById(userId int) (*UserRecord, error) {
+
+	idx := GetUserIndex()
+	username, found := idx.FindByUserId(userId)
+	if !found {
+		return nil, errors.New("user doesn't exist")
+	}
+
+	return LoadUser(username)
+}
+
 func LoadUser(username string, skipValidation ...bool) (*UserRecord, error) {
 
 	idx := GetUserIndex()

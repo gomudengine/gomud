@@ -95,6 +95,15 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /admin/api/v1/users/search", RunWithMUDLocked(
 		doBasicAuth(apiV1SearchUsers),
 	))
+	mux.HandleFunc("POST /admin/api/v1/users", RunWithMUDLocked(
+		doBasicAuth(apiV1CreateUser),
+	))
+	mux.HandleFunc("GET /admin/api/v1/users/{userid}", RunWithMUDLocked(
+		doBasicAuth(apiV1GetUser),
+	))
+	mux.HandleFunc("PATCH /admin/api/v1/users/{userid}", RunWithMUDLocked(
+		doBasicAuth(apiV1PatchUser),
+	))
 
 	// Color Aliases
 	mux.HandleFunc("GET /admin/api/v1/color-aliases", RunWithMUDLocked(
