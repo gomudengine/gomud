@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestStaticAssetURL(t *testing.T) {
+func TestPublicAssetBase(t *testing.T) {
 	t.Parallel()
 
 	const (
@@ -39,60 +39,52 @@ func TestStaticAssetURL(t *testing.T) {
 	forwardedHTTPSReq.Header.Add("Forwarded", fmt.Sprintf(`for=203.0.113.8;proto=https;host=%s`, requestHost))
 
 	tests := []struct {
-		name      string
-		req       *http.Request
-		cdnBase   string
-		assetPath string
-		want      string
+		name    string
+		req     *http.Request
+		cdnBase string
+		want    string
 	}{
 		{
-			name:      "local asset without cdn",
-			req:       httpReq,
-			cdnBase:   "",
-			assetPath: "/static/css/gomud.css",
-			want:      "/static/css/gomud.css",
+			name:    "local asset without cdn",
+			req:     httpReq,
+			cdnBase: "",
+			want:    "",
 		},
 		{
-			name:      "http request keeps http cdn",
-			req:       httpReq,
-			cdnBase:   fmt.Sprintf("http://%s", cdnHost),
-			assetPath: "/static/css/gomud.css",
-			want:      fmt.Sprintf("http://%s/static/css/gomud.css", cdnHost),
+			name:    "http request keeps http cdn",
+			req:     httpReq,
+			cdnBase: fmt.Sprintf("http://%s", cdnHost),
+			want:    fmt.Sprintf("http://%s", cdnHost),
 		},
 		{
-			name:      "https request drops insecure cdn",
-			req:       httpsReq,
-			cdnBase:   fmt.Sprintf("http://%s", cdnHost),
-			assetPath: "/static/css/gomud.css",
-			want:      "/static/css/gomud.css",
+			name:    "https request drops insecure cdn",
+			req:     httpsReq,
+			cdnBase: fmt.Sprintf("http://%s", cdnHost),
+			want:    "",
 		},
 		{
-			name:      "proxied https request drops insecure cdn",
-			req:       proxiedHTTPSReq,
-			cdnBase:   fmt.Sprintf("http://%s", cdnHost),
-			assetPath: "/static/css/gomud.css",
-			want:      "/static/css/gomud.css",
+			name:    "proxied https request drops insecure cdn",
+			req:     proxiedHTTPSReq,
+			cdnBase: fmt.Sprintf("http://%s", cdnHost),
+			want:    "",
 		},
 		{
-			name:      "forwarded https request drops insecure cdn",
-			req:       forwardedHTTPSReq,
-			cdnBase:   fmt.Sprintf("http://%s", cdnHost),
-			assetPath: "/static/css/gomud.css",
-			want:      "/static/css/gomud.css",
+			name:    "forwarded https request drops insecure cdn",
+			req:     forwardedHTTPSReq,
+			cdnBase: fmt.Sprintf("http://%s", cdnHost),
+			want:    "",
 		},
 		{
-			name:      "https request keeps secure cdn",
-			req:       httpsReq,
-			cdnBase:   fmt.Sprintf("https://%s/", cdnHost),
-			assetPath: "static/js/webclient-core.js",
-			want:      fmt.Sprintf("https://%s/static/js/webclient-core.js", cdnHost),
+			name:    "https request keeps secure cdn",
+			req:     httpsReq,
+			cdnBase: fmt.Sprintf("https://%s/", cdnHost),
+			want:    fmt.Sprintf("https://%s", cdnHost),
 		},
 		{
-			name:      "invalid cdn falls back local",
-			req:       httpReq,
-			cdnBase:   "://bad url",
-			assetPath: "/static/images/web_bg.png",
-			want:      "/static/images/web_bg.png",
+			name:    "invalid cdn falls back local",
+			req:     httpReq,
+			cdnBase: "://bad url",
+			want:    "",
 		},
 	}
 
@@ -101,8 +93,8 @@ func TestStaticAssetURL(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			if got := staticAssetURL(tt.req, tt.cdnBase, tt.assetPath); got != tt.want {
-				t.Fatalf("staticAssetURL() = %q, want %q", got, tt.want)
+			if got := publicAssetBase(tt.req, tt.cdnBase); got != tt.want {
+				t.Fatalf("publicAssetBase() = %q, want %q", got, tt.want)
 			}
 		})
 	}

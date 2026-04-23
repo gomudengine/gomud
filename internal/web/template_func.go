@@ -125,38 +125,27 @@ var (
 		"httpsUsesExampleHost": func(host string) bool {
 			return httpsUsesExampleHost(host)
 		},
-		"staticAssetURL": func(r *http.Request, cdnBase string, assetPath string) string {
-			return staticAssetURL(r, cdnBase, assetPath)
-		},
 	}
 )
 
-func staticAssetURL(r *http.Request, cdnBase string, assetPath string) string {
-	if assetPath == "" {
-		return ""
-	}
-
-	if !strings.HasPrefix(assetPath, "/") {
-		assetPath = "/" + assetPath
-	}
-
+func publicAssetBase(r *http.Request, cdnBase string) string {
 	cdnBase = strings.TrimSpace(strings.TrimRight(cdnBase, "/"))
 	if cdnBase == "" {
-		return assetPath
+		return ""
 	}
 
 	cdnURL, err := url.Parse(cdnBase)
 	if err != nil {
-		return assetPath
+		return ""
 	}
 
 	if requestUsesHTTPS(r) && strings.EqualFold(cdnURL.Scheme, "http") {
 		// Do not emit insecure CDN URLs into HTTPS pages; browsers will block
 		// them as mixed content, so local same-origin assets are the safe fallback.
-		return assetPath
+		return ""
 	}
 
-	return cdnBase + assetPath
+	return cdnBase
 }
 
 func requestUsesHTTPS(r *http.Request) bool {
