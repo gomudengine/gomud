@@ -69,6 +69,8 @@
     .btn-icon:hover { color: #c00; }
     .btn-add-sm { font-size: 0.8rem; padding: 0.3rem 0.7rem; border: 1px dashed #aaa; background: none; border-radius: 4px; cursor: pointer; color: #555; margin-top: 0.25rem; }
     .btn-add-sm:hover { border-color: #1a1a2e; color: #1a1a2e; }
+    .btn-icon { background: none; border: none; cursor: pointer; font-size: 1rem; color: #aaa; padding: 0 0.15rem; line-height: 1; }
+    .btn-icon:hover { color: #c00; }
 
     /* reward section */
     .reward-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem 1rem; }
@@ -95,6 +97,11 @@
     .lookup-row { display: flex; gap: 0.5rem; align-items: center; }
     .lookup-row input { flex: 1; }
     .lookup-hint { font-size: 0.75rem; color: #888; font-style: italic; }
+
+    /* picker display */
+    .reward-picker-wrap { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.15rem; }
+    .reward-picker-display { font-size: 0.82rem; color: #333; font-family: monospace; }
+    .reward-picker-display.empty { color: #aaa; font-style: italic; font-family: inherit; }
 </style>
 
 <h1>Quests</h1>
@@ -167,16 +174,20 @@
                     <input type="number" id="r-experience" min="0" placeholder="0" />
                 </div>
                 <div class="field">
-                    <label>Item ID</label>
-                    <select id="r-itemid">
-                        <option value="0">&mdash; none &mdash;</option>
-                    </select>
+                    <label>Item Reward</label>
+                    <div class="reward-picker-wrap" id="r-itemid" data-value="0">
+                        <span class="reward-picker-display empty">none</span>
+                        <button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickRewardItem()">Pick&hellip;</button>
+                        <button type="button" class="btn-icon" title="Clear" onclick="clearReward('r-itemid')">&times;</button>
+                    </div>
                 </div>
                 <div class="field">
-                    <label>Buff ID</label>
-                    <select id="r-buffid">
-                        <option value="0">&mdash; none &mdash;</option>
-                    </select>
+                    <label>Buff Reward</label>
+                    <div class="reward-picker-wrap" id="r-buffid" data-value="0">
+                        <span class="reward-picker-display empty">none</span>
+                        <button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickRewardBuff()">Pick&hellip;</button>
+                        <button type="button" class="btn-icon" title="Clear" onclick="clearReward('r-buffid')">&times;</button>
+                    </div>
                 </div>
                 <div class="field">
                     <label>Teleport Room ID</label>
@@ -184,9 +195,11 @@
                 </div>
                 <div class="field">
                     <label>Chain Quest</label>
-                    <select id="r-questid">
-                        <option value="">&mdash; none &mdash;</option>
-                    </select>
+                    <div class="reward-picker-wrap" id="r-questid" data-value="">
+                        <span class="reward-picker-display empty">none</span>
+                        <button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickRewardQuest()">Pick&hellip;</button>
+                        <button type="button" class="btn-icon" title="Clear" onclick="clearReward('r-questid')">&times;</button>
+                    </div>
                     <div class="field-hint">Quest to start on completion (grants its <code>start</code> token)</div>
                 </div>
                 <div class="field">
@@ -223,73 +236,63 @@
     let isNew = false;
 
     async function init() {
-        const [questsRes, buffsRes, itemsRes] = await AdminAPI.all([
-            AdminAPI.get('/admin/api/v1/quests'),
-            AdminAPI.get('/admin/api/v1/buffs'),
-            AdminAPI.get('/admin/api/v1/items'),
-        ]);
-
-        if (!questsRes.ok) { showStatus('Failed to load quests: ' + questsRes.error, false); return; }
-        if (!buffsRes.ok)  { showStatus('Failed to load buffs: '  + buffsRes.error,  false); return; }
-        if (!itemsRes.ok)  { showStatus('Failed to load items: '  + itemsRes.error,  false); return; }
-
-        allQuests = (questsRes.data.data || []).sort((a, b) => a.QuestId - b.QuestId);
-
-        const buffSpecs = buffsRes.data.data.specs || {};
-        const itemSpecs = (itemsRes.data.data || []).sort((a, b) => a.ItemId - b.ItemId);
-
-        populateBuffSelect(buffSpecs);
-        populateItemSelect(itemSpecs);
-        populateQuestSelect(allQuests, null);
-
+        const res = await AdminAPI.get('/admin/api/v1/quests');
+        if (!res.ok) { showStatus('Failed to load quests: ' + res.error, false); return; }
+        allQuests = (res.data.data || []).sort((a, b) => a.QuestId - b.QuestId);
         renderList(allQuests);
     }
 
     // -------------------------------------------------------------------------
-    // Populate reward selects
+    // Reward picker helpers
     // -------------------------------------------------------------------------
-    function populateBuffSelect(specs) {
-        const sel = document.getElementById('r-buffid');
-        // Keep the "none" option, clear the rest
-        while (sel.options.length > 1) sel.remove(1);
-        const sorted = Object.values(specs).sort((a, b) => a.BuffId - b.BuffId);
-        for (const b of sorted) {
-            const opt = document.createElement('option');
-            opt.value = b.BuffId;
-            opt.textContent = '#' + b.BuffId + ' — ' + b.Name;
-            sel.appendChild(opt);
+    function setRewardDisplay(wrapperId, value, label) {
+        const wrap = document.getElementById(wrapperId);
+        if (!wrap) return;
+        wrap.dataset.value = value;
+        const display = wrap.querySelector('.reward-picker-display');
+        if (!display) return;
+        if (!value && value !== 0) {
+            display.textContent = 'none';
+            display.className = 'reward-picker-display empty';
+        } else {
+            display.textContent = label || String(value);
+            display.className = 'reward-picker-display';
         }
     }
 
-    function populateItemSelect(items) {
-        const sel = document.getElementById('r-itemid');
-        while (sel.options.length > 1) sel.remove(1);
-        for (const item of items) {
-            const opt = document.createElement('option');
-            opt.value = item.ItemId;
-            opt.textContent = '#' + item.ItemId + ' — ' + item.Name;
-            sel.appendChild(opt);
-        }
-    }
+    window.clearReward = function (wrapperId) {
+        const wrap = document.getElementById(wrapperId);
+        if (!wrap) return;
+        // r-questid stores a string token; others store numeric 0
+        wrap.dataset.value = wrapperId === 'r-questid' ? '' : 0;
+        const display = wrap.querySelector('.reward-picker-display');
+        if (display) { display.textContent = 'none'; display.className = 'reward-picker-display empty'; }
+    };
 
-    // Rebuild the chain-quest select, excluding the currently-open quest so a
-    // quest cannot chain to itself.
-    function populateQuestSelect(quests, excludeId) {
-        const sel = document.getElementById('r-questid');
-        // Remember the current selection before rebuilding
-        const prev = sel.value;
-        while (sel.options.length > 1) sel.remove(1);
-        for (const q of quests) {
-            if (q.QuestId === excludeId) continue;
-            const opt = document.createElement('option');
-            // Value is the start-token for the chained quest
-            opt.value = q.QuestId + '-start';
-            opt.textContent = '#' + q.QuestId + ' — ' + q.Name;
-            sel.appendChild(opt);
-        }
-        // Restore previous selection if it still exists
-        sel.value = prev;
-    }
+    window.pickRewardItem = function () {
+        Picker.open({
+            ...PickerConfigs.items,
+            onSelect: (item) => setRewardDisplay('r-itemid', item.ItemId, '#' + item.ItemId + ' ' + item.Name),
+        });
+    };
+
+    window.pickRewardBuff = function () {
+        Picker.open({
+            ...PickerConfigs.buffs,
+            onSelect: (buff) => setRewardDisplay('r-buffid', buff.BuffId, '#' + buff.BuffId + ' ' + buff.Name),
+        });
+    };
+
+    window.pickRewardQuest = function () {
+        Picker.open({
+            ...PickerConfigs.quests,
+            filter: (q) => q.QuestId !== currentQuestId,
+            onSelect: (quest) => {
+                const token = quest.QuestId + '-start';
+                setRewardDisplay('r-questid', token, '#' + quest.QuestId + ' ' + quest.Name);
+            },
+        });
+    };
 
     // -------------------------------------------------------------------------
     // List
@@ -356,19 +359,22 @@
 
         renderSteps(quest.Steps || []);
 
-        // Rebuild chain-quest select excluding the quest being edited
-        populateQuestSelect(allQuests, quest.QuestId || null);
-
         const r = quest.Rewards || {};
         setVal('r-gold',          r.Gold          || 0);
         setVal('r-experience',    r.Experience    || 0);
-        setVal('r-itemid',        r.ItemId        || 0);
-        setVal('r-buffid',        r.BuffId        || 0);
         setVal('r-roomid',        r.RoomId        || 0);
-        setVal('r-questid',       r.QuestId       || '');
         setVal('r-skillinfo',     r.SkillInfo     || '');
         setVal('r-playermessage', r.PlayerMessage || '');
         setVal('r-roommessage',   r.RoomMessage   || '');
+
+        const itemId = r.ItemId || 0;
+        setRewardDisplay('r-itemid', itemId || 0, itemId ? '#' + itemId : null);
+
+        const buffId = r.BuffId || 0;
+        setRewardDisplay('r-buffid', buffId || 0, buffId ? '#' + buffId : null);
+
+        const questToken = r.QuestId || '';
+        setRewardDisplay('r-questid', questToken, questToken || null);
     }
 
     // -------------------------------------------------------------------------
@@ -526,10 +532,10 @@
             Rewards: {
                 Gold:          parseInt(document.getElementById('r-gold').value, 10) || 0,
                 Experience:    parseInt(document.getElementById('r-experience').value, 10) || 0,
-                ItemId:        parseInt(document.getElementById('r-itemid').value, 10) || 0,
-                BuffId:        parseInt(document.getElementById('r-buffid').value, 10) || 0,
+                ItemId:        parseInt(document.getElementById('r-itemid').dataset.value, 10) || 0,
+                BuffId:        parseInt(document.getElementById('r-buffid').dataset.value, 10) || 0,
                 RoomId:        parseInt(document.getElementById('r-roomid').value, 10) || 0,
-                QuestId:       document.getElementById('r-questid').value.trim(),
+                QuestId:       document.getElementById('r-questid').dataset.value || '',
                 SkillInfo:     document.getElementById('r-skillinfo').value.trim(),
                 PlayerMessage: document.getElementById('r-playermessage').value.trim(),
                 RoomMessage:   document.getElementById('r-roommessage').value.trim(),
@@ -572,9 +578,7 @@
             if (idx !== -1) allQuests[idx] = saved;
         }
 
-        // Refresh chain-quest dropdown to reflect the updated quest list
-        populateQuestSelect(allQuests, saved.QuestId);
-
+        // Refresh quest list
         filterQuests();
         setActiveRow(saved.QuestId);
         document.getElementById('editor-title').textContent = saved.Name;
@@ -592,7 +596,6 @@
         const res = await AdminAPI.delete('/admin/api/v1/quests/' + currentQuestId);
         if (!res.ok) { showStatus('Delete failed: ' + res.error, false); return; }
         allQuests = allQuests.filter(q => q.QuestId !== currentQuestId);
-        populateQuestSelect(allQuests, null);
         filterQuests();
         cancelEdit();
         showStatus('Quest deleted.', true);

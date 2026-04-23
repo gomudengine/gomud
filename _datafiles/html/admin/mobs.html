@@ -115,19 +115,17 @@
     }
     .buff-chip button { background: none; border: none; cursor: pointer; color: #3949ab; font-size: 0.85rem; line-height: 1; padding: 0; }
     .buff-chip button:hover { color: #c00; }
-    .buff-add-input { width: 80px; padding: 0.25rem 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.82rem; }
 
-    /* inventory rows */
-    .inv-list { display: flex; flex-direction: column; gap: 0.4rem; }
-    .inv-row { display: flex; gap: 0.5rem; align-items: center; }
-    .inv-row select { flex: 1; padding: 0.3rem 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.82rem; }
     .btn-icon {
         background: none; border: none; cursor: pointer; font-size: 1rem;
         color: #888; padding: 0 0.2rem; line-height: 1;
     }
     .btn-icon:hover { color: #c00; }
 
-    /* shop entries */
+    /* shop picker display */
+    .shop-picker-wrap { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
+    .shop-picker-display { font-size: 0.82rem; color: #333; font-family: monospace; }
+    .shop-picker-display.empty { color: #aaa; font-style: italic; font-family: inherit; }
     .shop-entries { display: flex; flex-direction: column; gap: 0.75rem; }
     .shop-card {
         border: 1px solid #ddd; border-radius: 6px; padding: 0.75rem 0.9rem;
@@ -356,23 +354,14 @@
                 <div class="field span2">
                     <label>Quest Flags</label>
                     <div class="tags-wrap" id="questflags-list"></div>
-                    <div style="display:flex; gap:0.4rem; align-items:center; margin-top:0.4rem;">
-                        <input type="text" class="tag-add-input" id="questflags-input" placeholder="e.g. 5-start"
-                               onkeydown="if(event.key==='Enter'){addTag('questflags-list','questflags-input');}" />
-                        <button class="btn-add-sm" onclick="addTag('questflags-list','questflags-input')">+ Add</button>
-                    </div>
+                    <button class="btn-add-sm" style="margin-top:0.4rem;" onclick="pickQuestFlag()">+ Add Quest Flag</button>
                     <div class="field-hint">Quest flags set on this mob (e.g. 5-start, 5-return). If the quest is available to a player, this will cause a symbol to show next to the mob name.</div>
                 </div>
 
                 <div class="field span2">
                     <label>Buff IDs (applied on spawn)</label>
-                    <div class="buff-ids-wrap" id="buffids-wrap">
-                        <select id="buffids-input" style="max-width:260px; padding:0.25rem 0.5rem; border:1px solid #ccc; border-radius:4px; font-size:0.82rem;">
-                            <option value="0">&mdash; select buff &mdash;</option>
-                        </select>
-                        <button class="btn-add-sm" onclick="addBuffId('buffids-list','buffids-input')">+ Add</button>
-                    </div>
-                    <div class="buff-ids-wrap" id="buffids-list" style="margin-top:0.4rem;"></div>
+                    <div class="buff-ids-wrap" id="buffids-list"></div>
+                    <button class="btn-add-sm" style="margin-top:0.4rem;" onclick="pickBuffId('buffids-list')">+ Add Buff</button>
                 </div>
 
                 <div class="field">
@@ -412,51 +401,51 @@
 
                 <div class="field">
                     <label>Weapon</label>
-                    <select id="f-eq-weapon"><option value="0">Nothing</option></select>
+                    <div class="shop-picker-wrap" id="f-eq-weapon" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-weapon')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-weapon')">&times;</button></div>
                 </div>
                 <div class="field">
                     <label>Offhand</label>
-                    <select id="f-eq-offhand"><option value="0">Nothing</option></select>
+                    <div class="shop-picker-wrap" id="f-eq-offhand" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-offhand')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-offhand')">&times;</button></div>
                 </div>
                 <div class="field">
                     <label>Head</label>
-                    <select id="f-eq-head"><option value="0">Nothing</option></select>
+                    <div class="shop-picker-wrap" id="f-eq-head" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-head')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-head')">&times;</button></div>
                 </div>
                 <div class="field">
                     <label>Neck</label>
-                    <select id="f-eq-neck"><option value="0">Nothing</option></select>
+                    <div class="shop-picker-wrap" id="f-eq-neck" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-neck')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-neck')">&times;</button></div>
                 </div>
                 <div class="field">
                     <label>Body</label>
-                    <select id="f-eq-body"><option value="0">Nothing</option></select>
+                    <div class="shop-picker-wrap" id="f-eq-body" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-body')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-body')">&times;</button></div>
                 </div>
                 <div class="field">
                     <label>Belt</label>
-                    <select id="f-eq-belt"><option value="0">Nothing</option></select>
+                    <div class="shop-picker-wrap" id="f-eq-belt" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-belt')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-belt')">&times;</button></div>
                 </div>
                 <div class="field">
                     <label>Gloves</label>
-                    <select id="f-eq-gloves"><option value="0">Nothing</option></select>
+                    <div class="shop-picker-wrap" id="f-eq-gloves" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-gloves')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-gloves')">&times;</button></div>
                 </div>
                 <div class="field">
                     <label>Ring</label>
-                    <select id="f-eq-ring"><option value="0">Nothing</option></select>
+                    <div class="shop-picker-wrap" id="f-eq-ring" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-ring')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-ring')">&times;</button></div>
                 </div>
                 <div class="field">
                     <label>Legs</label>
-                    <select id="f-eq-legs"><option value="0">Nothing</option></select>
+                    <div class="shop-picker-wrap" id="f-eq-legs" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-legs')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-legs')">&times;</button></div>
                 </div>
                 <div class="field">
                     <label>Feet</label>
-                    <select id="f-eq-feet"><option value="0">Nothing</option></select>
+                    <div class="shop-picker-wrap" id="f-eq-feet" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-feet')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-feet')">&times;</button></div>
                 </div>
 
                 <div class="section-title">Inventory</div>
 
                 <div class="field span2">
-                    <div class="inv-list" id="items-list"></div>
-                    <button class="btn-add-sm" onclick="addItemRow()">+ Add Item</button>
-                    <div class="field-hint">Items the mob carries (Item ID)</div>
+                    <div class="buff-ids-wrap" id="items-list"></div>
+                    <button class="btn-add-sm" style="margin-top:0.4rem;" onclick="pickItem()">+ Add Item</button>
+                    <div class="field-hint">Items the mob carries</div>
                 </div>
 
                 <div class="section-title">Shop</div>
@@ -518,7 +507,6 @@
         if (racesRes.ok) populateRaceSelect(racesRes.data.data || {});
         if (buffsRes.ok) {
             buffSpecs = (buffsRes.data.data && buffsRes.data.data.specs) || {};
-            populateBuffSelect(buffSpecs);
         }
         if (itemsRes.ok) {
             allItems = (itemsRes.data.data || []).sort((a, b) => a.ItemId - b.ItemId);
@@ -530,8 +518,7 @@
         scriptSync = ScriptEditor.init('f-script');
     }
 
-    function populateRaceSelect(races) {
-        const sel = document.getElementById('f-raceid');
+    function populateRaceSelect(races) {        const sel = document.getElementById('f-raceid');
         const sorted = Object.values(races).sort((a, b) => a.RaceId - b.RaceId);
         for (const r of sorted) {
             const o = document.createElement('option');
@@ -541,32 +528,44 @@
         }
     }
 
-    function populateBuffSelect(specs) {
-        const sel = document.getElementById('buffids-input');
-        const sorted = Object.values(specs).sort((a, b) => a.BuffId - b.BuffId);
-        for (const b of sorted) {
-            const o = document.createElement('option');
-            o.value = b.BuffId;
-            o.textContent = '#' + b.BuffId + ' — ' + b.Name;
-            sel.appendChild(o);
+    function populateEquipSelects(_items) {
+        // Equipment slots now use the Picker — no pre-population needed.
+    }
+
+    function setEquipSlot(slotId, itemId) {
+        const wrap = document.getElementById(slotId);
+        if (!wrap) return;
+        wrap.dataset.value = itemId || 0;
+        const display = wrap.querySelector('.shop-picker-display');
+        if (!display) return;
+        if (!itemId || itemId === 0) {
+            display.textContent = 'nothing';
+            display.className = 'shop-picker-display empty';
+        } else {
+            display.textContent = '#' + itemId + ' ' + itemName(itemId);
+            display.className = 'shop-picker-display';
         }
     }
 
-    function populateEquipSelects(items) {
-        const ids = ['f-eq-weapon','f-eq-offhand','f-eq-head','f-eq-neck','f-eq-body',
-                     'f-eq-belt','f-eq-gloves','f-eq-ring','f-eq-legs','f-eq-feet'];
-        const fragment = document.createDocumentFragment();
-        for (const item of items) {
-            const o = document.createElement('option');
-            o.value = item.ItemId;
-            o.textContent = '#' + item.ItemId + ' — ' + item.Name;
-            fragment.appendChild(o);
-        }
-        for (const id of ids) {
-            const sel = document.getElementById(id);
-            sel.appendChild(fragment.cloneNode(true));
-        }
-    }
+    window.pickEquip = function (slotId) {
+        Picker.open({
+            ...PickerConfigs.items,
+            onSelect: (item) => {
+                setEquipSlot(slotId, item.ItemId);
+                // update display name from fresh data
+                const wrap = document.getElementById(slotId);
+                const display = wrap && wrap.querySelector('.shop-picker-display');
+                if (display) {
+                    display.textContent = '#' + item.ItemId + ' ' + item.Name;
+                    display.className = 'shop-picker-display';
+                }
+            },
+        });
+    };
+
+    window.clearEquip = function (slotId) {
+        setEquipSlot(slotId, 0);
+    };
 
     function buffName(id) {
         const b = buffSpecs[String(id)];
@@ -576,37 +575,6 @@
     function itemName(id) {
         const it = allItems.find(i => i.ItemId === id);
         return it ? it.Name : '#' + id;
-    }
-
-    function mobName(id) {
-        const m = allMobs.find(mob => mob.MobId === id);
-        return m && m.Character ? m.Character.Name : '#' + id;
-    }
-
-    function buildItemOptions(selectedId) {
-        let html = `<option value="0">&mdash; none &mdash;</option>`;
-        for (const item of allItems) {
-            html += `<option value="${item.ItemId}"${item.ItemId === selectedId ? ' selected' : ''}>#${item.ItemId} — ${esc(item.Name)}</option>`;
-        }
-        return html;
-    }
-
-    function buildBuffOptions(selectedId) {
-        let html = `<option value="0">&mdash; none &mdash;</option>`;
-        const sorted = Object.values(buffSpecs).sort((a, b) => a.BuffId - b.BuffId);
-        for (const b of sorted) {
-            html += `<option value="${b.BuffId}"${b.BuffId === selectedId ? ' selected' : ''}>#${b.BuffId} — ${esc(b.Name)}</option>`;
-        }
-        return html;
-    }
-
-    function buildMobOptions(selectedId) {
-        let html = `<option value="0">&mdash; none &mdash;</option>`;
-        for (const m of allMobs) {
-            const name = (m.Character && m.Character.Name) || '(unnamed)';
-            html += `<option value="${m.MobId}"${m.MobId === selectedId ? ' selected' : ''}>#${m.MobId} — ${esc(name)}</option>`;
-        }
-        return html;
     }
 
     // -------------------------------------------------------------------------
@@ -746,16 +714,16 @@
 
         // Equipment
         const eq = ch.Equipment || {};
-        setVal('f-eq-weapon', eqItemId(eq.Weapon));
-        setVal('f-eq-offhand', eqItemId(eq.Offhand));
-        setVal('f-eq-head', eqItemId(eq.Head));
-        setVal('f-eq-neck', eqItemId(eq.Neck));
-        setVal('f-eq-body', eqItemId(eq.Body));
-        setVal('f-eq-belt', eqItemId(eq.Belt));
-        setVal('f-eq-gloves', eqItemId(eq.Gloves));
-        setVal('f-eq-ring', eqItemId(eq.Ring));
-        setVal('f-eq-legs', eqItemId(eq.Legs));
-        setVal('f-eq-feet', eqItemId(eq.Feet));
+        setEquipSlot('f-eq-weapon',  eqItemId(eq.Weapon));
+        setEquipSlot('f-eq-offhand', eqItemId(eq.Offhand));
+        setEquipSlot('f-eq-head',    eqItemId(eq.Head));
+        setEquipSlot('f-eq-neck',    eqItemId(eq.Neck));
+        setEquipSlot('f-eq-body',    eqItemId(eq.Body));
+        setEquipSlot('f-eq-belt',    eqItemId(eq.Belt));
+        setEquipSlot('f-eq-gloves',  eqItemId(eq.Gloves));
+        setEquipSlot('f-eq-ring',    eqItemId(eq.Ring));
+        setEquipSlot('f-eq-legs',    eqItemId(eq.Legs));
+        setEquipSlot('f-eq-feet',    eqItemId(eq.Feet));
 
         // Inventory items
         renderItemRows(ch.Items || []);
@@ -814,6 +782,14 @@
         list.appendChild(chip);
     }
 
+    window.pickQuestFlag = function () {
+        QuestTokenPicker.pick((token) => {
+            const existing = collectTags('questflags-list');
+            if (existing.includes(token)) return;
+            appendTagChip(document.getElementById('questflags-list'), token);
+        });
+    };
+
     window.addTag = function (listId, inputId) {
         const input = document.getElementById(inputId);
         const val = input.value.trim();
@@ -832,23 +808,32 @@
     function renderBuffChips(listId, ids) {
         const list = document.getElementById(listId);
         list.innerHTML = '';
-        for (const id of ids) appendBuffChip(list, id);
+        for (const id of ids) appendBuffChip(list, id, null);
     }
 
-    function appendBuffChip(list, id) {
+    function appendBuffChip(list, id, name) {
         const chip = document.createElement('span');
         chip.className = 'buff-chip';
         chip.dataset.id = id;
-        chip.innerHTML = `#${id} ${esc(buffName(id))} <button title="Remove" onclick="this.closest('.buff-chip').remove()">&times;</button>`;
+        const label = name != null ? `#${id} ${esc(name)}` : `#${id} ${esc(buffName(id))}`;
+        chip.innerHTML = `${label} <button title="Remove" onclick="this.closest('.buff-chip').remove()">&times;</button>`;
         list.appendChild(chip);
     }
 
-    window.addBuffId = function (listId, inputId) {
-        const input = document.getElementById(inputId);
-        const id = parseInt(input.value, 10);
-        if (!id || id < 1) return;
-        appendBuffChip(document.getElementById(listId), id);
-        input.value = '0';
+    window.pickBuffId = function (listId) {
+        const listEl = document.getElementById(listId);
+        const existing = collectBuffIds(listId);
+        Picker.open({
+            ...PickerConfigs.buffs,
+            multi:    true,
+            selected: existing,
+            onSelect: (buffs) => {
+                listEl.innerHTML = '';
+                for (const buff of buffs) {
+                    appendBuffChip(listEl, buff.BuffId, buff.Name);
+                }
+            },
+        });
     };
 
     function collectBuffIds(listId) {
@@ -862,30 +847,37 @@
         const list = document.getElementById('items-list');
         list.innerHTML = '';
         for (const it of items) {
-            appendItemRow(list, it.ItemId || 0);
+            appendItemChip(list, it.ItemId || 0, null);
         }
     }
 
-    function appendItemRow(list, itemId) {
-        const row = document.createElement('div');
-        row.className = 'inv-row';
-        row.innerHTML = `
-            <select data-field="itemid">${buildItemOptions(itemId)}</select>
-            <button class="btn-icon" title="Remove" onclick="this.closest('.inv-row').remove()">&times;</button>`;
-        list.appendChild(row);
+    function appendItemChip(list, itemId, name) {
+        const chip = document.createElement('span');
+        chip.className = 'buff-chip';
+        chip.dataset.id = itemId;
+        const label = name != null ? `#${itemId} ${esc(name)}` : `#${itemId} ${esc(itemName(itemId))}`;
+        chip.innerHTML = `${label} <button title="Remove" onclick="this.closest('.buff-chip').remove()">&times;</button>`;
+        list.appendChild(chip);
     }
 
-    window.addItemRow = function () {
-        appendItemRow(document.getElementById('items-list'), 0);
+    window.pickItem = function () {
+        const listEl = document.getElementById('items-list');
+        const existing = collectItems().map(i => i.ItemId);
+        Picker.open({
+            ...PickerConfigs.items,
+            multi:    true,
+            selected: existing,
+            onSelect: (items) => {
+                listEl.innerHTML = '';
+                for (const item of items) {
+                    appendItemChip(listEl, item.ItemId, item.Name);
+                }
+            },
+        });
     };
 
     function collectItems() {
-        const items = [];
-        document.querySelectorAll('#items-list .inv-row').forEach(row => {
-            const id = parseInt(row.querySelector('select').value, 10);
-            if (id > 0) items.push({ ItemId: id });
-        });
-        return items;
+        return Array.from(document.querySelectorAll('#items-list .buff-chip')).map(c => ({ ItemId: parseInt(c.dataset.id, 10) }));
     }
 
     // -------------------------------------------------------------------------
@@ -901,8 +893,8 @@
     const shopTypeMeta = {
         item: { label: 'Item',         badge: 'shop-type-item', idField: 'ItemId',  idLabel: 'Item' },
         mob:  { label: 'Mob for Hire', badge: 'shop-type-mob',  idField: 'MobId',   idLabel: 'Mob' },
-        buff: { label: 'Buff',         badge: 'shop-type-buff', idField: 'BuffId',   idLabel: 'Buff' },
-        pet:  { label: 'Pet',          badge: 'shop-type-pet',  idField: 'PetType',  idLabel: 'Pet Type' },
+        buff: { label: 'Buff',         badge: 'shop-type-buff', idField: 'BuffId',  idLabel: 'Buff' },
+        pet:  { label: 'Pet',          badge: 'shop-type-pet',  idField: 'PetType', idLabel: 'Pet Type' },
     };
 
     const restockOptions = [
@@ -926,19 +918,104 @@
         }
     }
 
-    function buildIdField(type, selectedId) {
-        if (type === 'item') return `<select data-field="id">${buildItemOptions(selectedId)}</select>`;
-        if (type === 'mob')  return `<select data-field="id">${buildMobOptions(selectedId)}</select>`;
-        if (type === 'buff') return `<select data-field="id">${buildBuffOptions(selectedId)}</select>`;
-        return `<input type="text" data-field="id" value="${esc(String(selectedId || ''))}" placeholder="e.g. cat, mule" />`;
+    // Build a picker-driven id field for a shop card.
+    // Returns a wrapper div; the selected id is stored in wrapper.dataset.value.
+    function buildPickerField(type, initialId, initialName) {
+        const wrap = document.createElement('div');
+        wrap.className = 'shop-picker-wrap';
+        wrap.dataset.value = initialId || 0;
+
+        const display = document.createElement('span');
+        display.className = 'shop-picker-display' + (initialId ? '' : ' empty');
+        display.textContent = initialId
+            ? ('#' + initialId + (initialName ? ' ' + initialName : ''))
+            : 'none selected';
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn-add-sm';
+        btn.style.marginTop = '0';
+        btn.textContent = 'Pick…';
+
+        const pickerConfig = type === 'item' ? PickerConfigs.items
+            : type === 'mob'  ? PickerConfigs.mobs
+            : PickerConfigs.buffs;
+
+        btn.addEventListener('click', () => {
+            Picker.open({
+                ...pickerConfig,
+                onSelect: (picked) => {
+                    const id   = picked[pickerConfig.idKey];
+                    const name = type === 'mob'
+                        ? ((picked.Character && picked.Character.Name) || '(unnamed)')
+                        : picked.Name;
+                    wrap.dataset.value = id;
+                    display.textContent = '#' + id + ' ' + name;
+                    display.className = 'shop-picker-display';
+                },
+            });
+        });
+
+        wrap.appendChild(display);
+        wrap.appendChild(btn);
+        return wrap;
     }
 
-    function shopTradeChange(sel) {
-        const card = sel.closest('.shop-card');
-        const priceInput = card.querySelector('[data-field="price"]');
-        const hasTrade = parseInt(sel.value, 10) > 0;
-        priceInput.disabled = hasTrade;
-        if (hasTrade) priceInput.value = '0';
+    // Build a picker-driven trade-item field.
+    // Returns a wrapper div; wrap.dataset.value holds the selected item id (0 = none).
+    function buildTradeItemField(initialId, initialName) {
+        const wrap = document.createElement('div');
+        wrap.className = 'shop-picker-wrap';
+        wrap.dataset.value = initialId || 0;
+
+        const display = document.createElement('span');
+        display.className = 'shop-picker-display' + (initialId ? '' : ' empty');
+        display.textContent = initialId
+            ? ('#' + initialId + (initialName ? ' ' + initialName : ''))
+            : 'none';
+
+        const pickBtn = document.createElement('button');
+        pickBtn.type = 'button';
+        pickBtn.className = 'btn-add-sm';
+        pickBtn.style.marginTop = '0';
+        pickBtn.textContent = 'Pick…';
+        pickBtn.addEventListener('click', () => {
+            Picker.open({
+                ...PickerConfigs.items,
+                onSelect: (item) => {
+                    wrap.dataset.value = item.ItemId;
+                    display.textContent = '#' + item.ItemId + ' ' + item.Name;
+                    display.className = 'shop-picker-display';
+                    // disable price when trade item is set
+                    const card = wrap.closest('.shop-card');
+                    if (card) {
+                        const priceInput = card.querySelector('[data-field="price"]');
+                        if (priceInput) { priceInput.disabled = true; priceInput.value = '0'; }
+                    }
+                },
+            });
+        });
+
+        const clearBtn = document.createElement('button');
+        clearBtn.type = 'button';
+        clearBtn.className = 'btn-icon';
+        clearBtn.title = 'Clear';
+        clearBtn.textContent = '\u00d7';
+        clearBtn.addEventListener('click', () => {
+            wrap.dataset.value = 0;
+            display.textContent = 'none';
+            display.className = 'shop-picker-display empty';
+            const card = wrap.closest('.shop-card');
+            if (card) {
+                const priceInput = card.querySelector('[data-field="price"]');
+                if (priceInput) priceInput.disabled = false;
+            }
+        });
+
+        wrap.appendChild(display);
+        wrap.appendChild(pickBtn);
+        wrap.appendChild(clearBtn);
+        return wrap;
     }
 
     function appendShopCard(list, entry) {
@@ -950,20 +1027,18 @@
         card.className = 'shop-card';
         card.dataset.shopType = type;
 
-        const idVal = type === 'pet' ? (e.PetType || '') : (e[meta.idField] || 0);
+        const idVal  = type === 'pet' ? (e.PetType || '') : (e[meta.idField] || 0);
         const qtyMax = e.QuantityMax != null ? e.QuantityMax : 0;
         const restockVal = e.RestockRate || '';
-        const tradeVal = e.TradeItemId || 0;
-        const hasTrade = tradeVal > 0;
+        const tradeVal   = e.TradeItemId || 0;
+        const hasTrade   = tradeVal > 0;
 
-        let qtyOpts = `<option value="-1"${qtyMax === -1 ? ' selected' : ''}>-1 — Does not Restock</option>`;
-        qtyOpts += `<option value="0"${qtyMax === 0 ? ' selected' : ''}>0 — Always in Stock</option>`;
+        let qtyOpts = `<option value="-1"${qtyMax === -1 ? ' selected' : ''}>-1 \u2014 Does not Restock</option>`;
+        qtyOpts += `<option value="0"${qtyMax === 0 ? ' selected' : ''}>0 \u2014 Always in Stock</option>`;
         for (let i = 1; i <= 98; i++) {
             qtyOpts += `<option value="${i}"${qtyMax === i ? ' selected' : ''}>${i}</option>`;
         }
-        if (qtyMax > 98) {
-            qtyOpts += `<option value="${qtyMax}" selected>${qtyMax}</option>`;
-        }
+        if (qtyMax > 98) qtyOpts += `<option value="${qtyMax}" selected>${qtyMax}</option>`;
 
         let restockOpts = restockOptions.map(o =>
             `<option value="${esc(o.value)}"${o.value === restockVal ? ' selected' : ''}>${esc(o.label)}</option>`
@@ -972,15 +1047,15 @@
             restockOpts += `<option value="${esc(restockVal)}" selected>${esc(restockVal)}</option>`;
         }
 
+        // Static HTML skeleton (no id/trade fields yet — appended below)
         card.innerHTML = `
             <button class="shop-card-remove" title="Remove entry" onclick="this.closest('.shop-card').remove()">&times;</button>
             <div class="shop-card-header">
                 <span class="shop-card-type-badge ${meta.badge}">${esc(meta.label)}</span>
             </div>
             <div class="shop-card-fields">
-                <div class="shop-field">
+                <div class="shop-field" data-slot="id">
                     <label>${esc(meta.idLabel)}</label>
-                    ${buildIdField(type, idVal)}
                 </div>
                 <div class="shop-field">
                     <label>Price</label>
@@ -991,9 +1066,8 @@
                     <label>Quantity Max</label>
                     <select data-field="qtymax">${qtyOpts}</select>
                 </div>
-                <div class="shop-field">
+                <div class="shop-field" data-slot="trade">
                     <label>Trade Item</label>
-                    <select data-field="tradeitemid" onchange="shopTradeChange(this)">${buildItemOptions(tradeVal)}</select>
                     <div class="field-hint">Required item for trade</div>
                 </div>
                 <div class="shop-field">
@@ -1001,6 +1075,27 @@
                     <select data-field="restockrate">${restockOpts}</select>
                 </div>
             </div>`;
+
+        // Insert id field
+        const idSlot = card.querySelector('[data-slot="id"]');
+        if (type === 'pet') {
+            const inp = document.createElement('input');
+            inp.type = 'text';
+            inp.setAttribute('data-field', 'id');
+            inp.value = String(idVal);
+            inp.placeholder = 'e.g. cat, mule';
+            idSlot.appendChild(inp);
+        } else {
+            const pickerWrap = buildPickerField(type, idVal, null);
+            pickerWrap.setAttribute('data-field', 'id');
+            idSlot.appendChild(pickerWrap);
+        }
+
+        // Insert trade-item field
+        const tradeSlot = card.querySelector('[data-slot="trade"]');
+        const tradeWrap = buildTradeItemField(tradeVal, null);
+        tradeWrap.setAttribute('data-field', 'tradeitemid');
+        tradeSlot.insertBefore(tradeWrap, tradeSlot.querySelector('.field-hint'));
 
         list.appendChild(card);
     }
@@ -1026,15 +1121,16 @@
                 entry.PetType = idEl.value.trim();
                 if (!entry.PetType) return;
             } else {
-                const idVal = parseInt(idEl.value, 10) || 0;
+                const idVal = parseInt(idEl.dataset.value, 10) || 0;
                 if (idVal < 1) return;
                 entry[meta.idField] = idVal;
             }
 
-            entry.Price = parseInt(card.querySelector('[data-field="price"]').value, 10) || 0;
-            entry.QuantityMax = parseInt(card.querySelector('[data-field="qtymax"]').value, 10) || 0;
-            entry.TradeItemId = parseInt(card.querySelector('[data-field="tradeitemid"]').value, 10) || 0;
-            entry.RestockRate = card.querySelector('[data-field="restockrate"]').value;
+            entry.Price        = parseInt(card.querySelector('[data-field="price"]').value, 10) || 0;
+            entry.QuantityMax  = parseInt(card.querySelector('[data-field="qtymax"]').value, 10) || 0;
+            const tradeEl      = card.querySelector('[data-field="tradeitemid"]');
+            entry.TradeItemId  = tradeEl ? (parseInt(tradeEl.dataset.value, 10) || 0) : 0;
+            entry.RestockRate  = card.querySelector('[data-field="restockrate"]').value;
 
             shop.push(entry);
         });
@@ -1049,8 +1145,8 @@
         btn.disabled = true; btn.textContent = 'Saving...';
 
         function eqSlot(id) {
-            const val = parseInt(document.getElementById(id).value, 10) || 0;
-            if (val === 0) return { ItemId: 0 };
+            const el = document.getElementById(id);
+            const val = el ? (parseInt(el.dataset.value, 10) || 0) : 0;
             return { ItemId: val };
         }
 
