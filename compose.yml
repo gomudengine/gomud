@@ -6,6 +6,7 @@ services:
     build:
       dockerfile: ./provisioning/Dockerfile
       args:
+        - GO_VERSION=${GO_VERSION:?Run through Makefile}
         - BIN=go-mud-server
     cap_drop:
       # Drop all Linux capabilities by default, then add back
