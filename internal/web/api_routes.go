@@ -26,6 +26,12 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /admin/api/v1/items/attack-messages", RunWithMUDLocked(
 		doBasicAuth(apiV1GetItemAttackMessages),
 	))
+	mux.HandleFunc("PUT /admin/api/v1/items/attack-messages/{subtype}/{intensity}/{proximity}/{target}", RunWithMUDLocked(
+		doBasicAuth(apiV1PutItemAttackMessage),
+	))
+	mux.HandleFunc("DELETE /admin/api/v1/items/attack-messages/{subtype}/{intensity}/{proximity}/{target}/{index}", RunWithMUDLocked(
+		doBasicAuth(apiV1DeleteItemAttackMessage),
+	))
 	mux.HandleFunc("GET /admin/api/v1/items", RunWithMUDLocked(
 		doBasicAuth(apiV1GetItems),
 	))
@@ -85,6 +91,17 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 		doBasicAuth(apiV1SearchUsers),
 	))
 
+	// Color Aliases
+	mux.HandleFunc("GET /admin/api/v1/color-aliases", RunWithMUDLocked(
+		doBasicAuth(apiV1GetColorAliases),
+	))
+	mux.HandleFunc("PATCH /admin/api/v1/color-aliases", RunWithMUDLocked(
+		doBasicAuth(apiV1PatchColorAlias),
+	))
+	mux.HandleFunc("DELETE /admin/api/v1/color-aliases/{alias}", RunWithMUDLocked(
+		doBasicAuth(apiV1DeleteColorAlias),
+	))
+
 	// Color Patterns
 	mux.HandleFunc("GET /admin/api/v1/colorpatterns", RunWithMUDLocked(
 		doBasicAuth(apiV1GetColorPatterns),
@@ -97,6 +114,14 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 	))
 	mux.HandleFunc("DELETE /admin/api/v1/colorpatterns", RunWithMUDLocked(
 		doBasicAuth(apiV1DeleteColorPattern),
+	))
+
+	// Keywords
+	mux.HandleFunc("GET /admin/api/v1/keywords", RunWithMUDLocked(
+		doBasicAuth(apiV1GetKeywords),
+	))
+	mux.HandleFunc("PATCH /admin/api/v1/keywords", RunWithMUDLocked(
+		doBasicAuth(apiV1PatchKeywords),
 	))
 
 	// Races

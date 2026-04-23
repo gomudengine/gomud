@@ -131,8 +131,8 @@ func (m *StorageModule) storageForUser(userId int) (username string, storageItem
 		return u.Username, data.getItems()
 	}
 	// Offline: find username from index then load from disk.
-	idx := users.NewUserIndex()
-	if name, ok := idx.FindByUserId(int64(userId)); ok {
+	idx := users.GetUserIndex()
+	if name, ok := idx.FindByUserId(userId); ok {
 		username = name
 	}
 	offlineData := m.load(userId)

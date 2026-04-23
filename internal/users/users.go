@@ -343,7 +343,7 @@ func CreateUser(u *UserRecord) error {
 	u.UserId = GetUniqueUserId()
 	u.Role = RoleUser
 
-	idx := NewUserIndex()
+	idx := GetUserIndex()
 	idx.AddUser(u.UserId, u.Username)
 
 	if err := SaveUser(*u); err != nil {
@@ -360,14 +360,14 @@ func CreateUser(u *UserRecord) error {
 
 func LoadUser(username string, skipValidation ...bool) (*UserRecord, error) {
 
-	idx := NewUserIndex()
+	idx := GetUserIndex()
 	userId, found := idx.FindByUsername(username)
 
 	if !found {
 		return nil, errors.New("user doesn't exist")
 	}
 
-	userFilePath := util.FilePath(string(configs.GetFilePathsConfig().DataFiles), `/`, `users`, `/`, strconv.Itoa(int(userId))+`.yaml`)
+	userFilePath := util.FilePath(string(configs.GetFilePathsConfig().DataFiles), `/`, `users`, `/`, strconv.Itoa(userId)+`.yaml`)
 
 	userFileTxt, err := os.ReadFile(userFilePath)
 	if err != nil {
@@ -572,7 +572,7 @@ func GetUniqueUserId() int {
 
 	highestUserId := 0
 
-	idx := NewUserIndex()
+	idx := GetUserIndex()
 	if idx.Exists() {
 
 		highestUserId = idx.GetHighestUserId()
@@ -612,14 +612,14 @@ func Exists(name string) bool {
 		}
 	}
 
-	idx := NewUserIndex()
+	idx := GetUserIndex()
 	_, found := idx.FindByUsername(name)
 
 	return found
 }
 
 func FindUserId(username string) int {
-	idx := NewUserIndex()
+	idx := GetUserIndex()
 	userid, _ := idx.FindByUsername(username)
-	return int(userid)
+	return userid
 }

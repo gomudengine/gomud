@@ -8,8 +8,10 @@ import (
 	"io"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
 
@@ -45,20 +47,35 @@ type IndexUserRecord struct {
 // UserIndex is the central struct that holds the index filename and methods
 // to work with the index.
 type UserIndex struct {
+	mu            sync.RWMutex
 	metaData      IndexMetaData
 	highestUserId int
 	Filename      string
+
+	records    []IndexUserRecord
+	byUsername map[string]int64
+	byUserId   map[int64]string
 }
 
-// NewUserIndex creates a new instance of UserIndex using the configured file path.
-func NewUserIndex() *UserIndex {
+var userIndex *UserIndex
+
+// InitUserIndex creates and initializes the singleton UserIndex. Called once at startup.
+func InitUserIndex() *UserIndex {
 	filename := util.FilePath(string(configs.GetFilePathsConfig().DataFiles), `/`, `users`, `/`, `users.idx`)
-	idx := &UserIndex{Filename: filename}
-	if idx.Exists() {
-		idx.metaData = idx.getMetaDataFromFile()
-		idx.calculateHighestUserId()
+	userIndex = &UserIndex{Filename: filename}
+	if userIndex.Exists() {
+		userIndex.metaData = userIndex.getMetaDataFromFile()
+		userIndex.loadRecords()
 	}
-	return idx
+	return userIndex
+}
+
+// GetUserIndex returns the singleton UserIndex, initializing it if needed.
+func GetUserIndex() *UserIndex {
+	if userIndex == nil {
+		return InitUserIndex()
+	}
+	return userIndex
 }
 
 func (idx *UserIndex) Exists() bool {
@@ -72,8 +89,54 @@ func (idx *UserIndex) Delete() {
 	}
 }
 
-// Writes a new index header then processes all user records to write a new index
+// loadRecords bulk-reads all records from disk into memory and builds lookup maps.
+func (idx *UserIndex) loadRecords() {
+	idx.byUsername = make(map[string]int64, idx.metaData.RecordCount)
+	idx.byUserId = make(map[int64]string, idx.metaData.RecordCount)
+	idx.highestUserId = 0
+
+	if idx.metaData.RecordCount == 0 {
+		idx.records = nil
+		return
+	}
+
+	f, err := os.Open(idx.Filename)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+
+	dataSize := idx.metaData.RecordCount * idx.metaData.RecordSize
+	buf := make([]byte, dataSize)
+	if _, err := f.Seek(int64(idx.metaData.MetaDataSize), io.SeekStart); err != nil {
+		return
+	}
+	if _, err := io.ReadFull(f, buf); err != nil {
+		return
+	}
+
+	idx.records = make([]IndexUserRecord, idx.metaData.RecordCount)
+
+	for i := uint64(0); i < idx.metaData.RecordCount; i++ {
+		offset := i * idx.metaData.RecordSize
+		rec := &idx.records[i]
+		copy(rec.Username[:], buf[offset:offset+80])
+		rec.UserID = int64(binary.LittleEndian.Uint64(buf[offset+80 : offset+88]))
+
+		username := string(bytes.TrimRight(rec.Username[:], "\x00"))
+		idx.byUsername[username] = rec.UserID
+		idx.byUserId[rec.UserID] = username
+
+		if int(rec.UserID) > idx.highestUserId {
+			idx.highestUserId = int(rec.UserID)
+		}
+	}
+}
+
+// Create initializes a new empty index file with a header.
 func (idx *UserIndex) Create() error {
+	idx.mu.Lock()
+	defer idx.mu.Unlock()
 
 	idx.Delete()
 
@@ -83,13 +146,16 @@ func (idx *UserIndex) Create() error {
 	}
 	defer f.Close()
 
-	// Reset metadata.
 	idx.metaData = IndexMetaData{
 		MetaDataSize: FixedHeaderTotalLength,
 		IndexVersion: IndexVersion,
 		RecordCount:  0,
 		RecordSize:   IndexRecordSizeV1,
 	}
+	idx.highestUserId = 0
+	idx.records = nil
+	idx.byUsername = make(map[string]int64)
+	idx.byUserId = make(map[int64]string)
 
 	headerBytes, err := idx.metaData.Format()
 	if err != nil {
@@ -102,186 +168,110 @@ func (idx *UserIndex) Create() error {
 	return nil
 }
 
-// Writes a new index header then processes all user records to write a new index
+// Rebuild recreates the index from all offline user records.
+// It calls Create() internally so it is self-contained.
 func (idx *UserIndex) Rebuild() error {
+	if err := idx.Create(); err != nil {
+		return fmt.Errorf("index create failed: %w", err)
+	}
 
-	// Example: Append each offline user record. The function SearchOfflineUsers
-	// and the type UserRecord are assumed to be defined elsewhere.
+	var firstErr error
 	SearchOfflineUsers(func(u *UserRecord) bool {
-		// Use the AppendUserRecord method to add the record.
 		if err := idx.AddUser(u.UserId, u.Username); err != nil {
-			// Handle error somehow?
+			mudlog.Error("UserIndex.Rebuild", "error", err.Error(), "userId", u.UserId, "username", u.Username)
+			if firstErr == nil {
+				firstErr = err
+			}
 		}
 		return true
 	})
 
-	return nil
+	return firstErr
 }
 
 func (idx *UserIndex) GetMetaData() IndexMetaData {
+	idx.mu.RLock()
+	defer idx.mu.RUnlock()
 	return idx.metaData
 }
 
 func (idx *UserIndex) GetHighestUserId() int {
+	idx.mu.RLock()
+	defer idx.mu.RUnlock()
 	return idx.highestUserId
 }
 
-func (idx *UserIndex) calculateHighestUserId() {
+// ForEachRecord iterates over all index records, calling fn for each.
+// Returning false from fn stops iteration.
+func (idx *UserIndex) ForEachRecord(fn func(rec IndexUserRecord) bool) {
+	idx.mu.RLock()
+	defer idx.mu.RUnlock()
 
-	f, err := os.Open(idx.Filename)
-	if err != nil {
-		return
-	}
-	defer f.Close()
-
-	for i := uint64(0); i < idx.metaData.RecordCount; i++ {
-		offset := int64(idx.metaData.MetaDataSize) + int64(i*idx.metaData.RecordSize)
-		if _, err := f.Seek(offset, io.SeekStart); err != nil {
+	for _, rec := range idx.records {
+		if !fn(rec) {
 			return
-		}
-
-		var recUsername [80]byte
-		if n, err := io.ReadFull(f, recUsername[:]); err != nil || n != 80 {
-			return
-		}
-
-		var userId int64
-		if err := binary.Read(f, binary.LittleEndian, &userId); err != nil {
-			return
-		}
-
-		if int(userId) > idx.highestUserId {
-			idx.highestUserId = int(userId)
 		}
 	}
-
 }
 
-// FindByUsername opens the index file, reads its header, then iterates over
-func (idx *UserIndex) FindByUsername(username string) (int64, bool) {
+// FindByUsername searches the index for a username and returns its userId.
+func (idx *UserIndex) FindByUsername(username string) (int, bool) {
 	if len(username) > 80 {
 		return 0, false
 	}
 
-	f, err := os.Open(idx.Filename)
-	if err != nil {
+	idx.mu.RLock()
+	defer idx.mu.RUnlock()
+
+	userId, ok := idx.byUsername[strings.ToLower(username)]
+	if !ok {
 		return 0, false
 	}
-	defer f.Close()
-
-	username = strings.ToLower(username)
-
-	for i := uint64(0); i < idx.metaData.RecordCount; i++ {
-		offset := int64(idx.metaData.MetaDataSize) + int64(i*idx.metaData.RecordSize)
-		if _, err := f.Seek(offset, io.SeekStart); err != nil {
-			return 0, false
-		}
-
-		var recUsername [80]byte
-		if n, err := io.ReadFull(f, recUsername[:]); err != nil || n != 80 {
-			return 0, false
-		}
-
-		var userId int64
-		if err := binary.Read(f, binary.LittleEndian, &userId); err != nil {
-			return 0, false
-		}
-
-		term := make([]byte, 1)
-		if _, err := f.Read(term); err != nil {
-			return 0, false
-		}
-		if term[0] != IndexLineTerminatorV1 {
-			return 0, false
-		}
-
-		// Compare only the first len(username) characters.
-		if len(username) < 80 && recUsername[len(username)] != 0 {
-			continue
-		}
-		match := true
-		for j := 0; j < len(username); j++ {
-			if username[j] != recUsername[j] {
-				match = false
-				break
-			}
-		}
-		if match {
-			return userId, true
-		}
-	}
-	return 0, false
+	return int(userId), true
 }
 
 // FindByUserId searches for a user record matching the provided userId.
-// If found, it returns the corresponding username.
-func (idx *UserIndex) FindByUserId(userId int64) (string, bool) {
-	f, err := os.Open(idx.Filename)
-	if err != nil {
+func (idx *UserIndex) FindByUserId(userId int) (string, bool) {
+	idx.mu.RLock()
+	defer idx.mu.RUnlock()
+
+	username, ok := idx.byUserId[int64(userId)]
+	if !ok {
 		return "", false
 	}
-	defer f.Close()
-
-	for i := uint64(0); i < idx.metaData.RecordCount; i++ {
-		offset := int64(idx.metaData.MetaDataSize) + int64(i*idx.metaData.RecordSize)
-		if _, err := f.Seek(offset, io.SeekStart); err != nil {
-			return "", false
-		}
-
-		var recUsername [80]byte
-		if n, err := io.ReadFull(f, recUsername[:]); err != nil || n != 80 {
-			return "", false
-		}
-
-		var recUserId int64
-		if err := binary.Read(f, binary.LittleEndian, &recUserId); err != nil {
-			return "", false
-		}
-
-		term := make([]byte, 1)
-		if _, err := f.Read(term); err != nil {
-			return "", false
-		}
-		if term[0] != IndexLineTerminatorV1 {
-			return "", false
-		}
-
-		if recUserId == userId {
-			username := string(bytes.TrimRight(recUsername[:], "\x00"))
-			return username, true
-		}
-	}
-	return "", false
+	return username, true
 }
 
 func (idx *UserIndex) getMetaDataFromFile() IndexMetaData {
-
 	f, err := os.Open(idx.Filename)
 	if err != nil {
 		return IndexMetaData{}
 	}
 	defer f.Close()
 
-	headerBytes, err := idx.readFixedHeader(f)
-	if err != nil {
+	header := make([]byte, FixedHeaderTotalLength)
+	if _, err := io.ReadFull(f, header); err != nil {
 		return IndexMetaData{}
 	}
 
 	var meta IndexMetaData
-	meta.MetaDataSize = uint64(len(headerBytes))
-	headerContent := strings.TrimSpace(string(headerBytes[:FixedHeaderTotalLength-1]))
-	fmt.Sscanf(headerContent, "VERSION=%d,RECORDCOUNT=%d,RECORDSIZE=%d", &meta.IndexVersion, &meta.RecordCount, &meta.RecordSize)
+	meta.MetaDataSize = uint64(len(header))
+	headerContent := strings.TrimSpace(string(header[:FixedHeaderTotalLength-1]))
+	n, _ := fmt.Sscanf(headerContent, "VERSION=%d,RECORDCOUNT=%d,RECORDSIZE=%d", &meta.IndexVersion, &meta.RecordCount, &meta.RecordSize)
+	if n != 3 {
+		return IndexMetaData{}
+	}
 
 	return meta
 }
 
-// AppendUserRecord appends a new record to the index file and updates the header.
+// AddUser appends a new record to the index file and updates the header.
 func (idx *UserIndex) AddUser(userId int, username string) error {
+	idx.mu.Lock()
+	defer idx.mu.Unlock()
 
-	// We lowercase username so that we can ensure uniqueness
 	username = strings.ToLower(username)
 
-	// Create the new record
 	newRecord := IndexUserRecord{
 		UserID: int64(userId),
 	}
@@ -296,14 +286,13 @@ func (idx *UserIndex) AddUser(userId int, username string) error {
 	if _, err := f.Seek(0, io.SeekEnd); err != nil {
 		return fmt.Errorf("error seeking to file end: %w", err)
 	}
-	if _, err := f.Write(newRecord.Username[:]); err != nil {
-		return fmt.Errorf("error writing username: %w", err)
-	}
-	if err := binary.Write(f, binary.LittleEndian, newRecord.UserID); err != nil {
-		return fmt.Errorf("error writing userId: %w", err)
-	}
-	if _, err := f.Write([]byte{IndexLineTerminatorV1}); err != nil {
-		return fmt.Errorf("error writing record terminator: %w", err)
+
+	var recBuf [IndexRecordSizeV1]byte
+	copy(recBuf[:80], newRecord.Username[:])
+	binary.LittleEndian.PutUint64(recBuf[80:88], uint64(newRecord.UserID))
+	recBuf[88] = IndexLineTerminatorV1
+	if _, err := f.Write(recBuf[:]); err != nil {
+		return fmt.Errorf("error writing record: %w", err)
 	}
 
 	if userId > idx.highestUserId {
@@ -322,63 +311,59 @@ func (idx *UserIndex) AddUser(userId int, username string) error {
 	if _, err := f.Write(newHeaderBytes); err != nil {
 		return fmt.Errorf("error writing updated header: %w", err)
 	}
+
+	if err := f.Sync(); err != nil {
+		return fmt.Errorf("error syncing file: %w", err)
+	}
+
+	idx.records = append(idx.records, newRecord)
+	idx.byUsername[username] = int64(userId)
+	idx.byUserId[int64(userId)] = username
+
 	return nil
 }
 
-// RemoveUserRecordByUsername removes the first record that matches the provided username,
-// updates the header, and rewrites the file.
+// RemoveByUsername removes the first record matching the username and rewrites the index.
 func (idx *UserIndex) RemoveByUsername(username string) error {
-
-	f, err := os.Open(idx.Filename)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
+	idx.mu.Lock()
+	defer idx.mu.Unlock()
 
 	username = strings.ToLower(username)
 
-	records := make([]IndexUserRecord, 0, idx.metaData.RecordCount)
-	recordFound := false
-
-	for i := uint64(0); i < idx.metaData.RecordCount; i++ {
-		offset := int64(idx.metaData.MetaDataSize) + int64(i*idx.metaData.RecordSize)
-		if _, err := f.Seek(offset, io.SeekStart); err != nil {
-			return fmt.Errorf("seek error: %w", err)
-		}
-
-		var rec IndexUserRecord
-		if n, err := f.Read(rec.Username[:]); err != nil || n != 80 {
-			return fmt.Errorf("error reading username: %w", err)
-		}
-		if err := binary.Read(f, binary.LittleEndian, &rec.UserID); err != nil {
-			return fmt.Errorf("error reading userId: %w", err)
-		}
-		term := make([]byte, 1)
-		if _, err := f.Read(term); err != nil {
-			return fmt.Errorf("error reading record terminator: %w", err)
-		}
-		if term[0] != IndexLineTerminatorV1 {
-			return fmt.Errorf("invalid record terminator")
-		}
-
-		recUserStr := string(bytes.TrimRight(rec.Username[:], "\x00"))
-		if recUserStr == username && !recordFound {
-			recordFound = true
-			continue // skip this record
-		}
-		records = append(records, rec)
-	}
-
-	if !recordFound {
+	if _, ok := idx.byUsername[username]; !ok {
 		return ErrNotFound
 	}
 
-	idx.metaData.RecordCount = uint64(len(records))
+	newRecords := make([]IndexUserRecord, 0, len(idx.records)-1)
+	removed := false
 
-	return idx.writeCompleteIndex(records)
+	for _, rec := range idx.records {
+		if !removed {
+			recUser := string(bytes.TrimRight(rec.Username[:], "\x00"))
+			if recUser == username {
+				removed = true
+				delete(idx.byUsername, username)
+				delete(idx.byUserId, rec.UserID)
+				continue
+			}
+		}
+		newRecords = append(newRecords, rec)
+	}
+
+	idx.records = newRecords
+	idx.metaData.RecordCount = uint64(len(newRecords))
+
+	idx.highestUserId = 0
+	for _, rec := range idx.records {
+		if int(rec.UserID) > idx.highestUserId {
+			idx.highestUserId = int(rec.UserID)
+		}
+	}
+
+	return idx.writeCompleteIndex(newRecords)
 }
 
-// formatFixedHeader formats the metadata header as a fixed-width string.
+// Format formats the metadata header as a fixed-width string.
 // The header (without newline) is exactly 99 bytes.
 func (m IndexMetaData) Format() ([]byte, error) {
 	headerContent := fmt.Sprintf("VERSION=%d,RECORDCOUNT=%d,RECORDSIZE=%d", m.IndexVersion, m.RecordCount, m.RecordSize)
@@ -389,45 +374,46 @@ func (m IndexMetaData) Format() ([]byte, error) {
 	return []byte(padded + string(IndexLineTerminatorV1)), nil
 }
 
-// readFixedHeader reads exactly 100 bytes (the fixed header) from the provided reader.
-func (idx *UserIndex) readFixedHeader(r io.Reader) ([]byte, error) {
-	header := make([]byte, FixedHeaderTotalLength)
-	n, err := io.ReadFull(r, header)
-	if err != nil {
-		return nil, err
-	}
-	if n != FixedHeaderTotalLength {
-		return nil, fmt.Errorf("expected %d bytes for header, got %d", FixedHeaderTotalLength, n)
-	}
-	return header, nil
-}
-
-// writeIndex writes the metadata header and all user records into the index file.
+// writeCompleteIndex writes metadata and all records atomically via temp file + rename.
 func (idx *UserIndex) writeCompleteIndex(records []IndexUserRecord) error {
-	f, err := os.Create(idx.Filename)
+	tmpFile := idx.Filename + ".tmp"
+	f, err := os.Create(tmpFile)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
 
-	headerBytes, err := idx.metaData.Format()
-	if err != nil {
-		return err
-	}
-	if _, err := f.Write(headerBytes); err != nil {
-		return err
+	writeErr := func() error {
+		headerBytes, err := idx.metaData.Format()
+		if err != nil {
+			return err
+		}
+
+		buf := make([]byte, 0, len(headerBytes)+len(records)*IndexRecordSizeV1)
+		buf = append(buf, headerBytes...)
+
+		var recBuf [IndexRecordSizeV1]byte
+		for _, rec := range records {
+			copy(recBuf[:80], rec.Username[:])
+			binary.LittleEndian.PutUint64(recBuf[80:88], uint64(rec.UserID))
+			recBuf[88] = IndexLineTerminatorV1
+			buf = append(buf, recBuf[:]...)
+		}
+
+		if _, err := f.Write(buf); err != nil {
+			return err
+		}
+
+		return f.Sync()
+	}()
+
+	if closeErr := f.Close(); writeErr == nil {
+		writeErr = closeErr
 	}
 
-	for _, rec := range records {
-		if _, err := f.Write(rec.Username[:]); err != nil {
-			return err
-		}
-		if err := binary.Write(f, binary.LittleEndian, rec.UserID); err != nil {
-			return err
-		}
-		if _, err := f.Write([]byte{IndexLineTerminatorV1}); err != nil {
-			return err
-		}
+	if writeErr != nil {
+		os.Remove(tmpFile)
+		return writeErr
 	}
-	return nil
+
+	return os.Rename(tmpFile, idx.Filename)
 }

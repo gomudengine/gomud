@@ -1,0 +1,577 @@
+{{template "header" .}}
+
+<style>
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #555; margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+    .status-bar { display: none; padding: 0.55rem 0.9rem; border-radius: 4px; font-size: 0.85rem; margin-bottom: 1rem; }
+    .status-bar.success { background: #e6f4ea; color: #1e6e34; display: block; }
+    .status-bar.error   { background: #fde8e8; color: #8a0000; display: block; }
+
+    .tab-bar { display: flex; gap: 0; border-bottom: 2px solid #1a1a2e; margin-bottom: 1.25rem; flex-wrap: wrap; }
+    .tab-btn {
+        padding: 0.55rem 1.1rem; border: none; background: #eee; color: #555;
+        font-size: 0.85rem; font-weight: 600; cursor: pointer; border-radius: 4px 4px 0 0;
+        margin-bottom: -2px; border: 2px solid transparent; border-bottom: none;
+    }
+    .tab-btn:hover { background: #e0e0e0; }
+    .tab-btn.active { background: #fff; color: #1a1a2e; border-color: #1a1a2e; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .section-panel { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 1.25rem; margin-bottom: 1rem; }
+    .section-desc { font-size: 0.82rem; color: #666; margin-bottom: 1rem; }
+
+    .btn-save-all { padding: 0.5rem 1.5rem; background: #1a1a2e; color: #fff; border: none; border-radius: 4px; font-size: 0.9rem; font-weight: 600; cursor: pointer; margin-bottom: 1.25rem; }
+    .btn-save-all:hover { background: #2d2d4e; }
+    .btn-add { padding: 0.3rem 0.8rem; background: #1e6e34; color: #fff; border: none; border-radius: 4px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+    .btn-add:hover { background: #145728; }
+    .btn-remove { padding: 0.2rem 0.5rem; background: #fff; color: #8a0000; border: 1px solid #e0a0a0; border-radius: 3px; font-size: 0.75rem; cursor: pointer; }
+    .btn-remove:hover { background: #fde8e8; }
+
+    /* Help Topics */
+    .help-group { margin-bottom: 1rem; border: 1px solid #e0e0e0; border-radius: 5px; overflow: hidden; }
+    .help-group-header {
+        display: flex; align-items: center; gap: 0.75rem; padding: 0.55rem 0.85rem;
+        background: #f5f5f5; font-weight: 600; font-size: 0.85rem; cursor: pointer; user-select: none;
+    }
+    .help-group-header:hover { background: #eee; }
+    .help-group-header .arrow { font-size: 0.65rem; color: #888; transition: transform 0.15s; }
+    .help-group.open .arrow { transform: rotate(90deg); }
+    .help-group-body { display: none; padding: 0.5rem 0.85rem 0.75rem; }
+    .help-group.open .help-group-body { display: block; }
+    .help-category { margin-bottom: 0.75rem; }
+    .help-category-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem; }
+    .help-category-name { font-size: 0.82rem; font-weight: 600; color: #444; text-transform: capitalize; }
+    .chip-list { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+    .chip {
+        display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.55rem;
+        background: #e8eaf6; border-radius: 12px; font-size: 0.78rem; color: #333;
+    }
+    .chip .x { cursor: pointer; color: #888; font-weight: 700; font-size: 0.7rem; }
+    .chip .x:hover { color: #c00; }
+    .add-inline { display: inline-flex; align-items: center; gap: 0.3rem; }
+    .add-inline input { padding: 0.2rem 0.4rem; border: 1px solid #ccc; border-radius: 3px; font-size: 0.8rem; width: 120px; }
+    .add-inline button { padding: 0.2rem 0.5rem; background: #1e6e34; color: #fff; border: none; border-radius: 3px; font-size: 0.75rem; cursor: pointer; }
+
+    /* Alias Tables */
+    .alias-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .alias-table th { text-align: left; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #666; padding: 0.4rem 0.6rem; border-bottom: 2px solid #ddd; letter-spacing: 0.03em; }
+    .alias-table td { padding: 0.4rem 0.6rem; border-bottom: 1px solid #eee; vertical-align: middle; }
+    .alias-table tr:hover { background: #fafafa; }
+    .alias-table input[type="text"] {
+        width: 100%; padding: 0.3rem 0.5rem; border: 1px solid #ccc; border-radius: 3px;
+        font-size: 0.84rem; font-family: inherit;
+    }
+    .alias-table input:focus { outline: 2px solid #1a1a2e; outline-offset: 1px; border-color: transparent; }
+    .col-action { width: 40px; text-align: center; }
+    .add-row { display: flex; gap: 0.5rem; margin-top: 0.6rem; align-items: center; flex-wrap: wrap; }
+    .add-row input { padding: 0.35rem 0.5rem; border: 1px solid #ccc; border-radius: 3px; font-size: 0.84rem; }
+    .add-row .inp-key { width: 140px; }
+    .add-row .inp-val { width: 260px; }
+    .add-row .inp-short { width: 60px; }
+
+    /* Legend Overrides */
+    .legend-zone { margin-bottom: 1rem; border: 1px solid #e0e0e0; border-radius: 5px; overflow: hidden; }
+    .legend-zone-header {
+        display: flex; align-items: center; gap: 0.75rem; padding: 0.55rem 0.85rem;
+        background: #f5f5f5; font-weight: 600; font-size: 0.85rem;
+    }
+    .legend-zone-body { padding: 0.5rem 0.85rem 0.75rem; }
+</style>
+
+<h1>Keywords</h1>
+<p class="subtitle">Help topics, aliases, direction shortcuts, and map legend overrides.</p>
+
+<div id="statusBar" class="status-bar"></div>
+<button class="btn-save-all" onclick="saveAll()">Save All Changes</button>
+
+<div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('help')">Help Topics</button>
+    <button class="tab-btn" onclick="switchTab('helpAliases')">Help Aliases</button>
+    <button class="tab-btn" onclick="switchTab('cmdAliases')">Command Aliases</button>
+    <button class="tab-btn" onclick="switchTab('dirAliases')">Direction Aliases</button>
+    <button class="tab-btn" onclick="switchTab('legend')">Legend Overrides</button>
+</div>
+
+<!-- Help Topics -->
+<div id="tab-help" class="tab-panel active">
+    <div class="section-panel">
+        <p class="section-desc">
+            Organized help topics displayed via <code>help &lt;topic&gt;</code>. Grouped by type (command, skill, admin) and category.
+        </p>
+        <div id="helpTopicsContainer"></div>
+        <div class="add-row" style="margin-top:1rem;">
+            <input type="text" id="newHelpType" class="inp-key" placeholder="Type (e.g. command)" />
+            <input type="text" id="newHelpCat" class="inp-key" placeholder="Category" />
+            <button class="btn-add" onclick="addHelpCategory()">+ Add Category</button>
+        </div>
+    </div>
+</div>
+
+<!-- Help Aliases -->
+<div id="tab-helpAliases" class="tab-panel">
+    <div class="section-panel">
+        <p class="section-desc">
+            When a user types <code>help &lt;alias&gt;</code>, it redirects to the target help topic.
+        </p>
+        <table class="alias-table">
+            <thead><tr><th>Target Topic</th><th>Aliases (comma-separated)</th><th class="col-action"></th></tr></thead>
+            <tbody id="helpAliasesBody"></tbody>
+        </table>
+        <div class="add-row">
+            <input type="text" id="newHelpAliasKey" class="inp-key" placeholder="Target topic" />
+            <input type="text" id="newHelpAliasVal" class="inp-val" placeholder="alias1, alias2, ..." />
+            <button class="btn-add" onclick="addHelpAlias()">+ Add</button>
+        </div>
+    </div>
+</div>
+
+<!-- Command Aliases -->
+<div id="tab-cmdAliases" class="tab-panel">
+    <div class="section-panel">
+        <p class="section-desc">
+            Shorthand aliases for in-game commands. For example, <code>i</code> → <code>inventory</code>.
+            Multi-word targets like <code>party chat</code> are supported.
+        </p>
+        <table class="alias-table">
+            <thead><tr><th>Command</th><th>Aliases (comma-separated)</th><th class="col-action"></th></tr></thead>
+            <tbody id="cmdAliasesBody"></tbody>
+        </table>
+        <div class="add-row">
+            <input type="text" id="newCmdAliasKey" class="inp-key" placeholder="Command" />
+            <input type="text" id="newCmdAliasVal" class="inp-val" placeholder="alias1, alias2, ..." />
+            <button class="btn-add" onclick="addCmdAlias()">+ Add</button>
+        </div>
+    </div>
+</div>
+
+<!-- Direction Aliases -->
+<div id="tab-dirAliases" class="tab-panel">
+    <div class="section-panel">
+        <p class="section-desc">
+            Single-character shortcuts for movement directions.
+        </p>
+        <table class="alias-table">
+            <thead><tr><th>Shortcut</th><th>Direction</th><th class="col-action"></th></tr></thead>
+            <tbody id="dirAliasesBody"></tbody>
+        </table>
+        <div class="add-row">
+            <input type="text" id="newDirAliasKey" class="inp-short" placeholder="Key" />
+            <input type="text" id="newDirAliasVal" class="inp-key" placeholder="Direction" />
+            <button class="btn-add" onclick="addDirAlias()">+ Add</button>
+        </div>
+    </div>
+</div>
+
+<!-- Legend Overrides -->
+<div id="tab-legend" class="tab-panel">
+    <div class="section-panel">
+        <p class="section-desc">
+            Custom map symbols shown in the map legend. The <code>*</code> zone applies globally unless overridden by a specific zone entry.
+        </p>
+        <div id="legendContainer"></div>
+        <div class="add-row" style="margin-top:1rem;">
+            <input type="text" id="newLegendZone" class="inp-key" placeholder="Zone name (or *)" />
+            <button class="btn-add" onclick="addLegendZone()">+ Add Zone</button>
+        </div>
+    </div>
+</div>
+
+<button class="btn-save-all" onclick="saveAll()">Save All Changes</button>
+
+<script>
+let data = null;
+
+async function init() {
+    const res = await AdminAPI.get('/admin/api/v1/keywords');
+    if (!res.ok) { showStatus('error', 'Failed to load keywords: ' + res.error); return; }
+    data = (res.data && res.data.data) || {};
+    if (!data.Help) data.Help = {};
+    if (!data.HelpAliases) data.HelpAliases = {};
+    if (!data.CommandAliases) data.CommandAliases = {};
+    if (!data.DirectionAliases) data.DirectionAliases = {};
+    if (!data.MapLegendOverrides) data.MapLegendOverrides = {};
+    renderAll();
+}
+
+function renderAll() {
+    renderHelpTopics();
+    renderHelpAliases();
+    renderCmdAliases();
+    renderDirAliases();
+    renderLegend();
+}
+
+// ---- Tabs ----
+function switchTab(id) {
+    document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-' + id).classList.add('active');
+    const tabs = ['help','helpAliases','cmdAliases','dirAliases','legend'];
+    document.querySelectorAll('.tab-btn')[tabs.indexOf(id)].classList.add('active');
+}
+
+// ---- Help Topics ----
+function renderHelpTopics() {
+    const c = document.getElementById('helpTopicsContainer');
+    const types = Object.keys(data.Help).sort();
+    if (types.length === 0) { c.innerHTML = '<div style="color:#888;font-size:0.85rem;">No help topics defined.</div>'; return; }
+    c.innerHTML = types.map(type => {
+        const cats = data.Help[type];
+        const catKeys = Object.keys(cats).sort();
+        return `<div class="help-group open" data-type="${esc(type)}">
+            <div class="help-group-header" onclick="this.parentElement.classList.toggle('open')">
+                <span class="arrow">&#9654;</span>
+                <span>${esc(type)}</span>
+                <span style="font-size:0.75rem;color:#888;font-weight:400;">(${catKeys.length} categories)</span>
+                <button class="btn-remove" style="margin-left:auto;" onclick="event.stopPropagation();removeHelpType('${esc(type)}')">Remove Type</button>
+            </div>
+            <div class="help-group-body">
+                ${catKeys.map(cat => renderHelpCategory(type, cat, cats[cat])).join('')}
+                <div class="add-inline" style="margin-top:0.5rem;">
+                    <input type="text" placeholder="New category" id="newCat-${esc(type)}" />
+                    <button onclick="addHelpCategoryInline('${esc(type)}')">+ Category</button>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function renderHelpCategory(type, cat, commands) {
+    const cmds = commands || [];
+    return `<div class="help-category">
+        <div class="help-category-header">
+            <span class="help-category-name">${esc(cat)}</span>
+            <button class="btn-remove" onclick="removeHelpCategory('${esc(type)}','${esc(cat)}')">Remove</button>
+        </div>
+        <div class="chip-list">
+            ${cmds.map(cmd => `<span class="chip">${esc(cmd)}<span class="x" onclick="removeHelpCommand('${esc(type)}','${esc(cat)}','${esc(cmd)}')">&times;</span></span>`).join('')}
+            <span class="add-inline">
+                <input type="text" placeholder="command" id="addCmd-${esc(type)}-${esc(cat)}" onkeydown="if(event.key==='Enter')addHelpCommand('${esc(type)}','${esc(cat)}')" />
+                <button onclick="addHelpCommand('${esc(type)}','${esc(cat)}')">+</button>
+            </span>
+        </div>
+    </div>`;
+}
+
+function addHelpCategory() {
+    const type = document.getElementById('newHelpType').value.trim().toLowerCase();
+    const cat = document.getElementById('newHelpCat').value.trim().toLowerCase();
+    if (!type || !cat) return;
+    if (!data.Help[type]) data.Help[type] = {};
+    if (!data.Help[type][cat]) data.Help[type][cat] = [];
+    document.getElementById('newHelpType').value = '';
+    document.getElementById('newHelpCat').value = '';
+    renderHelpTopics();
+}
+
+function addHelpCategoryInline(type) {
+    const input = document.getElementById('newCat-' + type);
+    const cat = input.value.trim().toLowerCase();
+    if (!cat) return;
+    if (!data.Help[type][cat]) data.Help[type][cat] = [];
+    input.value = '';
+    renderHelpTopics();
+}
+
+function addHelpCommand(type, cat) {
+    const input = document.getElementById('addCmd-' + type + '-' + cat);
+    const cmd = input.value.trim().toLowerCase();
+    if (!cmd) return;
+    if (!data.Help[type][cat].includes(cmd)) data.Help[type][cat].push(cmd);
+    input.value = '';
+    renderHelpTopics();
+}
+
+function removeHelpCommand(type, cat, cmd) {
+    data.Help[type][cat] = data.Help[type][cat].filter(c => c !== cmd);
+    renderHelpTopics();
+}
+
+function removeHelpCategory(type, cat) {
+    if (!confirm('Remove category "' + cat + '" and all its commands?')) return;
+    delete data.Help[type][cat];
+    renderHelpTopics();
+}
+
+function removeHelpType(type) {
+    if (!confirm('Remove help type "' + type + '" and all its categories?')) return;
+    delete data.Help[type];
+    renderHelpTopics();
+}
+
+// ---- Help Aliases ----
+function renderHelpAliases() {
+    const body = document.getElementById('helpAliasesBody');
+    const keys = Object.keys(data.HelpAliases).sort();
+    body.innerHTML = keys.map(k => {
+        const vals = (data.HelpAliases[k] || []).join(', ');
+        return `<tr>
+            <td><input type="text" value="${escAttr(k)}" onchange="renameHelpAlias('${escAttr(k)}',this.value)" /></td>
+            <td><input type="text" value="${escAttr(vals)}" onchange="updateHelpAliasValues('${escAttr(k)}',this.value,this.parentElement.parentElement)" /></td>
+            <td class="col-action"><button class="btn-remove" onclick="removeHelpAlias('${escAttr(k)}')">&times;</button></td>
+        </tr>`;
+    }).join('');
+}
+
+function renameHelpAlias(oldKey, newKey) {
+    newKey = newKey.trim();
+    if (!newKey || newKey === oldKey) return;
+    data.HelpAliases[newKey] = data.HelpAliases[oldKey];
+    delete data.HelpAliases[oldKey];
+    renderHelpAliases();
+}
+
+function updateHelpAliasValues(key, valStr, row) {
+    const currentKeyInput = row.querySelector('td:first-child input');
+    const currentKey = currentKeyInput ? currentKeyInput.value.trim() : key;
+    const actualKey = data.HelpAliases[currentKey] !== undefined ? currentKey : key;
+    data.HelpAliases[actualKey] = valStr.split(',').map(s => s.trim()).filter(Boolean);
+}
+
+function removeHelpAlias(key) { delete data.HelpAliases[key]; renderHelpAliases(); }
+
+function addHelpAlias() {
+    const k = document.getElementById('newHelpAliasKey').value.trim();
+    const v = document.getElementById('newHelpAliasVal').value.trim();
+    if (!k) return;
+    data.HelpAliases[k] = v ? v.split(',').map(s => s.trim()).filter(Boolean) : [];
+    document.getElementById('newHelpAliasKey').value = '';
+    document.getElementById('newHelpAliasVal').value = '';
+    renderHelpAliases();
+}
+
+// ---- Command Aliases ----
+function renderCmdAliases() {
+    const body = document.getElementById('cmdAliasesBody');
+    const keys = Object.keys(data.CommandAliases).sort();
+    body.innerHTML = keys.map(k => {
+        const vals = (data.CommandAliases[k] || []).join(', ');
+        return `<tr>
+            <td><input type="text" value="${escAttr(k)}" onchange="renameCmdAlias('${escAttr(k)}',this.value)" /></td>
+            <td><input type="text" value="${escAttr(vals)}" onchange="updateCmdAliasValues('${escAttr(k)}',this.value,this.parentElement.parentElement)" /></td>
+            <td class="col-action"><button class="btn-remove" onclick="removeCmdAlias('${escAttr(k)}')">&times;</button></td>
+        </tr>`;
+    }).join('');
+}
+
+function renameCmdAlias(oldKey, newKey) {
+    newKey = newKey.trim();
+    if (!newKey || newKey === oldKey) return;
+    data.CommandAliases[newKey] = data.CommandAliases[oldKey];
+    delete data.CommandAliases[oldKey];
+    renderCmdAliases();
+}
+
+function updateCmdAliasValues(key, valStr, row) {
+    const currentKeyInput = row.querySelector('td:first-child input');
+    const currentKey = currentKeyInput ? currentKeyInput.value.trim() : key;
+    const actualKey = data.CommandAliases[currentKey] !== undefined ? currentKey : key;
+    data.CommandAliases[actualKey] = valStr.split(',').map(s => s.trim()).filter(Boolean);
+}
+
+function removeCmdAlias(key) { delete data.CommandAliases[key]; renderCmdAliases(); }
+
+function addCmdAlias() {
+    const k = document.getElementById('newCmdAliasKey').value.trim();
+    const v = document.getElementById('newCmdAliasVal').value.trim();
+    if (!k) return;
+    data.CommandAliases[k] = v ? v.split(',').map(s => s.trim()).filter(Boolean) : [];
+    document.getElementById('newCmdAliasKey').value = '';
+    document.getElementById('newCmdAliasVal').value = '';
+    renderCmdAliases();
+}
+
+// ---- Direction Aliases ----
+function renderDirAliases() {
+    const body = document.getElementById('dirAliasesBody');
+    const keys = Object.keys(data.DirectionAliases).sort();
+    body.innerHTML = keys.map(k => {
+        return `<tr>
+            <td><input type="text" value="${escAttr(k)}" onchange="renameDirAlias('${escAttr(k)}',this.value)" /></td>
+            <td><input type="text" value="${escAttr(data.DirectionAliases[k])}" onchange="updateDirAlias('${escAttr(k)}',this.value,this.parentElement.parentElement)" /></td>
+            <td class="col-action"><button class="btn-remove" onclick="removeDirAlias('${escAttr(k)}')">&times;</button></td>
+        </tr>`;
+    }).join('');
+}
+
+function renameDirAlias(oldKey, newKey) {
+    newKey = newKey.trim();
+    if (!newKey || newKey === oldKey) return;
+    data.DirectionAliases[newKey] = data.DirectionAliases[oldKey];
+    delete data.DirectionAliases[oldKey];
+    renderDirAliases();
+}
+
+function updateDirAlias(key, val, row) {
+    const currentKeyInput = row.querySelector('td:first-child input');
+    const currentKey = currentKeyInput ? currentKeyInput.value.trim() : key;
+    const actualKey = data.DirectionAliases[currentKey] !== undefined ? currentKey : key;
+    data.DirectionAliases[actualKey] = val.trim();
+}
+
+function removeDirAlias(key) { delete data.DirectionAliases[key]; renderDirAliases(); }
+
+function addDirAlias() {
+    const k = document.getElementById('newDirAliasKey').value.trim();
+    const v = document.getElementById('newDirAliasVal').value.trim();
+    if (!k || !v) return;
+    data.DirectionAliases[k] = v;
+    document.getElementById('newDirAliasKey').value = '';
+    document.getElementById('newDirAliasVal').value = '';
+    renderDirAliases();
+}
+
+// ---- Legend Overrides ----
+function renderLegend() {
+    const c = document.getElementById('legendContainer');
+    const zones = Object.keys(data.MapLegendOverrides).sort((a, b) => {
+        if (a === '*') return -1;
+        if (b === '*') return 1;
+        return a.localeCompare(b);
+    });
+    if (zones.length === 0) { c.innerHTML = '<div style="color:#888;font-size:0.85rem;">No legend overrides defined.</div>'; return; }
+    c.innerHTML = zones.map(zone => {
+        const entries = data.MapLegendOverrides[zone] || {};
+        const symbols = Object.keys(entries).sort();
+        return `<div class="legend-zone">
+            <div class="legend-zone-header">
+                <span>${zone === '*' ? '* (Global)' : esc(zone)}</span>
+                <button class="btn-remove" style="margin-left:auto;" onclick="removeLegendZone('${escAttr(zone)}')">Remove Zone</button>
+            </div>
+            <div class="legend-zone-body">
+                <table class="alias-table">
+                    <thead><tr><th>Symbol</th><th>Label</th><th class="col-action"></th></tr></thead>
+                    <tbody>
+                        ${symbols.map(sym => `<tr>
+                            <td><input type="text" value="${escAttr(sym)}" style="width:60px;text-align:center;" onchange="renameLegendSymbol('${escAttr(zone)}','${escAttr(sym)}',this.value)" /></td>
+                            <td><input type="text" value="${escAttr(entries[sym])}" onchange="updateLegendEntry('${escAttr(zone)}','${escAttr(sym)}',this.value,this.parentElement.parentElement)" /></td>
+                            <td class="col-action"><button class="btn-remove" onclick="removeLegendEntry('${escAttr(zone)}','${escAttr(sym)}')">&times;</button></td>
+                        </tr>`).join('')}
+                    </tbody>
+                </table>
+                <div class="add-row">
+                    <input type="text" class="inp-short" placeholder="Sym" id="newLegSym-${escAttr(zone)}" />
+                    <input type="text" class="inp-key" placeholder="Label" id="newLegLbl-${escAttr(zone)}" />
+                    <button class="btn-add" onclick="addLegendEntry('${escAttr(zone)}')">+ Add</button>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function addLegendZone() {
+    const zone = document.getElementById('newLegendZone').value.trim();
+    if (!zone) return;
+    if (!data.MapLegendOverrides[zone]) data.MapLegendOverrides[zone] = {};
+    document.getElementById('newLegendZone').value = '';
+    renderLegend();
+}
+
+function removeLegendZone(zone) {
+    if (!confirm('Remove zone "' + zone + '" and all its entries?')) return;
+    delete data.MapLegendOverrides[zone];
+    renderLegend();
+}
+
+function addLegendEntry(zone) {
+    const sym = document.getElementById('newLegSym-' + zone).value.trim();
+    const lbl = document.getElementById('newLegLbl-' + zone).value.trim();
+    if (!sym || !lbl) return;
+    data.MapLegendOverrides[zone][sym] = lbl;
+    document.getElementById('newLegSym-' + zone).value = '';
+    document.getElementById('newLegLbl-' + zone).value = '';
+    renderLegend();
+}
+
+function removeLegendEntry(zone, sym) {
+    delete data.MapLegendOverrides[zone][sym];
+    renderLegend();
+}
+
+function renameLegendSymbol(zone, oldSym, newSym) {
+    newSym = newSym.trim();
+    if (!newSym || newSym === oldSym) return;
+    data.MapLegendOverrides[zone][newSym] = data.MapLegendOverrides[zone][oldSym];
+    delete data.MapLegendOverrides[zone][oldSym];
+    renderLegend();
+}
+
+function updateLegendEntry(zone, sym, val, row) {
+    const currentSymInput = row.querySelector('td:first-child input');
+    const currentSym = currentSymInput ? currentSymInput.value.trim() : sym;
+    const actualSym = data.MapLegendOverrides[zone][currentSym] !== undefined ? currentSym : sym;
+    data.MapLegendOverrides[zone][actualSym] = val.trim();
+}
+
+// ---- Save ----
+async function saveAll() {
+    collectTableEdits();
+    const res = await AdminAPI.patch('/admin/api/v1/keywords', data);
+    if (res.ok) {
+        data = (res.data && res.data.data) || data;
+        if (!data.Help) data.Help = {};
+        if (!data.HelpAliases) data.HelpAliases = {};
+        if (!data.CommandAliases) data.CommandAliases = {};
+        if (!data.DirectionAliases) data.DirectionAliases = {};
+        if (!data.MapLegendOverrides) data.MapLegendOverrides = {};
+        renderAll();
+        showStatus('success', 'Keywords saved successfully.');
+    } else {
+        showStatus('error', 'Save failed: ' + (res.error || 'unknown error'));
+    }
+}
+
+function collectTableEdits() {
+    // Re-read all table inputs to capture any uncommitted edits
+    const collectMap = (bodyId) => {
+        const result = {};
+        document.querySelectorAll('#' + bodyId + ' tr').forEach(row => {
+            const inputs = row.querySelectorAll('input[type="text"]');
+            if (inputs.length >= 2) {
+                const key = inputs[0].value.trim();
+                const val = inputs[1].value.trim();
+                if (key) result[key] = val;
+            }
+        });
+        return result;
+    };
+
+    // Help aliases
+    const ha = collectMap('helpAliasesBody');
+    data.HelpAliases = {};
+    for (const [k, v] of Object.entries(ha)) {
+        data.HelpAliases[k] = v.split(',').map(s => s.trim()).filter(Boolean);
+    }
+
+    // Command aliases
+    const ca = collectMap('cmdAliasesBody');
+    data.CommandAliases = {};
+    for (const [k, v] of Object.entries(ca)) {
+        data.CommandAliases[k] = v.split(',').map(s => s.trim()).filter(Boolean);
+    }
+
+    // Direction aliases
+    const da = collectMap('dirAliasesBody');
+    data.DirectionAliases = {};
+    for (const [k, v] of Object.entries(da)) {
+        if (k && v) data.DirectionAliases[k] = v;
+    }
+}
+
+// ---- Helpers ----
+function showStatus(type, msg) {
+    const bar = document.getElementById('statusBar');
+    bar.className = 'status-bar ' + type;
+    bar.textContent = msg;
+    if (type === 'success') setTimeout(() => { bar.className = 'status-bar'; }, 4000);
+}
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escAttr(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+init();
+</script>
+
+{{template "footer" .}}

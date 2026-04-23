@@ -212,6 +212,8 @@ func buildAdminNav() []WebNavItem {
 			SubItems: []WebNavSub{
 				{Label: "View / Edit", Target: "/admin/items"},
 				{Label: "API Docs", Target: "/admin/items-api"},
+				{Label: "Attack Messages", Target: "/admin/items-attack-messages"},
+				{Label: "Attack Messages API Docs", Target: "/admin/items-attack-messages-api"},
 			},
 		},
 		{
@@ -239,11 +241,14 @@ func buildAdminNav() []WebNavItem {
 			},
 		},
 		{
-			Name:   "Color Patterns",
-			Target: "/admin/colorpatterns",
+			Name:   "Colors",
+			Target: "",
 			SubItems: []WebNavSub{
-				{Label: "View / Edit", Target: "/admin/colorpatterns"},
-				{Label: "API Docs", Target: "/admin/colorpatterns-api"},
+				{Label: "Color Patterns", Target: "/admin/colorpatterns"},
+				{Label: "Color Patterns API Docs", Target: "/admin/colorpatterns-api"},
+				{Label: "Color Aliases", Target: "/admin/color-aliases"},
+				{Label: "Color Aliases API Docs", Target: "/admin/color-aliases-api"},
+				{Label: "Color Tester", Target: "/admin/color-tester"},
 			},
 		},
 		{
@@ -252,6 +257,14 @@ func buildAdminNav() []WebNavItem {
 			SubItems: []WebNavSub{
 				{Label: "View / Edit", Target: "/admin/races"},
 				{Label: "API Docs", Target: "/admin/races-api"},
+			},
+		},
+		{
+			Name:   "Keywords",
+			Target: "/admin/keywords",
+			SubItems: []WebNavSub{
+				{Label: "View / Edit", Target: "/admin/keywords"},
+				{Label: "API Docs", Target: "/admin/keywords-api"},
 			},
 		},
 	}

@@ -239,7 +239,7 @@ func main() {
 	isCopyover := flags.CopyoverFd() >= 0
 
 	if !isCopyover {
-		idx := users.NewUserIndex()
+		idx := users.InitUserIndex()
 		if !idx.Exists() {
 			// Since it doesn't exist yet, that's a good indication we should do a quick format migration check
 			users.DoUserMigrations()

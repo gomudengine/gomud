@@ -2,9 +2,6 @@ package users
 
 import (
 	"bytes"
-	"encoding/binary"
-	"io"
-	"os"
 	"strings"
 )
 
@@ -30,7 +27,6 @@ func SearchUsers(searchName string) []UserSearchResult {
 
 	needle := strings.ToLower(searchName)
 
-	// Collect candidates: username -> userId from the index.
 	type candidate struct {
 		userId   int
 		username string
@@ -39,49 +35,20 @@ func SearchUsers(searchName string) []UserSearchResult {
 	var exact *candidate
 	var close []candidate
 
-	idx := NewUserIndex()
-	if idx.Exists() {
-		f, err := os.Open(idx.Filename)
-		if err == nil {
-			defer f.Close()
+	GetUserIndex().ForEachRecord(func(rec IndexUserRecord) bool {
+		raw := string(bytes.TrimRight(rec.Username[:], "\x00"))
+		lower := strings.ToLower(raw)
 
-			meta := idx.metaData
-			for i := uint64(0); i < meta.RecordCount; i++ {
-				offset := int64(meta.MetaDataSize) + int64(i*meta.RecordSize)
-				if _, err := f.Seek(offset, io.SeekStart); err != nil {
-					break
-				}
-
-				var recUsername [80]byte
-				if n, err := io.ReadFull(f, recUsername[:]); err != nil || n != 80 {
-					break
-				}
-
-				var userId int64
-				if err := binary.Read(f, binary.LittleEndian, &userId); err != nil {
-					break
-				}
-
-				// consume terminator byte
-				term := make([]byte, 1)
-				if _, err := f.Read(term); err != nil {
-					break
-				}
-
-				raw := string(bytes.TrimRight(recUsername[:], "\x00"))
-				lower := strings.ToLower(raw)
-
-				if lower == needle {
-					c := candidate{userId: int(userId), username: raw}
-					exact = &c
-					break
-				}
-				if strings.HasPrefix(lower, needle) && len(close) < 100 {
-					close = append(close, candidate{userId: int(userId), username: raw})
-				}
-			}
+		if lower == needle {
+			c := candidate{userId: int(rec.UserID), username: raw}
+			exact = &c
+			return false
 		}
-	}
+		if strings.HasPrefix(lower, needle) && len(close) < 100 {
+			close = append(close, candidate{userId: int(rec.UserID), username: raw})
+		}
+		return true
+	})
 
 	var matches []candidate
 	if exact != nil {
@@ -101,13 +68,10 @@ func SearchUsers(searchName string) []UserSearchResult {
 			Username: c.username,
 		}
 
-		// Populate role and email. Check online users first (free), then load
-		// from disk only if needed.
 		if u := GetByUserId(c.userId); u != nil {
 			result.Role = u.Role
 			result.Email = u.EmailAddress
 		} else {
-			// Load just enough from disk to fill role/email without full validation.
 			if loaded, err := LoadUser(c.username, true); err == nil {
 				result.Role = loaded.Role
 				result.Email = loaded.EmailAddress

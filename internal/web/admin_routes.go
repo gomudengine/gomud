@@ -29,6 +29,12 @@ func registerAdminRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /admin/items-api", RunWithMUDLocked(
 		doBasicAuth(adminItemsAPI),
 	))
+	mux.HandleFunc("GET /admin/items-attack-messages", RunWithMUDLocked(
+		doBasicAuth(adminItemsAttackMessages),
+	))
+	mux.HandleFunc("GET /admin/items-attack-messages-api", RunWithMUDLocked(
+		doBasicAuth(adminItemsAttackMessagesAPI),
+	))
 
 	mux.HandleFunc("GET /admin/buffs", RunWithMUDLocked(
 		doBasicAuth(adminBuffs),
@@ -51,6 +57,17 @@ func registerAdminRoutes(mux *http.ServeMux) {
 		doBasicAuth(adminUsersAPI),
 	))
 
+	mux.HandleFunc("GET /admin/color-tester", RunWithMUDLocked(
+		doBasicAuth(adminColorTester),
+	))
+
+	mux.HandleFunc("GET /admin/color-aliases", RunWithMUDLocked(
+		doBasicAuth(adminColorAliases),
+	))
+	mux.HandleFunc("GET /admin/color-aliases-api", RunWithMUDLocked(
+		doBasicAuth(adminColorAliasesAPI),
+	))
+
 	mux.HandleFunc("GET /admin/colorpatterns", RunWithMUDLocked(
 		doBasicAuth(adminColorPatterns),
 	))
@@ -63,6 +80,13 @@ func registerAdminRoutes(mux *http.ServeMux) {
 	))
 	mux.HandleFunc("GET /admin/races-api", RunWithMUDLocked(
 		doBasicAuth(adminRacesAPI),
+	))
+
+	mux.HandleFunc("GET /admin/keywords", RunWithMUDLocked(
+		doBasicAuth(adminKeywords),
+	))
+	mux.HandleFunc("GET /admin/keywords-api", RunWithMUDLocked(
+		doBasicAuth(adminKeywordsAPI),
 	))
 
 	registerAdminAPIRoutes(mux)

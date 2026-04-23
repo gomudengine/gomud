@@ -1,0 +1,598 @@
+{{template "header" .}}
+
+<style>
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #555; margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+    /* ── Main layout ── */
+    .tester-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; align-items: start; }
+    @media (max-width: 900px) { .tester-layout { grid-template-columns: 1fr; } }
+
+    .panel { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 1.25rem; }
+    .panel-title {
+        font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.06em; color: #666; padding-bottom: 0.5rem;
+        border-bottom: 1px solid #eee; margin-bottom: 0.9rem;
+    }
+
+    /* ── Editor ── */
+    .editor-toolbar { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.6rem; align-items: center; }
+    .btn-colorize {
+        padding: 0.38rem 0.9rem; background: #1a1a2e; color: #fff; border: none;
+        border-radius: 4px; font-size: 0.82rem; font-weight: 600; cursor: pointer;
+        display: flex; align-items: center; gap: 0.4rem;
+    }
+    .btn-colorize:hover { background: #2d2d4e; }
+    .btn-colorize .icon { font-size: 0.95rem; }
+    .btn-strip {
+        padding: 0.38rem 0.9rem; background: #fff; color: #555; border: 1px solid #ccc;
+        border-radius: 4px; font-size: 0.82rem; font-weight: 600; cursor: pointer;
+    }
+    .btn-strip:hover { background: #f0f0f0; }
+    .toolbar-hint { font-size: 0.75rem; color: #999; margin-left: auto; }
+
+    #sourceInput {
+        width: 100%; min-height: 120px; padding: 0.55rem 0.7rem;
+        border: 1px solid #ccc; border-radius: 4px; font-family: monospace;
+        font-size: 0.85rem; line-height: 1.55; resize: vertical; background: #fafafa;
+    }
+    #sourceInput:focus { outline: 2px solid #1a1a2e; outline-offset: 1px; border-color: transparent; background: #fff; }
+
+    /* ── Preview ── */
+    #previewOutput {
+        min-height: 120px; padding: 0.65rem 0.8rem;
+        background: #000; border-radius: 4px; color: #ccc;
+        font-family: monospace; font-size: 0.95rem; line-height: 1.6;
+        white-space: pre-wrap; word-break: break-word;
+    }
+    .preview-empty { color: #444; font-style: italic; }
+
+    /* ── Colorize modal ── */
+    .ct-overlay {
+        display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+        align-items: center; justify-content: center; z-index: 9999;
+    }
+    .ct-overlay.open { display: flex; }
+    .ct-modal {
+        background: #fff; border-radius: 8px; box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+        width: 560px; max-width: 96vw; max-height: 90vh;
+        display: flex; flex-direction: column; overflow: hidden;
+    }
+    .ct-modal-header {
+        padding: 0.85rem 1.1rem 0.7rem; border-bottom: 1px solid #e5e5e5;
+        display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+    }
+    .ct-modal-title { font-size: 1rem; font-weight: 700; color: #1a1a2e; }
+    .ct-modal-close { background: none; border: none; font-size: 1.3rem; cursor: pointer; color: #888; line-height: 1; }
+    .ct-modal-close:hover { color: #333; }
+
+    .ct-modal-body { overflow-y: auto; padding: 1rem 1.1rem; flex: 1; }
+
+    /* Selection preview strip */
+    .ct-selection-strip {
+        background: #000; border-radius: 4px; padding: 0.45rem 0.7rem;
+        font-family: monospace; font-size: 0.9rem; color: #ccc;
+        margin-bottom: 1rem; min-height: 2rem; word-break: break-all;
+    }
+    .ct-selection-label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: #888; margin-bottom: 0.3rem; }
+
+    /* FG / BG pickers */
+    .ct-pickers { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+    .ct-picker-section {
+        border: 2px solid transparent; border-radius: 6px;
+        padding: 0.6rem 0.7rem; cursor: pointer; transition: border-color 0.12s, background 0.12s;
+    }
+    .ct-picker-section:hover { background: #f9f9ff; }
+    .ct-picker-section.active-fg { border-color: #1a1a2e; background: #f0f2ff; cursor: default; }
+    .ct-picker-section.active-bg { border-color: #666; background: #f5f5f5; cursor: default; }
+    .ct-picker-label {
+        font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.05em; color: #555; margin-bottom: 0.5rem;
+        display: flex; align-items: center; gap: 0.5rem; pointer-events: none;
+    }
+    .ct-picker-badge {
+        font-size: 0.65rem; padding: 0.1rem 0.4rem; border-radius: 3px;
+        font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .ct-badge-fg { background: #1a1a2e; color: #fff; }
+    .ct-badge-bg { background: #555; color: #fff; }
+
+    .ct-color-input-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
+    .ct-color-input-row input[type="number"] {
+        width: 70px; padding: 0.35rem 0.5rem; border: 1px solid #ccc;
+        border-radius: 4px; font-size: 0.85rem; font-family: monospace;
+    }
+    .ct-color-input-row input:focus { outline: 2px solid #1a1a2e; outline-offset: 1px; border-color: transparent; }
+    .ct-swatch-lg { width: 30px; height: 30px; border-radius: 4px; border: 1px solid #ccc; background: #000; flex-shrink: 0; }
+    .ct-clear-btn {
+        font-size: 0.75rem; padding: 0.25rem 0.5rem; border: 1px solid #ccc;
+        background: #fff; border-radius: 3px; cursor: pointer; color: #555;
+    }
+    .ct-clear-btn:hover { background: #f0f0f0; }
+
+    /* Alias list */
+    .ct-alias-section { margin-bottom: 0.75rem; }
+    .ct-alias-title {
+        font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.04em; color: #888; margin-bottom: 0.4rem;
+    }
+    .ct-alias-search-wrap { margin-bottom: 0.4rem; }
+    .ct-alias-search {
+        width: 100%; padding: 0.32rem 0.55rem; border: 1px solid #ccc;
+        border-radius: 4px; font-size: 0.82rem;
+    }
+    .ct-alias-search:focus { outline: 2px solid #1a1a2e; outline-offset: 1px; border-color: transparent; }
+    .ct-alias-list {
+        max-height: 180px; overflow-y: auto;
+        border: 1px solid #e8e8e8; border-radius: 4px;
+    }
+    .ct-alias-row {
+        display: flex; align-items: center; gap: 0.6rem;
+        padding: 0.3rem 0.6rem; cursor: pointer;
+        border-bottom: 1px solid #f2f2f2; user-select: none;
+    }
+    .ct-alias-row:last-child { border-bottom: none; }
+    .ct-alias-row:hover { background: #f5f7ff; }
+    .ct-alias-row.sel-fg { background: #1a1a2e; color: #fff; }
+    .ct-alias-row.sel-bg { background: #555; color: #fff; }
+    .ct-alias-row.sel-both { background: linear-gradient(90deg, #1a1a2e 50%, #555 50%); color: #fff; }
+    .ct-alias-swatch {
+        width: 28px; height: 20px; border-radius: 3px; flex-shrink: 0;
+        border: 1px solid rgba(0,0,0,0.12);
+    }
+    .ct-alias-name { flex: 1; font-size: 0.82rem; font-family: monospace; }
+    .ct-alias-code {
+        font-size: 0.72rem; font-family: monospace; color: #aaa;
+        flex-shrink: 0;
+    }
+    .ct-alias-row.sel-fg .ct-alias-code,
+    .ct-alias-row.sel-bg .ct-alias-code,
+    .ct-alias-row.sel-both .ct-alias-code { color: rgba(255,255,255,0.6); }
+    .ct-alias-sel-badges { display: flex; gap: 0.25rem; flex-shrink: 0; }
+    .ct-sel-badge {
+        font-size: 0.6rem; font-weight: 700; padding: 0.1rem 0.3rem;
+        border-radius: 2px; text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .ct-sel-badge-fg { background: rgba(255,255,255,0.25); color: #fff; }
+    .ct-sel-badge-bg { background: rgba(255,255,255,0.25); color: #fff; }
+    .ct-alias-empty { padding: 0.8rem; text-align: center; color: #aaa; font-size: 0.82rem; font-style: italic; }
+
+    /* 256-color palette grid */
+    .ct-palette-section { margin-bottom: 0.75rem; }
+    .ct-palette-title {
+        font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.04em; color: #888; margin-bottom: 0.5rem;
+    }
+    .ct-palette {
+        display: flex; flex-wrap: wrap; gap: 2px;
+    }
+    .ct-palette-cell {
+        width: 18px; height: 18px; border-radius: 2px; cursor: pointer;
+        border: 2px solid transparent; flex-shrink: 0;
+        transition: transform 0.08s;
+    }
+    .ct-palette-cell:hover { transform: scale(1.35); border-color: rgba(255,255,255,0.6); z-index: 1; position: relative; }
+    .ct-palette-cell.ring-fg { border-color: #fff; box-shadow: 0 0 0 2px #1a1a2e; }
+    .ct-palette-cell.ring-bg { border-color: #fff; box-shadow: 0 0 0 2px #888; }
+
+    /* Live result preview inside modal */
+    .ct-result-preview {
+        background: #000; border-radius: 4px; padding: 0.45rem 0.7rem;
+        font-family: monospace; font-size: 0.9rem; color: #ccc;
+        margin-top: 0.75rem; min-height: 2rem; word-break: break-all;
+    }
+    .ct-result-label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: #888; margin-bottom: 0.3rem; margin-top: 0.75rem; }
+
+    .ct-modal-footer {
+        padding: 0.7rem 1.1rem; border-top: 1px solid #eee;
+        display: flex; justify-content: flex-end; gap: 0.5rem; flex-shrink: 0;
+    }
+    .ct-btn {
+        padding: 0.42rem 1.1rem; border-radius: 4px; font-size: 0.85rem;
+        font-weight: 600; cursor: pointer; border: 1px solid transparent;
+    }
+    .ct-btn-cancel { background: #f0f0f0; color: #444; border-color: #ccc; }
+    .ct-btn-cancel:hover { background: #e5e5e5; }
+    .ct-btn-apply { background: #1a1a2e; color: #fff; }
+    .ct-btn-apply:hover { background: #2d2d4e; }
+    .ct-btn-apply:disabled { background: #999; cursor: not-allowed; }
+</style>
+
+<h1>Color Tester</h1>
+<p class="subtitle">Compose and preview ANSI-tagged text with the live renderer.</p>
+
+<div class="tester-layout">
+    <!-- Left: editor -->
+    <div class="panel">
+        <div class="panel-title">Source</div>
+        <div class="editor-toolbar">
+            <button class="btn-colorize" onclick="openColorizeModal()">
+                <span class="icon">&#9998;</span> Colorize Selection
+            </button>
+            <button class="btn-strip" onclick="stripTags()">&#10006; Strip Tags</button>
+            <span class="toolbar-hint">Select text, then click Colorize</span>
+        </div>
+        <textarea id="sourceInput" spellcheck="false" placeholder="Type your text here, e.g.&#10;<ansi fg=&quot;username&quot;>Hello</ansi>, <ansi fg=&quot;gold&quot;>world</ansi>!" oninput="renderPreview()"></textarea>
+    </div>
+
+    <!-- Right: preview -->
+    <div class="panel">
+        <div class="panel-title">Preview</div>
+        <div id="previewOutput"><span class="preview-empty">Preview will appear here…</span></div>
+    </div>
+</div>
+
+<!-- Colorize modal -->
+<div class="ct-overlay" id="ctOverlay" onclick="if(event.target===this)closeModal()">
+    <div class="ct-modal">
+        <div class="ct-modal-header">
+            <span class="ct-modal-title">Colorize Selection</span>
+            <button class="ct-modal-close" onclick="closeModal()">&#215;</button>
+        </div>
+        <div class="ct-modal-body">
+            <div class="ct-selection-label">Selected text</div>
+            <div class="ct-selection-strip" id="ctSelectionPreview"></div>
+
+            <div class="ct-pickers">
+                <div class="ct-picker-section" id="fgSection" onclick="setActiveTarget('fg')">
+                    <div class="ct-picker-label">
+                        <span class="ct-picker-badge ct-badge-fg">FG</span> Foreground
+                    </div>
+                    <div class="ct-color-input-row">
+                        <input type="number" id="fgInput" min="0" max="255" placeholder="0&#8211;255" oninput="onFgInput()" onclick="event.stopPropagation()" />
+                        <div class="ct-swatch-lg" id="fgSwatch"></div>
+                        <button class="ct-clear-btn" onclick="event.stopPropagation();clearFg()">None</button>
+                    </div>
+                </div>
+                <div class="ct-picker-section" id="bgSection" onclick="setActiveTarget('bg')">
+                    <div class="ct-picker-label">
+                        <span class="ct-picker-badge ct-badge-bg">BG</span> Background
+                    </div>
+                    <div class="ct-color-input-row">
+                        <input type="number" id="bgInput" min="0" max="255" placeholder="0&#8211;255" oninput="onBgInput()" onclick="event.stopPropagation()" />
+                        <div class="ct-swatch-lg" id="bgSwatch"></div>
+                        <button class="ct-clear-btn" onclick="event.stopPropagation();clearBg()">None</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alias list -->
+            <div class="ct-alias-section">
+                <div class="ct-alias-title">Color Aliases</div>
+                <div class="ct-alias-search-wrap">
+                    <input type="search" class="ct-alias-search" id="ctAliasSearch" placeholder="Search aliases…" oninput="filterAliasRows()" />
+                </div>
+                <div class="ct-alias-list" id="ctAliasGrid"></div>
+            </div>
+
+            <!-- 256-color palette -->
+            <div class="ct-palette-section">
+                <div class="ct-palette-title">256-Color Palette &mdash; click to apply to active channel</div>
+                <div class="ct-palette" id="ctPalette"></div>
+            </div>
+
+            <div class="ct-result-label">Result preview</div>
+            <div class="ct-result-preview" id="ctResultPreview"></div>
+        </div>
+        <div class="ct-modal-footer">
+            <button class="ct-btn ct-btn-cancel" onclick="closeModal()">Cancel</button>
+            <button class="ct-btn ct-btn-apply" id="ctApplyBtn" onclick="applyColorize()">Apply</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+var aliasData = {};       // name -> numeric code
+var selStart = 0;
+var selEnd = 0;
+var selText = '';
+var pendingFg = null;     // null | integer 0-255 (palette/numeric) | string (alias name)
+var pendingBg = null;
+var activeTarget = 'fg';  // 'fg' or 'bg'
+
+// ── Boot ──────────────────────────────────────────────────────────────────
+async function init() {
+    const res = await AdminAPI.get('/admin/api/v1/color-aliases');
+    if (res.ok) {
+        const raw = (res.data && res.data.data) || {};
+        for (const [k, v] of Object.entries(raw)) {
+            const n = parseInt(v, 10);
+            if (!isNaN(n)) aliasData[k] = n;
+        }
+        ansitags.loadAliases(aliasData);
+    }
+    buildPalette();
+    renderPreview();
+}
+
+// ── Live preview ───────────────────────────────────────────────────────────
+function renderPreview() {
+    const src = document.getElementById('sourceInput').value;
+    const out = document.getElementById('previewOutput');
+    if (!src.trim()) {
+        out.innerHTML = '<span class="preview-empty">Preview will appear here\u2026</span>';
+        return;
+    }
+    out.innerHTML = ansitags.parse(src);
+}
+
+// ── Strip tags ─────────────────────────────────────────────────────────────
+function stripTags() {
+    const ta = document.getElementById('sourceInput');
+    ta.value = ansitags.parse(ta.value, { stripTags: true });
+    renderPreview();
+}
+
+// ── Colorize modal ─────────────────────────────────────────────────────────
+function openColorizeModal() {
+    const ta = document.getElementById('sourceInput');
+    selStart = ta.selectionStart;
+    selEnd   = ta.selectionEnd;
+    selText  = ta.value.slice(selStart, selEnd);
+
+    pendingFg = null;
+    pendingBg = null;
+    activeTarget = 'fg';
+
+    // Selection preview
+    document.getElementById('ctSelectionPreview').innerHTML =
+        selText ? ansitags.parse(selText) : '<span style="color:#555;font-style:italic">No text selected — tag will wrap the entire input</span>';
+
+    // Reset inputs
+    document.getElementById('fgInput').value = '';
+    document.getElementById('bgInput').value = '';
+    updateFgSwatch();
+    updateBgSwatch();
+    updateSectionBorders();
+
+    buildAliasGrid();
+    updateResultPreview();
+
+    document.getElementById('ctOverlay').classList.add('open');
+    document.getElementById('fgInput').focus();
+}
+
+function closeModal() {
+    document.getElementById('ctOverlay').classList.remove('open');
+}
+
+// ── Active target toggle ──────────────────────────────────────────────────
+function setActiveTarget(target) {
+    activeTarget = target;
+    updateSectionBorders();
+}
+
+function updateSectionBorders() {
+    document.getElementById('fgSection').classList.toggle('active-fg', activeTarget === 'fg');
+    document.getElementById('fgSection').classList.remove('active-bg');
+    document.getElementById('bgSection').classList.toggle('active-bg', activeTarget === 'bg');
+    document.getElementById('bgSection').classList.remove('active-fg');
+}
+
+// ── FG / BG input handlers ─────────────────────────────────────────────────
+function onFgInput() {
+    const v = parseInt(document.getElementById('fgInput').value, 10);
+    pendingFg = (!isNaN(v) && v >= 0 && v <= 255) ? v : null;
+    updateFgSwatch();
+    syncPaletteRings();
+    syncAliasChips();
+    updateResultPreview();
+}
+
+function onBgInput() {
+    const v = parseInt(document.getElementById('bgInput').value, 10);
+    pendingBg = (!isNaN(v) && v >= 0 && v <= 255) ? v : null;
+    updateBgSwatch();
+    syncPaletteRings();
+    syncAliasChips();
+    updateResultPreview();
+}
+
+function clearFg() {
+    pendingFg = null;
+    document.getElementById('fgInput').value = '';
+    updateFgSwatch();
+    syncPaletteRings();
+    syncAliasChips();
+    updateResultPreview();
+}
+
+function clearBg() {
+    pendingBg = null;
+    document.getElementById('bgInput').value = '';
+    updateBgSwatch();
+    syncPaletteRings();
+    syncAliasChips();
+    updateResultPreview();
+}
+
+// Returns the CSS hex for a pending value (int or alias string).
+function pendingToHex(val) {
+    if (val === null) return null;
+    if (typeof val === 'string') {
+        const n = aliasData[val];
+        return n !== undefined ? AnsiColors.toHex(n) : '#888';
+    }
+    return AnsiColors.toHex(val);
+}
+
+function updateFgSwatch() {
+    const sw = document.getElementById('fgSwatch');
+    const hex = pendingToHex(pendingFg);
+    sw.style.background = hex || '#1a1a1a';
+    sw.style.borderColor = pendingFg !== null ? '#aaa' : '#ccc';
+}
+
+function updateBgSwatch() {
+    const sw = document.getElementById('bgSwatch');
+    const hex = pendingToHex(pendingBg);
+    sw.style.background = hex || '#1a1a1a';
+    sw.style.borderColor = pendingBg !== null ? '#aaa' : '#ccc';
+}
+
+// ── Alias chips ────────────────────────────────────────────────────────────
+function buildAliasGrid() {
+    const grid = document.getElementById('ctAliasGrid');
+    const search = document.getElementById('ctAliasSearch');
+    if (search) search.value = '';
+    renderAliasRows('');
+}
+
+function renderAliasRows(filter) {
+    const grid = document.getElementById('ctAliasGrid');
+    const q = filter.toLowerCase();
+    const names = Object.keys(aliasData).sort().filter(n => !q || n.includes(q));
+    if (names.length === 0) {
+        grid.innerHTML = '<div class="ct-alias-empty">No aliases match.</div>';
+        return;
+    }
+    grid.innerHTML = names.map(name => {
+        const code = aliasData[name];
+        const hex  = AnsiColors.toHex(code);
+        const isFg = pendingFg === name;
+        const isBg = pendingBg === name;
+        var rowCls = 'ct-alias-row';
+        if (isFg && isBg) rowCls += ' sel-both';
+        else if (isFg)   rowCls += ' sel-fg';
+        else if (isBg)   rowCls += ' sel-bg';
+        var badges = '';
+        if (isFg) badges += '<span class="ct-sel-badge ct-sel-badge-fg">FG</span>';
+        if (isBg) badges += '<span class="ct-sel-badge ct-sel-badge-bg">BG</span>';
+        return '<div class="' + rowCls + '" data-code="' + code + '" data-name="' + escAttr(name) + '" onclick="aliasClick(event,this)">' +
+            '<div class="ct-alias-swatch" style="background:' + hex + '"></div>' +
+            '<span class="ct-alias-name">' + escHtml(name) + '</span>' +
+            (badges ? '<span class="ct-alias-sel-badges">' + badges + '</span>' : '') +
+            '<span class="ct-alias-code">' + code + '</span>' +
+        '</div>';
+    }).join('');
+}
+
+function filterAliasRows() {
+    const q = document.getElementById('ctAliasSearch').value;
+    renderAliasRows(q);
+}
+
+function aliasClick(event, row) {
+    const name = row.dataset.name;
+    if (activeTarget === 'bg') {
+        pendingBg = (pendingBg === name) ? null : name;
+        // Clear the numeric input — alias takes precedence
+        document.getElementById('bgInput').value = '';
+        updateBgSwatch();
+    } else {
+        pendingFg = (pendingFg === name) ? null : name;
+        document.getElementById('fgInput').value = '';
+        updateFgSwatch();
+    }
+    syncPaletteRings();
+    syncAliasChips();
+    updateResultPreview();
+}
+
+function syncAliasChips() {
+    renderAliasRows(document.getElementById('ctAliasSearch') ? document.getElementById('ctAliasSearch').value : '');
+}
+
+// ── 256-color palette ──────────────────────────────────────────────────────
+function buildPalette() {
+    const palette = document.getElementById('ctPalette');
+    if (!palette) return;
+    var html = '';
+    for (var i = 0; i < 256; i++) {
+        const hex = AnsiColors.toHex(i);
+        html += '<div class="ct-palette-cell" data-code="' + i + '" style="background:' + hex + '" onclick="paletteClick(event,this)" title="' + i + '"></div>';
+    }
+    palette.innerHTML = html;
+}
+
+function paletteClick(event, cell) {
+    const code = parseInt(cell.dataset.code, 10);
+    if (activeTarget === 'bg') {
+        pendingBg = (pendingBg === code) ? null : code;
+        document.getElementById('bgInput').value = pendingBg !== null ? pendingBg : '';
+        updateBgSwatch();
+    } else {
+        pendingFg = (pendingFg === code) ? null : code;
+        document.getElementById('fgInput').value = pendingFg !== null ? pendingFg : '';
+        updateFgSwatch();
+    }
+    syncPaletteRings();
+    syncAliasChips();
+    updateResultPreview();
+}
+
+// Returns the numeric code for palette ring comparison (aliases resolve via aliasData).
+function pendingToCode(val) {
+    if (val === null) return null;
+    if (typeof val === 'string') return aliasData[val] !== undefined ? aliasData[val] : null;
+    return val;
+}
+
+function syncPaletteRings() {
+    const fgCode = pendingToCode(pendingFg);
+    const bgCode = pendingToCode(pendingBg);
+    document.querySelectorAll('.ct-palette-cell').forEach(function(cell) {
+        const code = parseInt(cell.dataset.code, 10);
+        cell.classList.toggle('ring-fg', fgCode === code && typeof pendingFg === 'number');
+        cell.classList.toggle('ring-bg', bgCode === code && typeof pendingBg === 'number');
+    });
+}
+
+// ── Result preview inside modal ────────────────────────────────────────────
+function updateResultPreview() {
+    const preview = document.getElementById('ctResultPreview');
+    const target  = selText || '(entire input)';
+    const tag     = buildTag(target);
+    preview.innerHTML = ansitags.parse(tag);
+
+    const canApply = pendingFg !== null || pendingBg !== null;
+    document.getElementById('ctApplyBtn').disabled = !canApply;
+}
+
+function buildTag(inner) {
+    if (pendingFg === null && pendingBg === null) return escHtml(inner);
+    var attrs = '';
+    if (pendingFg !== null) attrs += ' fg="' + pendingFg + '"';
+    if (pendingBg !== null) attrs += ' bg="' + pendingBg + '"';
+    return '<ansi' + attrs + '>' + inner + '</ansi>';
+}
+
+// ── Apply ──────────────────────────────────────────────────────────────────
+function applyColorize() {
+    if (pendingFg === null && pendingBg === null) return;
+
+    const ta   = document.getElementById('sourceInput');
+    const text = ta.value;
+    const target = selText || text;
+    const start  = selText ? selStart : 0;
+    const end    = selText ? selEnd   : text.length;
+
+    var attrs = '';
+    if (pendingFg !== null) attrs += ' fg="' + pendingFg + '"';
+    if (pendingBg !== null) attrs += ' bg="' + pendingBg + '"';
+    const wrapped = '<ansi' + attrs + '>' + target + '</ansi>';
+
+    ta.value = text.slice(0, start) + wrapped + text.slice(end);
+
+    // Restore cursor after the inserted tag
+    const newPos = start + wrapped.length;
+    ta.setSelectionRange(newPos, newPos);
+    ta.focus();
+
+    renderPreview();
+    closeModal();
+}
+
+// ── Keyboard shortcut: Escape closes modal ─────────────────────────────────
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeModal();
+});
+
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escAttr(s) { return String(s).replace(/"/g,'&quot;'); }
+
+init();
+</script>
+
+{{template "footer" .}}

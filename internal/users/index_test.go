@@ -2,10 +2,152 @@ package users
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"testing"
 )
+
+func createBenchIndexFile(b *testing.B, filename string, recordCount int) *UserIndex {
+	b.Helper()
+	idx := &UserIndex{Filename: filename}
+	idx.Create()
+	for i := 1; i <= recordCount; i++ {
+		idx.AddUser(i*10, fmt.Sprintf("user_%d", i))
+	}
+	return idx
+}
+
+func benchTempFile(b *testing.B) (string, func()) {
+	b.Helper()
+	f, err := os.CreateTemp("", "bench_idx_*.idx")
+	if err != nil {
+		b.Fatal(err)
+	}
+	name := f.Name()
+	f.Close()
+	return name, func() { os.Remove(name) }
+}
+
+func BenchmarkFindByUsername_First(b *testing.B) {
+	filename, cleanup := benchTempFile(b)
+	defer cleanup()
+	idx := createBenchIndexFile(b, filename, 1000)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		idx.FindByUsername("user_1")
+	}
+}
+
+func BenchmarkFindByUsername_Middle(b *testing.B) {
+	filename, cleanup := benchTempFile(b)
+	defer cleanup()
+	idx := createBenchIndexFile(b, filename, 1000)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		idx.FindByUsername("user_500")
+	}
+}
+
+func BenchmarkFindByUsername_Last(b *testing.B) {
+	filename, cleanup := benchTempFile(b)
+	defer cleanup()
+	idx := createBenchIndexFile(b, filename, 1000)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		idx.FindByUsername("user_1000")
+	}
+}
+
+func BenchmarkFindByUsername_Miss(b *testing.B) {
+	filename, cleanup := benchTempFile(b)
+	defer cleanup()
+	idx := createBenchIndexFile(b, filename, 1000)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		idx.FindByUsername("nonexistent")
+	}
+}
+
+func BenchmarkFindByUserId_First(b *testing.B) {
+	filename, cleanup := benchTempFile(b)
+	defer cleanup()
+	idx := createBenchIndexFile(b, filename, 1000)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		idx.FindByUserId(10)
+	}
+}
+
+func BenchmarkFindByUserId_Last(b *testing.B) {
+	filename, cleanup := benchTempFile(b)
+	defer cleanup()
+	idx := createBenchIndexFile(b, filename, 1000)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		idx.FindByUserId(10000)
+	}
+}
+
+func BenchmarkFindByUserId_Miss(b *testing.B) {
+	filename, cleanup := benchTempFile(b)
+	defer cleanup()
+	idx := createBenchIndexFile(b, filename, 1000)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		idx.FindByUserId(99999)
+	}
+}
+
+func BenchmarkAddUser(b *testing.B) {
+	filename, cleanup := benchTempFile(b)
+	defer cleanup()
+	idx := &UserIndex{Filename: filename}
+	idx.Create()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		idx.AddUser(i, fmt.Sprintf("bench_user_%d", i))
+	}
+}
+
+func BenchmarkRemoveByUsername(b *testing.B) {
+	filename, cleanup := benchTempFile(b)
+	defer cleanup()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		idx := createBenchIndexFile(b, filename, 200)
+		b.StartTimer()
+		idx.RemoveByUsername("user_100")
+	}
+}
+
+func BenchmarkForEachRecord(b *testing.B) {
+	filename, cleanup := benchTempFile(b)
+	defer cleanup()
+	idx := createBenchIndexFile(b, filename, 1000)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		idx.ForEachRecord(func(rec IndexUserRecord) bool {
+			return true
+		})
+	}
+}
+
+func BenchmarkFindByUsername_Scale(b *testing.B) {
+	for _, size := range []int{100, 1000, 10000} {
+		b.Run(fmt.Sprintf("records_%d", size), func(b *testing.B) {
+			filename, cleanup := benchTempFile(b)
+			defer cleanup()
+			idx := createBenchIndexFile(b, filename, size)
+			target := fmt.Sprintf("user_%d", size/2)
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				idx.FindByUsername(target)
+			}
+		})
+	}
+}
 
 // createTestIndexFile creates an index file with a fixed-width header and multiple user records.
 // It uses the UserIndex receiver method formatFixedHeader so that the header is exactly 100 bytes long.
@@ -157,12 +299,11 @@ func TestAppendUserRecord(t *testing.T) {
 	}
 	defer f.Close()
 
-	// Use the index instance's readFixedHeader method.
-	metaBytes, err := idx.readFixedHeader(f)
-	if err != nil {
+	header := make([]byte, FixedHeaderTotalLength)
+	if _, err = io.ReadFull(f, header); err != nil {
 		t.Fatalf("failed to read metadata header: %v", err)
 	}
-	headerStr := strings.TrimSpace(string(metaBytes[:FixedHeaderTotalLength-1]))
+	headerStr := strings.TrimSpace(string(header[:FixedHeaderTotalLength-1]))
 	var version, recordCount, recordSize int
 	if _, err := fmt.Sscanf(headerStr, "VERSION=%d,RECORDCOUNT=%d,RECORDSIZE=%d", &version, &recordCount, &recordSize); err != nil {
 		t.Fatalf("failed to parse metadata header: %v", err)
@@ -210,11 +351,11 @@ func TestRemoveUserRecordByUsername(t *testing.T) {
 	}
 	defer f.Close()
 
-	metaBytes, err := idx.readFixedHeader(f)
-	if err != nil {
+	header := make([]byte, FixedHeaderTotalLength)
+	if _, err = io.ReadFull(f, header); err != nil {
 		t.Fatalf("failed to read metadata header: %v", err)
 	}
-	headerStr := strings.TrimSpace(string(metaBytes[:FixedHeaderTotalLength-1]))
+	headerStr := strings.TrimSpace(string(header[:FixedHeaderTotalLength-1]))
 	var version, recordCount, recordSize int
 	if _, err := fmt.Sscanf(headerStr, "VERSION=%d,RECORDCOUNT=%d,RECORDSIZE=%d", &version, &recordCount, &recordSize); err != nil {
 		t.Fatalf("failed to parse metadata header: %v", err)
