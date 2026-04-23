@@ -28,13 +28,12 @@ import (
 )
 
 var (
-	startingRace     = 0
-	startingHealth   = 10
-	startingMana     = 10
-	StartingRoomId   = -1
-	startingZone     = `Nowhere`
-	defaultName      = `nameless`
-	descriptionCache = map[string]string{} // key is a hash, value is the description
+	startingRace   = 0
+	startingHealth = 10
+	startingMana   = 10
+	StartingRoomId = -1
+	startingZone   = `Nowhere`
+	defaultName    = `nameless`
 )
 
 type NameRenderFlag uint8
@@ -140,12 +139,7 @@ func New() *Character {
 // returns description unless description is a hash
 // which points to another description location.
 func (c *Character) GetDescription() string {
-
-	if !strings.HasPrefix(c.Description, `h:`) {
-		return c.Description
-	}
-	hash := strings.TrimPrefix(c.Description, `h:`)
-	return descriptionCache[hash]
+	return c.Description
 }
 
 // returns description unless description is a hash
@@ -345,18 +339,6 @@ func (c *Character) SetKey(lockId string, sequence string) {
 	} else {
 		c.KeyRing[strings.ToLower(lockId)] = strings.ToUpper(sequence)
 	}
-}
-
-// This should only be used for mobs.
-// Not players
-func (c *Character) CacheDescription() {
-	// Hash the descriptions and store centrally.
-	// This saves a lot of memory because many descriptions are duplicates
-	hash := util.Hash(c.Description)
-	if _, ok := descriptionCache[hash]; !ok {
-		descriptionCache[hash] = c.Description
-	}
-	c.Description = fmt.Sprintf(`h:%s`, hash)
 }
 
 func (c *Character) GetDefaultDiceRoll() (attacks int, dCount int, dSides int, bonus int, buffOnCrit []int) {

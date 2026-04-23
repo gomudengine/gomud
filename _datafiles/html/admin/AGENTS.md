@@ -24,7 +24,7 @@ Every admin page uses the same three-part structure:
 
 <!-- Page HTML content -->
 <h1>Page Title</h1>
-<p class="subtitle">One-line description. <a href="/admin/pagename-api">API Docs &rarr;</a></p>
+<p class="subtitle">One-line description.</p>
 
 <!-- ... page body ... -->
 

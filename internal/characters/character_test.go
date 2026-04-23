@@ -200,44 +200,7 @@ func TestCharacter_CarryCapacity(t *testing.T) {
 		})
 	}
 }
-func TestCharacter_GetDescription(t *testing.T) {
-	// Test when Description does not start with "h:"
-	t.Run("Plain description", func(t *testing.T) {
-		c := New()
-		c.Description = "A brave adventurer."
-		got := c.GetDescription()
-		assert.Equal(t, "A brave adventurer.", got)
-	})
 
-	// Test when Description starts with "h:" and hash is in descriptionCache
-	t.Run("Description is hash and found in cache", func(t *testing.T) {
-		c := New()
-		hash := "abc123"
-		want := "A mysterious stranger."
-		descriptionCache[hash] = want
-		c.Description = "h:" + hash
-		got := c.GetDescription()
-		assert.Equal(t, want, got)
-	})
-
-	// Test when Description starts with "h:" and hash is not in descriptionCache
-	t.Run("Description is hash and not found in cache", func(t *testing.T) {
-		c := New()
-		hash := "notfound"
-		delete(descriptionCache, hash)
-		c.Description = "h:" + hash
-		got := c.GetDescription()
-		assert.Equal(t, "", got)
-	})
-
-	// Test when Description is exactly "h:" (empty hash)
-	t.Run("Description is h: with empty hash", func(t *testing.T) {
-		c := New()
-		c.Description = "h:"
-		got := c.GetDescription()
-		assert.Equal(t, descriptionCache[""], got)
-	})
-}
 func TestCharacter_DeductActionPoints(t *testing.T) {
 	tests := []struct {
 		name         string

@@ -116,6 +116,32 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 		doBasicAuth(apiV1DeleteColorPattern),
 	))
 
+	// Mobs — script sub-route before wildcard {mobId}
+	mux.HandleFunc("GET /admin/api/v1/mobs", RunWithMUDLocked(
+		doBasicAuth(apiV1GetMobs),
+	))
+	mux.HandleFunc("POST /admin/api/v1/mobs", RunWithMUDLocked(
+		doBasicAuth(apiV1CreateMob),
+	))
+	mux.HandleFunc("GET /admin/api/v1/mobs/{mobId}/script", RunWithMUDLocked(
+		doBasicAuth(apiV1GetMobScript),
+	))
+	mux.HandleFunc("PUT /admin/api/v1/mobs/{mobId}/script", RunWithMUDLocked(
+		doBasicAuth(apiV1PutMobScript),
+	))
+	mux.HandleFunc("PUT /admin/api/v1/mobs/{mobId}/stock", RunWithMUDLocked(
+		doBasicAuth(apiV1PutMobStock),
+	))
+	mux.HandleFunc("GET /admin/api/v1/mobs/{mobId}", RunWithMUDLocked(
+		doBasicAuth(apiV1GetMob),
+	))
+	mux.HandleFunc("PATCH /admin/api/v1/mobs/{mobId}", RunWithMUDLocked(
+		doBasicAuth(apiV1PatchMob),
+	))
+	mux.HandleFunc("DELETE /admin/api/v1/mobs/{mobId}", RunWithMUDLocked(
+		doBasicAuth(apiV1DeleteMob),
+	))
+
 	// Keywords
 	mux.HandleFunc("GET /admin/api/v1/keywords", RunWithMUDLocked(
 		doBasicAuth(apiV1GetKeywords),
