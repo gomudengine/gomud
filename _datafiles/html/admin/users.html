@@ -120,6 +120,24 @@
     .role-admin { background: #fde8e8; color: #8a0000; }
     .role-user  { background: #e6f4ea; color: #1e6e34; }
     .role-guest { background: #f0f0f0; color: #555; }
+
+    /* toggle switch */
+    .toggle-field { display: flex; align-items: center; gap: 0.75rem; padding: 0.35rem 0; }
+    .toggle-switch { position: relative; display: inline-block; width: 2.4rem; height: 1.35rem; flex-shrink: 0; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .toggle-track {
+        position: absolute; inset: 0; background: #ccc; border-radius: 999px;
+        cursor: pointer; transition: background 0.18s;
+    }
+    .toggle-track::after {
+        content: ''; position: absolute; top: 0.175rem; left: 0.175rem;
+        width: 1rem; height: 1rem; background: #fff; border-radius: 50%;
+        transition: transform 0.18s; box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    }
+    .toggle-switch input:checked + .toggle-track { background: #1a1a2e; }
+    .toggle-switch input:checked + .toggle-track::after { transform: translateX(1.05rem); }
+    .toggle-switch input:focus-visible + .toggle-track { outline: 2px solid #1a1a2e; outline-offset: 2px; }
+    .toggle-label { font-size: 0.875rem; color: #444; line-height: 1.4; }
 </style>
 
 <h1>Users</h1>
@@ -170,25 +188,24 @@
 
             <div class="field">
                 <label>Muted</label>
-                <select id="f-muted">
-                    <option value="false">No</option>
-                    <option value="true">Yes — cannot send custom communications</option>
-                </select>
-            </div>
-            <div class="field">
-                <label>Deafened</label>
-                <select id="f-deafened">
-                    <option value="false">No</option>
-                    <option value="true">Yes — cannot hear custom communications</option>
-                </select>
+                <div class="toggle-field">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="f-muted" />
+                        <span class="toggle-track"></span>
+                    </label>
+                    <span class="toggle-label">Cannot send custom communications</span>
+                </div>
             </div>
 
             <div class="field">
                 <label>Screen Reader</label>
-                <select id="f-screenreader">
-                    <option value="false">No</option>
-                    <option value="true">Yes — strip excess symbols</option>
-                </select>
+                <div class="toggle-field">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="f-screenreader" />
+                        <span class="toggle-track"></span>
+                    </label>
+                    <span class="toggle-label">Strip excess symbols for screen readers</span>
+                </div>
             </div>
 
             <div class="section-title">Character</div>
@@ -406,9 +423,8 @@
         setVal('f-username',     user.Username     || '');
         setVal('f-role',         user.Role         || 'user');
         setVal('f-email',        user.EmailAddress || '');
-        setVal('f-muted',        user.Muted        ? 'true' : 'false');
-        setVal('f-deafened',     user.Deafened     ? 'true' : 'false');
-        setVal('f-screenreader', user.ScreenReader  ? 'true' : 'false');
+        document.getElementById('f-muted').checked        = !!user.Muted;
+        document.getElementById('f-screenreader').checked  = !!user.ScreenReader;
         document.getElementById('f-password').value = '';
 
         // Character fields
@@ -799,9 +815,8 @@
             Username:     document.getElementById('f-username').value.trim(),
             Role:         document.getElementById('f-role').value,
             EmailAddress: document.getElementById('f-email').value.trim(),
-            Muted:        document.getElementById('f-muted').value === 'true',
-            Deafened:     document.getElementById('f-deafened').value === 'true',
-            ScreenReader: document.getElementById('f-screenreader').value === 'true',
+            Muted:        document.getElementById('f-muted').checked,
+            ScreenReader: document.getElementById('f-screenreader').checked,
             character: {
                 Name:        document.getElementById('f-name').value.trim(),
                 Description: document.getElementById('f-description').value.trim(),
