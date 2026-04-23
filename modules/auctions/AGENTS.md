@@ -1,91 +1,23 @@
-# Auctions Module Context
+# Auctions Module Guide
 
-## Overview
+## Scope
 
-The `modules/auctions` module adds a global player-driven auction system to GoMud. Players can put items up for auction, other players bid on them in real time, and the highest bidder wins the item when the auction timer expires. Auction history is persisted across server restarts. The module also fires `AuctionUpdate` events consumed by the Discord integration.
+- Use this file for active-auction state, auction command behavior, periodic auction ticks, and auction persistence in `modules/auctions`.
+- This module also has external integrations through broadcast behavior and Discord-facing auction updates.
 
-## Key Components
+## Working Rules
 
-### Module (`auctions.go`)
+- Preserve auction lifecycle semantics unless the task explicitly changes player-facing auction rules.
+- Be careful with round-based timing, persistence, and restart survival. Those behaviors are part of the module contract.
+- If a change affects `AuctionUpdate` events, treat it as an integration-sensitive change because other systems consume those updates.
+- Keep bid validation, auction state mutation, and rendered auction messages aligned.
 
-- Registered as plugin `auctions` version `1.0`.
-- Embeds data files from `files/` using `//go:embed files/*`.
-- Registers user command `auction`.
-- Registers `OnLoad`/`OnSave` callbacks for persistence via `plug.ReadIntoStruct` / `plug.WriteStruct` (key: `auctionhistory`).
-- Registers a `NewRound` listener for auction tick processing (countdown, reminders, expiry).
+## Verification
 
-### Data Structures
+- Run targeted module tests for auction state, bidding, or persistence changes.
+- If event payloads or reminders change, verify the exact event path or rendered output involved.
+- Call out any untested restart-survival or cross-system notification behavior.
 
-```go
-type AuctionsModule struct {
-    plug       *plugins.Plugin
-    auctionMgr AuctionManager
-}
+## Documentation
 
-type AuctionManager struct {
-    ActiveAuction   *ActiveAuctionItem
-    maxHistoryItems int
-    PastAuctions    []PastAuctionItem
-}
-```
-
-### Command: `auction`
-
-Subcommands:
-- `auction` — displays the current auction status (if any).
-- `auction <item> [min-bid] [anonymous]` — starts a new auction with the item from the player's inventory. Optional minimum bid and anonymous flag.
-- `auction bid <amount>` — places a bid on the current auction.
-- `auction history` — displays a table of past auctions.
-
-Auction opt-out: players with `auction` config option set to `false` do not receive auction broadcasts.
-
-### `AuctionUpdate` Event
-
-The module fires `AuctionUpdate` (implements `events.GenericEvent`) with `State` values:
-- `START` — new auction started
-- `REMINDER` — periodic reminder during active auction
-- `BID` — a bid was placed
-- `END` — auction ended (with or without a winner)
-
-This event is consumed by `internal/integrations/discord` for Discord notifications.
-
-### Persistence
-
-Auction history (up to `maxHistoryItems` = 10 past auctions) is saved to the plugin data store. Active auction state is also persisted, allowing in-progress auctions to survive server restarts.
-
-### Configuration
-
-From `Modules.auctions.*` in config:
-
-| Key | Default | Description |
-|---|---|---|
-| `Duration` | (configured) | Auction duration in rounds |
-| `MinimumBid` | (configured) | Default minimum bid if not specified by seller |
-
-## File Structure
-
-```
-modules/auctions/
-  auctions.go
-  files/
-    data-overlays/
-      ansi-aliases.yaml
-      config.yaml
-      keywords.yaml
-    datafiles/templates/auctions/
-      auction-bid.template
-      auction-end.template
-      auction-start.template
-      auction-update.template
-    datafiles/templates/help/
-      auction.template
-```
-
-## Dependencies
-
-- `internal/events`: `NewRound` for auction ticking; `AuctionUpdate` event dispatch; `EquipmentChange` for gold tracking
-- `internal/items`: Item lookup and transfer
-- `internal/plugins`: Plugin and command registration
-- `internal/rooms`, `internal/users`: Command execution context
-- `internal/templates`: Auction message rendering
-- `internal/util`: Argument parsing, number formatting
+- Keep only durable auction-state and integration rules here.
