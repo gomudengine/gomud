@@ -5,6 +5,11 @@ import (
 )
 
 func registerAdminAPIRoutes(mux *http.ServeMux) {
+	// Stats
+	mux.HandleFunc("GET /admin/api/v1/stats/memory", RunWithMUDLocked(
+		doBasicAuth(apiV1GetStatsMemory),
+	))
+
 	// Config
 	mux.HandleFunc("GET /admin/api/v1/config", RunWithMUDLocked(
 		doBasicAuth(apiV1GetConfig),

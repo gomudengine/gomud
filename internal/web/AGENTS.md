@@ -57,11 +57,13 @@ The web system is built around Go's standard `net/http` package with several key
 | `web.go` | Server startup, `internalMux`, nav types, `ModuleAdminRegistrar` impl, `buildAdminNav`, `GetAdminRegistrar`, `serveTemplate`, `serveAdminStaticFile`, `RunWithMUDLocked`, `Shutdown`, public route registration |
 | `admin.go` | `adminIndex` handler - admin dashboard page |
 | `admin_items.go` | `adminItems`, `adminItemsAPI`, `adminBuffs`, `adminBuffsAPI`, `adminQuests`, `adminQuestsAPI` handlers + `serveAdminTemplate` helper |
+| `admin_stats.go` | `adminStatsAPI` handler — Stats API docs page |
 | `admin_config_api.go` | `adminConfigAPI` handler - Config REST API docs page |
 | `admin_routes.go` | `registerAdminRoutes(mux)` - registers all `/admin/` routes including static asset handler |
 | `api.go` | `APIResponse[T]` generic envelope, `writeJSON`, `writeAPIError`, `RunInTestMode` middleware |
 | `api_routes.go` | `registerAdminAPIRoutes(mux)` - registers all `/admin/api/` routes |
 | `api_v1_config.go` | `apiV1GetConfig` and `apiV1PatchConfig` handlers |
+| `api_v1_stats.go` | Memory stats endpoint (`/admin/api/v1/stats/memory`) |
 | `api_v1_items.go` | Item CRUD + script endpoints (`/admin/api/v1/items/...`) |
 | `api_v1_buffs.go` | Buff CRUD + script endpoints (`/admin/api/v1/buffs/...`) |
 | `api_v1_quests.go` | Quest list / patch / delete endpoints (`/admin/api/v1/quests/...`) |
@@ -92,6 +94,7 @@ All routes are registered on the package-level `internalMux`. Both live HTTP/HTT
 ### API Routes (registered via `registerAdminAPIRoutes`, called from `registerAdminRoutes`)
 - `GET /admin/api/v1/config` - return all config as flat key/value map (auth required, mud-locked)
 - `PATCH /admin/api/v1/config` - update one or more config values (auth required, mud-locked, test-mode aware)
+- `GET /admin/api/v1/stats/memory` - return memory usage for all registered subsystems (auth required, mud-locked)
 - `GET /admin/api/v1/items/types` - item types and subtypes
 - `GET /admin/api/v1/items/attack-messages` - all weapon attack message groups
 - `GET /admin/api/v1/items` - all item specs
@@ -246,6 +249,7 @@ Located in `_datafiles/html/admin/` (path configured via `FilePaths.AdminHtml`).
 | `quests-api.html` | Quests REST API reference |
 | `users.html` | Users search page: username search with results table |
 | `users-api.html` | Users REST API reference |
+| `stats-api.html` | Stats API reference (`GET /admin/api/v1/stats/memory`) |
 | `api.js` | `AdminAPI` JS client library served as a static asset at `/admin/api.js` |
 
 Template data passed to all admin page handlers:

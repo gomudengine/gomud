@@ -270,11 +270,19 @@ func GetMyIP() string
 ## Memory Management (`memory.go`)
 
 ```go
+type MemResultUnit uint8
+
+const (
+    UnitBytes MemResultUnit = iota // Memory holds a byte count
+    UnitCount                      // Memory holds a plain integer count (not bytes)
+)
+
 type MemReport func() map[string]MemoryResult
 
 type MemoryResult struct {
-    Memory uint64 // Bytes
-    Count  int    // Item count
+    Memory uint64
+    Count  int
+    Unit   MemResultUnit
 }
 
 // AddMemoryReporter registers a named memory reporter function.
@@ -283,11 +291,17 @@ func AddMemoryReporter(name string, reporter MemReport)
 // GetMemoryReport calls all registered reporters and returns their results.
 func GetMemoryReport() (names []string, trackedResults []map[string]MemoryResult)
 
-// MemoryUsage estimates the memory footprint of any value using reflection.
-// Handles pointers, slices, structs, maps, arrays, and strings.
+// ApproximateMemoryUsage estimates the memory footprint of any value using reflection.
+// Handles pointers (with deduplication), slices (capacity-based), structs, maps,
+// arrays, strings (header + backing array), and interface values.
+// Returns 0 for nil.
+func ApproximateMemoryUsage(i interface{}) uint64
+
+// MemoryUsage is an alias for ApproximateMemoryUsage for backwards compatibility.
 func MemoryUsage(i interface{}) uint64
 
-// FormatBytes formats a byte count as a human-readable string (KB, MB, GB, etc.).
+// FormatBytes formats a byte count as a human-readable string (B, KB, MB, GB, etc.).
+// Returns "0 B" for zero.
 func FormatBytes(bytes uint64) string
 
 // ServerStats returns a formatted ANSI string with Go runtime memory stats
@@ -295,6 +309,7 @@ func FormatBytes(bytes uint64) string
 func ServerStats() string
 
 // ServerGetMemoryUsage returns a MemoryResult map of Go runtime stats.
+// Entries with Unit == UnitCount hold plain integer counts, not bytes.
 // Automatically registered as the "Go" memory reporter on init.
 func ServerGetMemoryUsage() map[string]MemoryResult
 ```

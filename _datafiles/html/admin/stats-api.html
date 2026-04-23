@@ -1,0 +1,142 @@
+{{template "header" .}}
+
+<style>
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #555; margin-bottom: 2rem; font-size: 0.9rem; }
+    .api-list { display: flex; flex-direction: column; gap: 0.5rem; }
+    .api-entry { background: #fff; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; }
+    .api-entry summary { display: flex; align-items: baseline; gap: 0.75rem; padding: 0.65rem 1rem; cursor: pointer; user-select: none; list-style: none; }
+    .api-entry summary::-webkit-details-marker { display: none; }
+    .api-entry summary::before { content: "\25B6"; font-size: 0.65rem; color: #888; transition: transform 0.15s; flex-shrink: 0; }
+    .api-entry[open] summary::before { transform: rotate(90deg); }
+    .api-entry summary:hover { background: #fafafa; }
+    .method { font-family: monospace; font-size: 0.8rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 3px; flex-shrink: 0; }
+    .method-get { background: #e6f4ea; color: #1e6e34; }
+    .api-path { font-family: monospace; font-size: 0.9rem; color: #1a1a2e; }
+    .api-desc { font-size: 0.85rem; color: #555; margin-left: auto; text-align: right; }
+    .api-body { padding: 0.75rem 1rem 1rem; border-top: 1px solid #eee; background: #fafafa; }
+    .api-body p { font-size: 0.85rem; color: #444; margin-bottom: 0.5rem; }
+    .curl-block { background: #1a1a2e; color: #c9d1d9; font-family: monospace; font-size: 0.82rem; padding: 0.85rem 1rem; border-radius: 5px; white-space: pre; overflow-x: auto; line-height: 1.6; margin-bottom: 0.5rem; }
+    .curl-block .kw   { color: #79c0ff; }
+    .curl-block .str  { color: #a5d6ff; }
+    .curl-block .flag { color: #d2a8ff; }
+    .response-examples { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
+    .resp-entry { border: 1px solid #ddd; border-radius: 4px; overflow: hidden; }
+    .resp-entry summary { display: flex; align-items: baseline; gap: 0.6rem; padding: 0.45rem 0.75rem; cursor: pointer; user-select: none; list-style: none; background: #f5f5f5; font-size: 0.82rem; }
+    .resp-entry summary::-webkit-details-marker { display: none; }
+    .resp-entry summary::before { content: "\25B6"; font-size: 0.6rem; color: #888; transition: transform 0.15s; flex-shrink: 0; }
+    .resp-entry[open] summary::before { transform: rotate(90deg); }
+    .resp-entry summary:hover { background: #efefef; }
+    .resp-body { padding: 0.6rem 0.75rem 0.75rem; border-top: 1px solid #eee; background: #fafafa; }
+    .resp-body p { font-size: 0.82rem; color: #444; margin-bottom: 0.4rem; }
+    .status-ok  { background: #e6f4ea; color: #1e6e34; }
+    .status-err { background: #fde8e8; color: #8a0000; }
+    .resp-label { font-size: 0.8rem; color: #444; }
+    code { background: #f0f0f0; padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.85em; }
+    .schema-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-bottom: 0.75rem; }
+    .schema-table th { background: #f0f0f0; padding: 0.4rem 0.6rem; text-align: left; font-weight: 600; border: 1px solid #ddd; }
+    .schema-table td { padding: 0.4rem 0.6rem; border: 1px solid #ddd; vertical-align: top; }
+    .schema-table td:first-child { font-family: monospace; color: #1a1a2e; }
+</style>
+
+<h1>Stats API Reference</h1>
+<p class="subtitle">REST endpoints for reading server memory and runtime statistics.</p>
+
+<div class="api-list">
+
+    <details class="api-entry" open>
+        <summary>
+            <span class="method method-get">GET</span>
+            <span class="api-path">/admin/api/v1/stats/memory</span>
+            <span class="api-desc">Return memory usage for all registered subsystems</span>
+        </summary>
+        <div class="api-body">
+            <p>
+                Returns the output of the internal memory reporter registry. The response is a
+                JSON object whose top-level keys are <strong>section names</strong>
+                (e.g. <code>"Go"</code>, <code>"Rooms"</code>, <code>"Mobs"</code>).
+                Each section is itself an object whose keys are <strong>metric names</strong>
+                and whose values are <strong>metric entries</strong>.
+            </p>
+            <p>
+                The <code>unit</code> field on each entry indicates how to interpret
+                <code>memory</code>:
+            </p>
+            <table class="schema-table">
+                <thead><tr><th>unit value</th><th>meaning of <code>memory</code></th></tr></thead>
+                <tbody>
+                    <tr><td>"bytes"</td><td>Approximate byte count of the data structure.</td></tr>
+                    <tr><td>"count"</td><td>A plain integer count (e.g. GC runs, goroutines, CPU cores). Do not format as bytes.</td></tr>
+                </tbody>
+            </table>
+            <p>
+                The <code>count</code> field is the number of items in the collection when
+                applicable (e.g. number of loaded rooms), and is <code>0</code> for metrics
+                that do not track a collection size.
+            </p>
+
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/stats/memory</span></div>
+
+            <div class="response-examples">
+                <details class="resp-entry" open>
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body">
+                        <p>
+                            Each section maps metric names to entries. <code>"Go"</code> is always
+                            present (registered at startup). Additional sections such as
+                            <code>"Rooms"</code>, <code>"Mobs"</code>, <code>"Items"</code>, and
+                            <code>"Users"</code> are registered by their respective packages.
+                        </p>
+                        <div class="curl-block">{
+  "success": true,
+  "data": {
+    "Go": {
+      "HeapAlloc (!Freed)":   { "memory": 14680064, "count": 0, "unit": "bytes" },
+      "HeapSys (!Reclaimed)": { "memory": 23068672, "count": 0, "unit": "bytes" },
+      "StackSys (Reserved)":  { "memory": 786432,   "count": 0, "unit": "bytes" },
+      "StackInuse (In Use)":  { "memory": 655360,   "count": 0, "unit": "bytes" },
+      "Sys (Everything)":     { "memory": 35651584, "count": 0, "unit": "bytes" },
+      "GC Count":             { "memory": 12,       "count": 0, "unit": "count" },
+      "Maximum Processors":   { "memory": 8,        "count": 0, "unit": "count" },
+      "Goroutines Count":     { "memory": 24,       "count": 0, "unit": "count" }
+    },
+    "Rooms": {
+      "rooms":            { "memory": 2097152, "count": 412, "unit": "bytes" },
+      "zones":            { "memory": 8192,    "count": 6,   "unit": "bytes" },
+      "roomsWithUsers":   { "memory": 128,     "count": 3,   "unit": "bytes" },
+      "roomIdToFileCache":{ "memory": 32768,   "count": 412, "unit": "bytes" }
+    },
+    "Mobs": {
+      "mobs":            { "memory": 1048576, "count": 87,  "unit": "bytes" },
+      "allMobNames":     { "memory": 4096,    "count": 87,  "unit": "bytes" },
+      "mobInstances":    { "memory": 131072,  "count": 24,  "unit": "bytes" },
+      "mobsHatePlayers": { "memory": 512,     "count": 2,   "unit": "bytes" }
+    },
+    "Items": {
+      "items": { "memory": 524288, "count": 203, "unit": "bytes" }
+    },
+    "Users": {
+      "Users":           { "memory": 65536, "count": 3, "unit": "bytes" },
+      "Usernames":       { "memory": 256,   "count": 3, "unit": "bytes" },
+      "Connections":     { "memory": 128,   "count": 3, "unit": "bytes" },
+      "UserConnections": { "memory": 128,   "count": 3, "unit": "bytes" }
+    }
+  }
+}</div>
+                    </div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">401</span> <span class="resp-label">Unauthorized</span></summary>
+                    <div class="resp-body">
+                        <p>Invalid or missing credentials.</p>
+                        <div class="curl-block">{"success":false,"error":"unauthorized"}</div>
+                    </div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+</div>
+
+{{template "footer" .}}
