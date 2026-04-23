@@ -52,13 +52,6 @@ jobs:
             }
 
             const latestVersion = stable.version.replace(/^go/, '')
-            const latestMinor = latestVersion.split('.').slice(0, 2).join('.')
-            const dockerBuilderPattern = new RegExp(
-              '^(FROM golang:)\\d+\\.\\d+(?:\\.\\d+)?' +
-                '(-alpine[0-9.]+ AS builder)$',
-              'm',
-            )
-
             const updates = [
               {
                 path: 'go.mod',
@@ -68,20 +61,6 @@ jobs:
                     /^toolchain\s+go\d+\.\d+(?:\.\d+)?$/m,
                     `toolchain go${latestVersion}`,
                   ),
-              },
-              {
-                path: '.github/Dockerfile.act',
-                apply: (content) => content.replace(
-                  /^(FROM golang:)\d+\.\d+\.\d+(-bookworm)$/m,
-                  `$1${latestVersion}$2`,
-                ),
-              },
-              {
-                path: 'provisioning/Dockerfile',
-                apply: (content) => content.replace(
-                  dockerBuilderPattern,
-                  `$1${latestMinor}$2`,
-                ),
               },
             ]
 
@@ -137,11 +116,7 @@ jobs:
             remote_sha="$(git rev-parse "refs/remotes/origin/$BRANCH_NAME")"
           fi
           git switch -C "$BRANCH_NAME"
-          git add \
-            .github/Dockerfile.act \
-            go.mod \
-            go.sum \
-            provisioning/Dockerfile
+          git add go.mod go.sum
           git commit -m \
             "deps: update Go toolchain to ${{ steps.detect.outputs.version }}"
           if [ -n "$remote_sha" ]; then
@@ -166,13 +141,10 @@ jobs:
           cat >"$PR_BODY_FILE" <<'EOF'
           ## Summary
 
-          Updates the repository's pinned Go toolchain references to
+          Updates the repository's pinned Go version in `go.mod` to
           `${{ steps.detect.outputs.version }}`.
 
-          Files updated by this workflow:
-          - `go.mod`
-          - `.github/Dockerfile.act`
-          - `provisioning/Dockerfile`
+          Other Go toolchain consumers derive their version from `go.mod`.
 
           ## Validation
 

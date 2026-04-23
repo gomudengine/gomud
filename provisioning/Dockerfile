@@ -1,11 +1,17 @@
-FROM golang:1.25-alpine3.23 AS builder
+# check=skip=InvalidDefaultArgInFrom
+ARG GO_VERSION
+FROM golang:${GO_VERSION} AS builder
 
 ARG BIN=go-mud-server
 ENV BIN=${BIN}
 WORKDIR /src
 
 # Build stage: keep compilers and toolchain packages out of the final runtime image.
-RUN apk add --update make bash
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        bash \
+        make \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY go.mod go.sum ./
 # Download dependencies first so Docker can reuse this layer when app code changes.
@@ -13,7 +19,7 @@ RUN go mod download
 
 COPY . .
 # Generate derived files, then compile the server binary.
-RUN go generate && go build -o ${BIN}
+RUN go generate && CGO_ENABLED=0 go build -trimpath -a -o ${BIN}
 
 FROM alpine:latest AS runner
 ARG BIN=go-mud-server

@@ -1,4 +1,6 @@
-FROM golang:1.25.0-bookworm
+# check=skip=InvalidDefaultArgInFrom
+ARG GO_VERSION
+FROM golang:${GO_VERSION}
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV GOBIN=/usr/local/bin

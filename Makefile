@@ -33,13 +33,20 @@ export GOFLAGS := -mod=mod
 
 ## Build Targets
 
+.PHONY: go-version
+go-version: ### Print the Go version pinned in go.mod.
+	@printf '%s\n' "$(GO_VERSION)"
+
 .PHONY: docker_build 
 docker_build: 
-	TAG=$(VERSION) $(DOCKER_COMPOSE) build server
+	GO_VERSION=$(GO_VERSION) TAG=$(VERSION) $(DOCKER_COMPOSE) build server
 
 .PHONY: ci-local-image
 ci-local-image: ### Build the local CI tool image.
-	docker build -f .github/Dockerfile.act -t $(CI_LOCAL_IMAGE) .
+	docker build \
+		--build-arg GO_VERSION=$(GO_VERSION) \
+		-f .github/Dockerfile.act \
+		-t $(CI_LOCAL_IMAGE) .
 
 .PHONY: ci-local
 ci-local: ci-local-image ### Run local CI validation in a container.
@@ -140,7 +147,7 @@ run-new: clean-instances generate run ### Deletes instance data and runs server
 
 .PHONY: run-docker
 run-docker: ### Build and run server in docker.
-	$(DOCKER_COMPOSE) up --build --remove-orphans server
+	GO_VERSION=$(GO_VERSION) $(DOCKER_COMPOSE) up --build --remove-orphans server
 
 .PHONY: https-setup
 https-setup: ### Interactive HTTPS certificate setup helper.
