@@ -21,7 +21,7 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            background: #1e1e1e;
+            background: var(--t-bg);
             user-select: none;
         }
 
@@ -43,29 +43,29 @@
             justify-content: space-between;
             align-items: center;
             padding: 2px 8px;
-            background: rgba(0,0,0,0.55);
+            background: var(--t-gametime-label-bg);
             flex-shrink: 0;
         }
 
         #gametime-time {
             font-family: monospace;
             font-size: 0.85em;
-            color: #e8d8a0;
+            color: var(--t-gametime-time);
             letter-spacing: 0.04em;
         }
 
         #gametime-date {
             font-family: monospace;
             font-size: 0.72em;
-            color: #8899aa;
+            color: var(--t-gametime-date);
         }
 
         #gametime-tooltip {
             position: fixed;
             z-index: 99999;
             pointer-events: none;
-            background: #0d2e28;
-            border: 1px solid #1c6b60;
+            background: var(--t-bg-surface);
+            border: 1px solid var(--t-accent-dim);
             border-radius: 6px;
             box-shadow: 0 4px 16px rgba(0,0,0,0.7);
             padding: 8px 10px;
@@ -73,7 +73,7 @@
             display: none;
             font-family: monospace;
             font-size: 0.78em;
-            color: #dffbd1;
+            color: var(--t-text);
             white-space: nowrap;
         }
     `);
@@ -190,7 +190,7 @@
             return {
                 title:      'Time & Date',
                 mount:      el,
-                background: '#1e1e1e',
+                background: 'var(--t-bg)',
                 border:     1,
                 x:          0,
                 y:          0,

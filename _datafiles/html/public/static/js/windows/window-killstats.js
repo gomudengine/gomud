@@ -28,42 +28,42 @@
             height: 100%;
             display: flex;
             flex-direction: column;
-            background: #1e1e1e;
+            background: var(--t-bg);
         }
 
         /* ---- tab bar ---- */
         #ks-window .ks-tab-bar {
             display: flex;
             flex-shrink: 0;
-            border-bottom: 1px solid #0f3333;
+            border-bottom: 1px solid var(--t-border);
         }
 
         #ks-window .ks-tab-btn {
             flex: 1;
             padding: 5px 4px;
-            background: #0d2e28;
+            background: var(--t-bg-surface);
             border: none;
             cursor: pointer;
             font: inherit;
             font-size: 0.7em;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.04em;
             transition: background 0.15s, color 0.15s;
-            border-right: 1px solid #0f3333;
+            border-right: 1px solid var(--t-border);
         }
 
         #ks-window .ks-tab-btn:last-child { border-right: none; }
 
         #ks-window .ks-tab-btn:hover {
-            background: #0f3333;
-            color: #dffbd1;
+            background: var(--t-border);
+            color: var(--t-text);
         }
 
         #ks-window .ks-tab-btn.active {
-            background: #1e1e1e;
-            color: #dffbd1;
-            border-bottom: 2px solid #3ad4b8;
+            background: var(--t-bg);
+            color: var(--t-text);
+            border-bottom: 2px solid var(--t-accent);
         }
 
         /* ---- tab panels ---- */
@@ -83,7 +83,7 @@
             display: flex;
             gap: 0;
             flex-shrink: 0;
-            border-bottom: 1px solid #0f3333;
+            border-bottom: 1px solid var(--t-border);
         }
 
         .ks-summary-cell {
@@ -92,27 +92,27 @@
             flex-direction: column;
             align-items: center;
             padding: 5px 4px;
-            border-right: 1px solid #0f3333;
+            border-right: 1px solid var(--t-border);
         }
 
         .ks-summary-cell:last-child { border-right: none; }
 
         .ks-summary-label {
             font-size: 0.6em;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.04em;
         }
 
         .ks-summary-value {
             font-size: 0.9em;
-            color: #dffbd1;
+            color: var(--t-text);
             font-weight: bold;
         }
 
-        .ks-summary-value.kd-good  { color: #3ad4b8; }
-        .ks-summary-value.kd-bad   { color: #d44a4a; }
-        .ks-summary-value.kd-even  { color: #d4b83a; }
+        .ks-summary-value.kd-good  { color: var(--t-kd-good); }
+        .ks-summary-value.kd-bad   { color: var(--t-kd-bad); }
+        .ks-summary-value.kd-even  { color: var(--t-kd-even); }
 
         /* ---- list area ---- */
         .ks-list {
@@ -121,26 +121,26 @@
         }
 
         .ks-list::-webkit-scrollbar       { width: 4px; }
-        .ks-list::-webkit-scrollbar-track  { background: #111; }
-        .ks-list::-webkit-scrollbar-thumb  { background: #1c6b60; border-radius: 2px; }
+        .ks-list::-webkit-scrollbar-track  { background: var(--t-scrollbar-track); }
+        .ks-list::-webkit-scrollbar-thumb  { background: var(--t-accent-dim); border-radius: 2px; }
 
         /* ---- list rows ---- */
         .ks-row {
             display: flex;
             align-items: center;
             padding: 4px 8px;
-            border-bottom: 1px solid #151f1d;
+            border-bottom: 1px solid var(--t-border-faint);
             gap: 6px;
         }
 
         .ks-row:last-child { border-bottom: none; }
 
-        .ks-row:hover { background: #0d2e28; }
+        .ks-row:hover { background: var(--t-bg-surface); }
 
         .ks-row-name {
             flex: 1;
             font-size: 0.78em;
-            color: #dffbd1;
+            color: var(--t-text);
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -148,7 +148,7 @@
 
         .ks-row-count {
             font-size: 0.78em;
-            color: #3ad4b8;
+            color: var(--t-accent);
             font-weight: bold;
             width: 36px;
             text-align: right;
@@ -157,7 +157,7 @@
 
         .ks-row-pct {
             font-size: 0.72em;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             width: 38px;
             text-align: right;
             flex-shrink: 0;
@@ -167,7 +167,7 @@
         .ks-bar-track {
             width: 52px;
             height: 5px;
-            background: #1a1a1a;
+            background: var(--t-bg-row);
             border-radius: 3px;
             overflow: hidden;
             flex-shrink: 0;
@@ -176,13 +176,13 @@
         .ks-bar-fill {
             height: 100%;
             border-radius: 3px;
-            background: linear-gradient(to right, #1c6b60, #3ad4b8);
+            background: linear-gradient(to right, var(--t-progress-from), var(--t-progress-to));
         }
 
         /* ---- empty state ---- */
         .ks-empty {
             padding: 16px 10px;
-            color: #444;
+            color: var(--t-text-dim);
             font-size: 0.76em;
             font-style: italic;
             text-align: center;
@@ -193,8 +193,8 @@
             display: flex;
             align-items: center;
             padding: 3px 8px;
-            background: #111a19;
-            border-bottom: 1px solid #0f3333;
+            background: var(--t-bg-col-header);
+            border-bottom: 1px solid var(--t-border);
             flex-shrink: 0;
             gap: 6px;
         }
@@ -202,14 +202,14 @@
         .ks-col-header-name {
             flex: 1;
             font-size: 0.62em;
-            color: #3a6e5e;
+            color: var(--t-text-heading);
             text-transform: uppercase;
             letter-spacing: 0.07em;
         }
 
         .ks-col-header-count {
             font-size: 0.62em;
-            color: #3a6e5e;
+            color: var(--t-text-heading);
             text-transform: uppercase;
             letter-spacing: 0.07em;
             width: 36px;
@@ -219,7 +219,7 @@
 
         .ks-col-header-pct {
             font-size: 0.62em;
-            color: #3a6e5e;
+            color: var(--t-text-heading);
             text-transform: uppercase;
             letter-spacing: 0.07em;
             width: 38px;
@@ -338,7 +338,7 @@
             return {
                 title:      'Kill Stats',
                 mount:      el,
-                background: '#1e1e1e',
+                background: 'var(--t-bg)',
                 border:     1,
                 x:          'right',
                 y:          0,

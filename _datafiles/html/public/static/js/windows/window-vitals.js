@@ -23,7 +23,7 @@
             position: relative;
             width: 100%;
             height: 50%;
-            background: linear-gradient(to right, #f44336 0%, #ffeb3b 50%, #4caf50 100%);
+            background: linear-gradient(to right, var(--t-hp-low) 0%, var(--t-hp-mid) 50%, var(--t-hp-high) 100%);
             border-radius: 12px;
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
             overflow: hidden;
@@ -33,7 +33,7 @@
         #health-bar .health-fill {
             height: 100%;
             width: 0%;
-            background: #333;
+            background: var(--t-bar-empty);
             float: right;
             transition: width 0.4s ease-out;
         }
@@ -46,7 +46,7 @@
             justify-content: center;
             font-family: monospace;
             font-size: 0.85em;
-            color: white;
+            color: var(--t-text-white);
             text-shadow: 0 1px 2px rgba(0,0,0,0.8);
             pointer-events: none;
         }
@@ -55,7 +55,7 @@
             position: relative;
             width: 100%;
             height: 50%;
-            background: linear-gradient(to right, #1e108b 0%, #3a20fe 100%);
+            background: linear-gradient(to right, var(--t-mana-from) 0%, var(--t-mana-to) 100%);
             border-radius: 12px;
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
             overflow: hidden;
@@ -65,7 +65,7 @@
         #mana-bar .mana-fill {
             height: 100%;
             width: 0%;
-            background: #333;
+            background: var(--t-bar-empty);
             float: right;
             transition: width 0.4s ease-out;
         }
@@ -78,7 +78,7 @@
             justify-content: center;
             font-family: monospace;
             font-size: 0.85em;
-            color: white;
+            color: var(--t-text-white);
             text-shadow: 0 1px 2px rgba(0,0,0,0.8);
             pointer-events: none;
         }
@@ -125,7 +125,7 @@
             return {
                 title:      'Vitals',
                 mount:      el,
-                background: '#1e1e1e',
+                background: 'var(--t-bg)',
                 border:     1,
                 x:          0,
                 y:          0,

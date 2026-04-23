@@ -46,8 +46,8 @@
             flex-direction: column;
             width: min(780px, 92vw);
             max-height: 82vh;
-            background: #111;
-            border: 1px solid #1c6b60;
+            background: var(--t-bg-panel);
+            border: 1px solid var(--t-border-accent);
             border-radius: 6px;
             box-shadow: 0 8px 40px rgba(0, 0, 0, 0.9);
             overflow: hidden;
@@ -59,14 +59,14 @@
             align-items: center;
             justify-content: space-between;
             padding: 7px 12px 7px 14px;
-            background: #0d2e28;
-            border-bottom: 1px solid #1c6b60;
+            background: var(--t-bg-surface);
+            border-bottom: 1px solid var(--t-border-accent);
             flex-shrink: 0;
         }
 
         #game-modal-title {
             font-size: 0.88em;
-            color: #3ad4b8;
+            color: var(--t-accent);
             text-transform: uppercase;
             letter-spacing: 0.06em;
             font-weight: bold;
@@ -78,7 +78,7 @@
         #game-modal-close {
             background: none;
             border: none;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             font-size: 1.1em;
             cursor: pointer;
             padding: 0 2px;
@@ -88,7 +88,7 @@
         }
 
         #game-modal-close:hover {
-            color: #dffbd1;
+            color: var(--t-text);
         }
 
         /* ---- Body ---- */
@@ -109,33 +109,33 @@
         }
 
         #game-modal-term-container .xterm-viewport::-webkit-scrollbar       { width: 6px; }
-        #game-modal-term-container .xterm-viewport::-webkit-scrollbar-track  { background: #1a1a1a; }
-        #game-modal-term-container .xterm-viewport::-webkit-scrollbar-thumb  { background: #1c6b60; border-radius: 3px; }
-        #game-modal-term-container .xterm-viewport::-webkit-scrollbar-thumb:hover { background: #3ad4b8; }
-        #game-modal-term-container .xterm-viewport { scrollbar-width: thin; scrollbar-color: #1c6b60 #1a1a1a; }
+        #game-modal-term-container .xterm-viewport::-webkit-scrollbar-track  { background: var(--t-scrollbar-track); }
+        #game-modal-term-container .xterm-viewport::-webkit-scrollbar-thumb  { background: var(--t-accent-dim); border-radius: 3px; }
+        #game-modal-term-container .xterm-viewport::-webkit-scrollbar-thumb:hover { background: var(--t-accent); }
+        #game-modal-term-container .xterm-viewport { scrollbar-width: thin; scrollbar-color: var(--t-accent-dim) var(--t-scrollbar-track); }
 
         /* HTML mode: scrollable prose container */
         #game-modal-html-container {
             flex: 1;
             overflow-y: auto;
             padding: 12px 16px;
-            color: #dffbd1;
+            color: var(--t-text);
             font-size: 0.84em;
             line-height: 1.6;
         }
 
         #game-modal-html-container::-webkit-scrollbar       { width: 5px; }
-        #game-modal-html-container::-webkit-scrollbar-track  { background: #111; }
-        #game-modal-html-container::-webkit-scrollbar-thumb  { background: #1c6b60; border-radius: 3px; }
-        #game-modal-html-container::-webkit-scrollbar-thumb:hover { background: #3ad4b8; }
+        #game-modal-html-container::-webkit-scrollbar-track  { background: var(--t-bg-panel); }
+        #game-modal-html-container::-webkit-scrollbar-thumb  { background: var(--t-accent-dim); border-radius: 3px; }
+        #game-modal-html-container::-webkit-scrollbar-thumb:hover { background: var(--t-accent); }
 
         /* ---- Footer hint ---- */
         #game-modal-footer {
             flex-shrink: 0;
             padding: 4px 14px 5px;
-            border-top: 1px solid #0f3333;
+            border-top: 1px solid var(--t-border);
             font-size: 0.66em;
-            color: #3a5a52;
+            color: var(--t-text-heading);
             text-align: right;
         }
     `);
@@ -200,6 +200,7 @@
 
     function ensureTerminal() {
         if (modalTerm) { return; }
+        var cs = getComputedStyle(document.documentElement);
         modalTerm = new Terminal({
             cols:            80,
             rows:            24,
@@ -208,9 +209,9 @@
             scrollback:      2000,
             fontSize:        14,
             theme: {
-                background:  '#111111',
-                foreground:  '#dffbd1',
-                cursor:      '#3ad4b8',
+                background:  cs.getPropertyValue('--t-modal-term-bg').trim(),
+                foreground:  cs.getPropertyValue('--t-modal-term-fg').trim(),
+                cursor:      cs.getPropertyValue('--t-modal-term-cursor').trim(),
                 black:       '#1e1e1e',
                 red:         '#e06060',
                 green:       '#3ad4b8',

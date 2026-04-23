@@ -24,18 +24,18 @@
             height: 100%;
             overflow-y: auto;
             padding: 4px 6px;
-            background: #1e1e1e;
+            background: var(--t-bg);
             display: flex;
             flex-direction: column;
             gap: 4px;
         }
 
         #party-panel::-webkit-scrollbar       { width: 4px; }
-        #party-panel::-webkit-scrollbar-track  { background: #111; }
-        #party-panel::-webkit-scrollbar-thumb  { background: #1c6b60; border-radius: 2px; }
+        #party-panel::-webkit-scrollbar-track  { background: var(--t-scrollbar-track); }
+        #party-panel::-webkit-scrollbar-thumb  { background: var(--t-scrollbar-thumb); border-radius: 2px; }
 
         .party-empty {
-            color: #444;
+            color: var(--t-text-dim);
             font-size: 0.78em;
             font-style: italic;
             text-align: center;
@@ -43,8 +43,8 @@
         }
 
         .party-member {
-            background: #0a1e1a;
-            border: 1px solid #1c6b60;
+            background: var(--t-bg-surface-alt);
+            border: 1px solid var(--t-accent-dim);
             border-radius: 4px;
             padding: 5px 7px;
             display: flex;
@@ -53,12 +53,12 @@
         }
 
         .party-member.is-leader {
-            border-color: #3ad4b8;
+            border-color: var(--t-party-leader);
         }
 
         .party-member.is-invited {
-            border-color: #555;
-            background: #0a0a0a;
+            border-color: var(--t-party-invited-border);
+            background: var(--t-party-invited-bg);
             opacity: 0.7;
         }
 
@@ -71,7 +71,7 @@
         .party-member-name {
             flex: 1;
             font-size: 0.82em;
-            color: #dffbd1;
+            color: var(--t-text);
             font-weight: bold;
             white-space: nowrap;
             overflow: hidden;
@@ -79,29 +79,29 @@
         }
 
         .party-member.is-leader .party-member-name {
-            color: #3ad4b8;
+            color: var(--t-party-leader);
         }
 
         .party-member.is-invited .party-member-name {
-            color: #888;
+            color: var(--t-party-invited-text);
         }
 
         .party-member-level {
             font-size: 0.7em;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             flex-shrink: 0;
         }
 
         .party-member-rank {
             font-size: 0.65em;
-            color: #555;
+            color: var(--t-party-invited-border);
             flex-shrink: 0;
             text-transform: capitalize;
         }
 
         .party-member-location {
             font-size: 0.68em;
-            color: #4a8070;
+            color: var(--t-party-location);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -110,10 +110,10 @@
         .party-hp-track {
             width: 100%;
             height: 5px;
-            background: #1a1a1a;
+            background: var(--t-party-hp-bg);
             border-radius: 3px;
             overflow: hidden;
-            border: 1px solid #1a2e28;
+            border: 1px solid var(--t-party-hp-border);
         }
 
         .party-hp-fill {
@@ -123,13 +123,13 @@
         }
 
         /* Colour shifts from green → yellow → red as HP drops */
-        .party-hp-fill[data-pct="high"]   { background: #3ad4b8; }
-        .party-hp-fill[data-pct="medium"] { background: #d4a843; }
-        .party-hp-fill[data-pct="low"]    { background: #d43a3a; }
+        .party-hp-fill[data-pct="high"]   { background: var(--t-party-hp-high); }
+        .party-hp-fill[data-pct="medium"] { background: var(--t-party-hp-mid); }
+        .party-hp-fill[data-pct="low"]    { background: var(--t-party-hp-low); }
 
         .party-invited-label {
             font-size: 0.65em;
-            color: #555;
+            color: var(--t-party-invited-border);
             font-style: italic;
         }
     `);
@@ -157,7 +157,7 @@
             return {
                 title:      'Party',
                 mount:      el,
-                background: '#1e1e1e',
+                background: 'var(--t-bg)',
                 border:     1,
                 x:          0,
                 y:          0,

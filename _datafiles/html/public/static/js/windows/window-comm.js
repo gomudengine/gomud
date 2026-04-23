@@ -22,28 +22,28 @@
             display: flex;
             flex-direction: column;
             height: 100%;
-            background: #1e1e1e;
+            background: var(--t-bg);
         }
 
         #comm-output .tab-buttons {
             display: flex;
             flex-shrink: 0;
-            border-bottom: 1px solid #0f3333;
+            border-bottom: 1px solid var(--t-border);
         }
 
         #comm-output .tab-button {
             flex: 1;
             padding: 5px 4px;
-            background: #0d2e28;
+            background: var(--t-bg-surface);
             border: none;
             cursor: pointer;
             font: inherit;
             font-size: 0.7em;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.04em;
             transition: background 0.15s, color 0.15s;
-            border-right: 1px solid #0f3333;
+            border-right: 1px solid var(--t-border);
         }
 
         #comm-output .tab-button:last-child {
@@ -51,20 +51,20 @@
         }
 
         #comm-output .tab-button:hover {
-            background: #0f3333;
-            color: #dffbd1;
+            background: var(--t-border);
+            color: var(--t-text);
         }
 
         #comm-output .tab-button.active {
-            background: #1e1e1e;
-            color: #dffbd1;
-            border-bottom: 2px solid #3ad4b8;
+            background: var(--t-bg);
+            color: var(--t-text);
+            border-bottom: 2px solid var(--t-accent);
         }
 
         @keyframes comm-tab-glow {
-            0%   { background: #0d2e28; color: #7ab8a0; }
-            50%  { background: #3ad4b8; color: #3ad4b8; }
-            100% { background: #0d2e28; color: #7ab8a0; }
+            0%   { background: var(--t-bg-surface); color: var(--t-text-secondary); }
+            50%  { background: var(--t-glow-bg); color: var(--t-accent); }
+            100% { background: var(--t-bg-surface); color: var(--t-text-secondary); }
         }
 
         #comm-output .tab-button.pending {
@@ -74,7 +74,7 @@
         #comm-output .tab-contents {
             flex: 1;
             overflow: hidden;
-            background: #1e1e1e;
+            background: var(--t-bg);
         }
 
         #comm-output .tab-content {
@@ -88,8 +88,8 @@
 
         .chat-window {
             overflow: scroll;
-            background-color: #1e1e1e;
-            color: #fff;
+            background-color: var(--t-bg);
+            color: var(--t-text-white);
             font-size: 12px;
             padding: 2px;
         }
@@ -98,11 +98,11 @@
             margin-bottom: 2px;
         }
         
-        .chat-window.broadcast { color: #d700d7; }
-        .chat-window.whisper   { color: #737670; }
+        .chat-window.broadcast { color: var(--t-comm-broadcast); }
+        .chat-window.whisper   { color: var(--t-comm-whisper); }
 
-        .text-name.mob    { color: #00ffff; }
-        .text-name.player { color: #fce94f; }
+        .text-name.mob    { color: var(--t-comm-mob); }
+        .text-name.player { color: var(--t-comm-player); }
     `);
 
     // -----------------------------------------------------------------------
@@ -190,7 +190,7 @@
             return {
                 title:      'Communications',
                 mount:      el,
-                background: '#1e1e1e',
+                background: 'var(--t-bg)',
                 border:     1,
                 x:          'right',
                 y:          450,

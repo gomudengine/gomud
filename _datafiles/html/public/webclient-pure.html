@@ -2,6 +2,16 @@
 <html>
 <head>
     <title>{{ .CONFIG.Server.MudName }} Web Terminal</title>
+    <link id="theme-css" rel="stylesheet" href="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/css/theme-brooding.css" />
+    <script>
+    (function() {
+        var t = localStorage.getItem('gomud-theme');
+        if (t && t !== 'brooding') {
+            document.getElementById('theme-css').href =
+                document.getElementById('theme-css').href.replace('theme-brooding', 'theme-' + t);
+        }
+    })();
+    </script>
     <style>
         * {
             box-sizing: border-box;
@@ -16,7 +26,7 @@
             font-family: 'DejaVu Sans Mono', monospace;
             display: flex;
             flex-direction: column;
-            background-color: #1e1e1e;
+            background-color: var(--t-bg);
             position: relative;
         }
 
@@ -26,7 +36,7 @@
             display: flex;
             flex-direction: row;
             overflow: hidden;
-            background-color: #000;
+            background-color: var(--t-bg-deep);
         }
 
         #terminal {
@@ -38,7 +48,7 @@
         #input-area {
             display: flex;
             padding: 10px;
-            background-color: #1e1e1e;
+            background-color: var(--t-bg);
         }
 
         #command-input {
@@ -46,8 +56,8 @@
             padding: 10px;
             font-size: 16px;
             border: none;
-            background-color: #333;
-            color: white;
+            background-color: var(--t-cmd-bg);
+            color: var(--t-text);
             border-radius: 0px 5px 5px 0px;
         }
 
@@ -63,8 +73,8 @@
             z-index: 9999;
             padding: 20px 40px;
             font-size: 20px;
-            background-color: #555;
-            color: white;
+            background-color: var(--t-connect-bg);
+            color: var(--t-text-white);
             border: none;
             cursor: pointer;
             border-radius: 5px;
@@ -72,16 +82,16 @@
         }
 
         #connect-button:disabled {
-            color: #888;
+            color: var(--t-text-disabled);
             pointer-events: none;
             animation: none;
-            background-color: #555;
+            background-color: var(--t-connect-bg);
             cursor: not-allowed;
         }
 
         @keyframes pulse {
-            0%   { background-color: #555; color: white; }
-            100% { color: #d17a7a; background-color: #9f4a4a; }
+            0%   { background-color: var(--t-connect-bg); color: var(--t-text-white); }
+            100% { color: var(--t-connect-pulse-text); background-color: var(--t-connect-pulse-bg); }
         }
 
         #menu-icon {
@@ -89,11 +99,11 @@
             top: 10px;
             right: 10px;
             font-size: 20px;
-            color: white;
+            color: var(--t-text);
             padding: 8px 10px;
             cursor: pointer;
             z-index: 9999;
-            background-color: rgba(30, 30, 30, 0.8);
+            background-color: var(--t-menu-icon-bg);
             border-radius: 5px;
             line-height: 1;
         }
@@ -103,7 +113,7 @@
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.6);
+            background: var(--t-backdrop);
             z-index: 10000;
             align-items: center;
             justify-content: center;
@@ -119,10 +129,10 @@
             width: 520px;
             max-width: 94vw;
             max-height: 80vh;
-            background-color: #1e1e1e;
-            border: 1px solid #1c6b60;
+            background-color: var(--t-bg);
+            border: 1px solid var(--t-border-accent);
             border-radius: 8px;
-            box-shadow: 0 8px 40px rgba(0,0,0,0.8);
+            box-shadow: var(--t-modal-shadow);
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -138,7 +148,7 @@
         }
 
         #settings-title {
-            color: #dffbd1;
+            color: var(--t-text);
             font-size: 13px;
             font-family: Arial, sans-serif;
             font-weight: bold;
@@ -147,7 +157,7 @@
         }
 
         #settings-close {
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             font-size: 20px;
             cursor: pointer;
             line-height: 1;
@@ -157,15 +167,15 @@
         }
 
         #settings-close:hover {
-            color: #dffbd1;
-            background: #0d2e28;
+            color: var(--t-text);
+            background: var(--t-bg-surface);
         }
 
         /* Tab bar */
         #settings-tab-bar {
             display: flex;
             flex-shrink: 0;
-            border-bottom: 1px solid #0f3333;
+            border-bottom: 1px solid var(--t-border);
             padding: 0 16px;
             margin-top: 10px;
         }
@@ -178,7 +188,7 @@
             font: inherit;
             font-size: 12px;
             font-family: Arial, sans-serif;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.05em;
             border-bottom: 2px solid transparent;
@@ -187,12 +197,12 @@
         }
 
         .settings-tab-btn:hover {
-            color: #dffbd1;
+            color: var(--t-text);
         }
 
         .settings-tab-btn.active {
-            color: #dffbd1;
-            border-bottom-color: #3ad4b8;
+            color: var(--t-text);
+            border-bottom-color: var(--t-accent);
         }
 
         /* Tab panels */
@@ -203,8 +213,8 @@
         }
 
         #settings-tab-body::-webkit-scrollbar       { width: 4px; }
-        #settings-tab-body::-webkit-scrollbar-track  { background: #111; }
-        #settings-tab-body::-webkit-scrollbar-thumb  { background: #1c6b60; border-radius: 2px; }
+        #settings-tab-body::-webkit-scrollbar-track  { background: var(--t-scrollbar-track); }
+        #settings-tab-body::-webkit-scrollbar-thumb  { background: var(--t-scrollbar-thumb); border-radius: 2px; }
 
         .settings-tab-panel {
             display: none;
@@ -224,13 +234,13 @@
         }
 
         .settings-section-title {
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             font-size: 10px;
             text-transform: uppercase;
             letter-spacing: 0.08em;
             margin-bottom: 10px;
             font-family: Arial, sans-serif;
-            border-bottom: 1px solid #0f3333;
+            border-bottom: 1px solid var(--t-border);
             padding-bottom: 5px;
         }
 
@@ -241,7 +251,7 @@
         }
 
         .slider-container label {
-            color: #ccc;
+            color: var(--t-text-muted);
             width: 130px;
             font-size: 13px;
             font-family: Arial, sans-serif;
@@ -254,7 +264,7 @@
             appearance: none;
             height: 4px;
             border-radius: 2px;
-            background: #555;
+            background: var(--t-slider-track);
             outline: none;
             cursor: pointer;
         }
@@ -265,9 +275,9 @@
             width: 14px;
             height: 14px;
             border-radius: 50%;
-            background: #1c6b60;
+            background: var(--t-accent-dim);
             cursor: pointer;
-            border: 2px solid #3ad4b8;
+            border: 2px solid var(--t-slider-border);
             transition: background 0.15s;
         }
 
@@ -275,30 +285,30 @@
             width: 14px;
             height: 14px;
             border-radius: 50%;
-            background: #1c6b60;
+            background: var(--t-accent-dim);
             cursor: pointer;
-            border: 2px solid #3ad4b8;
+            border: 2px solid var(--t-slider-border);
             transition: background 0.15s;
         }
 
         .slider-container input[type="range"]::-webkit-slider-thumb:hover {
-            background: #3ad4b8;
+            background: var(--t-accent);
         }
 
         .slider-container input[type="range"]::-moz-range-thumb:hover {
-            background: #3ad4b8;
+            background: var(--t-accent);
         }
 
         .slider-icon {
             width: 24px;
             text-align: center;
             font-size: 16px;
-            color: #ccc;
+            color: var(--t-text-muted);
         }
 
         #mute-container {
             margin-bottom: 10px;
-            color: #ccc;
+            color: var(--t-text-muted);
             display: flex;
             align-items: center;
             gap: 8px;
@@ -327,7 +337,7 @@
 
         .sound-category-arrow {
             font-size: 8px;
-            color: #3ad4b8;
+            color: var(--t-accent);
             width: 12px;
             text-align: center;
             flex-shrink: 0;
@@ -336,7 +346,7 @@
         }
 
         .sound-category-label {
-            color: #ccc;
+            color: var(--t-text-muted);
             width: 118px;
             font-size: 13px;
             font-family: Arial, sans-serif;
@@ -352,7 +362,7 @@
             appearance: none;
             height: 4px;
             border-radius: 2px;
-            background: #555;
+            background: var(--t-slider-track);
             outline: none;
             cursor: pointer;
         }
@@ -363,24 +373,24 @@
             width: 14px;
             height: 14px;
             border-radius: 50%;
-            background: #1c6b60;
+            background: var(--t-accent-dim);
             cursor: pointer;
-            border: 2px solid #3ad4b8;
+            border: 2px solid var(--t-slider-border);
         }
 
         .sound-category-header input[type="range"]::-moz-range-thumb {
             width: 14px;
             height: 14px;
             border-radius: 50%;
-            background: #1c6b60;
+            background: var(--t-accent-dim);
             cursor: pointer;
-            border: 2px solid #3ad4b8;
+            border: 2px solid var(--t-slider-border);
         }
 
         /* Per-sound sub-rows */
         .sound-list {
             padding-left: 16px;
-            border-left: 1px solid #0f3333;
+            border-left: 1px solid var(--t-border);
             margin-left: 6px;
             margin-bottom: 4px;
         }
@@ -390,7 +400,7 @@
         }
 
         .sound-sub-label {
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             width: 118px;
             font-size: 11px;
             font-family: Arial, sans-serif;
@@ -404,17 +414,17 @@
             padding: 4px 0 4px 4px;
             font-size: 11px;
             font-family: Arial, sans-serif;
-            color: #555;
+            color: var(--t-text-dim);
             font-style: italic;
         }
 
         /* Volume reset button */
         #volume-reset-btn {
             padding: 4px 10px;
-            background: #0d2e28;
-            border: 1px solid #1c6b60;
+            background: var(--t-bg-surface);
+            border: 1px solid var(--t-btn-border);
             border-radius: 4px;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             font-size: 11px;
             font-family: Arial, sans-serif;
             cursor: pointer;
@@ -425,8 +435,8 @@
         }
 
         #volume-reset-btn:hover {
-            background: #1c6b60;
-            color: #dffbd1;
+            background: var(--t-accent-dim);
+            color: var(--t-text);
         }
 
         /* Toggle switch */
@@ -448,7 +458,7 @@
         .toggle-track {
             position: absolute;
             inset: 0;
-            background: #555;
+            background: var(--t-toggle-off);
             border-radius: 18px;
             cursor: pointer;
             transition: background 0.2s;
@@ -461,13 +471,13 @@
             left: 2px;
             width: 14px;
             height: 14px;
-            background: #fff;
+            background: var(--t-text-white);
             border-radius: 50%;
             transition: transform 0.2s;
         }
 
         .toggle-switch input:checked + .toggle-track {
-            background: #1c6b60;
+            background: var(--t-accent-dim);
         }
 
         .toggle-switch input:checked + .toggle-track::after {
@@ -478,10 +488,10 @@
         #reset-layout-btn {
             margin-top: 14px;
             padding: 7px 14px;
-            background: #0d2e28;
-            border: 1px solid #1c6b60;
+            background: var(--t-bg-surface);
+            border: 1px solid var(--t-btn-border);
             border-radius: 4px;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             font-size: 12px;
             font-family: Arial, sans-serif;
             cursor: pointer;
@@ -491,8 +501,8 @@
         }
 
         #reset-layout-btn:hover {
-            background: #1c6b60;
-            color: #dffbd1;
+            background: var(--t-accent-dim);
+            color: var(--t-text);
         }
 
         /* Window toggle rows */
@@ -501,13 +511,13 @@
             align-items: center;
             justify-content: space-between;
             padding: 4px 0;
-            color: #ccc;
+            color: var(--t-text-muted);
             font-size: 13px;
             font-family: Arial, sans-serif;
         }
 
         .win-toggle-row + .win-toggle-row {
-            border-top: 1px solid #383838;
+            border-top: 1px solid var(--t-border-row);
         }
 
         /* Trigger list */
@@ -523,27 +533,27 @@
             align-items: center;
             gap: 8px;
             padding: 5px 6px;
-            background: #0d2e28;
-            border: 1px solid #0f3333;
+            background: var(--t-bg-surface);
+            border: 1px solid var(--t-border);
             border-radius: 4px;
             cursor: pointer;
             transition: background 0.15s;
         }
 
         .trigger-row:hover {
-            background: #133a32;
+            background: var(--t-bg-hover);
         }
 
         .trigger-row.selected {
-            border-color: #3ad4b8;
-            background: #0f3f36;
+            border-color: var(--t-accent);
+            background: var(--t-bg-selected);
         }
 
         .trigger-row-pattern {
             flex: 1;
             font-family: monospace;
             font-size: 12px;
-            color: #dffbd1;
+            color: var(--t-text);
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -552,9 +562,9 @@
         .trigger-row-badge {
             font-size: 10px;
             font-family: Arial, sans-serif;
-            color: #7ab8a0;
-            background: #0a2420;
-            border: 1px solid #0f3333;
+            color: var(--t-text-secondary);
+            background: var(--t-accent-bg);
+            border: 1px solid var(--t-border);
             border-radius: 3px;
             padding: 1px 5px;
             flex-shrink: 0;
@@ -563,7 +573,7 @@
         .trigger-delete-btn {
             background: none;
             border: none;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             font-size: 14px;
             cursor: pointer;
             padding: 0 2px;
@@ -572,7 +582,7 @@
         }
 
         .trigger-delete-btn:hover {
-            color: #e06060;
+            color: var(--t-error);
         }
 
         /* Trigger editor */
@@ -582,8 +592,8 @@
             gap: 8px;
             margin-bottom: 12px;
             padding: 10px;
-            background: #0d2e28;
-            border: 1px solid #1c6b60;
+            background: var(--t-bg-surface);
+            border: 1px solid var(--t-btn-border);
             border-radius: 4px;
         }
 
@@ -592,7 +602,7 @@
         }
 
         #trigger-editor label {
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             font-size: 11px;
             font-family: Arial, sans-serif;
             text-transform: uppercase;
@@ -602,27 +612,27 @@
         #trigger-pattern-input {
             width: 100%;
             padding: 5px 7px;
-            background: #111;
-            border: 1px solid #1c6b60;
+            background: var(--t-input-bg);
+            border: 1px solid var(--t-btn-border);
             border-radius: 3px;
-            color: #dffbd1;
+            color: var(--t-text);
             font-family: monospace;
             font-size: 12px;
             outline: none;
         }
 
         #trigger-pattern-input:focus {
-            border-color: #3ad4b8;
+            border-color: var(--t-accent);
         }
 
         #trigger-body-input {
             width: 100%;
             min-height: 100px;
             padding: 6px 7px;
-            background: #111;
-            border: 1px solid #1c6b60;
+            background: var(--t-input-bg);
+            border: 1px solid var(--t-btn-border);
             border-radius: 3px;
-            color: #dffbd1;
+            color: var(--t-text);
             font-family: monospace;
             font-size: 12px;
             resize: vertical;
@@ -631,11 +641,11 @@
         }
 
         #trigger-body-input:focus {
-            border-color: #3ad4b8;
+            border-color: var(--t-accent);
         }
 
         #trigger-error {
-            color: #e06060;
+            color: var(--t-error);
             font-size: 11px;
             font-family: monospace;
             display: none;
@@ -652,10 +662,10 @@
 
         .trigger-btn {
             padding: 5px 12px;
-            background: #0d2e28;
-            border: 1px solid #1c6b60;
+            background: var(--t-bg-surface);
+            border: 1px solid var(--t-btn-border);
             border-radius: 4px;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             font-size: 12px;
             font-family: Arial, sans-serif;
             cursor: pointer;
@@ -665,18 +675,18 @@
         }
 
         .trigger-btn:hover {
-            background: #1c6b60;
-            color: #dffbd1;
+            background: var(--t-accent-dim);
+            color: var(--t-text);
         }
 
         .trigger-btn.primary {
-            border-color: #3ad4b8;
-            color: #3ad4b8;
+            border-color: var(--t-accent);
+            color: var(--t-accent);
         }
 
         .trigger-btn.primary:hover {
-            background: #1c6b60;
-            color: #dffbd1;
+            background: var(--t-accent-dim);
+            color: var(--t-text);
         }
 
         #add-trigger-btn {
@@ -701,12 +711,12 @@
         }
 
         .trigger-fx-group-header:hover {
-            background: #0d2e28;
+            background: var(--t-bg-surface);
         }
 
         .trigger-fx-group-arrow {
             font-size: 8px;
-            color: #3ad4b8;
+            color: var(--t-accent);
             width: 10px;
             text-align: center;
             flex-shrink: 0;
@@ -717,14 +727,14 @@
             font-family: Arial, sans-serif;
             text-transform: uppercase;
             letter-spacing: 0.08em;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             flex: 1;
         }
 
         .trigger-fx-group-count {
             font-size: 10px;
             font-family: Arial, sans-serif;
-            color: #3ad4b8;
+            color: var(--t-accent);
         }
 
         .trigger-fx-group-items {
@@ -740,15 +750,15 @@
         }
 
         .trigger-fx-item {
-            background: #0a1e1a;
-            border: 1px solid #0f3333;
+            background: var(--t-bg-surface-alt);
+            border: 1px solid var(--t-border);
             border-radius: 4px;
             overflow: hidden;
             transition: border-color 0.15s;
         }
 
         .trigger-fx-item.active {
-            border-color: #1c6b60;
+            border-color: var(--t-accent-dim);
         }
 
         .trigger-fx-header {
@@ -761,9 +771,9 @@
 
         .trigger-fx-preview-btn {
             background: none;
-            border: 1px solid #1c6b60;
+            border: 1px solid var(--t-btn-border);
             border-radius: 3px;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             font-size: 10px;
             font-family: Arial, sans-serif;
             padding: 1px 7px;
@@ -775,20 +785,20 @@
         }
 
         .trigger-fx-preview-btn:hover {
-            background: #1c6b60;
-            color: #dffbd1;
+            background: var(--t-accent-dim);
+            color: var(--t-text);
         }
 
         .trigger-fx-name {
             flex: 1;
             font-family: monospace;
             font-size: 12px;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             transition: color 0.15s;
         }
 
         .trigger-fx-item.active .trigger-fx-name {
-            color: #dffbd1;
+            color: var(--t-text);
         }
 
         .trigger-fx-params {
@@ -796,7 +806,7 @@
             flex-wrap: wrap;
             gap: 8px;
             padding: 6px 8px 8px 40px;
-            border-top: 1px solid #0f3333;
+            border-top: 1px solid var(--t-border);
         }
 
         .trigger-fx-item.active .trigger-fx-params {
@@ -811,7 +821,7 @@
         }
 
         .fx-param-group label {
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             font-size: 10px;
             font-family: Arial, sans-serif;
             text-transform: uppercase;
@@ -820,10 +830,10 @@
 
         .fx-param-input {
             padding: 4px 6px;
-            background: #111;
-            border: 1px solid #1c6b60;
+            background: var(--t-input-bg);
+            border: 1px solid var(--t-btn-border);
             border-radius: 3px;
-            color: #dffbd1;
+            color: var(--t-text);
             font-family: monospace;
             font-size: 12px;
             outline: none;
@@ -837,7 +847,7 @@
         }
 
         .fx-param-input:focus {
-            border-color: #3ad4b8;
+            border-color: var(--t-accent);
         }
 
         /* Trigger IO section */
@@ -858,10 +868,10 @@
             width: 100%;
             min-height: 80px;
             padding: 6px 7px;
-            background: #111;
-            border: 1px solid #1c6b60;
+            background: var(--t-input-bg);
+            border: 1px solid var(--t-btn-border);
             border-radius: 3px;
-            color: #dffbd1;
+            color: var(--t-text);
             font-family: monospace;
             font-size: 11px;
             resize: vertical;
@@ -875,11 +885,11 @@
         }
 
         #trigger-io-area:focus {
-            border-color: #3ad4b8;
+            border-color: var(--t-accent);
         }
 
         #trigger-io-error {
-            color: #e06060;
+            color: var(--t-error);
             font-size: 11px;
             font-family: monospace;
             margin-top: 4px;
@@ -906,15 +916,15 @@
         .stats-uptime {
             font-size: 11px;
             font-family: Arial, sans-serif;
-            color: #3ad4b8;
+            color: var(--t-accent);
         }
 
         #stats-reset-btn {
             padding: 5px 12px;
-            background: #0d2e28;
-            border: 1px solid #1c6b60;
+            background: var(--t-bg-surface);
+            border: 1px solid var(--t-btn-border);
             border-radius: 4px;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             font-size: 11px;
             font-family: Arial, sans-serif;
             cursor: pointer;
@@ -926,8 +936,8 @@
         }
 
         #stats-reset-btn:hover {
-            background: #1c6b60;
-            color: #dffbd1;
+            background: var(--t-accent-dim);
+            color: var(--t-text);
         }
 
         .stats-row {
@@ -936,12 +946,12 @@
             justify-content: space-between;
             padding: 3px 0;
             font-size: 11px;
-            border-bottom: 1px solid #0a1a16;
+            border-bottom: 1px solid var(--t-border-faint);
         }
         .stats-row:last-child { border-bottom: none; }
 
         .stats-row-label {
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             font-family: Arial, sans-serif;
             flex: 1;
         }
@@ -952,7 +962,7 @@
         }
 
         .stats-row-value {
-            color: #dffbd1;
+            color: var(--t-text);
             font-family: monospace;
             font-variant-numeric: tabular-nums;
             text-align: right;
@@ -960,7 +970,7 @@
         }
 
         .stats-row-rate {
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             font-family: monospace;
             font-variant-numeric: tabular-nums;
             text-align: right;
@@ -974,21 +984,21 @@
             padding: 4px 0 3px;
             font-size: 11px;
             font-family: Arial, sans-serif;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             cursor: pointer;
             user-select: none;
-            border-bottom: 1px solid #0f3333;
+            border-bottom: 1px solid var(--t-border);
         }
-        .stats-gmcp-header:hover { color: #dffbd1; }
+        .stats-gmcp-header:hover { color: var(--t-text); }
 
         .stats-gmcp-toggle {
             font-size: 9px;
-            color: #3ad4b8;
+            color: var(--t-accent);
             margin-right: 4px;
         }
 
         .stats-gmcp-total {
-            color: #dffbd1;
+            color: var(--t-text);
             font-family: monospace;
             font-variant-numeric: tabular-nums;
             text-align: right;
@@ -1008,15 +1018,15 @@
             justify-content: space-between;
             padding: 3px 0;
             font-size: 11px;
-            border-bottom: 1px solid #0a1a16;
+            border-bottom: 1px solid var(--t-border-faint);
             cursor: pointer;
             user-select: none;
         }
         .stats-ns-row:last-of-type { border-bottom: none; }
-        .stats-ns-row:hover .stats-row-label { color: #dffbd1; }
+        .stats-ns-row:hover .stats-row-label { color: var(--t-text); }
 
         .stats-ns-count {
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             font-family: Arial, sans-serif;
             font-size: 10px;
             margin-left: 3px;
@@ -1026,16 +1036,62 @@
             display: none;
             margin: 2px 0 4px 14px;
             padding: 6px 8px;
-            background: #0a1a16;
-            border-left: 2px solid #1c6b60;
+            background: var(--t-border-faint);
+            border-left: 2px solid var(--t-accent-dim);
             font-family: monospace;
             font-size: 11px;
-            color: #dffbd1;
+            color: var(--t-text);
             white-space: pre-wrap;
             word-break: break-all;
             line-height: 1.5;
         }
         .stats-ns-payload.open { display: block; }
+
+        /* Theme selector */
+        #theme-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .theme-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            background: var(--t-bg-surface);
+            border: 2px solid var(--t-border);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: border-color 0.15s, background 0.15s;
+        }
+
+        .theme-option:hover {
+            border-color: var(--t-accent-dim);
+        }
+
+        .theme-option.selected {
+            border-color: var(--t-accent);
+        }
+
+        .theme-preview {
+            display: flex;
+            gap: 4px;
+        }
+
+        .theme-swatch {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 1px solid rgba(128,128,128,0.3);
+        }
+
+        .theme-label {
+            color: var(--t-text);
+            font-size: 13px;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+        }
     </style>
 
     <link rel="stylesheet" href="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/css/xterm.css" />
@@ -1086,6 +1142,7 @@
                 <button class="settings-tab-btn" data-tab="tab-windows">Windows</button>
                 <button class="settings-tab-btn" data-tab="tab-triggers">Triggers</button>
                 <button class="settings-tab-btn" data-tab="tab-stats">Stats</button>
+                <button class="settings-tab-btn" data-tab="tab-theme">Theme</button>
             </div>
             <div id="settings-tab-body">
                 <div class="settings-tab-panel active" id="tab-volume">
@@ -1156,6 +1213,76 @@
                         <div id="stats-net-gmcp-out" style="margin-top:8px;"></div>
                     </div>
                 </div>
+                <div class="settings-tab-panel" id="tab-theme">
+                    <div class="settings-section">
+                        <div class="settings-section-title">Theme</div>
+                        <div id="theme-list">
+                            <div class="theme-option selected" data-theme="brooding">
+                                <div class="theme-preview">
+                                    <span class="theme-swatch" style="background:#1e1e1e"></span>
+                                    <span class="theme-swatch" style="background:#1c6b60"></span>
+                                    <span class="theme-swatch" style="background:#3ad4b8"></span>
+                                    <span class="theme-swatch" style="background:#dffbd1"></span>
+                                </div>
+                                <span class="theme-label">Brooding</span>
+                            </div>
+                            <div class="theme-option" data-theme="notepad">
+                                <div class="theme-preview">
+                                    <span class="theme-swatch" style="background:#f8fafc"></span>
+                                    <span class="theme-swatch" style="background:#1d4ed8"></span>
+                                    <span class="theme-swatch" style="background:#60a5fa"></span>
+                                    <span class="theme-swatch" style="background:#0f1729"></span>
+                                </div>
+                                <span class="theme-label">Notepad</span>
+                            </div>
+                            <div class="theme-option" data-theme="sorcerers-dusk">
+                                <div class="theme-preview">
+                                    <span class="theme-swatch" style="background:#18162a"></span>
+                                    <span class="theme-swatch" style="background:#7c3aed"></span>
+                                    <span class="theme-swatch" style="background:#a855f7"></span>
+                                    <span class="theme-swatch" style="background:#e8c870"></span>
+                                </div>
+                                <span class="theme-label">Sorcerer's Dusk</span>
+                            </div>
+                            <div class="theme-option" data-theme="ember-glow">
+                                <div class="theme-preview">
+                                    <span class="theme-swatch" style="background:#1c1814"></span>
+                                    <span class="theme-swatch" style="background:#b06820"></span>
+                                    <span class="theme-swatch" style="background:#e8882a"></span>
+                                    <span class="theme-swatch" style="background:#f0e4d0"></span>
+                                </div>
+                                <span class="theme-label">Ember Glow</span>
+                            </div>
+                            <div class="theme-option" data-theme="tropical">
+                                <div class="theme-preview">
+                                    <span class="theme-swatch" style="background:#121e1c"></span>
+                                    <span class="theme-swatch" style="background:#1a3830"></span>
+                                    <span class="theme-swatch" style="background:#ff6b7a"></span>
+                                    <span class="theme-swatch" style="background:#20d0b0"></span>
+                                </div>
+                                <span class="theme-label">Tropical</span>
+                            </div>
+                            <div class="theme-option" data-theme="heart">
+                                <div class="theme-preview">
+                                    <span class="theme-swatch" style="background:#1e1418"></span>
+                                    <span class="theme-swatch" style="background:#db2777"></span>
+                                    <span class="theme-swatch" style="background:#f472b6"></span>
+                                    <span class="theme-swatch" style="background:#f9a8d4"></span>
+                                </div>
+                                <span class="theme-label">Heart</span>
+                            </div>
+                            <div class="theme-option" data-theme="duran">
+                                <div class="theme-preview">
+                                    <span class="theme-swatch" style="background:#191717"></span>
+                                    <span class="theme-swatch" style="background:#4d2a2a"></span>
+                                    <span class="theme-swatch" style="background:#bf3f3e"></span>
+                                    <span class="theme-swatch" style="background:#eec2a9"></span>
+                                </div>
+                                <span class="theme-label">Duran</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -1175,8 +1302,32 @@
         function resetLayout()           { Client.resetLayout(); }
         function resetVolumeControls()   { Client.resetVolumeControls(); }
 
+        // ---------------------------------------------------------------
+        // Theme switching
+        // ---------------------------------------------------------------
+        function setTheme(name) {
+            var link = document.getElementById('theme-css');
+            link.href = link.href.replace(/theme-[\w-]+\.css/, 'theme-' + name + '.css');
+            localStorage.setItem('gomud-theme', name);
+            document.querySelectorAll('.theme-option').forEach(function(el) {
+                el.classList.toggle('selected', el.dataset.theme === name);
+            });
+        }
+
         // Tab switching for the settings modal
         document.addEventListener('DOMContentLoaded', function() {
+            // Theme option click handler
+            var themeList = document.getElementById('theme-list');
+            if (themeList) {
+                var saved = localStorage.getItem('gomud-theme') || 'brooding';
+                themeList.querySelectorAll('.theme-option').forEach(function(el) {
+                    el.classList.toggle('selected', el.dataset.theme === saved);
+                });
+                themeList.addEventListener('click', function(e) {
+                    var option = e.target.closest('.theme-option');
+                    if (option) { setTheme(option.dataset.theme); }
+                });
+            }
             var tabBar = document.getElementById('settings-tab-bar');
             tabBar.addEventListener('click', function(e) {
                 var btn = e.target.closest('.settings-tab-btn');
@@ -1245,16 +1396,16 @@
                         show.forEach(function(fxName) {
                             var fxBadge = document.createElement('span');
                             fxBadge.className = 'trigger-row-badge';
-                            fxBadge.style.color = '#3ad4b8';
-                            fxBadge.style.borderColor = '#1c6b60';
+                            fxBadge.style.color = 'var(--t-accent)';
+                            fxBadge.style.borderColor = 'var(--t-accent-dim)';
                             fxBadge.textContent = fxName;
                             row.appendChild(fxBadge);
                         });
                         if (fxNames.length > 2) {
                             var moreBadge = document.createElement('span');
                             moreBadge.className = 'trigger-row-badge';
-                            moreBadge.style.color = '#3ad4b8';
-                            moreBadge.style.borderColor = '#1c6b60';
+                            moreBadge.style.color = 'var(--t-accent)';
+                            moreBadge.style.borderColor = 'var(--t-accent-dim)';
                             moreBadge.textContent = '+' + (fxNames.length - 2) + ' more';
                             row.appendChild(moreBadge);
                         }

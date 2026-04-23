@@ -27,42 +27,42 @@
             height: 100%;
             display: flex;
             flex-direction: column;
-            background: #1e1e1e;
+            background: var(--t-bg);
         }
 
         /* ---- tab chrome ---- */
         #gear-window .gw-tab-bar {
             display: flex;
             flex-shrink: 0;
-            border-bottom: 1px solid #0f3333;
+            border-bottom: 1px solid var(--t-border);
         }
 
         #gear-window .gw-tab-btn {
             flex: 1;
             padding: 5px 4px;
-            background: #0d2e28;
+            background: var(--t-bg-surface);
             border: none;
             cursor: pointer;
             font: inherit;
             font-size: 0.7em;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.04em;
             transition: background 0.15s, color 0.15s;
-            border-right: 1px solid #0f3333;
+            border-right: 1px solid var(--t-border);
         }
 
         #gear-window .gw-tab-btn:last-child { border-right: none; }
 
         #gear-window .gw-tab-btn:hover {
-            background: #0f3333;
-            color: #dffbd1;
+            background: var(--t-border);
+            color: var(--t-text);
         }
 
         #gear-window .gw-tab-btn.active {
-            background: #1e1e1e;
-            color: #dffbd1;
-            border-bottom: 2px solid #3ad4b8;
+            background: var(--t-bg);
+            color: var(--t-text);
+            border-bottom: 2px solid var(--t-accent);
         }
 
         #gear-window .gw-tab-panel {
@@ -72,8 +72,8 @@
         }
 
         #gear-window .gw-tab-panel::-webkit-scrollbar       { width: 4px; }
-        #gear-window .gw-tab-panel::-webkit-scrollbar-track  { background: #111; }
-        #gear-window .gw-tab-panel::-webkit-scrollbar-thumb  { background: #1c6b60; border-radius: 2px; }
+        #gear-window .gw-tab-panel::-webkit-scrollbar-track  { background: var(--t-scrollbar-track); }
+        #gear-window .gw-tab-panel::-webkit-scrollbar-thumb  { background: var(--t-accent-dim); border-radius: 2px; }
 
         #gear-window .gw-tab-panel.active {
             display: flex;
@@ -91,19 +91,19 @@
             align-items: center;
             gap: 6px;
             min-height: 18px;
-            border-bottom: 1px solid #0a1a16;
+            border-bottom: 1px solid var(--t-border-faint);
             padding-bottom: 2px;
             cursor: pointer;
         }
 
         .gw-equip-row:last-child { border-bottom: none; }
 
-        .gw-equip-row:hover { background: #0a1e1a; }
+        .gw-equip-row:hover { background: var(--t-bg-surface-alt); }
 
         .gw-equip-slot {
             width: 54px;
             font-size: 0.66em;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.03em;
             flex-shrink: 0;
@@ -112,15 +112,15 @@
         .gw-equip-name {
             flex: 1;
             font-size: 0.76em;
-            color: #dffbd1;
+            color: var(--t-text);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
-        .gw-equip-name.empty  { color: #2a2a2a; font-style: italic; }
-        .gw-equip-name.cursed { color: #e06060; }
-        .gw-equip-name.quest  { color: #d4a843; }
+        .gw-equip-name.empty  { color: var(--t-text-dim); font-style: italic; }
+        .gw-equip-name.cursed { color: var(--t-cursed-text); }
+        .gw-equip-name.quest  { color: var(--t-quest-text); }
 
         .gw-equip-badge {
             font-size: 0.58em;
@@ -129,9 +129,9 @@
             flex-shrink: 0;
         }
 
-        .gw-equip-badge.cursed { background:#3d0f0f; color:#e06060; border:1px solid #6b1c1c; }
-        .gw-equip-badge.quest  { background:#2e2000; color:#d4a843; border:1px solid #6b5010; }
-        .gw-equip-badge.uses   { background:#1a1a2e; color:#9ab0d4; border:1px solid #2e4a6b; }
+        .gw-equip-badge.cursed { background:var(--t-cursed-badge-bg); color:var(--t-cursed-text); border:1px solid var(--t-cursed-badge-border); }
+        .gw-equip-badge.quest  { background:var(--t-quest-badge-bg); color:var(--t-quest-text); border:1px solid var(--t-quest-badge-border); }
+        .gw-equip-badge.uses   { background:var(--t-uses-badge-bg); color:var(--t-uses-badge-text); border:1px solid var(--t-uses-badge-border); }
 
         /* ---- Backpack tab ---- */
         #gw-backpack {
@@ -144,29 +144,29 @@
             align-items: center;
             justify-content: space-between;
             padding: 3px 2px 5px;
-            border-bottom: 1px solid #0f3333;
+            border-bottom: 1px solid var(--t-border);
             margin-bottom: 2px;
             flex-shrink: 0;
         }
 
         #gw-bp-title {
             font-size: 0.68em;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.04em;
         }
 
         #gw-bp-count {
             font-size: 0.68em;
-            color: #aaa;
+            color: var(--t-text-muted);
         }
 
         #gw-bp-count .gw-bp-count-num {
-            color: #dffbd1;
+            color: var(--t-text);
         }
 
         #gw-bp-count .gw-bp-count-num.full {
-            color: #e06060;
+            color: var(--t-cursed-text);
         }
 
         #gw-bp-list {
@@ -177,7 +177,7 @@
         }
 
         .gw-bp-empty {
-            color: #444;
+            color: var(--t-text-dim);
             font-size: 0.78em;
             font-style: italic;
             text-align: center;
@@ -189,7 +189,7 @@
             align-items: center;
             gap: 6px;
             min-height: 18px;
-            border-bottom: 1px solid #0a1a16;
+            border-bottom: 1px solid var(--t-border-faint);
             padding-bottom: 2px;
             cursor: pointer;
             flex-shrink: 0;
@@ -197,12 +197,12 @@
 
         .gw-bp-row:last-child { border-bottom: none; }
 
-        .gw-bp-row:hover { background: #0a1e1a; }
+        .gw-bp-row:hover { background: var(--t-bg-surface-alt); }
 
         .gw-bp-type {
             width: 54px;
             font-size: 0.66em;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.03em;
             flex-shrink: 0;
@@ -214,14 +214,14 @@
         .gw-bp-name {
             flex: 1;
             font-size: 0.76em;
-            color: #dffbd1;
+            color: var(--t-text);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
-        .gw-bp-name.cursed { color: #e06060; }
-        .gw-bp-name.quest  { color: #d4a843; }
+        .gw-bp-name.cursed { color: var(--t-cursed-text); }
+        .gw-bp-name.quest  { color: var(--t-quest-text); }
 
         .gw-bp-badge {
             font-size: 0.58em;
@@ -230,17 +230,17 @@
             flex-shrink: 0;
         }
 
-        .gw-bp-badge.cursed { background:#3d0f0f; color:#e06060; border:1px solid #6b1c1c; }
-        .gw-bp-badge.quest  { background:#2e2000; color:#d4a843; border:1px solid #6b5010; }
-        .gw-bp-badge.uses   { background:#1a1a2e; color:#9ab0d4; border:1px solid #2e4a6b; }
+        .gw-bp-badge.cursed { background:var(--t-cursed-badge-bg); color:var(--t-cursed-text); border:1px solid var(--t-cursed-badge-border); }
+        .gw-bp-badge.quest  { background:var(--t-quest-badge-bg); color:var(--t-quest-text); border:1px solid var(--t-quest-badge-border); }
+        .gw-bp-badge.uses   { background:var(--t-uses-badge-bg); color:var(--t-uses-badge-text); border:1px solid var(--t-uses-badge-border); }
 
         /* ---- Tooltip ---- */
         #gw-item-tooltip {
             position: fixed;
             z-index: 99999;
             pointer-events: none;
-            background: #0d2e28;
-            border: 1px solid #1c6b60;
+            background: var(--t-bg-surface);
+            border: 1px solid var(--t-border-accent);
             border-radius: 6px;
             box-shadow: 0 4px 16px rgba(0,0,0,0.7);
             padding: 8px 10px;
@@ -252,7 +252,7 @@
         .gw-tt-name {
             font-size: 0.85em;
             font-weight: bold;
-            color: #dffbd1;
+            color: var(--t-text);
             margin-bottom: 4px;
             line-height: 1.3;
         }
@@ -260,15 +260,15 @@
         .gw-tt-details {
             font-weight: normal;
             font-style: italic;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
         }
 
-        .gw-tt-details.cursed { color: #e06060; }
-        .gw-tt-details.quest  { color: #d4a843; }
+        .gw-tt-details.cursed { color: var(--t-cursed-text); }
+        .gw-tt-details.quest  { color: var(--t-quest-text); }
 
         .gw-tt-divider {
             border: none;
-            border-top: 1px solid #1c6b60;
+            border-top: 1px solid var(--t-border-accent);
             margin: 5px 0;
         }
 
@@ -282,7 +282,7 @@
         }
 
         .gw-tt-row-label {
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             text-transform: uppercase;
             letter-spacing: 0.04em;
             font-size: 0.88em;
@@ -290,20 +290,20 @@
         }
 
         .gw-tt-row-value {
-            color: #dffbd1;
+            color: var(--t-text);
             text-align: right;
         }
 
         .gw-tt-hint {
             font-size: 0.73em;
-            color: #7ab8a0;
+            color: var(--t-text-secondary);
             line-height: 1.4;
             font-style: italic;
         }
 
         .gw-tt-hint .gw-tt-cmd {
             font-style: normal;
-            color: #3ad4b8;
+            color: var(--t-accent);
             font-weight: bold;
         }
     `);
@@ -546,7 +546,7 @@
             return {
                 title:      'Gear',
                 mount:      el,
-                background: '#1e1e1e',
+                background: 'var(--t-bg)',
                 border:     1,
                 x:          0,
                 y:          0,
