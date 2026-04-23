@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/connections"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -501,13 +500,15 @@ func CharacterNameSearch(nameToFind string) (foundUserId int, foundUserName stri
 			return false
 		}
 
-		// Not found? Search alts...
+		// Not found? Search alts via exported function...
 
-		for _, char := range characters.LoadAlts(u.UserId) {
-			if strings.EqualFold(char.Name, nameToFind) {
-				foundUserId = u.UserId
-				foundUserName = u.Username
-				return false
+		if fn, ok := GetExportedFunction(`AltNameSearch`); ok {
+			if altSearchFn, ok := fn.(func(int, string, string) (int, string)); ok {
+				if uid, uname := altSearchFn(u.UserId, u.Username, nameToFind); uid != 0 {
+					foundUserId = uid
+					foundUserName = uname
+					return false
+				}
 			}
 		}
 

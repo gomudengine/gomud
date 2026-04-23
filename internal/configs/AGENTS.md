@@ -103,7 +103,6 @@ type GamePlay struct {
     PricePerLife             ConfigInt    // Gold cost to buy a life
     ShopRestockRate          ConfigString // Default shop restock duration (e.g. "6 hours")
     ContainerSizeMax         ConfigInt    // Max items in a container
-    MaxAltCharacters         ConfigInt    // Max alt characters per account
     ConsistentAttackMessages ConfigBool
     PVP                      ConfigString // "enabled", "disabled", "limited"
     PVPMinimumLevel          ConfigInt

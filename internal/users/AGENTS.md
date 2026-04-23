@@ -51,7 +51,7 @@ The users system is built around several key components:
 - **Character Integration**: Full character system association
 - **Item Storage**: Personal item storage separate from inventory
 - **Customization**: Macros, aliases, and configuration options
-SendMudMail
+
 ### 4. **Advanced Features**
 - **Screen Reader Support**: Accessibility features for visually impaired users
 - **Audio Integration**: Music and sound effect tracking via `PlayMusic`/`PlaySound`

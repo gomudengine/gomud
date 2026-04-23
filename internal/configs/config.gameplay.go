@@ -19,8 +19,6 @@ type GamePlay struct {
 	// Shops/Conatiners
 	ShopRestockRate  ConfigString `yaml:"ShopRestockRate"`  // Default time it takes to restock 1 quantity in shops
 	ContainerSizeMax ConfigInt    `yaml:"ContainerSizeMax"` // How many objects containers can hold before overflowing
-	// Alt chars
-	MaxAltCharacters ConfigInt `yaml:"MaxAltCharacters"` // How many characters beyond the default character can they create?
 	// Combat
 	ConsistentAttackMessages ConfigBool `yaml:"ConsistentAttackMessages"` // Whether each weapon has consistent attack messages
 
@@ -103,10 +101,6 @@ func (g *GamePlay) Validate() {
 
 	if g.ContainerSizeMax < 1 {
 		g.ContainerSizeMax = 1
-	}
-
-	if g.MaxAltCharacters < 0 {
-		g.MaxAltCharacters = 0
 	}
 
 	if g.Death.CorpseDecayTime == `` {
