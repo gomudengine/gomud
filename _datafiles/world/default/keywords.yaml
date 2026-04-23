@@ -24,7 +24,6 @@ help:
       - killstats
       - encumbrance
       - death
-      - character
       - pets
       - train
       - stat-train

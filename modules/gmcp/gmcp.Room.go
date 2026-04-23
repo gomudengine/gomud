@@ -496,9 +496,6 @@ func (g *GMCPRoomModule) GetRoomNode(user *users.UserRecord, gmcpModule string) 
 		if room.IsBank {
 			payload.Details = append(payload.Details, `bank`)
 		}
-		if room.IsCharacterRoom {
-			payload.Details = append(payload.Details, `character`)
-		}
 		if room.IsPvp() {
 			payload.Details = append(payload.Details, `pvp`)
 		}

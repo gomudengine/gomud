@@ -1,10 +1,12 @@
-package usercommands
+package character
 
 import (
+	"embed"
 	"errors"
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -12,19 +14,71 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
+	"github.com/GoMudEngine/GoMud/internal/plugins"
 	"github.com/GoMudEngine/GoMud/internal/races"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/templates"
 	"github.com/GoMudEngine/GoMud/internal/term"
+	"github.com/GoMudEngine/GoMud/internal/usercommands"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
 
-func Character(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
+var (
+	//go:embed files/*
+	files embed.FS
+)
 
-	if !room.IsCharacterRoom {
-		return false, fmt.Errorf(`not in a IsCharacterRoom`)
+const (
+	characterTag = "character"
+)
+
+func init() {
+	m := &CharacterModule{
+		plug: plugins.New(`character`, `1.0`),
+	}
+
+	if err := m.plug.AttachFileSystem(files); err != nil {
+		panic(err)
+	}
+
+	m.plug.AddUserCommand(`character`, m.characterCommand, true, false)
+
+	m.plug.ReserveTags(characterTag)
+
+	rooms.OnRoomLook.Register(m.onRoomLook)
+}
+
+type CharacterModule struct {
+	plug *plugins.Plugin
+}
+
+func (m *CharacterModule) onRoomLook(d rooms.RoomTemplateDetails) rooms.RoomTemplateDetails {
+	for _, t := range d.Tags {
+		if strings.EqualFold(t, characterTag) {
+			d.RoomAlerts = append(d.RoomAlerts,
+				`      <ansi fg="yellow-bold">This is a character room!</ansi> Type <ansi fg="command">character</ansi> to interact.`,
+			)
+			return d
+		}
+	}
+	return d
+}
+
+func roomIsCharacter(room *rooms.Room) bool {
+	for _, t := range room.Tags {
+		if strings.EqualFold(t, characterTag) {
+			return true
+		}
+	}
+	return false
+}
+
+func (m *CharacterModule) characterCommand(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
+
+	if !roomIsCharacter(room) {
+		return false, fmt.Errorf(`not in a character room`)
 	}
 
 	altNames := []string{}
@@ -35,15 +89,6 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 		nameToAlt[char.Name] = char
 	}
 
-	// All possible commands:
-	// new - reroll current character (if no alts enabled, or create a new one and store the current one)
-	// change - change to another character in storage
-	// delete - dlete a character from storage
-
-	/*
-		user.Character = characters.New()
-		rooms.MoveToRoom(user.UserId, -1)
-	*/
 	c := configs.GetGamePlayConfig()
 
 	if c.MaxAltCharacters == 0 {
@@ -56,7 +101,6 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 		return true, errors.New(`level 5 minimum`)
 	}
 
-	// Form a set of all mobs currently charmed (and possibly hired)
 	hiredOutChars := map[string]characters.Character{}
 	for _, mobInstanceId := range user.Character.GetCharmIds() {
 		mob := mobs.GetInstance(mobInstanceId)
@@ -132,7 +176,6 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 		newAlts = append(newAlts, *user.Character)
 		characters.SaveAlts(user.UserId, newAlts)
 
-		// Send them back to start with a fresh/empty character
 		user.Character = characters.New()
 		user.Character.Name = user.TempName()
 
@@ -166,7 +209,6 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 
 			delChar := nameToAlt[match]
 
-			// Do they already have this mob hired??
 			if friend, ok := hiredOutChars[delChar.Name]; ok && friend.Description == delChar.Description {
 				user.SendText(fmt.Sprintf(`<ansi fg="mobname">%s</ansi> is currently hired out.`, delChar.Name))
 				user.ClearPrompt()
@@ -232,7 +274,6 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 
 			char := nameToAlt[match]
 
-			// Do they already have this mob hired??
 			if friend, ok := hiredOutChars[char.Name]; ok && friend.Description == char.Description {
 				user.SendText(fmt.Sprintf(`<ansi fg="mobname">%s</ansi> is currently hired out.`, char.Name))
 				user.ClearPrompt()
@@ -265,9 +306,7 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 				newRoom = rooms.LoadRoom(user.Character.RoomId)
 			}
 
-			// Remove from old room
 			room.RemovePlayer(user.UserId)
-			// add to new room
 			newRoom.AddPlayer(user.UserId)
 
 			users.SaveUser(*user)
@@ -279,7 +318,6 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 
 			user.ClearPrompt()
 
-			// Trigger a player changed event
 			events.AddToQueue(events.PlayerChanged{UserId: user.UserId})
 
 			return true, nil
@@ -318,7 +356,6 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 
 			char := nameToAlt[match]
 
-			// Do they already have this mob hired??
 			if friend, ok := hiredOutChars[char.Name]; ok && friend.Description == char.Description {
 				user.SendText(fmt.Sprintf(`<ansi fg="mobname">%s</ansi> is currently hired out.`, char.Name))
 				user.ClearPrompt()
@@ -330,14 +367,14 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 			tmpChar := user.Character
 			user.Character = &char
 
-			Status(``, user, room, flags)
+			usercommands.TryCommand(`status`, ``, user.UserId, flags)
 
 			user.Character = tmpChar
 
-			m := mobs.NewMobById(59, user.Character.RoomId)
-			m.Character = char
-			room.AddMob(m.InstanceId)
-			m.Character.Charm(user.UserId, -1, `suicide vanish`)
+			mob := mobs.NewMobById(59, user.Character.RoomId)
+			mob.Character = char
+			room.AddMob(mob.InstanceId)
+			mob.Character.Charm(user.UserId, -1, `suicide vanish`)
 
 			user.ClearPrompt()
 			return true, nil
@@ -356,14 +393,6 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 	/////////////////////////
 	if question.Response == `hire` {
 
-		/*
-			if len(nameToAlt) > 0 {
-				altTblTxt := getAltTable(nameToAlt, hiredOutChars, user.UserId)
-				user.SendText(``)
-				user.SendText(altTblTxt)
-			}
-		*/
-
 		question := cmdPrompt.Ask(`Enter the name of the character you wish to hire:`, []string{})
 		if !question.Done {
 			return true, nil
@@ -378,7 +407,6 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 
 			char := nameToAlt[match]
 
-			// Do they already have this mob hired??
 			if friend, ok := hiredOutChars[char.Name]; ok && friend.Description == char.Description {
 				user.SendText(fmt.Sprintf(`<ansi fg="mobname">%s</ansi> is already hired out.`, char.Name))
 				user.ClearPrompt()
@@ -409,7 +437,6 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 				return true, nil
 			}
 
-			// Prevent follower overage
 			maxCharmed := user.Character.GetSkillLevel(skills.Tame) + 1
 			if len(hiredOutChars) >= maxCharmed {
 				user.SendText(fmt.Sprintf(`You can only have %d mobs following you at a time.`, maxCharmed))
@@ -419,28 +446,27 @@ func Character(rest string, user *users.UserRecord, room *rooms.Room, flags even
 
 			user.Character.Gold -= charValue
 
-			m := mobs.NewMobById(59, user.Character.RoomId)
-			m.Character = char
+			mob := mobs.NewMobById(59, user.Character.RoomId)
+			mob.Character = char
 
-			// To prevent dupes/exploits, clear vulnerable copied data
-			m.Character.Items = []items.Item{}   // Clear items
-			m.Character.Gold = 0                 // Clear gold
-			m.Character.Bank = 0                 // Clear bank
-			m.Character.Shop = characters.Shop{} // Clear shop
+			mob.Character.Items = []items.Item{}
+			mob.Character.Gold = 0
+			mob.Character.Bank = 0
+			mob.Character.Shop = characters.Shop{}
 
-			m.Character.AddBuff(36, true) // Give a perma-gear buff, so that items can't be removed.
+			mob.Character.AddBuff(36, true)
 
-			room.AddMob(m.InstanceId)
+			room.AddMob(mob.InstanceId)
 
-			m.Character.Charm(user.UserId, -1, `suicide vanish`)
-			user.Character.TrackCharmed(m.InstanceId, true)
+			mob.Character.Charm(user.UserId, -1, `suicide vanish`)
+			user.Character.TrackCharmed(mob.InstanceId, true)
 
-			user.EventLog.Add(`char`, `Hired an alt character to help you out: <ansi fg="username">`+m.Character.Name+`</ansi>`)
+			user.EventLog.Add(`char`, `Hired an alt character to help you out: <ansi fg="username">`+mob.Character.Name+`</ansi>`)
 
-			user.SendText(`<ansi fg="username">` + m.Character.Name + `</ansi> appears to help you out!`)
-			room.SendText(`<ansi fg="username">`+m.Character.Name+`</ansi> appears to help <ansi fg="username">`+user.Character.Name+`</ansi>!`, user.UserId)
+			user.SendText(`<ansi fg="username">` + mob.Character.Name + `</ansi> appears to help you out!`)
+			room.SendText(`<ansi fg="username">`+mob.Character.Name+`</ansi> appears to help <ansi fg="username">`+user.Character.Name+`</ansi>!`, user.UserId)
 
-			m.Command(`emote waves sheepishly.`, 2)
+			mob.Command(`emote waves sheepishly.`, 2)
 
 			user.ClearPrompt()
 			return true, nil
