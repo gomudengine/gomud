@@ -460,10 +460,11 @@ func serveTemplate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	templateData := map[string]any{
-		"REQUEST": r,
-		"PATH":    reqPath,
-		"CONFIG":  configs.GetConfig(),
-		"STATS":   GetStats(),
+		"REQUEST":        r,
+		"PATH":           reqPath,
+		"CONFIG":         configs.GetConfig(),
+		"STATS":          GetStats(),
+		"ASSET_BASE_URL": publicAssetBase(r, configs.GetFilePathsConfig().WebCDNLocation.String()),
 		"NAV": []WebNav{
 			{`Home`, `/`},
 			{`Who's Online`, `/online`},

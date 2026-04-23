@@ -2,7 +2,7 @@
 <html>
 <head>
     <title>{{ .CONFIG.Server.MudName }} Web Terminal</title>
-    <link id="theme-css" rel="stylesheet" href="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/css/theme-brooding.css" />
+    <link id="theme-css" rel="stylesheet" href="{{ .ASSET_BASE_URL }}/static/css/theme-brooding.css" />
     <script>
     (function() {
         var t = localStorage.getItem('gomud-theme');
@@ -1162,32 +1162,32 @@
         .theme-badge-gothic  { color: #c04060; }
     </style>
 
-    <link rel="stylesheet" href="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/css/xterm.css" />
-    <link rel="stylesheet" href="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/css/windows.css" />
+    <link rel="stylesheet" href="{{ .ASSET_BASE_URL }}/static/css/xterm.css" />
+    <link rel="stylesheet" href="{{ .ASSET_BASE_URL }}/static/css/windows.css" />
 
-    <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/xterm.4.19.0.js"></script>
-    <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/xterm-addon-fit.js"></script>
-    <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/mp3.js"></script>
-    <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/fx.js"></script>
-    <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/winbox.bundle.min.js"></script>
-    <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/webclient-core.js"></script>
-    <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/triggers.js"></script>
+    <script src="{{ .ASSET_BASE_URL }}/static/js/xterm.4.19.0.js"></script>
+    <script src="{{ .ASSET_BASE_URL }}/static/js/xterm-addon-fit.js"></script>
+    <script src="{{ .ASSET_BASE_URL }}/static/js/mp3.js"></script>
+    <script src="{{ .ASSET_BASE_URL }}/static/js/fx.js"></script>
+    <script src="{{ .ASSET_BASE_URL }}/static/js/winbox.bundle.min.js"></script>
+    <script src="{{ .ASSET_BASE_URL }}/static/js/webclient-core.js"></script>
+    <script src="{{ .ASSET_BASE_URL }}/static/js/triggers.js"></script>
     <!-- Left dock -->
-     <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/windows/window-gametime.js"></script>
-    <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/windows/window-character.js"></script>
-    <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/windows/window-gear.js"></script>
-    <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/windows/window-vitals.js"></script>
-    <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/windows/window-status.js"></script>
-    <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/windows/window-party.js"></script>
+     <script src="{{ .ASSET_BASE_URL }}/static/js/windows/window-gametime.js"></script>
+    <script src="{{ .ASSET_BASE_URL }}/static/js/windows/window-character.js"></script>
+    <script src="{{ .ASSET_BASE_URL }}/static/js/windows/window-gear.js"></script>
+    <script src="{{ .ASSET_BASE_URL }}/static/js/windows/window-vitals.js"></script>
+    <script src="{{ .ASSET_BASE_URL }}/static/js/windows/window-status.js"></script>
+    <script src="{{ .ASSET_BASE_URL }}/static/js/windows/window-party.js"></script>
     <!-- Right dock -->
-    <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/windows/window-map.js"></script>
-    <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/windows/window-room.js"></script>
-    <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/windows/window-online.js"></script>
-    <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/windows/window-killstats.js"></script>
-    <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/windows/window-comm.js"></script>
-    <script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/windows/window-modal.js"></script>
-    
-    
+    <script src="{{ .ASSET_BASE_URL }}/static/js/windows/window-map.js"></script>
+    <script src="{{ .ASSET_BASE_URL }}/static/js/windows/window-room.js"></script>
+    <script src="{{ .ASSET_BASE_URL }}/static/js/windows/window-online.js"></script>
+    <script src="{{ .ASSET_BASE_URL }}/static/js/windows/window-killstats.js"></script>
+    <script src="{{ .ASSET_BASE_URL }}/static/js/windows/window-comm.js"></script>
+    <script src="{{ .ASSET_BASE_URL }}/static/js/windows/window-modal.js"></script>
+
+
 </head>
 <body onload="init()">
 

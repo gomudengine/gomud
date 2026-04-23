@@ -58,7 +58,9 @@ include files define the full HTML document frame.
 **`_header.html`** emits:
 - `<!DOCTYPE html>` through `<body>` with the `Press Start 2P` Google Font
 - A CSS variable `--background-image` pointing to `web_bg.png` via
-  `{{ .CONFIG.FilePaths.WebCDNLocation }}` so the CDN path is honoured
+  `{{ .ASSET_BASE_URL }}`, which is computed server-side from `WebCDNLocation`
+  with same-origin fallback on HTTPS pages when the configured CDN base is
+  insecure
 - A `<link>` to `static/css/gomud.css`
 - `<header>` containing the MUD name as a branded button linking to `/`
 - `<nav>` that iterates `.NAV` to render navigation links, highlighting the
@@ -84,7 +86,7 @@ Site-wide stylesheet shared by all public pages. Defines:
 - `footer` and `table` / `th` / `td` styles
 
 The background image URL is injected as a CSS variable from `_header.html` so
-that `WebCDNLocation` is respected.
+that the computed `.ASSET_BASE_URL` is respected.
 
 ---
 
@@ -97,7 +99,7 @@ Below the button, shows the active telnet port(s) and SSH port (if enabled),
 each in an `.underlay` box. Uses the `activeTelnetPorts` and `sshEnabled`
 template functions.
 
-**Template data used:** `.CONFIG.FilePaths.WebCDNLocation`,
+**Template data used:** `.ASSET_BASE_URL`,
 `.CONFIG.Network.TelnetPort`, `.CONFIG.Network.SSHPort`
 
 ### `online.html` — Online Players
@@ -226,7 +228,7 @@ It is served at `/webclient-pure.html` (standalone) and embedded at
 `/webclient` via `webclient.html`.
 
 `webclient-pure.html` is a Go template. All static asset paths must be prefixed
-with `{{ .CONFIG.FilePaths.WebCDNLocation }}`. To add a new window module, add
+with `{{ .ASSET_BASE_URL }}`. To add a new window module, add
 one `<script>` tag in the appropriate dock comment block.
 
 ---
@@ -659,7 +661,7 @@ Add one `<script>` tag in the appropriate dock comment block:
 
 ```html
 <!-- Left dock -->
-<script src="{{ .CONFIG.FilePaths.WebCDNLocation }}/static/js/windows/window-example.js"></script>
+<script src="{{ .ASSET_BASE_URL }}/static/js/windows/window-example.js"></script>
 ```
 
 That is all that is required. The window will open on page load, respond to its

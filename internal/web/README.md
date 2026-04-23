@@ -20,3 +20,7 @@ There are a few template variables defined for use:
 
 `.STATS` - This object contains a little bit of data about the server. See [stats.go](https://github.com/GoMudEngine/GoMud/blob/master/internal/web/stats.go#L9-L13) for details.
 
+`.ASSET_BASE_URL` - Public-page asset base URL. This is either
+`.CONFIG.FilePaths.WebCDNLocation` or an empty string when the current request
+is HTTPS and the configured CDN base is insecure, allowing templates to use
+same-origin `/static/...` URLs without embedding transport logic.

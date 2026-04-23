@@ -3,6 +3,8 @@ package web
 import (
 	"fmt"
 	"html"
+	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"text/template"
@@ -125,3 +127,73 @@ var (
 		},
 	}
 )
+
+func publicAssetBase(r *http.Request, cdnBase string) string {
+	cdnBase = strings.TrimSpace(strings.TrimRight(cdnBase, "/"))
+	if cdnBase == "" {
+		return ""
+	}
+
+	cdnURL, err := url.Parse(cdnBase)
+	if err != nil {
+		return ""
+	}
+
+	if requestUsesHTTPS(r) && strings.EqualFold(cdnURL.Scheme, "http") {
+		// Do not emit insecure CDN URLs into HTTPS pages; browsers will block
+		// them as mixed content, so local same-origin assets are the safe fallback.
+		return ""
+	}
+
+	return cdnBase
+}
+
+func requestUsesHTTPS(r *http.Request) bool {
+	if r == nil {
+		return false
+	}
+
+	if r.TLS != nil {
+		return true
+	}
+
+	if strings.EqualFold(r.URL.Scheme, "https") {
+		return true
+	}
+
+	if proto := forwardedProto(r.Header.Get("X-Forwarded-Proto")); proto != "" {
+		return strings.EqualFold(proto, "https")
+	}
+
+	if proto := forwardedHeaderProto(r.Header.Values("Forwarded")); proto != "" {
+		return strings.EqualFold(proto, "https")
+	}
+
+	return false
+}
+
+func forwardedProto(value string) string {
+	if value == "" {
+		return ""
+	}
+
+	part, _, _ := strings.Cut(value, ",")
+	return strings.TrimSpace(part)
+}
+
+func forwardedHeaderProto(values []string) string {
+	for _, value := range values {
+		for _, field := range strings.Split(value, ",") {
+			for _, pair := range strings.Split(field, ";") {
+				key, rawValue, ok := strings.Cut(pair, "=")
+				if !ok || !strings.EqualFold(strings.TrimSpace(key), "proto") {
+					continue
+				}
+
+				return strings.Trim(strings.TrimSpace(rawValue), `"`)
+			}
+		}
+	}
+
+	return ""
+}
