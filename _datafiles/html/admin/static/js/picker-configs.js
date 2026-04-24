@@ -20,7 +20,6 @@ const PickerConfigs = {
 
     buffs: {
         title:   'Select Buff',
-        source:  '/admin/api/v1/buffs',
         idKey:   'BuffId',
         columns: [
             { key: 'BuffId',      label: '#',    width: '4rem',  mono: true },

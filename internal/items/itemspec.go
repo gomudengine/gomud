@@ -402,13 +402,30 @@ func (i *ItemSpec) Filepath() string {
 // Presumably to ensure the datafile hasn't messed something up.
 func (i *ItemSpec) Validate() error {
 
+	if i.Name == `` {
+		return fmt.Errorf("item has no name")
+	}
+
 	if i.Type == Weapon {
 		if i.Hands == 0 {
 			i.Hands = 1
 		}
+		if i.Hands > TwoHanded {
+			i.Hands = TwoHanded
+		}
 		if i.Damage.Attacks < 1 {
 			i.Damage.Attacks = 1
 		}
+	}
+
+	if i.DamageReduction < 0 {
+		i.DamageReduction = 0
+	} else if i.DamageReduction > 100 {
+		i.DamageReduction = 100
+	}
+
+	if i.BreakChance > 100 {
+		i.BreakChance = 100
 	}
 
 	if i.NameSimple == `` {

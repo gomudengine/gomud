@@ -613,6 +613,12 @@ func (r *Mob) Validate() error {
 		r.ActivityLevel = 100
 	}
 
+	if r.ItemDropChance < 0 {
+		r.ItemDropChance = 0
+	} else if r.ItemDropChance > 100 {
+		r.ItemDropChance = 100
+	}
+
 	r.Character.Validate()
 
 	return nil

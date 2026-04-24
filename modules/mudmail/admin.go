@@ -115,6 +115,9 @@ func (m *MudmailModule) apiAdminSendMudmail(r *http.Request) (int, bool, any) {
 	if req.Body == "" {
 		return http.StatusBadRequest, false, map[string]string{"error": "body is required"}
 	}
+	if req.Gold < 0 {
+		return http.StatusBadRequest, false, map[string]string{"error": "gold must be non-negative"}
+	}
 
 	if req.UserId != 0 {
 		var itm *items.Item

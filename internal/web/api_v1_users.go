@@ -94,6 +94,15 @@ func apiV1PatchUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if updated.Character.Gold < 0 {
+		updated.Character.Gold = 0
+	}
+	if updated.Character.Bank < 0 {
+		updated.Character.Bank = 0
+	}
+
+	updated.Character.Validate()
+
 	if err := users.SaveUser(updated); err != nil {
 		writeAPIError(w, http.StatusInternalServerError, err.Error())
 		return
