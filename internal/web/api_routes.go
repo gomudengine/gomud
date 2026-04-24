@@ -156,6 +156,40 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 		doBasicAuth(apiV1DeleteMob),
 	))
 
+	// Zones
+	mux.HandleFunc("GET /admin/api/v1/zones", RunWithMUDLocked(
+		doBasicAuth(apiV1GetZones),
+	))
+	mux.HandleFunc("POST /admin/api/v1/zones", RunWithMUDLocked(
+		doBasicAuth(apiV1CreateZone),
+	))
+	mux.HandleFunc("PATCH /admin/api/v1/zones/{zonename}", RunWithMUDLocked(
+		doBasicAuth(apiV1PatchZone),
+	))
+	mux.HandleFunc("DELETE /admin/api/v1/zones/{zonename}", RunWithMUDLocked(
+		doBasicAuth(apiV1DeleteZone),
+	))
+
+	// Rooms — static sub-routes before wildcard {roomId}
+	mux.HandleFunc("GET /admin/api/v1/rooms/biomes", RunWithMUDLocked(
+		doBasicAuth(apiV1GetBiomes),
+	))
+	mux.HandleFunc("GET /admin/api/v1/rooms", RunWithMUDLocked(
+		doBasicAuth(apiV1GetRooms),
+	))
+	mux.HandleFunc("POST /admin/api/v1/rooms", RunWithMUDLocked(
+		doBasicAuth(apiV1CreateRoom),
+	))
+	mux.HandleFunc("GET /admin/api/v1/rooms/{roomId}", RunWithMUDLocked(
+		doBasicAuth(apiV1GetRoom),
+	))
+	mux.HandleFunc("PATCH /admin/api/v1/rooms/{roomId}", RunWithMUDLocked(
+		doBasicAuth(apiV1PatchRoom),
+	))
+	mux.HandleFunc("DELETE /admin/api/v1/rooms/{roomId}", RunWithMUDLocked(
+		doBasicAuth(apiV1DeleteRoom),
+	))
+
 	// Mutators
 	mux.HandleFunc("GET /admin/api/v1/mutators", RunWithMUDLocked(
 		doBasicAuth(apiV1GetMutators),

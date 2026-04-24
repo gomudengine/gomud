@@ -302,6 +302,14 @@ func buildAdminNav() []WebNavItem {
 			},
 		},
 		{
+			Name:   "Rooms",
+			Target: "/admin/rooms",
+			SubItems: []WebNavSub{
+				{Label: "View / Edit", Target: "/admin/rooms"},
+				{Label: "API Docs", Target: "/admin/rooms-api"},
+			},
+		},
+		{
 			Name:   "Buffs",
 			Target: "/admin/buffs",
 			SubItems: []WebNavSub{

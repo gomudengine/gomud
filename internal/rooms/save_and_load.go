@@ -432,9 +432,18 @@ func loadAllRoomZones() error {
 		roomManager.roomIdToFileCache[loadedRoom.RoomId] = loadedRoom.Filepath()
 
 		// Update the zone info cache
-		if _, ok := roomManager.zones[loadedRoom.Zone]; !ok {
+		zoneInfo, ok := roomManager.zones[loadedRoom.Zone]
+		if !ok {
 			// Form one?
 			return fmt.Errorf("No zone-config.yaml was loaded for roomId: %d zone: %s", loadedRoom.RoomId, loadedRoom.Zone)
+		}
+
+		zoneInfo.RoomIds[loadedRoom.RoomId] = struct{}{}
+
+		roomManager.roomSummaries[loadedRoom.RoomId] = RoomSummaryInfo{
+			Title: loadedRoom.Title,
+			Zone:  loadedRoom.Zone,
+			Biome: loadedRoom.Biome,
 		}
 	}
 
