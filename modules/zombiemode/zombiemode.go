@@ -230,6 +230,11 @@ func (m *ZombieModule) onInput(e events.Event) events.ListenerReturn {
 		return events.Continue
 	}
 
+	// Allow "zombie status" without waking up.
+	if strings.TrimSpace(strings.ToLower(evt.InputText)) == `zombie status` {
+		return events.Continue
+	}
+
 	rt := m.active[evt.UserId]
 	m.exitZombieMode(evt.UserId)
 	events.AddToQueue(zombieSummary{UserId: evt.UserId, Stats: rt.Stats})

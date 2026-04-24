@@ -102,13 +102,6 @@ func (m *ZombieModule) zombieActCommand(rest string, user *users.UserRecord, roo
 					return true, nil
 				}
 			}
-		} else {
-			for _, item := range room.GetAllFloorItems(false) {
-				if matchesLootTarget(item.DisplayName(), cfg.LootTargets) {
-					user.SendText(`<ansi fg="yellow">You are carrying too much to pick up the ` + item.DisplayName() + `.</ansi>`)
-					break
-				}
-			}
 		}
 	}
 
@@ -139,9 +132,7 @@ func (m *ZombieModule) pickRoamExit(currentRoomId, homeRoomId, roamRadius int) s
 
 	zMapper := mapper.GetMapper(currentRoomId)
 	if zMapper == nil {
-		// No mapper available; fall back to any random exit.
-		exitName, _ := currentRoom.GetRandomExit()
-		return exitName
+		return ``
 	}
 
 	// Collect exits whose destination is within radius of the home room.

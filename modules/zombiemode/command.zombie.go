@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/events"
+	"github.com/GoMudEngine/GoMud/internal/mapper"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
@@ -29,6 +30,15 @@ func (m *ZombieModule) zombieCommand(rest string, user *users.UserRecord, room *
 
 	switch args[0] {
 
+	case `status`:
+		rt, isActive := m.active[user.UserId]
+		if !isActive {
+			user.SendText(`Zombie mode is not active. Use <ansi fg="command">zombie start</ansi> to begin.`)
+			return true, nil
+		}
+		m.sendSummary(user, rt.Stats)
+		return true, nil
+
 	case `start`:
 		if enabled, ok := m.plug.Config.Get(`Enabled`).(bool); ok && !enabled {
 			user.SendText(`Zombie mode is disabled on this server.`)
@@ -41,6 +51,9 @@ func (m *ZombieModule) zombieCommand(rest string, user *users.UserRecord, room *
 		m.active[user.UserId] = zombieRuntime{HomeRoom: user.Character.RoomId, Stats: newZombieStats()}
 		user.Character.SetAdjective(`zombie`, true)
 		user.SendText(`<ansi fg="yellow">Zombie mode activated. Send any input to wake up.</ansi>`)
+		if cfg.RoamRadius > 0 && mapper.GetMapper(user.Character.RoomId) == nil {
+			user.SendText(`<ansi fg="yellow">Warning: no map data for this area. Roaming is disabled.</ansi>`)
+		}
 		room.SendText(fmt.Sprintf(`<ansi fg="username">%s</ansi>'s eyes glaze over...`, user.Character.Name), user.UserId)
 		return true, nil
 

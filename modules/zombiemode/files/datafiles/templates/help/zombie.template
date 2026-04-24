@@ -9,6 +9,9 @@ will immediately wake you up and execute that command normally.
   <ansi fg="command">zombie</ansi>
     Display your current zombie configuration and active status.
 
+  <ansi fg="command">zombie status</ansi>
+    View your current session statistics without waking up.
+
   <ansi fg="command">zombie start</ansi>
     Enter zombie mode. Your character will begin acting autonomously.
 
