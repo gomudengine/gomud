@@ -44,7 +44,7 @@ func init() {
 		panic(err)
 	}
 
-	// Register item scripts from embedded filesystem.
+	g.plug.Web.AdminPage("Config", "gambling-config", "html/admin/gambling-config.html", true, "Modules", "Gambling", nil)
 	for itemId, path := range map[int]string{
 		dieItemId:    `files/datafiles/items/1040000-6_sided_die.js`,
 		coinItemId:   `files/datafiles/items/1040001-lucky_coin.js`,

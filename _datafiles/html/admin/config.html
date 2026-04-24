@@ -118,6 +118,10 @@
     }
 
     .no-results { padding: 1.5rem; text-align: center; color: #888; font-size: 0.9rem; display: none; }
+
+    /* description rows */
+    tr.desc-row td { padding: 0.1rem 0.9rem 0.5rem; font-size: 0.78rem; color: #777; font-style: italic; border-bottom: 1px solid #eee; }
+    tr.desc-row.hidden-row { display: none; }
 </style>
 
 <h1>Configuration</h1>
@@ -175,13 +179,113 @@
     // -------------------------------------------------------------------------
     // Bootstrap
     // -------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    // Descriptions sourced from config.yaml comments
+    // -------------------------------------------------------------------------
+    const DESCRIPTIONS = {
+        'Server.MudName': 'Display name of the MUD, used in web pages and other places.',
+        'Server.Seed': 'Seed for certain content generation. Only set before first run — changing it later can break saved data like user KeyRings.',
+        'Server.MaxCPUCores': 'Maximum CPU cores to use. 0 means all available cores.',
+        'Server.OnLoginCommands': 'Commands run automatically when a user logs in.',
+        'Server.Motd': 'Message of the day, displayed when the motd command is run.',
+        'Server.NextRoomId': 'Auto-updated to the highest room ID. Set to a large number (e.g. 100000) before creating custom rooms to avoid conflicts with future updates.',
+        'Server.Locked': 'Config keys listed here are immutable via the admin command and can only be changed by editing the config file directly.',
+        'Memory.MaxMobBoredom': 'Rounds a mob can go without seeing a player before it despawns. 0 = never despawn.',
+        'Memory.MobUnloadThreshold': 'Do not unload mobs from memory if the in-memory count is under this threshold.',
+        'Memory.RoomUnloadRounds': 'Rounds without a visitor before a room is considered for unloading from memory.',
+        'Memory.RoomUnloadThreshold': 'Do not unload rooms if the in-memory count is under this threshold.',
+        'LootGoblin.RoomId': 'Room the loot goblin spawns in and returns to. 0 disables loot goblin spawning.',
+        'LootGoblin.RoundCount': 'How often the loot goblin spawns (in rounds). At 4s/round, 900 rounds = 1 hour.',
+        'LootGoblin.MinimumItems': 'Minimum items on the floor to attract the loot goblin.',
+        'LootGoblin.MinimumGold': 'Minimum gold on the floor to attract the loot goblin.',
+        'LootGoblin.IncludeRecentRooms': 'If true, the loot goblin also cleans recently player-visited rooms.',
+        'Timing.TurnMs': 'Milliseconds per turn. Lower is more responsive but increases server overhead. 50 is a good balance.',
+        'Timing.RoundSeconds': 'Seconds per round. Controls the pace of the game — combat, buffs, and mob actions are all gated by rounds.',
+        'Timing.RoundsPerAutoSave': 'How often the server auto-saves game state (in rounds).',
+        'Timing.RoundsPerDay': 'Rounds in one in-game day. Controls the day/night cycle speed.',
+        'Timing.NightHours': 'Hours of each 24-hour in-game day that are nighttime.',
+        'FilePaths.WebDomain': 'Domain name for the web server, e.g. mysite.com. Do not include the protocol.',
+        'FilePaths.WebCDNLocation': 'Optional CDN URL for static files. Leave blank if not using a CDN.',
+        'FilePaths.DataFiles': 'Folder where all game data files reside.',
+        'FilePaths.PublicHtml': 'Folder where public-facing web HTML files reside.',
+        'FilePaths.AdminHtml': 'Folder where admin web HTML files reside.',
+        'FilePaths.CarefulSaveFiles': 'Write to a temp file first, then rename. Slower but prevents corruption on crash.',
+        'FilePaths.HttpsCertFile': 'Path to TLS certificate file. If set along with HttpsKeyFile, takes precedence over automatic Let\u2019s Encrypt.',
+        'FilePaths.HttpsKeyFile': 'Path to TLS private key file.',
+        'FilePaths.HttpsEmail': 'Contact email for automatic HTTPS certificate registration via Let\u2019s Encrypt.',
+        'FilePaths.HttpsCacheDir': 'Folder for automatic HTTPS certificate cache. Leave blank to use the default (_datafiles/tls).',
+        'FilePaths.SSHHostKeyFile': 'Path to PEM-encoded SSH host private key. Required when SSHPort is non-zero.',
+        'GamePlay.AllowItemBuffRemoval': 'Allow players to remove item-granted buffs via spells. By default, item buffs can only be removed by unequipping the item.',
+        'GamePlay.Death.EquipmentDropChance': 'Chance (0.0\u20131.0) that a player drops a worn or backpack item on death.',
+        'GamePlay.Death.AlwaysDropBackpack': 'If true, players always drop all backpack contents on death.',
+        'GamePlay.Death.XPPenalty': 'XP penalty on death. Options: none, level (lose XP above current level), 10%, 50%.',
+        'GamePlay.Death.ProtectionLevels': 'Players at or below this level do not incur death penalties.',
+        'GamePlay.Death.PermaDeath': 'If true, players lose their character when they die with zero lives remaining.',
+        'GamePlay.Death.CorpsesEnabled': 'If true, corpses are left behind when players or mobs are killed.',
+        'GamePlay.Death.CorpseDecayTime': 'How long before corpses disappear.',
+        'GamePlay.LivesStart': '(PermaDeath) How many lives players start with.',
+        'GamePlay.LivesMax': '(PermaDeath) Maximum lives a player can have.',
+        'GamePlay.LivesOnLevelUp': '(PermaDeath) Lives gained per level-up. 0 disables.',
+        'GamePlay.PricePerLife': '(PermaDeath) Gold cost to purchase an extra life. 0 disables purchasing.',
+        'GamePlay.ShopRestockRate': 'Default time for shops to restock one item. Format: {num} {unit}, e.g. "6 hours". Prefix with "real" for real-world time.',
+        'GamePlay.ContainerSizeMax': 'Maximum number of items a container can hold before it overflows.',
+        'GamePlay.ConsistentAttackMessages': 'If true, each weapon ID always uses the same attack message. If false, messages are randomised.',
+        'GamePlay.PVP': 'PVP mode. Options: enabled (everywhere), disabled (nowhere), limited (PVP-flagged rooms only).',
+        'GamePlay.PVPMinimumLevel': 'Minimum level required to participate in PVP.',
+        'GamePlay.XPScale': 'Global XP multiplier as a percentage. 100 = normal.',
+        'GamePlay.MobConverseChance': 'Chance in 100 that an idle mob will attempt to start a conversation.',
+        'GamePlay.Party.MaxPlayerCount': 'Maximum players in a party. 0 = unlimited.',
+        'GamePlay.Party.SameRoomOnly': 'If true, players must be in the same room to form or join a party.',
+        'Integrations.Discord.WebhookUrl': 'Discord webhook URL for mud event notifications (joins, disconnects, etc.). Can also be set via DISCORD_WEBHOOK_URL environment variable.',
+        'TextFormats.Prompt': 'Default player prompt format string.',
+        'TextFormats.Time': 'Real-world time display format (Go time format string).',
+        'TextFormats.TimeShort': 'Short form of the real-world time display format.',
+        'TextFormats.EnterRoomMessageWrapper': 'Template wrapping entrance messages. Use %s for the message.',
+        'TextFormats.ExitRoomMessageWrapper': 'Template wrapping exit messages. Use %s for the message.',
+        'Translation.DefaultLanguage': 'Fallback language code (e.g. en).',
+        'Translation.Language': 'Active game language code.',
+        'Translation.LanguagePaths': 'Paths to language/localisation files.',
+        'Network.MaxTelnetConnections': 'Maximum simultaneous telnet connections.',
+        'Network.TelnetPort': 'Port(s) the server listens on for telnet. Separate multiple ports with commas.',
+        'Network.LocalPort': 'Localhost-only port with no connection count limit.',
+        'Network.HttpPort': 'Port for HTTP web requests. 0 = disabled.',
+        'Network.HttpsPort': 'Port for HTTPS web requests. 0 = disabled. Requires certificate configuration.',
+        'Network.HttpsRedirect': 'If true, redirects all HTTP traffic to HTTPS.',
+        'Network.SSHPort': 'Port for SSH connections. 0 = disabled. Requires SSHHostKeyFile.',
+        'Network.MaxSSHConnections': 'Maximum simultaneous SSH connections.',
+        'Network.AfkSeconds': 'Seconds of inactivity before a player is flagged as AFK. 0 = never.',
+        'Network.MaxIdleSeconds': 'Seconds before an idle player is kicked. 0 = never kick.',
+        'Network.TimeoutMods': 'Whether admin/mod users are subject to the idle timeout.',
+        'Network.LinkDeadSeconds': 'Seconds a character stays in-game after losing their connection. 0 = instant logout (exploitable).',
+        'Network.LogoutRounds': 'Rounds of meditation required to log out. Interrupted meditation resets the counter.',
+        'Scripting.LoadTimeoutMs': 'Milliseconds a script is allowed to run on first load (including onLoad()). Scripts exceeding this are killed.',
+        'Scripting.RoomTimeoutMs': 'Milliseconds a room script can run per invocation before being killed.',
+        'SpecialRooms.StartRoom': 'Default starting room ID for new players.',
+        'SpecialRooms.DeathRecoveryRoom': 'Room players are sent to after dying.',
+        'SpecialRooms.TutorialRooms': 'Room IDs that make up the new-player tutorial. The first is the entry room.',
+        'Validation.NameSizeMin': 'Minimum character name length.',
+        'Validation.NameSizeMax': 'Maximum character name length.',
+        'Validation.PasswordSizeMin': 'Minimum password length.',
+        'Validation.PasswordSizeMax': 'Maximum password length.',
+        'Validation.EmailOnJoin': 'Whether to ask for an email address on signup. Options: required, optional, none.',
+        'Validation.NameRejectRegex': 'Regular expression that rejects matching usernames. Leave blank to disable.',
+        'Validation.NameRejectReason': 'Message shown when a username is rejected by NameRejectRegex.',
+        'Validation.BannedNames': 'Names that cannot be used by players. Supports * wildcards.',
+        'Roles': 'Custom role definitions mapping role names to permitted admin command prefixes.',
+    };
+
     async function init() {
         const res = await AdminAPI.get('/admin/api/v1/config');
         if (!res.ok) {
             showStatus('Failed to load configuration: ' + res.error, false);
             return;
         }
-        configData = res.data.data || {};
+        // Filter out Modules.* — those are managed by module-specific config pages
+        const raw = res.data.data || {};
+        configData = {};
+        for (const [k, v] of Object.entries(raw)) {
+            if (!k.startsWith('Modules.') && k !== 'Modules') configData[k] = v;
+        }
         buildTable(configData);
         buildSectionFilter(configData);
     }
@@ -209,6 +313,7 @@
 
             const value = String(data[key]);
             const isRedacted = value === REDACTED;
+            const desc = DESCRIPTIONS[key] || '';
             const tr = document.createElement('tr');
             tr.dataset.key = key;
             tr.dataset.section = section;
@@ -229,8 +334,16 @@
                         <button class="btn-cancel" onclick="cancelEdit('${escAttr(key)}')">Cancel</button>
                     </span>
                 </td>`;
-
             tbody.appendChild(tr);
+
+            if (desc) {
+                const dr = document.createElement('tr');
+                dr.className = 'desc-row';
+                dr.dataset.section = section;
+                dr.dataset.descFor = key;
+                dr.innerHTML = `<td colspan="2">${escHtml(desc)}</td>`;
+                tbody.appendChild(dr);
+            }
         }
     }
 
@@ -253,6 +366,7 @@
         const section = document.getElementById('section-filter').value;
         const rows = document.querySelectorAll('#config-body tr[data-key]');
         const headers = document.querySelectorAll('#config-body tr.section-header');
+        const descRows = document.querySelectorAll('#config-body tr.desc-row');
         const visibleSections = new Set();
         let anyVisible = false;
 
@@ -266,6 +380,11 @@
                 visibleSections.add(row.dataset.section);
                 anyVisible = true;
             }
+        }
+
+        for (const dr of descRows) {
+            const keyRow = document.querySelector(`tr[data-key="${escAttr(dr.dataset.descFor)}"]`);
+            dr.classList.toggle('hidden-row', !keyRow || keyRow.classList.contains('hidden-row'));
         }
 
         for (const hdr of headers) {

@@ -136,12 +136,36 @@
     .buff-chip button { background: none; border: none; cursor: pointer; color: #3949ab; font-size: 0.82rem; line-height: 1; padding: 0; }
     .buff-chip button:hover { color: #c00; }
 
-    /* spawn rows */
-    .list-row { display: flex; gap: 0.4rem; align-items: center; margin-bottom: 0.4rem; flex-wrap: wrap; }
-    .list-row input[type="text"], .list-row input[type="number"] {
-        padding: 0.3rem 0.45rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.82rem;
+    /* spawn cards */
+    .spawn-card {
+        border: 1px solid #ddd; border-radius: 6px; margin-bottom: 0.6rem;
+        background: #fafafa; overflow: hidden;
     }
-    .list-row select { padding: 0.3rem 0.4rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.8rem; background: #fff; }
+    .spawn-card-header {
+        display: flex; align-items: center; gap: 0.5rem;
+        padding: 0.4rem 0.6rem; background: #f0f0f0; cursor: pointer;
+        font-size: 0.83rem; font-weight: 600; user-select: none;
+    }
+    .spawn-card-header::before { content: "\25B6"; font-size: 0.55rem; transition: transform 0.15s; }
+    .spawn-card-header.open::before { transform: rotate(90deg); }
+    .spawn-card-body { display: none; padding: 0.75rem; }
+    .spawn-card-body.open { display: block; }
+    .spawn-card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 0.75rem; }
+    .spawn-card-grid .span2 { grid-column: 1 / -1; }
+    .spawn-field label { display: block; font-size: 0.73rem; font-weight: 600; color: #666; margin-bottom: 0.2rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .spawn-field input[type="text"],
+    .spawn-field input[type="number"],
+    .spawn-field select { width: 100%; padding: 0.3rem 0.45rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.83rem; background: #fff; }
+    .spawn-field input:focus, .spawn-field select:focus { outline: 2px solid #1a1a2e; outline-offset: 1px; border-color: transparent; }
+    .spawn-field .field-hint { font-size: 0.71rem; color: #999; margin-top: 0.15rem; }
+    .spawn-type-badge {
+        font-size: 0.65rem; padding: 0.1rem 0.35rem; border-radius: 3px; font-weight: 600; text-transform: uppercase; flex-shrink: 0;
+    }
+    .spawn-type-mob  { background: #e3f2fd; color: #0d47a1; }
+    .spawn-type-item { background: #e6f4ea; color: #1e6e34; }
+    .spawn-picker-wrap { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
+    .spawn-picker-display { font-size: 0.82rem; color: #333; font-family: monospace; }
+    .spawn-picker-display.empty { color: #aaa; font-style: italic; font-family: inherit; }
     .btn-icon { background: none; border: none; cursor: pointer; font-size: 1rem; color: #888; padding: 0 0.2rem; line-height: 1; }
     .btn-icon:hover { color: #c00; }
     .btn-add-sm {
@@ -423,7 +447,10 @@
                 <div class="collapse-toggle" onclick="toggleSection(this)">Spawn Info</div>
                 <div class="collapse-body">
                     <div id="spawns-list"></div>
-                    <button class="btn-add-sm" onclick="addSpawn()">+ Add Spawn</button>
+                    <div style="display:flex; gap:0.5rem; margin-top:0.25rem;">
+                        <button class="btn-add-sm" onclick="addSpawn('mob')">+ Mob Spawn</button>
+                        <button class="btn-add-sm" onclick="addSpawn('item')">+ Item / Gold Spawn</button>
+                    </div>
                 </div>
 
                 <!-- Skill Training -->
@@ -1113,42 +1140,376 @@
     function renderSpawns(spawns) {
         const list = document.getElementById('spawns-list');
         list.innerHTML = '';
-        for (const s of spawns) appendSpawnRow(list, s);
+        for (const s of spawns) appendSpawnCard(list, s, false);
     }
 
-    function appendSpawnRow(list, s) {
-        const row = document.createElement('div');
-        row.className = 'list-row';
-        row.style.background = '#fafafa'; row.style.padding = '0.4rem'; row.style.borderRadius = '4px'; row.style.marginBottom = '0.5rem';
-        row.innerHTML =
-            '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.3rem 0.5rem;flex:1;min-width:0">' +
-            '<input type="number" placeholder="Mob ID" value="' + (s.MobId || '') + '" title="MobId" />' +
-            '<input type="number" placeholder="Item ID" value="' + (s.ItemId || '') + '" title="ItemId" />' +
-            '<input type="number" placeholder="Gold" value="' + (s.Gold || '') + '" title="Gold" />' +
-            '<input type="text" placeholder="Respawn rate" value="' + esc(s.RespawnRate || '') + '" title="RespawnRate" style="grid-column:1/-1" />' +
-            '<input type="text" placeholder="Container" value="' + esc(s.Container || '') + '" title="Container" />' +
-            '<input type="text" placeholder="Name override" value="' + esc(s.Name || '') + '" title="Name" />' +
-            '<input type="text" placeholder="Script tag" value="' + esc(s.ScriptTag || '') + '" title="ScriptTag" />' +
+    function spawnCardType(s) {
+        return s.MobId ? 'mob' : 'item';
+    }
+
+    function buildSpawnHeaderSummary(s, type) {
+        if (type === 'mob') {
+            const name = s.Name || s._mobName || (s.MobId ? 'Mob #' + s.MobId : 'No mob selected');
+            return name + (s.RespawnRate ? '  —  ' + s.RespawnRate : '');
+        }
+        const parts = [];
+        if (s.ItemId) parts.push('Item #' + s.ItemId);
+        if (s.Gold) parts.push(s.Gold + ' gold');
+        if (!parts.length) parts.push('Empty spawn');
+        if (s.RespawnRate) parts.push(s.RespawnRate);
+        return parts.join('  —  ');
+    }
+
+    function renderSpawnBuffChips(buffIds) {
+        return (buffIds || []).map(id => {
+            const spec = allBuffs[id];
+            const label = spec ? spec.Name : 'buff #' + id;
+            return '<span class="buff-chip" data-buff-id="' + id + '">' + esc(label) +
+                ' <button onclick="this.closest(\'.buff-chip\').remove()" title="Remove">&times;</button></span>';
+        }).join('');
+    }
+
+    function appendSpawnCard(list, s, openOnAdd) {
+        s = s || {};
+        const type = s._type || spawnCardType(s);
+        const isMob = type === 'mob';
+        const hidden = 'display:none;';
+        const shown = '';
+
+        const card = document.createElement('div');
+        card.className = 'spawn-card';
+        card.dataset.spawnType = type;
+
+        const headerSummary = buildSpawnHeaderSummary(s, type);
+
+        card.innerHTML =
+            '<div class="spawn-card-header" onclick="toggleSpawnCard(this)">' +
+                '<span class="spawn-type-badge ' + (isMob ? 'spawn-type-mob' : 'spawn-type-item') + '">' +
+                    (isMob ? 'Mob' : 'Item / Gold') + '</span>' +
+                '<span class="spawn-header-summary">' + esc(headerSummary) + '</span>' +
+                '<button class="btn-icon" style="margin-left:auto;" title="Remove spawn" ' +
+                    'onclick="this.closest(\'.spawn-card\').remove();event.stopPropagation();">&times;</button>' +
             '</div>' +
-            '<button class="btn-icon" title="Remove" onclick="this.closest(\'.list-row\').remove()" style="align-self:start;">&times;</button>';
-        list.appendChild(row);
+            '<div class="spawn-card-body">' +
+            '<div class="spawn-card-grid">' +
+
+            // Mob picker
+            '<div class="spawn-field span2" style="' + (isMob ? shown : hidden) + '">' +
+                '<label>Mob</label>' +
+                '<div class="spawn-picker-wrap">' +
+                    '<span class="spawn-picker-display spawn-mob-display ' + (s.MobId ? '' : 'empty') + '">' +
+                        (s.MobId ? '#' + s.MobId : 'No mob selected') + '</span>' +
+                    '<input type="hidden" class="spawn-mobid" value="' + (s.MobId || 0) + '" data-mob-name="" />' +
+                    '<button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickSpawnMob(this)">Pick Mob&hellip;</button>' +
+                '</div>' +
+                '<div class="field-hint">The mob template to spawn in this room.</div>' +
+            '</div>' +
+
+            // Item picker
+            '<div class="spawn-field span2" style="' + (isMob ? hidden : shown) + '">' +
+                '<label>Item</label>' +
+                '<div class="spawn-picker-wrap">' +
+                    '<span class="spawn-picker-display spawn-item-display ' + (s.ItemId ? '' : 'empty') + '">' +
+                        (s.ItemId ? '#' + s.ItemId : 'No item (gold only)') + '</span>' +
+                    '<input type="hidden" class="spawn-itemid" value="' + (s.ItemId || 0) + '" />' +
+                    '<button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickSpawnItem(this)">Pick Item&hellip;</button>' +
+                    '<button type="button" class="btn-icon" title="Clear item" onclick="clearSpawnItem(this)">&times;</button>' +
+                '</div>' +
+                '<div class="field-hint">Leave unset to spawn gold only.</div>' +
+            '</div>' +
+
+            // Gold (item spawn only)
+            '<div class="spawn-field" style="' + (isMob ? hidden : shown) + '">' +
+                '<label>Gold</label>' +
+                '<input type="number" class="spawn-gold" min="0" value="' + (s.Gold || 0) + '" />' +
+                '<div class="field-hint">Gold coins to spawn on the floor or in the container.</div>' +
+            '</div>' +
+
+            // Container (item spawn only)
+            '<div class="spawn-field" style="' + (isMob ? hidden : shown) + '">' +
+                '<label>Container</label>' +
+                '<input type="text" class="spawn-container" value="' + esc(s.Container || '') + '" placeholder="e.g. chest" />' +
+                '<div class="field-hint">Name of a container in this room. Leave blank to spawn on the floor.</div>' +
+            '</div>' +
+
+            // Respawn Rate (all types)
+            '<div class="spawn-field span2">' +
+                '<label>Respawn Rate</label>' +
+                '<input type="text" class="spawn-respawnrate" value="' + esc(s.RespawnRate || '') + '" ' +
+                    'placeholder="e.g. 15 real minutes, 1 hour" ' +
+                    'oninput="updateSpawnHeader(this.closest(&apos;.spawn-card&apos;))" />' +
+                '<div class="field-hint">How long after death/despawn before this spawns again. Defaults to 15 real minutes if blank.</div>' +
+            '</div>' +
+
+            // Name override (mob only)
+            '<div class="spawn-field" style="' + (isMob ? shown : hidden) + '">' +
+                '<label>Name Override</label>' +
+                '<input type="text" class="spawn-name" value="' + esc(s.Name || '') + '" placeholder="Leave blank to use mob default" ' +
+                    'oninput="updateSpawnHeader(this.closest(&apos;.spawn-card&apos;))" />' +
+                '<div class="field-hint">Replaces the mob\'s default name in-game.</div>' +
+            '</div>' +
+
+            // Spawn message (mob only)
+            '<div class="spawn-field" style="' + (isMob ? shown : hidden) + '">' +
+                '<label>Spawn Message</label>' +
+                '<input type="text" class="spawn-message" value="' + esc(s.Message || '') + '" placeholder="Shown to room on spawn" />' +
+                '<div class="field-hint">Replaces the default spawn announcement shown to players.</div>' +
+            '</div>' +
+
+            // Force Hostile (mob only)
+            '<div class="spawn-field" style="' + (isMob ? shown : hidden) + '">' +
+                '<label>Force Hostile</label>' +
+                '<div class="toggle-wrap">' +
+                    '<label class="toggle-switch">' +
+                        '<input type="checkbox" class="spawn-forcehostile"' + (s.ForceHostile ? ' checked' : '') + ' />' +
+                        '<span class="toggle-slider"></span>' +
+                    '</label>' +
+                    '<span class="toggle-label">Auto-attacks players</span>' +
+                '</div>' +
+                '<div class="field-hint">Overrides the mob template\'s hostile setting.</div>' +
+            '</div>' +
+
+            // Max Wander (mob only)
+            '<div class="spawn-field" style="' + (isMob ? shown : hidden) + '">' +
+                '<label>Max Wander</label>' +
+                '<input type="number" class="spawn-maxwander" value="' + (s.MaxWander != null && s.MaxWander !== 0 ? s.MaxWander : '') + '" placeholder="blank = mob default" />' +
+                '<div class="field-hint">Rooms mob can wander from spawn. 0 = stays put, -1 = unlimited.</div>' +
+            '</div>' +
+
+            // Force Level (mob only)
+            '<div class="spawn-field" style="' + (isMob ? shown : hidden) + '">' +
+                '<label>Force Level</label>' +
+                '<input type="number" class="spawn-level" min="0" value="' + (s.Level || '') + '" placeholder="0 = mob default" />' +
+                '<div class="field-hint">Force this mob to a specific level. 0 = use mob template level.</div>' +
+            '</div>' +
+
+            // Level Modifier (mob only)
+            '<div class="spawn-field" style="' + (isMob ? shown : hidden) + '">' +
+                '<label>Level Modifier</label>' +
+                '<input type="number" class="spawn-levelmod" value="' + (s.LevelMod || 0) + '" placeholder="0 = no change" />' +
+                '<div class="field-hint">Added to the mob\'s resolved level after zone auto-scale. Can be negative.</div>' +
+            '</div>' +
+
+            // Script Tag (mob only)
+            '<div class="spawn-field" style="' + (isMob ? shown : hidden) + '">' +
+                '<label>Script Tag</label>' +
+                '<input type="text" class="spawn-scripttag" value="' + esc(s.ScriptTag || '') + '" placeholder="Overrides mob script tag" />' +
+                '<div class="field-hint">Overrides which script file this mob uses. Leave blank for mob template default.</div>' +
+            '</div>' +
+
+            // Quest Flags (mob only)
+            '<div class="spawn-field span2" style="' + (isMob ? shown : hidden) + '">' +
+                '<label>Quest Flags</label>' +
+                '<div class="buff-ids-wrap spawn-questflags-wrap">' + renderSpawnQuestFlagChips(s.QuestFlags || []) + '</div>' +
+                '<button class="btn-add-sm" style="margin-top:0.3rem" onclick="pickSpawnQuestFlag(this)">+ Add Quest Flag</button>' +
+                '<div class="field-hint">Quest flag tokens assigned to this mob instance (e.g. 1001-start). Click to pick from the quest list.</div>' +
+            '</div>' +
+
+            // Buff IDs (mob only)
+            '<div class="spawn-field span2" style="' + (isMob ? shown : hidden) + '">' +
+                '<label>Permanent Buffs</label>' +
+                '<div class="buff-ids-wrap spawn-buffids">' + renderSpawnBuffChips(s.BuffIds || []) + '</div>' +
+                '<button class="btn-add-sm" style="margin-top:0.3rem" onclick="pickSpawnBuff(this)">+ Pick Buffs&hellip;</button>' +
+                '<div class="field-hint">Buffs always active on this mob instance.</div>' +
+            '</div>' +
+
+            // Idle Commands (mob only)
+            '<div class="spawn-field span2" style="' + (isMob ? shown : hidden) + '">' +
+                '<label>Idle Commands</label>' +
+                '<textarea class="spawn-idlecommands" rows="3" ' +
+                    'style="width:100%;padding:0.3rem 0.45rem;border:1px solid #ccc;border-radius:4px;font-size:0.82rem;font-family:inherit;resize:vertical;">' +
+                    esc((s.IdleCommands || []).join('\n')) +
+                '</textarea>' +
+                '<div class="field-hint">One command per line. Replaces the mob template\'s idle command list entirely.</div>' +
+            '</div>' +
+
+            '</div>' +  // end spawn-card-grid
+            '</div>';   // end spawn-card-body
+
+        if (openOnAdd) {
+            card.querySelector('.spawn-card-header').classList.add('open');
+            card.querySelector('.spawn-card-body').classList.add('open');
+        }
+
+        // For existing mob spawns, resolve the mob name asynchronously
+        if (!openOnAdd && s.MobId) {
+            AdminAPI.get('/admin/api/v1/mobs/' + s.MobId).then(res => {
+                if (!res.ok) return;
+                const mob = res.data && res.data.data;
+                const name = (mob && mob.Character && mob.Character.Name) || '';
+                if (!name) return;
+                const hiddenInput = card.querySelector('.spawn-mobid');
+                if (hiddenInput) hiddenInput.dataset.mobName = name;
+                const display = card.querySelector('.spawn-mob-display');
+                if (display) display.textContent = '#' + s.MobId + ' ' + name;
+                updateSpawnHeader(card);
+            });
+        }
+
+        list.appendChild(card);
     }
 
-    window.addSpawn = function () { appendSpawnRow(document.getElementById('spawns-list'), {}); };
+    window.toggleSpawnCard = function (header) {
+        header.classList.toggle('open');
+        header.nextElementSibling.classList.toggle('open');
+    };
+
+    window.addSpawn = function (type) {
+        appendSpawnCard(document.getElementById('spawns-list'), { _type: type || 'mob' }, true);
+    };
+
+    window.pickSpawnMob = function (btn) {
+        const card = btn.closest('.spawn-card');
+        Picker.open({
+            ...PickerConfigs.mobs,
+            onSelect: (mob) => {
+                const name = (mob.Character && mob.Character.Name) || 'Mob #' + mob.MobId;
+                card.querySelector('.spawn-mobid').value = mob.MobId;
+                card.querySelector('.spawn-mobid').dataset.mobName = name;
+                const display = card.querySelector('.spawn-mob-display');
+                display.textContent = '#' + mob.MobId + ' ' + name;
+                display.className = 'spawn-picker-display spawn-mob-display';
+                updateSpawnHeader(card);
+            },
+        });
+    };
+
+    window.pickSpawnItem = function (btn) {
+        const card = btn.closest('.spawn-card');
+        Picker.open({
+            ...PickerConfigs.items,
+            onSelect: (item) => {
+                card.querySelector('.spawn-itemid').value = item.ItemId;
+                const display = card.querySelector('.spawn-item-display');
+                display.textContent = '#' + item.ItemId + ' ' + item.Name;
+                display.className = 'spawn-picker-display spawn-item-display';
+                updateSpawnHeader(card);
+            },
+        });
+    };
+
+    window.clearSpawnItem = function (btn) {
+        const card = btn.closest('.spawn-card');
+        card.querySelector('.spawn-itemid').value = 0;
+        const display = card.querySelector('.spawn-item-display');
+        display.textContent = 'No item (gold only)';
+        display.className = 'spawn-picker-display spawn-item-display empty';
+        updateSpawnHeader(card);
+    };
+
+    function renderSpawnQuestFlagChips(flags) {
+        return (flags || []).map(token => {
+            return '<span class="buff-chip" data-quest-token="' + esc(token) + '">' + esc(token) +
+                ' <button onclick="this.closest(\'.buff-chip\').remove()" title="Remove">&times;</button></span>';
+        }).join('');
+    }
+
+    window.pickSpawnQuestFlag = function (btn) {
+        const card = btn.closest('.spawn-card');
+        const wrap = card.querySelector('.spawn-questflags-wrap');
+        QuestTokenPicker.pick((token, label) => {
+            // avoid duplicates
+            const existing = Array.from(wrap.querySelectorAll('.buff-chip')).map(c => c.dataset.questToken);
+            if (existing.includes(token)) return;
+            const chip = document.createElement('span');
+            chip.className = 'buff-chip';
+            chip.dataset.questToken = token;
+            chip.innerHTML = esc(label) + ' <button onclick="this.closest(\'.buff-chip\').remove()" title="Remove">&times;</button>';
+            wrap.appendChild(chip);
+        });
+    };
+
+    window.pickSpawnBuff = function (btn) {
+        const card = btn.closest('.spawn-card');
+        const wrap = card.querySelector('.spawn-buffids');
+        const existing = Array.from(wrap.querySelectorAll('.buff-chip')).map(c => parseInt(c.dataset.buffId, 10));
+        Picker.open({
+            ...PickerConfigs.buffs,
+            multi:    true,
+            selected: existing,
+            onSelect: (buffs) => {
+                wrap.innerHTML = renderSpawnBuffChips(buffs.map(b => b.BuffId));
+            },
+        });
+    };
+
+    window.updateSpawnHeader = function (card) {
+        const type = card.dataset.spawnType;
+        const s = {};
+        if (type === 'mob') {
+            s.MobId = parseInt(card.querySelector('.spawn-mobid').value, 10) || 0;
+            s._mobName = card.querySelector('.spawn-mobid').dataset.mobName || '';
+            s.Name = card.querySelector('.spawn-name').value.trim();
+        } else {
+            s.ItemId = parseInt(card.querySelector('.spawn-itemid').value, 10) || 0;
+            s.Gold = parseInt(card.querySelector('.spawn-gold').value, 10) || 0;
+        }
+        s.RespawnRate = card.querySelector('.spawn-respawnrate').value.trim();
+        const summary = card.querySelector('.spawn-header-summary');
+        if (summary) summary.textContent = buildSpawnHeaderSummary(s, type);
+    };
 
     function collectSpawns() {
         const spawns = [];
-        document.querySelectorAll('#spawns-list .list-row').forEach(row => {
-            const inputs = row.querySelectorAll('input');
+        document.querySelectorAll('#spawns-list .spawn-card').forEach(card => {
+            const type = card.dataset.spawnType;
             const s = {};
-            const mobId = parseInt(inputs[0].value, 10); if (mobId) s.MobId = mobId;
-            const itemId = parseInt(inputs[1].value, 10); if (itemId) s.ItemId = itemId;
-            const gold = parseInt(inputs[2].value, 10); if (gold) s.Gold = gold;
-            const rate = inputs[3].value.trim(); if (rate) s.RespawnRate = rate;
-            const container = inputs[4].value.trim(); if (container) s.Container = container;
-            const name = inputs[5].value.trim(); if (name) s.Name = name;
-            const tag = inputs[6].value.trim(); if (tag) s.ScriptTag = tag;
-            if (s.MobId || s.ItemId || s.Gold) spawns.push(s);
+
+            if (type === 'mob') {
+                const mobId = parseInt(card.querySelector('.spawn-mobid').value, 10);
+                if (!mobId) return;
+                s.MobId = mobId;
+
+                const name = card.querySelector('.spawn-name').value.trim();
+                if (name) s.Name = name;
+
+                const msg = card.querySelector('.spawn-message').value.trim();
+                if (msg) s.Message = msg;
+
+                if (card.querySelector('.spawn-forcehostile').checked) s.ForceHostile = true;
+
+                const maxWanderRaw = card.querySelector('.spawn-maxwander').value.trim();
+                if (maxWanderRaw !== '') {
+                    const mw = parseInt(maxWanderRaw, 10);
+                    if (!isNaN(mw)) s.MaxWander = mw;
+                }
+
+                const level = parseInt(card.querySelector('.spawn-level').value, 10);
+                if (level) s.Level = level;
+
+                const levelMod = parseInt(card.querySelector('.spawn-levelmod').value, 10);
+                if (levelMod) s.LevelMod = levelMod;
+
+                const scriptTag = card.querySelector('.spawn-scripttag').value.trim();
+                if (scriptTag) s.ScriptTag = scriptTag;
+
+                const questFlagsRaw = Array.from(card.querySelectorAll('.spawn-questflags-wrap .buff-chip'))
+                    .map(c => c.dataset.questToken).filter(Boolean);
+                if (questFlagsRaw.length) s.QuestFlags = questFlagsRaw;
+
+                const buffIds = Array.from(card.querySelectorAll('.spawn-buffids .buff-chip'))
+                    .map(c => parseInt(c.dataset.buffId, 10)).filter(n => !isNaN(n));
+                if (buffIds.length) s.BuffIds = buffIds;
+
+                const idleCmds = card.querySelector('.spawn-idlecommands').value
+                    .split('\n').map(l => l.trim()).filter(Boolean);
+                if (idleCmds.length) s.IdleCommands = idleCmds;
+
+            } else {
+                const itemId = parseInt(card.querySelector('.spawn-itemid').value, 10);
+                const gold = parseInt(card.querySelector('.spawn-gold').value, 10);
+                if (!itemId && !gold) return;
+                if (itemId) s.ItemId = itemId;
+                if (gold) s.Gold = gold;
+
+                const container = card.querySelector('.spawn-container').value.trim();
+                if (container) s.Container = container;
+            }
+
+            const rate = card.querySelector('.spawn-respawnrate').value.trim();
+            if (rate) s.RespawnRate = rate;
+
+            spawns.push(s);
         });
         return spawns;
     }

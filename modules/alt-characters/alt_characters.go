@@ -45,6 +45,7 @@ func init() {
 		panic(err)
 	}
 
+	m.plug.Web.AdminPage("Config", "alt-characters-config", "html/admin/alt-characters-config.html", true, "Modules", "Alt Characters", nil)
 	m.plug.AddUserCommand(`character`, m.characterCommand, true, false)
 
 	m.plug.ReserveTags(characterTag)
