@@ -41,7 +41,7 @@ colors:
   map-npc: 6 # Bright cyan
   map-here: 13 # Bright magenta
   room-description: 15
-  room-description-dark: 8
+  room-description-dark: 7
   map-default: 8
   map-room: 15 # Bright white
   map-target: 9 # Bright red
