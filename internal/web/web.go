@@ -310,6 +310,14 @@ func buildAdminNav() []WebNavItem {
 			},
 		},
 		{
+			Name:   "Mutators",
+			Target: "/admin/mutators",
+			SubItems: []WebNavSub{
+				{Label: "View / Edit", Target: "/admin/mutators"},
+				{Label: "API Docs", Target: "/admin/mutators-api"},
+			},
+		},
+		{
 			Name:   "Quests",
 			Target: "/admin/quests",
 			SubItems: []WebNavSub{

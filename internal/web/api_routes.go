@@ -156,6 +156,23 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 		doBasicAuth(apiV1DeleteMob),
 	))
 
+	// Mutators
+	mux.HandleFunc("GET /admin/api/v1/mutators", RunWithMUDLocked(
+		doBasicAuth(apiV1GetMutators),
+	))
+	mux.HandleFunc("POST /admin/api/v1/mutators", RunWithMUDLocked(
+		doBasicAuth(apiV1CreateMutator),
+	))
+	mux.HandleFunc("GET /admin/api/v1/mutators/{mutatorId}", RunWithMUDLocked(
+		doBasicAuth(apiV1GetMutator),
+	))
+	mux.HandleFunc("PATCH /admin/api/v1/mutators/{mutatorId}", RunWithMUDLocked(
+		doBasicAuth(apiV1PatchMutator),
+	))
+	mux.HandleFunc("DELETE /admin/api/v1/mutators/{mutatorId}", RunWithMUDLocked(
+		doBasicAuth(apiV1DeleteMutator),
+	))
+
 	// Keywords
 	mux.HandleFunc("GET /admin/api/v1/keywords", RunWithMUDLocked(
 		doBasicAuth(apiV1GetKeywords),

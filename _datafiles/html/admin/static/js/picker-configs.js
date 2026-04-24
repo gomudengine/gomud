@@ -76,6 +76,19 @@ const PickerConfigs = {
         sort: (a, b) => a.MobId - b.MobId,
     },
 
+    mutators: {
+        title:      'Select Mutator',
+        source:     '/admin/api/v1/mutators',
+        idKey:      'MutatorId',
+        columns: [
+            { key: 'MutatorId',  label: 'ID',         flex: true, mono: true },
+            { key: 'DecayRate',  label: 'Decay Rate',  width: '8rem' },
+            { key: 'RespawnRate', label: 'Respawn',    width: '8rem' },
+        ],
+        searchKeys: ['MutatorId'],
+        sort: (a, b) => a.MutatorId.localeCompare(b.MutatorId),
+    },
+
 };
 
 // buffName(id) — synchronously resolves a buff name from the AdminAPI cache.
