@@ -166,11 +166,15 @@ func mob_Create(rest string, user *users.UserRecord, room *rooms.Room, flags eve
 
 	if len(rest) > 0 {
 		if mobId, err := strconv.Atoi(rest); err == nil {
-			newMob = *(mobs.GetMobSpec(mobs.MobId(mobId)))
+			if spec := mobs.GetMobSpec(mobs.MobId(mobId)); spec != nil {
+				newMob = *spec
+			}
 		}
 		if newMob.MobId == 0 {
 			if mobId := mobs.MobIdByName(rest); mobId != 0 {
-				newMob = *(mobs.GetMobSpec(mobId))
+				if spec := mobs.GetMobSpec(mobId); spec != nil {
+					newMob = *spec
+				}
 			}
 		}
 	}

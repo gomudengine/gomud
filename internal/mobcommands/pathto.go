@@ -16,7 +16,7 @@ func Pathto(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	// If only going home, check whether a path home was already tried and marked as impossible.
 	if rest == `home` {
 		cantGoHome := mob.GetTempData(`home-impossible`)
-		if cantGoHome != nil && cantGoHome.(bool) == true {
+		if v, ok := cantGoHome.(bool); ok && v {
 			// If can't go home, slowly lose health (10%)
 			// This helps to clean up mobs that get stuck in a weird location, which can
 			// happen for any number of reasons, like players dragging them through portals

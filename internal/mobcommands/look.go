@@ -94,7 +94,11 @@ func Look(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 		if playerId > 0 {
 
-			u := *users.GetByUserId(playerId)
+			uPtr := users.GetByUserId(playerId)
+			if uPtr == nil {
+				return true, nil
+			}
+			u := *uPtr
 
 			if !isSneaking {
 				u.SendText(
@@ -109,6 +113,9 @@ func Look(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		} else if mobId > 0 {
 
 			m := mobs.GetInstance(mobId)
+			if m == nil {
+				return true, nil
+			}
 
 			if !isSneaking {
 				targetName := m.Character.GetMobName(0).String()

@@ -37,11 +37,9 @@ func Cast(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	if spellInfo == nil {
 		return true, nil
 	}
-	/*
-		if mob.Character.Mana < spellInfo.Cost {
-			return true, nil
-		}
-	*/
+	if mob.Character.Mana < spellInfo.Cost {
+		return true, nil
+	}
 	targetPlayerId := 0
 	targetMobInstanceId := 0
 

@@ -28,6 +28,9 @@ func SayTo(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	if playerId > 0 {
 
 		toUser := users.GetByUserId(playerId)
+		if toUser == nil {
+			return true, nil
+		}
 
 		rest = strings.TrimSpace(rest[len(args[0]):])
 		isSneaking := mob.Character.HasBuffFlag(buffs.Hidden)
@@ -93,6 +96,9 @@ func SayToOnly(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	if playerId > 0 {
 
 		toUser := users.GetByUserId(playerId)
+		if toUser == nil {
+			return true, nil
+		}
 
 		rest = strings.TrimSpace(rest[len(args[0]):])
 		isSneaking := mob.Character.HasBuffFlag(buffs.Hidden)
@@ -131,6 +137,9 @@ func ReplyTo(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	if playerId > 0 {
 
 		toUser := users.GetByUserId(playerId)
+		if toUser == nil {
+			return true, nil
+		}
 
 		rest = strings.TrimSpace(rest[len(args[0]):])
 		isSneaking := mob.Character.HasBuffFlag(buffs.Hidden)

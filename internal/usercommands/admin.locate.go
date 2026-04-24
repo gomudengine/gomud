@@ -117,6 +117,9 @@ func Locate(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 		for _, mobName := range allMobNames {
 			for _, mob := range allMobsByName[mobName] {
 				room := rooms.LoadRoom(mob.Character.RoomId)
+				if room == nil {
+					continue
+				}
 
 				ct++
 

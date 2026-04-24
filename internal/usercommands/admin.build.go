@@ -120,6 +120,10 @@ func Build(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 
 			} else {
 				destinationRoom = rooms.LoadRoom(gotoRoomId)
+				if destinationRoom == nil {
+					user.SendText(fmt.Sprintf("Room %d failed to load.", gotoRoomId))
+					return false, nil
+				}
 				if _, ok := destinationRoom.Exits[exitName]; !ok {
 					rooms.ConnectRoom(user.Character.RoomId, destinationRoom.RoomId, exitName, exitDirection)
 				}

@@ -730,14 +730,18 @@ func room_Edit_Containers(rest string, user *users.UserRecord, room *rooms.Room,
 
 					if restNum, err := strconv.Atoi(buffSelected); err == nil {
 						if restNum > 0 && restNum <= len(buffOptions) {
-							buffSelectedInt = buffOptions[restNum-1].Id.(int)
+							if v, ok := buffOptions[restNum-1].Id.(int); ok {
+								buffSelectedInt = v
+							}
 						}
 					}
 
 					if buffSelectedInt == 0 {
 						for _, b := range buffOptions {
 							if strings.EqualFold(b.Name, buffSelected) {
-								buffSelectedInt = b.Id.(int)
+								if v, ok := b.Id.(int); ok {
+									buffSelectedInt = v
+								}
 								break
 							}
 						}
@@ -775,7 +779,9 @@ func room_Edit_Containers(rest string, user *users.UserRecord, room *rooms.Room,
 					question.RejectResponse()
 
 					for idx, data := range buffOptions {
-						_, data.Marked = selectedBuffLookup[data.Id.(int)]
+						if v, ok := data.Id.(int); ok {
+							_, data.Marked = selectedBuffLookup[v]
+						}
 						buffOptions[idx] = data
 					}
 
@@ -1403,14 +1409,18 @@ func room_Edit_Exits(rest string, user *users.UserRecord, room *rooms.Room, flag
 
 					if restNum, err := strconv.Atoi(buffSelected); err == nil {
 						if restNum > 0 && restNum <= len(buffOptions) {
-							buffSelectedInt = buffOptions[restNum-1].Id.(int)
+							if v, ok := buffOptions[restNum-1].Id.(int); ok {
+								buffSelectedInt = v
+							}
 						}
 					}
 
 					if buffSelectedInt == 0 {
 						for _, b := range buffOptions {
 							if strings.EqualFold(b.Name, buffSelected) {
-								buffSelectedInt = b.Id.(int)
+								if v, ok := b.Id.(int); ok {
+									buffSelectedInt = v
+								}
 								break
 							}
 						}
@@ -1448,7 +1458,9 @@ func room_Edit_Exits(rest string, user *users.UserRecord, room *rooms.Room, flag
 					question.RejectResponse()
 
 					for idx, data := range buffOptions {
-						_, data.Marked = selectedBuffLookup[data.Id.(int)]
+						if v, ok := data.Id.(int); ok {
+							_, data.Marked = selectedBuffLookup[v]
+						}
 						buffOptions[idx] = data
 					}
 
@@ -1570,14 +1582,18 @@ func room_Edit_Mutators(rest string, user *users.UserRecord, room *rooms.Room, f
 
 		if restNum, err := strconv.Atoi(question.Response); err == nil {
 			if restNum > 0 && restNum <= len(mutatorOptions) {
-				mutatorSelected = mutatorOptions[restNum-1].Id.(string)
+				if v, ok := mutatorOptions[restNum-1].Id.(string); ok {
+					mutatorSelected = v
+				}
 			}
 		}
 
 		if mutatorSelected == `` {
 			for _, b := range mutatorOptions {
 				if strings.EqualFold(b.Name, question.Response) {
-					mutatorSelected = b.Id.(string)
+					if v, ok := b.Id.(string); ok {
+						mutatorSelected = v
+					}
 					break
 				}
 			}
