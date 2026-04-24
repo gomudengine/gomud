@@ -59,30 +59,12 @@ type Config struct {
 }
 
 func AddOverlayOverrides(dotMap map[string]any) error {
-	configDataLock.RLock()
-	defer configDataLock.RUnlock()
+	configDataLock.Lock()
+	defer configDataLock.Unlock()
 
 	for k, v := range dotMap {
-
-		if strings.Index(k, `.`) != -1 {
-
-			parts := strings.Split(k, `.`)
-
-			for i := len(parts) - 1; i >= 0; i-- {
-				tmpKey := strings.Join(parts[i:], `.`)
-				keyLookups[strings.ToLower(tmpKey)] = k
-
-				tmpKey = strings.Join(parts[i:], ``)
-				keyLookups[strings.ToLower(tmpKey)] = k
-
-			}
-
-		} else {
-			keyLookups[strings.ToLower(k)] = k
-		}
-
+		addKeyLookups(keyLookups, k)
 		typeLookups[k] = reflect.TypeOf(v).String()
-
 		overrides[k] = v
 	}
 
@@ -170,6 +152,8 @@ func (c *Config) buildDotPaths(v reflect.Value, prefix string, result map[string
 }
 
 func GetOverrides() map[string]any {
+	configDataLock.RLock()
+	defer configDataLock.RUnlock()
 	return overrides
 }
 
@@ -177,6 +161,9 @@ func GetOverrides() map[string]any {
 // dot-path map and re-applies them to the live config. It is used by the
 // test-mode middleware to revert changes made during a dry-run request.
 func RestoreOverrides(flatSnapshot map[string]any) error {
+	configDataLock.Lock()
+	defer configDataLock.Unlock()
+
 	overrides = unflattenMap(flatSnapshot)
 	if err := configData.OverlayOverrides(overrides); err != nil {
 		return err
@@ -188,9 +175,7 @@ func RestoreOverrides(flatSnapshot map[string]any) error {
 func (c *Config) SetOverrides(newOverrides map[string]any) error {
 
 	overrides = newOverrides
-	c.OverlayOverrides(overrides)
-
-	return nil
+	return c.OverlayOverrides(overrides)
 }
 
 // Ensures certain ranges and defaults are observed
@@ -301,7 +286,10 @@ func (c Config) AllConfigData(excludeStrings ...string) map[string]any {
 
 func SetVal(propertyPath string, newVal string) error {
 
-	propertyPath, propertyType := FindFullPath(propertyPath)
+	configDataLock.Lock()
+	defer configDataLock.Unlock()
+
+	propertyPath, propertyType := findFullPathFrom(propertyPath, keyLookups, typeLookups)
 	if propertyType == `` {
 		return errors.New(`invalid property name: ` + propertyPath)
 	}
@@ -318,14 +306,13 @@ func SetVal(propertyPath string, newVal string) error {
 
 	overrides = unflattenMap(flatOverrides)
 
-	// save the new config.
 	writeBytes, err := yaml.Marshal(overrides)
 	if err != nil {
 		return err
 	}
 
-	overridePath := overridePath()
-	if err := util.Save(overridePath, writeBytes, bool(configData.FilePaths.CarefulSaveFiles)); err != nil {
+	ovrPath := overridePathNoLock()
+	if err := util.Save(ovrPath, writeBytes, bool(configData.FilePaths.CarefulSaveFiles)); err != nil {
 		return err
 	}
 
@@ -347,13 +334,13 @@ func GetConfig() Config {
 	return configData
 }
 
-func overridePath() string {
-	overridePath := os.Getenv(`CONFIG_PATH`)
-	if overridePath == `` {
-		overridePath = GetConfig().FilePaths.DataFiles.String() + `/config-overrides.yaml`
+// Caller must hold at least configDataLock.RLock.
+func overridePathNoLock() string {
+	p := os.Getenv(`CONFIG_PATH`)
+	if p == `` {
+		p = configData.FilePaths.DataFiles.String() + `/config-overrides.yaml`
 	}
-
-	return overridePath
+	return p
 }
 
 func ReloadConfig() error {
@@ -371,60 +358,46 @@ func ReloadConfig() error {
 		return err
 	}
 
-	// Build a special lookup to attempt to match old data or even some minor typos
-	keyLookups = map[string]string{}
-	typeLookups = map[string]string{}
-	for k, v := range configData.AllConfigData() {
+	// Snapshot current config under read lock for building lookups
+	configDataLock.RLock()
+	allData := configData.AllConfigData()
+	ovrPath := overridePathNoLock()
+	configDataLock.RUnlock()
 
-		if strings.Index(k, `.`) != -1 {
-
-			parts := strings.Split(k, `.`)
-
-			for i := len(parts) - 1; i >= 0; i-- {
-				tmpKey := strings.Join(parts[i:], `.`)
-				keyLookups[strings.ToLower(tmpKey)] = k
-
-				tmpKey = strings.Join(parts[i:], ``)
-				keyLookups[strings.ToLower(tmpKey)] = k
-
-			}
-
-		} else {
-			keyLookups[strings.ToLower(k)] = k
-		}
-
-		typeLookups[k] = reflect.TypeOf(v).String()
+	tmpKeyLookups := make(map[string]string, len(allData)*3)
+	tmpTypeLookups := make(map[string]string, len(allData))
+	for k, v := range allData {
+		addKeyLookups(tmpKeyLookups, k)
+		tmpTypeLookups[k] = reflect.TypeOf(v).String()
 	}
 
-	overridePath := overridePath()
+	mudlog.Info("ReloadConfig()", "overridePath", ovrPath)
 
-	mudlog.Info("ReloadConfig()", "overridePath", overridePath)
-
-	if _, err := os.Stat(util.FilePath(overridePath)); err == nil {
-		if overridePath != `` {
+	var tmpOverrides map[string]any
+	if _, err := os.Stat(util.FilePath(ovrPath)); err == nil {
+		if ovrPath != `` {
 
 			mudlog.Info("ReloadConfig()", "Loading overrides", true)
 
-			overrideBytes, err := os.ReadFile(util.FilePath(overridePath))
+			overrideBytes, err := os.ReadFile(util.FilePath(ovrPath))
 			if err != nil {
 				return err
 			}
 
-			tmpOverrides := map[string]any{}
+			tmpOverrides = map[string]any{}
 			err = yaml.Unmarshal(overrideBytes, &tmpOverrides)
 			if err != nil {
 				return err
 			}
 
-			// Attempt a correction for bad names
 			for k, v := range tmpOverrides {
-				if newKey, _ := FindFullPath(k); newKey != k {
+				if newKey, _ := findFullPathFrom(k, tmpKeyLookups, tmpTypeLookups); newKey != k {
 					tmpOverrides[newKey] = v
 					delete(tmpOverrides, k)
 				}
 			}
 
-			tmpConfigData.SetOverrides(tmpOverrides)
+			tmpConfigData.OverlayOverrides(tmpOverrides)
 		}
 	} else {
 		mudlog.Info("ReloadConfig()", "Loading overrides", false)
@@ -436,18 +409,39 @@ func ReloadConfig() error {
 
 	configDataLock.Lock()
 	defer configDataLock.Unlock()
-	// Assign it
 	configData = tmpConfigData
+	keyLookups = tmpKeyLookups
+	typeLookups = tmpTypeLookups
+	if tmpOverrides != nil {
+		overrides = tmpOverrides
+	}
 
 	return nil
 }
 
-func FindFullPath(inputKey string) (properKey string, typeName string) {
-
-	if v, ok := keyLookups[strings.ToLower(inputKey)]; ok {
-		return v, typeLookups[v]
+func addKeyLookups(keys map[string]string, k string) {
+	if strings.Contains(k, `.`) {
+		parts := strings.Split(k, `.`)
+		for i := len(parts) - 1; i >= 0; i-- {
+			dotSuffix := strings.Join(parts[i:], `.`)
+			keys[strings.ToLower(dotSuffix)] = k
+			noDotSuffix := strings.Join(parts[i:], ``)
+			keys[strings.ToLower(noDotSuffix)] = k
+		}
+	} else {
+		keys[strings.ToLower(k)] = k
 	}
-	return inputKey, typeLookups[inputKey]
+}
+
+func findFullPathFrom(inputKey string, keys map[string]string, types map[string]string) (string, string) {
+	if v, ok := keys[strings.ToLower(inputKey)]; ok {
+		return v, types[v]
+	}
+	return inputKey, types[inputKey]
+}
+
+func FindFullPath(inputKey string) (properKey string, typeName string) {
+	return findFullPathFrom(inputKey, keyLookups, typeLookups)
 }
 
 // Usage: configs.GetSecret(c.DiscordWebhookUrl)
