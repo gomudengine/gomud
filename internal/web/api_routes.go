@@ -5,6 +5,11 @@ import (
 )
 
 func registerAdminAPIRoutes(mux *http.ServeMux) {
+	// Tags
+	mux.HandleFunc("GET /admin/api/v1/tags", RunWithMUDLocked(
+		doBasicAuth(apiV1GetTags),
+	))
+
 	// Stats
 	mux.HandleFunc("GET /admin/api/v1/stats/memory", RunWithMUDLocked(
 		doBasicAuth(apiV1GetStatsMemory),
@@ -179,6 +184,12 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 	))
 	mux.HandleFunc("POST /admin/api/v1/rooms", RunWithMUDLocked(
 		doBasicAuth(apiV1CreateRoom),
+	))
+	mux.HandleFunc("GET /admin/api/v1/rooms/{roomId}/script", RunWithMUDLocked(
+		doBasicAuth(apiV1GetRoomScript),
+	))
+	mux.HandleFunc("PUT /admin/api/v1/rooms/{roomId}/script", RunWithMUDLocked(
+		doBasicAuth(apiV1PutRoomScript),
 	))
 	mux.HandleFunc("GET /admin/api/v1/rooms/{roomId}", RunWithMUDLocked(
 		doBasicAuth(apiV1GetRoom),

@@ -31,7 +31,11 @@
         background: #e8eaf6; color: #3949ab; flex-shrink: 0;
     }
     .room-row.active .room-badge { background: #3949ab; color: #fff; }
-    .no-items { padding: 1.5rem; text-align: center; color: #888; font-size: 0.85rem; }
+    .room-script-badge {
+        font-size: 0.65rem; padding: 0.1rem 0.3rem; border-radius: 3px;
+        background: #fff3e0; color: #8a4a00; flex-shrink: 0;
+    }
+    .room-row.active .room-script-badge { background: #8a4a00; color: #fff; }
 
     .pager { display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-top: 1px solid #eee; font-size: 0.8rem; color: #666; }
     .pager button { padding: 0.25rem 0.6rem; border: 1px solid #ccc; border-radius: 4px; background: #fff; cursor: pointer; font-size: 0.8rem; }
@@ -97,7 +101,42 @@
     .collapse-body { display: none; grid-column: 1 / -1; }
     .collapse-body.open { display: block; }
 
-    /* exit/spawn rows */
+    /* exit rows */
+    .exit-card {
+        border: 1px solid #ddd; border-radius: 6px; margin-bottom: 0.6rem;
+        background: #fafafa; overflow: hidden;
+    }
+    .exit-card-header {
+        display: flex; align-items: center; gap: 0.5rem;
+        padding: 0.4rem 0.6rem; background: #f0f0f0; cursor: pointer;
+        font-size: 0.83rem; font-weight: 600; user-select: none;
+    }
+    .exit-card-header::before { content: "\25B6"; font-size: 0.55rem; transition: transform 0.15s; }
+    .exit-card-header.open::before { transform: rotate(90deg); }
+    .exit-card-body { display: none; padding: 0.75rem; }
+    .exit-card-body.open { display: block; }
+    .exit-card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 0.75rem; }
+    .exit-card-grid .span2 { grid-column: 1 / -1; }
+    .exit-field label { display: block; font-size: 0.73rem; font-weight: 600; color: #666; margin-bottom: 0.2rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .exit-field input[type="text"],
+    .exit-field input[type="number"],
+    .exit-field select { width: 100%; padding: 0.3rem 0.45rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.83rem; background: #fff; }
+    .exit-badge { font-size: 0.65rem; padding: 0.1rem 0.35rem; border-radius: 3px; background: #fce8e8; color: #8a0000; }
+    .exit-badge-secret { background: #e8f0fe; color: #1a4a8a; }
+    .lock-section { background: #fff8f0; border: 1px solid #f5d0a0; border-radius: 4px; padding: 0.6rem; margin-top: 0.5rem; }
+    .lock-section-title { font-size: 0.72rem; font-weight: 700; color: #8a4a00; text-transform: uppercase; margin-bottom: 0.5rem; }
+
+    /* buff chips */
+    .buff-ids-wrap { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; }
+    .buff-chip {
+        display: inline-flex; align-items: center; gap: 0.25rem;
+        background: #e8eaf6; color: #3949ab; border-radius: 12px;
+        padding: 0.15rem 0.5rem; font-size: 0.78rem;
+    }
+    .buff-chip button { background: none; border: none; cursor: pointer; color: #3949ab; font-size: 0.82rem; line-height: 1; padding: 0; }
+    .buff-chip button:hover { color: #c00; }
+
+    /* spawn rows */
     .list-row { display: flex; gap: 0.4rem; align-items: center; margin-bottom: 0.4rem; flex-wrap: wrap; }
     .list-row input[type="text"], .list-row input[type="number"] {
         padding: 0.3rem 0.45rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.82rem;
@@ -116,10 +155,57 @@
     .tag-chip {
         display: inline-flex; align-items: center; gap: 0.25rem;
         background: #e8eaf6; color: #3949ab; border-radius: 10px;
-        padding: 0.15rem 0.5rem; font-size: 0.78rem;
+        padding: 0.15rem 0.5rem; font-size: 0.78rem; cursor: default;
     }
     .tag-chip button { background: none; border: none; cursor: pointer; color: #3949ab; font-size: 0.82rem; line-height: 1; padding: 0; }
     .tag-chip button:hover { color: #c00; }
+
+    /* tag picker */
+    .tag-picker-wrap { position: relative; display: inline-block; }
+    .tag-picker-dropdown {
+        display: none; position: absolute; top: 100%; left: 0; z-index: 200;
+        background: #fff; border: 1px solid #ccc; border-radius: 6px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.12); min-width: 260px; max-height: 320px;
+        overflow-y: auto; padding: 0.4rem 0;
+    }
+    .tag-picker-dropdown.open { display: block; }
+    .tag-picker-search { width: calc(100% - 1rem); margin: 0.3rem 0.5rem; padding: 0.3rem 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.82rem; }
+    .tag-picker-group { padding: 0.25rem 0.5rem 0; font-size: 0.7rem; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.05em; }
+    .tag-picker-item {
+        padding: 0.3rem 0.75rem; cursor: pointer; font-size: 0.82rem; display: flex; align-items: center; gap: 0.4rem;
+    }
+    .tag-picker-item:hover { background: #f0f4ff; }
+    .tag-picker-item.selected { color: #3949ab; font-weight: 600; }
+    .tag-picker-item.selected::before { content: "✓"; font-size: 0.75rem; }
+    .tag-picker-item:not(.selected)::before { content: ""; display: inline-block; width: 0.9em; }
+    .tag-picker-empty { padding: 0.75rem; text-align: center; color: #aaa; font-size: 0.82rem; }
+    .btn-tag-picker {
+        padding: 0.3rem 0.6rem; border: 1px dashed #7986cb; border-radius: 4px;
+        background: none; cursor: pointer; font-size: 0.8rem; color: #3949ab;
+    }
+    .btn-tag-picker:hover { background: #e8eaf6; }
+
+    /* toggle switch */
+    .toggle-wrap { display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0; }
+    .toggle-switch { position: relative; display: inline-block; width: 38px; height: 22px; flex-shrink: 0; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .toggle-slider {
+        position: absolute; inset: 0; background: #ccc; border-radius: 22px;
+        cursor: pointer; transition: background 0.2s;
+    }
+    .toggle-slider::before {
+        content: ''; position: absolute; width: 16px; height: 16px;
+        left: 3px; bottom: 3px; background: #fff; border-radius: 50%;
+        transition: transform 0.2s;
+    }
+    .toggle-switch input:checked + .toggle-slider { background: #3949ab; }
+    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(16px); }
+    .toggle-label { font-size: 0.83rem; color: #444; user-select: none; cursor: pointer; }
+
+    /* difficulty slider */
+    .slider-wrap { display: flex; align-items: center; gap: 0.6rem; }
+    .slider-wrap input[type=range] { flex: 1; accent-color: #3949ab; cursor: pointer; }
+    .slider-value { font-family: monospace; font-size: 0.85rem; font-weight: 700; color: #1a1a2e; min-width: 1.8rem; text-align: right; }
 
     /* action bar */
     .action-bar { display: flex; gap: 0.6rem; margin-top: 1.25rem; align-items: center; flex-wrap: wrap; }
@@ -154,6 +240,25 @@
     /* zone editor overlay */
     .zone-editor { background: #f8f8ff; border: 1px solid #ccd; border-radius: 6px; padding: 1rem; margin-bottom: 1rem; }
     .zone-editor h3 { font-size: 0.95rem; margin-bottom: 0.75rem; }
+
+    /* script editor */
+    .script-toggle {
+        display: flex; align-items: center; gap: 0.6rem; cursor: pointer;
+        font-size: 0.85rem; color: #1a1a2e; font-weight: 600; padding: 0.5rem 0;
+        user-select: none;
+    }
+    .script-toggle::before { content: "\25B6"; font-size: 0.65rem; transition: transform 0.15s; }
+    .script-toggle.open::before { transform: rotate(90deg); }
+    .script-area { display: none; margin-top: 0.5rem; }
+    .script-area.open { display: block; }
+    .script-area textarea {
+        width: 100%; min-height: 500px; font-family: monospace; font-size: 0.82rem;
+        padding: 0.6rem 0.75rem; border: 1px solid #ccc; border-radius: 4px;
+        resize: vertical; background: #1a1a2e; color: #c9d1d9; line-height: 1.55;
+        box-sizing: border-box;
+    }
+    .script-area textarea:focus { outline: 2px solid #4a6fa5; outline-offset: 1px; }
+    .script-hint { font-size: 0.75rem; color: #888; margin-top: 0.3rem; }
 </style>
 
 <h1>Rooms</h1>
@@ -271,25 +376,39 @@
                 <div class="section-title">Properties</div>
                 <div class="field">
                     <label>Is Bank</label>
-                    <select id="f-isbank">
-                        <option value="false">No</option>
-                        <option value="true">Yes</option>
-                    </select>
+                    <div class="toggle-wrap">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="f-isbank" />
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span class="toggle-label">Players can deposit/withdraw gold</span>
+                    </div>
                 </div>
                 <div class="field">
                     <label>PvP</label>
-                    <select id="f-pvp">
-                        <option value="false">No</option>
-                        <option value="true">Yes</option>
-                    </select>
+                    <div class="toggle-wrap">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="f-pvp" />
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span class="toggle-label">PvP enabled</span>
+                    </div>
                     <div class="field-hint">Only relevant when global PvP is set to "limited"</div>
                 </div>
                 <div class="field span2">
                     <label>Tags</label>
                     <div class="tag-wrap" id="tags-list"></div>
-                    <div style="display:flex; gap:0.3rem; margin-top:0.3rem;">
-                        <input type="text" id="tag-input" placeholder="Add tag..." style="flex:1; padding:0.3rem 0.5rem; border:1px solid #ccc; border-radius:4px; font-size:0.82rem;" onkeydown="if(event.key==='Enter'){event.preventDefault();addTag();}" />
-                        <button class="btn-add-sm" onclick="addTag()">+</button>
+                    <div style="margin-top:0.4rem; display:flex; gap:0.4rem; align-items:center; flex-wrap:wrap;">
+                        <div class="tag-picker-wrap">
+                            <button class="btn-tag-picker" onclick="toggleTagPicker(event)">+ Pick Tag</button>
+                            <div class="tag-picker-dropdown" id="tag-picker-dropdown">
+                                <input type="search" class="tag-picker-search" id="tag-picker-search" placeholder="Filter tags..." oninput="filterTagPicker()" />
+                                <div id="tag-picker-list"></div>
+                            </div>
+                        </div>
+                        <span style="font-size:0.75rem; color:#aaa;">or type a custom tag:</span>
+                        <input type="text" id="tag-input" placeholder="custom tag..." style="flex:1; min-width:120px; padding:0.3rem 0.5rem; border:1px solid #ccc; border-radius:4px; font-size:0.82rem;" onkeydown="if(event.key==='Enter'){event.preventDefault();addCustomTag();}" />
+                        <button class="btn-add-sm" onclick="addCustomTag()">+</button>
                     </div>
                 </div>
 
@@ -330,6 +449,15 @@
                 </div>
             </div>
 
+            <!-- Script editor -->
+            <div style="margin-top:1.25rem; border-top: 1px solid #eee; padding-top: 1rem;">
+                <div class="script-toggle" id="script-toggle" onclick="toggleScript()">Script</div>
+                <div class="script-area" id="script-area">
+                    <textarea id="f-script" spellcheck="false" placeholder="// JavaScript for this room's events (onEnter, onExit, onCommand, etc.)&#10;// Leave blank to delete the script file."></textarea>
+                    <div class="script-hint">Saved as a .js file alongside the room's YAML. Clear the field and save to delete the script.</div>
+                </div>
+            </div>
+
             <div class="action-bar">
                 <button class="btn btn-primary" id="save-btn" onclick="saveRoom()">Save Room</button>
                 <button class="btn btn-secondary" onclick="cancelEdit()">Cancel</button>
@@ -340,33 +468,55 @@
     </div>
 </div>
 
+<!-- Buff picker modal -->
+<div id="buff-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:500; align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:8px; padding:1.25rem; max-width:400px; width:90%; max-height:80vh; display:flex; flex-direction:column; gap:0.75rem;">
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+            <strong style="font-size:0.95rem;">Select Buff</strong>
+            <button onclick="closeBuffModal()" style="background:none; border:none; cursor:pointer; font-size:1.2rem; color:#666;">&times;</button>
+        </div>
+        <input type="search" id="buff-modal-search" placeholder="Search buffs..." style="padding:0.35rem 0.6rem; border:1px solid #ccc; border-radius:4px; font-size:0.85rem;" oninput="filterBuffModal()" />
+        <div id="buff-modal-list" style="overflow-y:auto; flex:1; border:1px solid #eee; border-radius:4px;"></div>
+    </div>
+</div>
+
 <script>
 (function () {
     'use strict';
 
     let allZones = [];
     let biomes = [];
+    let allTags = [];   // [{tag, module}, ...]
+    let allBuffs = {};  // id -> spec
     let currentPage = 1;
     let totalRooms = 0;
     let perPage = 50;
     let currentRoomId = null;
     let isNew = false;
     let searchTimer = null;
+    let buffPickerTarget = null; // exit card element
+    let scriptSync = null;
 
     // -------------------------------------------------------------------------
     // Init
     // -------------------------------------------------------------------------
     async function init() {
-        const [zonesRes, biomesRes] = await AdminAPI.all([
+        const [zonesRes, biomesRes, tagsRes, buffsRes] = await AdminAPI.all([
             AdminAPI.get('/admin/api/v1/zones'),
             AdminAPI.get('/admin/api/v1/rooms/biomes'),
+            AdminAPI.get('/admin/api/v1/tags'),
+            AdminAPI.get('/admin/api/v1/buffs'),
         ]);
         if (!zonesRes.ok) { showStatus('Failed to load zones: ' + zonesRes.error, false); return; }
         allZones = zonesRes.data.data || [];
         biomes = (biomesRes.ok && biomesRes.data.data) || [];
+        allTags = (tagsRes.ok && tagsRes.data.data) || [];
+        allBuffs = (buffsRes.ok && buffsRes.data.data && buffsRes.data.data.specs) || {};
         populateZoneFilter();
         populateBiomeSelects();
+        buildTagPickerList('');
         loadRoomList();
+        scriptSync = ScriptEditor.init('f-script');
     }
 
     // -------------------------------------------------------------------------
@@ -441,6 +591,7 @@
             row.innerHTML =
                 '<span class="room-id">#' + r.RoomId + '</span>' +
                 '<span class="room-title">' + esc(r.Title) + '</span>' +
+                (r.HasScript ? '<span class="room-script-badge">JS</span>' : '') +
                 (badges.length ? '<span class="room-badge">' + esc(badges.join(', ')) + '</span>' : '');
             row.onclick = () => loadRoom(r.RoomId);
             list.appendChild(row);
@@ -469,16 +620,20 @@
     // Load room into editor
     // -------------------------------------------------------------------------
     async function loadRoom(roomId) {
-        const res = await AdminAPI.get('/admin/api/v1/rooms/' + roomId);
-        if (!res.ok) { showStatus('Failed to load room: ' + res.error, false); return; }
+        const [roomRes, scriptRes] = await AdminAPI.all([
+            AdminAPI.get('/admin/api/v1/rooms/' + roomId),
+            AdminAPI.get('/admin/api/v1/rooms/' + roomId + '/script'),
+        ]);
+        if (!roomRes.ok) { showStatus('Failed to load room: ' + roomRes.error, false); return; }
 
-        const r = res.data.data;
+        const r = roomRes.data.data;
+        const script = (scriptRes.ok && scriptRes.data.data && scriptRes.data.data.script) || '';
         currentRoomId = roomId;
         isNew = false;
         setActiveRow(roomId);
         document.getElementById('zone-editor').style.display = 'none';
         showEditor();
-        fillForm(r);
+        fillForm(r, script);
     }
 
     function setActiveRow(roomId) {
@@ -493,7 +648,7 @@
         document.getElementById('delete-btn').style.display = isNew ? 'none' : '';
     }
 
-    function fillForm(r) {
+    function fillForm(r, script) {
         document.getElementById('editor-title').textContent = isNew ? 'New Room' : r.Title;
         document.getElementById('editor-zone-badge').textContent = r.Zone || '';
         document.getElementById('room-id-display').textContent = isNew ? '' : 'ID: ' + r.RoomId;
@@ -505,8 +660,8 @@
         setVal('f-mapsymbol', r.MapSymbol || '');
         setVal('f-maplegend', r.MapLegend || '');
         setVal('f-musicfile', r.MusicFile || '');
-        setVal('f-isbank', r.IsBank ? 'true' : 'false');
-        setVal('f-pvp', r.Pvp ? 'true' : 'false');
+        document.getElementById('f-isbank').checked = !!r.IsBank;
+        document.getElementById('f-pvp').checked = !!r.Pvp;
 
         renderTags(r.Tags || []);
         renderExits(r.Exits || {});
@@ -514,6 +669,15 @@
         renderTraining(r.SkillTraining || {});
         renderIdleMsgs('idle-list', r.IdleMessages || []);
         renderNouns(r.Nouns || {});
+
+        // Script — ScriptEditor.init returns a plain sync function
+        setVal('f-script', script);
+        if (scriptSync) scriptSync();
+        // Reset toggle state
+        const toggle = document.getElementById('script-toggle');
+        const area = document.getElementById('script-area');
+        toggle.classList.toggle('open', script.length > 0);
+        area.classList.toggle('open', script.length > 0);
     }
 
     // -------------------------------------------------------------------------
@@ -551,34 +715,142 @@
     };
 
     // -------------------------------------------------------------------------
+    // Script toggle
+    // -------------------------------------------------------------------------
+    window.toggleScript = function () {
+        const toggle = document.getElementById('script-toggle');
+        const area = document.getElementById('script-area');
+        toggle.classList.toggle('open');
+        area.classList.toggle('open');
+    };
+
+    // -------------------------------------------------------------------------
     // Tags
     // -------------------------------------------------------------------------
     function renderTags(tags) {
         const list = document.getElementById('tags-list');
         list.innerHTML = '';
-        for (const t of tags) {
-            const chip = document.createElement('span');
-            chip.className = 'tag-chip';
-            chip.innerHTML = esc(t) + ' <button onclick="this.closest(\'.tag-chip\').remove()">&times;</button>';
-            list.appendChild(chip);
-        }
+        for (const t of tags) appendTagChip(list, t);
     }
 
-    window.addTag = function () {
-        const input = document.getElementById('tag-input');
-        const val = input.value.trim();
-        if (!val) return;
-        const list = document.getElementById('tags-list');
+    function appendTagChip(list, tag) {
         const chip = document.createElement('span');
         chip.className = 'tag-chip';
-        chip.innerHTML = esc(val) + ' <button onclick="this.closest(\'.tag-chip\').remove()">&times;</button>';
+        chip.dataset.tag = tag;
+        chip.innerHTML = esc(tag) + ' <button onclick="removeTag(this)" title="Remove tag">&times;</button>';
         list.appendChild(chip);
-        input.value = '';
+    }
+
+    window.removeTag = function (btn) {
+        const chip = btn.closest('.tag-chip');
+        const tag = chip.dataset.tag;
+        chip.remove();
+        // refresh picker state
+        updateTagPickerState();
     };
 
     function collectTags() {
-        return Array.from(document.querySelectorAll('#tags-list .tag-chip')).map(c => c.textContent.replace(/\s*×\s*$/, '').trim());
+        return Array.from(document.querySelectorAll('#tags-list .tag-chip')).map(c => c.dataset.tag);
     }
+
+    window.addCustomTag = function () {
+        const input = document.getElementById('tag-input');
+        const val = input.value.trim().toLowerCase();
+        if (!val) return;
+        const current = collectTags();
+        if (current.includes(val)) { input.value = ''; return; }
+        appendTagChip(document.getElementById('tags-list'), val);
+        input.value = '';
+        updateTagPickerState();
+    };
+
+    // -------------------------------------------------------------------------
+    // Tag picker
+    // -------------------------------------------------------------------------
+    function buildTagPickerList(filter) {
+        const container = document.getElementById('tag-picker-list');
+        container.innerHTML = '';
+
+        if (allTags.length === 0) {
+            container.innerHTML = '<div class="tag-picker-empty">No registered tags found.<br>Modules register tags at startup.</div>';
+            return;
+        }
+
+        const current = collectTags();
+        const filterLc = filter.toLowerCase();
+
+        // group by module
+        const groups = {};
+        for (const entry of allTags) {
+            if (filterLc && !entry.tag.toLowerCase().includes(filterLc) && !entry.module.toLowerCase().includes(filterLc)) continue;
+            if (!groups[entry.module]) groups[entry.module] = [];
+            groups[entry.module].push(entry.tag);
+        }
+
+        let anyItem = false;
+        for (const mod of Object.keys(groups).sort()) {
+            const grpEl = document.createElement('div');
+            grpEl.className = 'tag-picker-group';
+            grpEl.textContent = mod;
+            container.appendChild(grpEl);
+            for (const tag of groups[mod]) {
+                anyItem = true;
+                const item = document.createElement('div');
+                item.className = 'tag-picker-item' + (current.includes(tag) ? ' selected' : '');
+                item.dataset.tag = tag;
+                item.textContent = tag;
+                item.onclick = () => toggleTagFromPicker(tag, item);
+                container.appendChild(item);
+            }
+        }
+
+        if (!anyItem) {
+            container.innerHTML = '<div class="tag-picker-empty">No matching tags.</div>';
+        }
+    }
+
+    function updateTagPickerState() {
+        const current = collectTags();
+        document.querySelectorAll('#tag-picker-list .tag-picker-item').forEach(item => {
+            item.classList.toggle('selected', current.includes(item.dataset.tag));
+        });
+    }
+
+    function toggleTagFromPicker(tag, itemEl) {
+        const list = document.getElementById('tags-list');
+        const current = collectTags();
+        if (current.includes(tag)) {
+            // remove
+            list.querySelectorAll('.tag-chip').forEach(c => { if (c.dataset.tag === tag) c.remove(); });
+            itemEl.classList.remove('selected');
+        } else {
+            appendTagChip(list, tag);
+            itemEl.classList.add('selected');
+        }
+    }
+
+    window.toggleTagPicker = function (e) {
+        e.stopPropagation();
+        const dd = document.getElementById('tag-picker-dropdown');
+        const isOpen = dd.classList.contains('open');
+        closeTagPicker();
+        if (!isOpen) {
+            buildTagPickerList(document.getElementById('tag-picker-search').value);
+            dd.classList.add('open');
+        }
+    };
+
+    function closeTagPicker() {
+        document.getElementById('tag-picker-dropdown').classList.remove('open');
+    }
+
+    window.filterTagPicker = function () {
+        buildTagPickerList(document.getElementById('tag-picker-search').value);
+    };
+
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest('.tag-picker-wrap')) closeTagPicker();
+    });
 
     // -------------------------------------------------------------------------
     // Exits
@@ -586,35 +858,249 @@
     function renderExits(exits) {
         const list = document.getElementById('exits-list');
         list.innerHTML = '';
-        for (const [name, ex] of Object.entries(exits)) appendExitRow(list, name, ex);
+        for (const [name, ex] of Object.entries(exits)) appendExitCard(list, name, ex);
     }
 
-    function appendExitRow(list, name, ex) {
-        const row = document.createElement('div');
-        row.className = 'list-row';
-        row.innerHTML =
-            '<input type="text" style="flex:2;min-width:0" placeholder="Exit name" value="' + esc(name) + '" />' +
-            '<input type="number" style="width:70px" placeholder="Room ID" value="' + (ex.RoomId || '') + '" />' +
-            '<select style="width:5rem;flex-shrink:0"><option value="false"' + (!ex.Secret ? ' selected' : '') + '>Visible</option><option value="true"' + (ex.Secret ? ' selected' : '') + '>Secret</option></select>' +
-            '<input type="text" style="flex:1;min-width:0" placeholder="Map dir" value="' + esc(ex.MapDirection || '') + '" />' +
-            '<button class="btn-icon" title="Remove" onclick="this.closest(\'.list-row\').remove()">&times;</button>';
-        list.appendChild(row);
+    function appendExitCard(list, name, ex) {
+        ex = ex || {};
+        const lock = ex.Lock || {};
+        const hasLock = (lock.Difficulty || 0) > 0;
+        const trapBuffIds = lock.TrapBuffIds || [];
+
+        const card = document.createElement('div');
+        card.className = 'exit-card';
+
+        const badges = [];
+        if (ex.Secret) badges.push('<span class="exit-badge exit-badge-secret">hidden</span>');
+        if (hasLock) badges.push('<span class="exit-badge">lock lvl ' + lock.Difficulty + '</span>');
+
+        card.innerHTML =
+            '<div class="exit-card-header" onclick="toggleExitCard(this)">' +
+                esc(name || 'New Exit') +
+                (ex.RoomId ? ' <span style="font-size:0.7rem; color:#888; font-weight:400;">&rarr; #' + ex.RoomId + '</span>' : '') +
+                (badges.length ? ' ' + badges.join(' ') : '') +
+                '<button class="btn-icon" style="margin-left:auto;" title="Remove exit" onclick="this.closest(\'.exit-card\').remove(); event.stopPropagation();">&times;</button>' +
+            '</div>' +
+            '<div class="exit-card-body">' +
+                '<div class="exit-card-grid">' +
+                    '<div class="exit-field">' +
+                        '<label>Exit Name</label>' +
+                        '<input type="text" class="exit-name" value="' + esc(name) + '" oninput="updateExitHeader(this)" />' +
+                    '</div>' +
+                    '<div class="exit-field">' +
+                        '<label>Target Room ID</label>' +
+                        '<input type="number" class="exit-roomid" value="' + (ex.RoomId || '') + '" oninput="updateExitHeader(this)" />' +
+                    '</div>' +
+                    '<div class="exit-field">' +
+                        '<label>Map Direction</label>' +
+                        '<input type="text" class="exit-mapdir" value="' + esc(ex.MapDirection || '') + '" placeholder="e.g. north" />' +
+                    '</div>' +
+                    '<div class="exit-field">' +
+                        '<label>Hidden (Secret)</label>' +
+                        '<div class="toggle-wrap">' +
+                            '<label class="toggle-switch">' +
+                                '<input type="checkbox" class="exit-secret" onchange="updateExitHeader(this)"' + (ex.Secret ? ' checked' : '') + ' />' +
+                                '<span class="toggle-slider"></span>' +
+                            '</label>' +
+                            '<span class="toggle-label">Hidden from players</span>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="exit-field span2">' +
+                        '<label>Exit Message</label>' +
+                        '<input type="text" class="exit-message" value="' + esc(ex.ExitMessage || '') + '" placeholder="Message shown before traversing (optional)" />' +
+                    '</div>' +
+                    '<div class="exit-field span2">' +
+                        '<label>Lock</label>' +
+                        '<div class="toggle-wrap">' +
+                            '<label class="toggle-switch">' +
+                                '<input type="checkbox" class="exit-has-lock" onchange="toggleLockSection(this)"' + (hasLock ? ' checked' : '') + ' />' +
+                                '<span class="toggle-slider"></span>' +
+                            '</label>' +
+                            '<span class="toggle-label">Locked</span>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="exit-lock-section span2" style="' + (hasLock ? '' : 'display:none;') + '">' +
+                        '<div class="lock-section">' +
+                            '<div class="lock-section-title">Lock Settings</div>' +
+                            '<div class="exit-card-grid">' +
+                                '<div class="exit-field">' +
+                                    '<label>Difficulty (2–32)</label>' +
+                                    '<div class="slider-wrap">' +
+                                        '<input type="range" class="lock-difficulty" min="2" max="32" value="' + (lock.Difficulty || 5) + '" oninput="syncSlider(this); updateExitHeader(this);" />' +
+                                        '<span class="slider-value">' + (lock.Difficulty || 5) + '</span>' +
+                                    '</div>' +
+                                '</div>' +
+                                '<div class="exit-field">' +
+                                    '<label>Relock Interval</label>' +
+                                    '<input type="text" class="lock-relock" value="' + esc(lock.RelockInterval || '') + '" placeholder="e.g. 1 hour (default)" />' +
+                                '</div>' +
+                                '<div class="exit-field span2">' +
+                                    '<label>Trap Buff IDs (on failed pick)</label>' +
+                                    '<div class="buff-ids-wrap lock-trap-buffs">' + renderTrapBuffChips(trapBuffIds) + '</div>' +
+                                    '<button class="btn-add-sm" style="margin-top:0.3rem;" onclick="pickTrapBuff(this)">+ Add Trap Buff</button>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+
+        // Open the card if it's new (no name)
+        if (!name) {
+            card.querySelector('.exit-card-header').classList.add('open');
+            card.querySelector('.exit-card-body').classList.add('open');
+        }
+
+        list.appendChild(card);
     }
 
-    window.addExit = function () { appendExitRow(document.getElementById('exits-list'), '', {}); };
+    function renderTrapBuffChips(buffIds) {
+        return (buffIds || []).map(id => {
+            const spec = allBuffs[id];
+            const label = spec ? spec.Name : 'buff #' + id;
+            return '<span class="buff-chip" data-buff-id="' + id + '">' + esc(label) +
+                ' <button onclick="this.closest(\'.buff-chip\').remove()" title="Remove">&times;</button></span>';
+        }).join('');
+    }
+
+    window.toggleExitCard = function (header) {
+        header.classList.toggle('open');
+        header.nextElementSibling.classList.toggle('open');
+    };
+
+    window.updateExitHeader = function (input) {
+        const card = input.closest('.exit-card');
+        const header = card.querySelector('.exit-card-header');
+        const nameVal = card.querySelector('.exit-name').value.trim() || 'New Exit';
+        const roomIdVal = card.querySelector('.exit-roomid').value.trim();
+        const isSecret = card.querySelector('.exit-secret').checked;
+        const hasLock = card.querySelector('.exit-has-lock').checked;
+        const lockDiff = hasLock ? parseInt(card.querySelector('.lock-difficulty').value, 10) || 0 : 0;
+
+        const badges = [];
+        if (isSecret) badges.push('<span class="exit-badge exit-badge-secret">hidden</span>');
+        if (hasLock && lockDiff > 0) badges.push('<span class="exit-badge">lock lvl ' + lockDiff + '</span>');
+
+        // preserve the remove button
+        const removeBtn = header.querySelector('.btn-icon').outerHTML;
+        header.innerHTML =
+            esc(nameVal) +
+            (roomIdVal ? ' <span style="font-size:0.7rem; color:#888; font-weight:400;">&rarr; #' + roomIdVal + '</span>' : '') +
+            (badges.length ? ' ' + badges.join(' ') : '') +
+            removeBtn;
+        header.querySelector('.btn-icon').onclick = function (e) { this.closest('.exit-card').remove(); e.stopPropagation(); };
+        header.onclick = function () { toggleExitCard(this); };
+    };
+
+    window.toggleLockSection = function (cb) {
+        const lockDiv = cb.closest('.exit-card').querySelector('.exit-lock-section');
+        lockDiv.style.display = cb.checked ? '' : 'none';
+        updateExitHeader(cb);
+    };
+
+    window.syncSlider = function (input) {
+        input.nextElementSibling.textContent = input.value;
+    };
+
+    window.pickTrapBuff = function (btn) {
+        buffPickerTarget = btn.previousElementSibling; // .lock-trap-buffs
+        openBuffModal();
+    };
+
+    window.addExit = function () { appendExitCard(document.getElementById('exits-list'), '', {}); };
 
     function collectExits() {
         const exits = {};
-        document.querySelectorAll('#exits-list .list-row').forEach(row => {
-            const inputs = row.querySelectorAll('input');
-            const sel = row.querySelector('select');
-            const name = inputs[0].value.trim();
-            const roomId = parseInt(inputs[1].value, 10);
-            if (name && !isNaN(roomId)) {
-                exits[name] = { RoomId: roomId, Secret: sel.value === 'true', MapDirection: inputs[2].value.trim() };
+        document.querySelectorAll('#exits-list .exit-card').forEach(card => {
+            const name = card.querySelector('.exit-name').value.trim();
+            if (!name) return;
+            const roomId = parseInt(card.querySelector('.exit-roomid').value, 10);
+            if (!roomId) return;
+            const secret = card.querySelector('.exit-secret').checked;
+            const mapDir = card.querySelector('.exit-mapdir').value.trim();
+            const exitMsg = card.querySelector('.exit-message').value.trim();
+            const hasLock = card.querySelector('.exit-has-lock').checked;
+
+            const exitObj = { RoomId: roomId };
+            if (secret) exitObj.Secret = true;
+            if (mapDir) exitObj.MapDirection = mapDir;
+            if (exitMsg) exitObj.ExitMessage = exitMsg;
+
+            if (hasLock) {
+                const diff = parseInt(card.querySelector('.lock-difficulty').value, 10) || 5;
+                const relock = card.querySelector('.lock-relock').value.trim();
+                const trapBuffIds = Array.from(card.querySelectorAll('.lock-trap-buffs .buff-chip'))
+                    .map(c => parseInt(c.dataset.buffId, 10))
+                    .filter(n => !isNaN(n));
+                exitObj.Lock = { Difficulty: diff };
+                if (relock) exitObj.Lock.RelockInterval = relock;
+                if (trapBuffIds.length) exitObj.Lock.TrapBuffIds = trapBuffIds;
             }
+
+            exits[name] = exitObj;
         });
         return exits;
+    }
+
+    // -------------------------------------------------------------------------
+    // Buff picker modal (for trap buffs)
+    // -------------------------------------------------------------------------
+    function openBuffModal() {
+        renderBuffModalList('');
+        document.getElementById('buff-modal').style.display = 'flex';
+        document.getElementById('buff-modal-search').value = '';
+        document.getElementById('buff-modal-search').focus();
+    }
+
+    window.closeBuffModal = function () {
+        document.getElementById('buff-modal').style.display = 'none';
+        buffPickerTarget = null;
+    };
+
+    window.filterBuffModal = function () {
+        renderBuffModalList(document.getElementById('buff-modal-search').value);
+    };
+
+    function renderBuffModalList(filter) {
+        const container = document.getElementById('buff-modal-list');
+        const filterLc = filter.toLowerCase();
+        container.innerHTML = '';
+
+        const entries = Object.entries(allBuffs)
+            .filter(([id, spec]) => spec.Name !== 'empty')
+            .filter(([id, spec]) => !filterLc || spec.Name.toLowerCase().includes(filterLc) || String(id).includes(filterLc))
+            .sort((a, b) => a[1].Name.localeCompare(b[1].Name));
+
+        if (entries.length === 0) {
+            container.innerHTML = '<div style="padding:1rem; text-align:center; color:#aaa; font-size:0.85rem;">No buffs found.</div>';
+            return;
+        }
+
+        for (const [id, spec] of entries) {
+            const row = document.createElement('div');
+            row.style.cssText = 'padding:0.4rem 0.75rem; cursor:pointer; font-size:0.85rem; border-bottom:1px solid #f0f0f0;';
+            row.innerHTML = '<strong>' + esc(spec.Name) + '</strong> <span style="color:#aaa; font-size:0.75rem;">#' + id + '</span>';
+            row.onmouseover = () => row.style.background = '#f5f7ff';
+            row.onmouseout = () => row.style.background = '';
+            row.onclick = () => selectTrapBuff(parseInt(id, 10), spec.Name);
+            container.appendChild(row);
+        }
+    }
+
+    function selectTrapBuff(buffId, buffName) {
+        if (!buffPickerTarget) return;
+        // avoid duplicates
+        const existing = Array.from(buffPickerTarget.querySelectorAll('.buff-chip')).map(c => parseInt(c.dataset.buffId, 10));
+        if (existing.includes(buffId)) { closeBuffModal(); return; }
+        const chip = document.createElement('span');
+        chip.className = 'buff-chip';
+        chip.dataset.buffId = buffId;
+        chip.innerHTML = esc(buffName) + ' <button onclick="this.closest(\'.buff-chip\').remove()" title="Remove">&times;</button>';
+        buffPickerTarget.appendChild(chip);
+        closeBuffModal();
+        // update the exit header
+        const card = buffPickerTarget.closest('.exit-card');
+        if (card) updateExitHeader(card.querySelector('.exit-name'));
     }
 
     // -------------------------------------------------------------------------
@@ -767,6 +1253,8 @@
         const btn = document.getElementById('save-btn');
         btn.disabled = true; btn.textContent = 'Saving...';
 
+        const script = document.getElementById('f-script').value;
+
         const payload = {
             Zone:          document.getElementById('f-zone').value,
             Title:         document.getElementById('f-title').value.trim(),
@@ -775,8 +1263,8 @@
             MapSymbol:     document.getElementById('f-mapsymbol').value.trim(),
             MapLegend:     document.getElementById('f-maplegend').value.trim(),
             MusicFile:     document.getElementById('f-musicfile').value.trim(),
-            IsBank:        document.getElementById('f-isbank').value === 'true',
-            Pvp:           document.getElementById('f-pvp').value === 'true',
+            IsBank:        document.getElementById('f-isbank').checked,
+            Pvp:           document.getElementById('f-pvp').checked,
             Tags:          collectTags(),
             Exits:         collectExits(),
             SpawnInfo:     collectSpawns(),
@@ -785,13 +1273,18 @@
             Nouns:         collectNouns(),
         };
 
-        const res = await AdminAPI.patch('/admin/api/v1/rooms/' + currentRoomId, payload);
+        const [patchRes, scriptRes] = await AdminAPI.all([
+            AdminAPI.patch('/admin/api/v1/rooms/' + currentRoomId, payload),
+            AdminAPI.put('/admin/api/v1/rooms/' + currentRoomId + '/script', { script: script }),
+        ]);
+
         btn.disabled = false; btn.textContent = 'Save Room';
 
-        if (!res.ok) { showStatus('Save failed: ' + res.error, false); return; }
+        if (!patchRes.ok) { showStatus('Save failed: ' + patchRes.error, false); return; }
+        if (!scriptRes.ok) { showStatus('Room saved but script save failed: ' + scriptRes.error, false); return; }
 
         showStatus('Room saved.', true);
-        const saved = res.data.data;
+        const saved = patchRes.data.data;
         document.getElementById('editor-title').textContent = saved.Title;
         document.getElementById('editor-zone-badge').textContent = saved.Zone;
         loadRoomList();

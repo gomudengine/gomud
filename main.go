@@ -188,6 +188,7 @@ func main() {
 	usercommands.AddFunctionExporter(plugins.GetPluginRegistry())
 	users.AddFunctionExporter(plugins.GetPluginRegistry())
 	usercommands.SetRoomTagProvider(plugins.GetRegisteredRoomTags)
+	web.SetRoomTagProvider(plugins.GetRegisteredRoomTags)
 
 	inputhandlers.AddIACHandler(plugins.GetPluginRegistry())
 	inputhandlers.AddTextPrefixHandler(plugins.GetPluginRegistry())

@@ -234,3 +234,52 @@ func apiV1DeleteRoom(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, APIResponse[struct{}]{Success: true})
 }
+
+// GET /admin/api/v1/rooms/{roomId}/script
+func apiV1GetRoomScript(w http.ResponseWriter, r *http.Request) {
+	roomId, err := strconv.Atoi(r.PathValue("roomId"))
+	if err != nil {
+		writeAPIError(w, http.StatusBadRequest, "roomId must be an integer")
+		return
+	}
+
+	room := rooms.GetRoomForAdmin(roomId)
+	if room == nil {
+		writeAPIError(w, http.StatusNotFound, "room not found: "+strconv.Itoa(roomId))
+		return
+	}
+
+	writeJSON(w, http.StatusOK, APIResponse[map[string]string]{
+		Success: true,
+		Data:    map[string]string{"script": room.GetScript()},
+	})
+}
+
+// PUT /admin/api/v1/rooms/{roomId}/script
+func apiV1PutRoomScript(w http.ResponseWriter, r *http.Request) {
+	roomId, err := strconv.Atoi(r.PathValue("roomId"))
+	if err != nil {
+		writeAPIError(w, http.StatusBadRequest, "roomId must be an integer")
+		return
+	}
+
+	if rooms.GetRoomForAdmin(roomId) == nil {
+		writeAPIError(w, http.StatusNotFound, "room not found: "+strconv.Itoa(roomId))
+		return
+	}
+
+	var body struct {
+		Script string `json:"script"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeAPIError(w, http.StatusBadRequest, "malformed request body: "+err.Error())
+		return
+	}
+
+	if err := rooms.SaveRoomScript(roomId, body.Script); err != nil {
+		writeAPIError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, APIResponse[struct{}]{Success: true})
+}

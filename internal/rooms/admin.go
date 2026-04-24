@@ -20,6 +20,7 @@ type RoomSummary struct {
 	SpawnCount int    `json:"SpawnCount"`
 	IsBank     bool   `json:"IsBank,omitempty"`
 	Pvp        bool   `json:"Pvp,omitempty"`
+	HasScript  bool   `json:"HasScript,omitempty"`
 }
 
 type PaginatedRooms struct {
@@ -144,6 +145,7 @@ func GetPaginatedRoomSummaries(zone string, search string, page int, perPage int
 			SpawnCount: len(r.SpawnInfo),
 			IsBank:     r.IsBank,
 			Pvp:        r.Pvp,
+			HasScript:  r.GetScript() != "",
 		})
 	}
 
@@ -279,6 +281,26 @@ func SaveZoneConfigForAdmin(name string, cfg *ZoneConfig) error {
 
 	roomManager.zones[name] = cfg
 	return nil
+}
+
+// SaveRoomScript writes (or overwrites) the JavaScript file for a room. If
+// content is empty the script file is deleted instead.
+func SaveRoomScript(roomId int, content string) error {
+	r := LoadRoomTemplate(roomId)
+	if r == nil {
+		return fmt.Errorf("room %d not found", roomId)
+	}
+
+	scriptPath := r.GetScriptPath()
+
+	if content == "" {
+		if err := os.Remove(scriptPath); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("removing room script: %w", err)
+		}
+		return nil
+	}
+
+	return os.WriteFile(scriptPath, []byte(content), 0644)
 }
 
 func DeleteZoneForAdmin(zoneName string) error {
