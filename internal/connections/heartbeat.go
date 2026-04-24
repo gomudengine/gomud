@@ -56,6 +56,8 @@ func (cd *ConnectionDetails) StartHeartbeat(config HeartbeatConfig) error {
 		return nil
 	})
 
+	cd.heartbeat = hm
+
 	// start ping ticker in a goroutine
 	hm.wg.Add(1)
 	go hm.runPingLoop()
