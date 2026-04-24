@@ -440,6 +440,9 @@ loop:
 
 				util.LockMud()
 				users.SetLinkDeadUser(linkDeadFlag[0])
+				events.AddToQueue(events.PlayerChanged{
+					UserId: linkDeadFlag[0],
+				})
 				util.UnlockMud()
 
 			}
