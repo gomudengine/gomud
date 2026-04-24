@@ -385,6 +385,14 @@ func buildAdminNav() []WebNavItem {
 						{Label: "API Docs", Target: "/admin/stats-api"},
 					},
 				},
+				{
+					Name:   "Audio",
+					Target: "/admin/audio",
+					SubItems: []WebNavSub{
+						{Label: "View / Edit", Target: "/admin/audio"},
+						{Label: "API Docs", Target: "/admin/audio-api"},
+					},
+				},
 			},
 		},
 	}

@@ -218,6 +218,14 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 		doBasicAuth(apiV1DeleteMutator),
 	))
 
+	// Audio
+	mux.HandleFunc("GET /admin/api/v1/audio", RunWithMUDLocked(
+		doBasicAuth(apiV1GetAudio),
+	))
+	mux.HandleFunc("PATCH /admin/api/v1/audio", RunWithMUDLocked(
+		doBasicAuth(apiV1PatchAudio),
+	))
+
 	// Keywords
 	mux.HandleFunc("GET /admin/api/v1/keywords", RunWithMUDLocked(
 		doBasicAuth(apiV1GetKeywords),

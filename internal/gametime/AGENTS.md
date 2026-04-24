@@ -315,3 +315,86 @@ func AdminSetTime(adjustment int)
 - `internal/mudlog` - Logging system for debugging time calculations
 
 This comprehensive gametime system provides immersive fantasy calendar functionality with sophisticated time management, visual representation, and seamless integration with game events and mechanics while maintaining performance through intelligent caching and efficient calculations.
+
+## Period String Reference
+
+All period-based functions (`AddPeriod`, `RoundTimer.Period`) accept a plain string. The general format is:
+
+```
+[quantity] [real|irl|game|gametime] [unit]
+  -- or --
+[quantity] [unit] [real|irl|game|gametime]
+```
+
+- `quantity` is an integer and defaults to `1` if omitted or unparseable.
+- The `real`/`irl` or `game`/`gametime` qualifier is optional and defaults to game time when absent.
+- Unit matching uses only the first three characters, so `day`, `days`, and `daily` are all equivalent.
+
+### Game Time Units
+
+All durations are converted to game rounds. One game day equals `RoundsPerDay` rounds (configured). One game hour equals `RoundsPerDay / 24` rounds.
+
+| Unit (examples) | First 3 chars matched | Duration |
+|---|---|---|
+| `round`, `rounds` (or any unrecognized unit) | n/a | Raw game rounds (1 per unit) |
+| `minute`, `minutes` | `min` | `RoundsPerDay / 24 / 60` rounds each |
+| `hour`, `hours`, `hourly` | `hou` | `RoundsPerDay / 24` rounds each |
+| `day`, `days`, `daily` | `day` / `dai` | `RoundsPerDay` rounds each |
+| `week`, `weeks`, `weekly` | `wee` | 7 game days |
+| `month`, `months`, `monthly` | `mon` | 730 game hours (~30.4 game days) |
+| `year`, `years`, `yearly` | `yea` | 365 game days |
+
+#### Anchor-Relative Game Time Units
+
+These snap to the last occurrence of a named moment, then add whole game days on top.
+
+| Unit | Behavior |
+|---|---|
+| `noon`, `noons` | Last in-game noon + `qty` game days |
+| `midnight`, `midnights` | Last in-game midnight + `qty` game days |
+| `sunrise`, `sunrises` | Last sunrise + `qty` game days |
+| `sunset`, `sunsets` | Last sunset + `qty` game days |
+
+The `real`/`irl` qualifier is **not supported** for anchor-relative units. Specifying it logs an error and falls back to game time.
+
+### Real Time Units
+
+Triggered by including `real` or `irl` in the period string. Round counts are derived from `RoundSeconds` (the configured number of real seconds per round).
+
+| Unit | Real-time equivalent |
+|---|---|
+| `minute`, `minutes` | `60 / RoundSeconds` rounds |
+| `hour`, `hours` | `3600 / RoundSeconds` rounds |
+| `day`, `days` | `84600 / RoundSeconds` rounds (84600s = 23.5 hours, not 86400) |
+| `week`, `weeks` | 7 real days worth of rounds |
+| `month`, `months` | 730 real hours worth of rounds |
+| `year`, `years` | 365 real days worth of rounds |
+
+> Note: real days use `84600` seconds rather than `86400`, so a "real day" period is 23.5 real hours.
+
+### Examples
+
+```
+"5 days"          -> 5 game days
+"2 hours"         -> 2 game hours
+"1 week"          -> 7 game days
+"3 irl hours"     -> 3 real hours worth of rounds
+"10 days real"    -> 10 real days (x84600s each)
+"2 game days"     -> 2 game days (explicit qualifier, same as default)
+"1 sunrise"       -> 1 game day after the last sunrise
+"3 sunsets"       -> 3 game days after the last sunset
+"round"           -> 1 round (unrecognized unit fallback)
+```
+
+### GetLastPeriod
+
+`GetLastPeriod(periodName string, roundNumber uint64) uint64` returns the round number at which the named moment last occurred, relative to `roundNumber`. Supported names:
+
+| Name | Returns |
+|---|---|
+| `hour` | Start of the current game hour |
+| `day` | Start of the current game day (midnight) |
+| `week` | Start of the current game week |
+| `noon` | Last in-game noon (12:00 PM) |
+| `sunrise` | Last sunrise |
+| `sunset` | Last sunset |

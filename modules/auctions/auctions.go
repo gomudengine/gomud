@@ -58,7 +58,7 @@ func init() {
 		panic(err)
 	}
 
-	a.plug.Web.AdminPage("Config", "auctions-config", "html/admin/auctions-config.html", true, "Modules", "Auctions", nil)	//
+	a.plug.Web.AdminPage("Config", "auctions-config", "html/admin/auctions-config.html", true, "Modules", "Auctions", nil) //
 	// Register any user/mob commands
 	//
 	a.plug.AddUserCommand(`auction`, a.auctionCommand, true, false)

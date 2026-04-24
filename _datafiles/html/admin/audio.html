@@ -1,0 +1,348 @@
+{{template "header" .}}
+
+<style>
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #555; margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+    .page-layout { display: grid; grid-template-columns: 260px 1fr; gap: 1.25rem; align-items: start; }
+    @media (max-width: 800px) { .page-layout { grid-template-columns: 1fr; } }
+
+    .sidebar { background: #fff; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; }
+    .sidebar-header { padding: 0.75rem 0.9rem; border-bottom: 1px solid #eee; }
+    .sidebar-header input[type="search"] { width: 100%; padding: 0.35rem 0.6rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; }
+    .entry-list { overflow-y: auto; max-height: 72vh; }
+
+    .list-section-label {
+        padding: 0.35rem 0.9rem; font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.07em; color: #888; background: #f5f5f5; border-bottom: 1px solid #eee;
+        border-top: 1px solid #eee; position: sticky; top: 0; z-index: 1;
+    }
+    .list-section-label:first-child { border-top: none; }
+
+    .entry-row {
+        padding: 0.45rem 0.9rem; cursor: pointer; border-bottom: 1px solid #f0f0f0;
+        font-size: 0.875rem; display: flex; align-items: center; justify-content: space-between; gap: 0.4rem;
+    }
+    .entry-row:last-child { border-bottom: none; }
+    .entry-row:hover { background: #f5f7ff; }
+    .entry-row.active { background: #1a1a2e; color: #fff; }
+    .entry-row.active .play-btn { color: #b0b8d0; }
+    .entry-row.active .play-btn:hover { color: #fff; }
+    .entry-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .play-btn {
+        flex-shrink: 0; background: none; border: none; cursor: pointer; padding: 0 0.2rem;
+        font-size: 1rem; color: #555; line-height: 1;
+    }
+    .play-btn:hover { color: #1a1a2e; }
+    .play-btn.playing { color: #c0392b; }
+    .entry-row.active .play-btn.playing { color: #ff8080; }
+    .no-entries { padding: 1.5rem; text-align: center; color: #888; font-size: 0.85rem; }
+
+    .editor-panel { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 1.25rem; }
+    .editor-placeholder { color: #aaa; text-align: center; padding: 4rem 1rem; font-size: 0.9rem; }
+
+    .status-bar { display: none; padding: 0.55rem 0.9rem; border-radius: 4px; font-size: 0.85rem; margin-bottom: 1rem; }
+    .status-bar.success { background: #e6f4ea; color: #1e6e34; display: block; }
+    .status-bar.error   { background: #fde8e8; color: #8a0000; display: block; }
+
+    .section-title { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #666; padding: 0.5rem 0 0.4rem; border-bottom: 1px solid #eee; margin-bottom: 0.75rem; }
+
+    .field { margin-bottom: 1rem; }
+    .field label { display: block; font-size: 0.78rem; font-weight: 600; color: #555; margin-bottom: 0.25rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .field input[type="text"] { width: 100%; padding: 0.4rem 0.6rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.875rem; font-family: inherit; }
+    .field input:focus { outline: 2px solid #1a1a2e; outline-offset: 1px; border-color: transparent; }
+    .field-hint { font-size: 0.75rem; color: #888; margin-top: 0.2rem; }
+
+    .volume-row { display: flex; align-items: center; gap: 0.75rem; }
+    .volume-row input[type="range"] { flex: 1; accent-color: #1a1a2e; cursor: pointer; }
+    .volume-value { font-size: 0.875rem; font-weight: 600; color: #1a1a2e; min-width: 2.5rem; text-align: right; white-space: nowrap; }
+    .volume-default-label { font-size: 0.78rem; color: #888; font-style: italic; margin-top: 0.25rem; min-height: 1.1em; }
+
+    .btn-row { display: flex; gap: 0.6rem; margin-top: 1.25rem; }
+    .btn-save { padding: 0.45rem 1.2rem; background: #1a1a2e; color: #fff; border: none; border-radius: 4px; font-size: 0.875rem; font-weight: 600; cursor: pointer; }
+    .btn-save:hover { background: #2d2d4e; }
+
+    .music-info { color: #555; font-size: 0.875rem; padding: 2rem 1rem; text-align: center; }
+    .music-info strong { display: block; margin-bottom: 0.4rem; font-size: 1rem; color: #1a1a2e; }
+</style>
+
+<h1>Audio</h1>
+<p class="subtitle">View and edit audio configuration. Play or stop any sound or music file.</p>
+
+<div class="page-layout">
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <input type="search" id="entrySearch" placeholder="Search&hellip;" oninput="filterEntries()" />
+        </div>
+        <div id="entryList" class="entry-list">
+            <div class="no-entries">Loading&hellip;</div>
+        </div>
+    </div>
+
+    <div class="editor-panel">
+        <div id="editorPlaceholder" class="editor-placeholder">Select an entry to view or edit.</div>
+
+        <div id="soundForm" style="display:none">
+            <div id="statusBar" class="status-bar"></div>
+            <p class="section-title" id="editorTitle">Edit Sound</p>
+
+            <div class="field">
+                <label for="fieldId">Identifier</label>
+                <input type="text" id="fieldId" readonly />
+                <div class="field-hint">Identifier cannot be changed.</div>
+            </div>
+
+            <div class="field">
+                <label for="fieldDescription">Description</label>
+                <input type="text" id="fieldDescription" placeholder="e.g. Plays at login screen" />
+            </div>
+
+            <div class="field">
+                <label for="fieldFilePath">File Path</label>
+                <input type="text" id="fieldFilePath" placeholder="e.g. static/audio/sound/other/change.mp3" />
+                <div class="field-hint">Relative to WebCDNLocation in config.yaml, or host root if blank.</div>
+            </div>
+
+            <div class="field">
+                <label for="fieldVolume">Volume</label>
+                <div class="volume-row">
+                    <input type="range" id="fieldVolume" min="0" max="100" value="0" oninput="updateVolumeDisplay()" />
+                    <span class="volume-value" id="volumeValueDisplay">0</span>
+                </div>
+                <div class="volume-default-label" id="volumeDefaultLabel">Default volume</div>
+                <div class="field-hint">Percentage of the file&rsquo;s full encoded volume (1&ndash;100). At 0, the server uses 100% as the default. This is the base level before the player&rsquo;s own category slider and per-sound overrides are applied on top.</div>
+            </div>
+
+            <div class="btn-row">
+                <button class="btn-save" onclick="saveEntry()">Save</button>
+            </div>
+        </div>
+
+        <div id="musicInfo" style="display:none">
+            <div class="music-info">
+                <strong id="musicInfoName"></strong>
+                Music files are served from <code>static/audio/music/</code> and are not configurable here.
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let soundsData = {};
+let musicFiles = [];
+let activeId = null;
+let activeType = null; // 'sound' | 'music'
+let currentAudio = null;
+let currentPlayingId = null;
+
+async function loadAudio() {
+    const res = await AdminAPI.get('/admin/api/v1/audio');
+    if (!res.ok) { showStatus('error', 'Failed to load: ' + res.error); return; }
+    const data = (res.data && res.data.data) || {};
+    soundsData = data.sounds || {};
+    musicFiles = data.music || [];
+    renderList();
+}
+
+function filterEntries() {
+    const q = document.getElementById('entrySearch').value.toLowerCase();
+    document.querySelectorAll('.entry-row').forEach(row => {
+        const name = (row.dataset.id || '').toLowerCase();
+        row.style.display = name.includes(q) ? '' : 'none';
+    });
+    document.querySelectorAll('.list-section-label').forEach(lbl => {
+        lbl.style.display = '';
+    });
+}
+
+function renderList() {
+    const list = document.getElementById('entryList');
+    let html = '';
+
+    // Sounds section
+    const soundIds = Object.keys(soundsData).sort();
+    html += '<div class="list-section-label">Sounds</div>';
+    if (soundIds.length === 0) {
+        html += '<div class="no-entries">No sound entries.</div>';
+    } else {
+        soundIds.forEach(id => {
+            html += `<div class="entry-row" data-id="${escAttr(id)}" data-type="sound">
+                <span class="entry-name" onclick="selectEntry(${escAttr(JSON.stringify(id))}, 'sound')">${escHtml(id)}</span>
+                <button class="play-btn" id="playbtn-sound-${escAttr(id)}" onclick="togglePlay(event, ${escAttr(JSON.stringify(id))}, 'sound')" title="Play">&#9654;</button>
+            </div>`;
+        });
+    }
+
+    // Music section
+    html += '<div class="list-section-label">Music</div>';
+    if (musicFiles.length === 0) {
+        html += '<div class="no-entries">No music files found.</div>';
+    } else {
+        musicFiles.forEach(path => {
+            const name = path.replace(/^.*\//, '');
+            html += `<div class="entry-row" data-id="${escAttr(path)}" data-type="music">
+                <span class="entry-name" onclick="selectEntry(${escAttr(JSON.stringify(path))}, 'music')">${escHtml(name)}</span>
+                <button class="play-btn" id="playbtn-music-${escAttr(path)}" onclick="togglePlay(event, ${escAttr(JSON.stringify(path))}, 'music')" title="Play">&#9654;</button>
+            </div>`;
+        });
+    }
+
+    list.innerHTML = html;
+    if (activeId && activeType) highlightRow(activeId, activeType);
+    if (currentPlayingId) refreshPlayButton(currentPlayingId);
+}
+
+function highlightRow(id, type) {
+    document.querySelectorAll('.entry-row').forEach(r => r.classList.remove('active'));
+    const row = document.querySelector(`.entry-row[data-id="${escAttr(id)}"][data-type="${escAttr(type)}"]`);
+    if (row) row.classList.add('active');
+}
+
+function selectEntry(id, type) {
+    activeId = id;
+    activeType = type;
+    highlightRow(id, type);
+
+    document.getElementById('editorPlaceholder').style.display = 'none';
+    document.getElementById('soundForm').style.display = 'none';
+    document.getElementById('musicInfo').style.display = 'none';
+    document.getElementById('statusBar').className = 'status-bar';
+    document.getElementById('statusBar').textContent = '';
+
+    if (type === 'sound') {
+        const entry = soundsData[id] || {};
+        document.getElementById('soundForm').style.display = '';
+        document.getElementById('editorTitle').textContent = 'Edit: ' + id;
+        document.getElementById('fieldId').value = id;
+        document.getElementById('fieldDescription').value = entry.description || '';
+        document.getElementById('fieldFilePath').value = entry.filepath || '';
+        document.getElementById('fieldVolume').value = entry.volume != null ? entry.volume : 0;
+        updateVolumeDisplay();
+    } else {
+        document.getElementById('musicInfo').style.display = '';
+        document.getElementById('musicInfoName').textContent = id.replace(/^.*\//, '');
+    }
+}
+
+// ---- Playback ----
+
+function togglePlay(evt, id, type) {
+    evt.stopPropagation();
+    if (currentPlayingId === id && currentAudio && !currentAudio.paused) {
+        stopAudio();
+    } else {
+        playAudio(id, type);
+    }
+}
+
+function playAudio(id, type) {
+    stopAudio();
+
+    let src;
+    if (type === 'sound') {
+        const entry = soundsData[id] || {};
+        src = entry.filepath ? '/' + entry.filepath.replace(/^\//, '') : null;
+    } else {
+        src = '/' + id;
+    }
+
+    if (!src) {
+        return;
+    }
+
+    currentAudio = new Audio(src);
+    currentPlayingId = id;
+    refreshPlayButton(id);
+
+    currentAudio.addEventListener('ended', () => {
+        currentPlayingId = null;
+        currentAudio = null;
+        refreshPlayButton(id);
+    });
+    currentAudio.addEventListener('error', () => {
+        currentPlayingId = null;
+        currentAudio = null;
+        refreshPlayButton(id);
+    });
+
+    currentAudio.play().catch(() => {
+        currentPlayingId = null;
+        currentAudio = null;
+        refreshPlayButton(id);
+    });
+}
+
+function stopAudio() {
+    if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+        const prev = currentPlayingId;
+        currentAudio = null;
+        currentPlayingId = null;
+        if (prev) refreshPlayButton(prev);
+    }
+}
+
+function refreshPlayButton(id) {
+    // Reset all play buttons first, then set the active one
+    document.querySelectorAll('.play-btn').forEach(btn => {
+        btn.textContent = '\u25B6';
+        btn.classList.remove('playing');
+        btn.title = 'Play';
+    });
+    if (currentPlayingId) {
+        // Find the button for the currently playing entry (could be sound or music)
+        ['sound', 'music'].forEach(type => {
+            const btn = document.getElementById(`playbtn-${type}-${currentPlayingId}`);
+            if (btn) {
+                btn.textContent = '\u25A0';
+                btn.classList.add('playing');
+                btn.title = 'Stop';
+            }
+        });
+    }
+}
+
+function updateVolumeDisplay() {
+    const val = parseInt(document.getElementById('fieldVolume').value, 10) || 0;
+    document.getElementById('volumeValueDisplay').textContent = val;
+    document.getElementById('volumeDefaultLabel').textContent = val === 0 ? 'Default volume' : '';
+}
+
+
+async function saveEntry() {
+    if (!activeId || activeType !== 'sound') return;
+    const description = document.getElementById('fieldDescription').value.trim();
+    const filepath = document.getElementById('fieldFilePath').value.trim();
+    const volume = parseInt(document.getElementById('fieldVolume').value, 10) || 0;
+
+    const updated = Object.assign({}, soundsData);
+    updated[activeId] = { description, filepath, volume };
+
+    const res = await AdminAPI.patch('/admin/api/v1/audio', updated);
+    if (res.ok) {
+        const data = (res.data && res.data.data) || {};
+        soundsData = data.sounds || updated;
+        musicFiles = data.music || musicFiles;
+        renderList();
+        highlightRow(activeId, 'sound');
+        showStatus('success', `Entry "${activeId}" saved.`);
+    } else {
+        showStatus('error', res.error || 'Save failed.');
+    }
+}
+
+function showStatus(type, msg) {
+    const bar = document.getElementById('statusBar');
+    bar.className = 'status-bar ' + type;
+    bar.textContent = msg;
+    if (type === 'success') setTimeout(() => { bar.className = 'status-bar'; }, 3000);
+}
+
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escAttr(s) { return String(s).replace(/"/g,'&quot;'); }
+
+loadAudio();
+</script>
+
+{{template "footer" .}}

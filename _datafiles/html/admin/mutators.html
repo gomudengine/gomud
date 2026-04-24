@@ -90,11 +90,50 @@
     }
     .btn-add-sm:hover { border-color: #1a1a2e; color: #1a1a2e; }
 
-    /* exit rows */
-    .exit-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.4rem; }
-    .exit-row input[type="text"] { flex: 2; min-width: 0; padding: 0.35rem 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; }
-    .exit-row input[type="number"] { width: 80px; flex-shrink: 0; padding: 0.35rem 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; }
-    .exit-row select { width: 5.5rem; flex-shrink: 0; padding: 0.35rem 0.3rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.8rem; background: #fff; }
+    /* exit cards */
+    .exit-card {
+        border: 1px solid #ddd; border-radius: 6px; margin-bottom: 0.6rem;
+        background: #fafafa; overflow: hidden;
+    }
+    .exit-card-header {
+        display: flex; align-items: center; gap: 0.5rem;
+        padding: 0.4rem 0.6rem; background: #f0f0f0; cursor: pointer;
+        font-size: 0.83rem; font-weight: 600; user-select: none;
+    }
+    .exit-card-header::before { content: "\25B6"; font-size: 0.55rem; transition: transform 0.15s; }
+    .exit-card-header.open::before { transform: rotate(90deg); }
+    .exit-card-body { display: none; padding: 0.75rem; }
+    .exit-card-body.open { display: block; }
+    .exit-card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 0.75rem; }
+    .exit-card-grid .span2 { grid-column: 1 / -1; }
+    .exit-field label { display: block; font-size: 0.73rem; font-weight: 600; color: #666; margin-bottom: 0.2rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .exit-field input[type="text"],
+    .exit-field input[type="number"],
+    .exit-field select { width: 100%; padding: 0.3rem 0.45rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.83rem; background: #fff; }
+    .exit-badge { font-size: 0.65rem; padding: 0.1rem 0.35rem; border-radius: 3px; background: #fce8e8; color: #8a0000; }
+    .exit-badge-secret { background: #e8f0fe; color: #1a4a8a; }
+    .lock-section { background: #fff8f0; border: 1px solid #f5d0a0; border-radius: 4px; padding: 0.6rem; margin-top: 0.5rem; }
+    .lock-section-title { font-size: 0.72rem; font-weight: 700; color: #8a4a00; text-transform: uppercase; margin-bottom: 0.5rem; }
+    /* toggle switch */
+    .toggle-wrap { display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0; }
+    .toggle-switch { position: relative; display: inline-block; width: 38px; height: 22px; flex-shrink: 0; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .toggle-slider {
+        position: absolute; inset: 0; background: #ccc; border-radius: 22px;
+        cursor: pointer; transition: background 0.2s;
+    }
+    .toggle-slider::before {
+        content: ''; position: absolute; width: 16px; height: 16px;
+        left: 3px; bottom: 3px; background: #fff; border-radius: 50%;
+        transition: transform 0.2s;
+    }
+    .toggle-switch input:checked + .toggle-slider { background: #3949ab; }
+    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(16px); }
+    .toggle-label { font-size: 0.83rem; color: #444; user-select: none; cursor: pointer; }
+    /* difficulty slider */
+    .slider-wrap { display: flex; align-items: center; gap: 0.6rem; }
+    .slider-wrap input[type=range] { flex: 1; accent-color: #3949ab; cursor: pointer; }
+    .slider-value { font-family: monospace; font-size: 0.85rem; font-weight: 700; color: #1a1a2e; min-width: 1.8rem; text-align: right; }
     .btn-icon {
         background: none; border: none; cursor: pointer; font-size: 1rem;
         color: #888; padding: 0 0.2rem; line-height: 1;
@@ -497,39 +536,200 @@
     function renderExits(exits) {
         const list = document.getElementById('exits-list');
         list.innerHTML = '';
-        for (const [name, ex] of Object.entries(exits)) {
-            appendExitRow(list, name, ex);
+        for (const [name, ex] of Object.entries(exits)) appendExitCard(list, name, ex);
+    }
+
+    function appendExitCard(list, name, ex) {
+        ex = ex || {};
+        const lock = ex.Lock || {};
+        const hasLock = (lock.Difficulty || 0) > 0;
+        const trapBuffIds = lock.TrapBuffIds || [];
+
+        const card = document.createElement('div');
+        card.className = 'exit-card';
+
+        const badges = [];
+        if (ex.Secret) badges.push('<span class="exit-badge exit-badge-secret">hidden</span>');
+        if (hasLock) badges.push('<span class="exit-badge">lock lvl ' + lock.Difficulty + '</span>');
+
+        card.innerHTML =
+            '<div class="exit-card-header" onclick="toggleExitCard(this)">' +
+                esc(name || 'New Exit') +
+                (ex.RoomId ? ' <span style="font-size:0.7rem; color:#888; font-weight:400;">&rarr; #' + ex.RoomId + '</span>' : '') +
+                (badges.length ? ' ' + badges.join(' ') : '') +
+                '<button class="btn-icon" style="margin-left:auto;" title="Remove exit" onclick="this.closest(\'.exit-card\').remove(); event.stopPropagation();">&times;</button>' +
+            '</div>' +
+            '<div class="exit-card-body">' +
+                '<div class="exit-card-grid">' +
+                    '<div class="exit-field">' +
+                        '<label>Exit Name</label>' +
+                        '<input type="text" class="exit-name" value="' + esc(name) + '" oninput="updateExitHeader(this)" />' +
+                    '</div>' +
+                    '<div class="exit-field">' +
+                        '<label>Target Room ID</label>' +
+                        '<input type="number" class="exit-roomid" value="' + (ex.RoomId || '') + '" oninput="updateExitHeader(this)" />' +
+                    '</div>' +
+                    '<div class="exit-field">' +
+                        '<label>Map Direction</label>' +
+                        '<input type="text" class="exit-mapdir" value="' + esc(ex.MapDirection || '') + '" placeholder="e.g. north" />' +
+                    '</div>' +
+                    '<div class="exit-field">' +
+                        '<label>Hidden (Secret)</label>' +
+                        '<div class="toggle-wrap">' +
+                            '<label class="toggle-switch">' +
+                                '<input type="checkbox" class="exit-secret" onchange="updateExitHeader(this)"' + (ex.Secret ? ' checked' : '') + ' />' +
+                                '<span class="toggle-slider"></span>' +
+                            '</label>' +
+                            '<span class="toggle-label">Hidden from players</span>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="exit-field span2">' +
+                        '<label>Exit Message</label>' +
+                        '<input type="text" class="exit-message" value="' + esc(ex.ExitMessage || '') + '" placeholder="Message shown before traversing (optional)" />' +
+                    '</div>' +
+                    '<div class="exit-field span2">' +
+                        '<label>Lock</label>' +
+                        '<div class="toggle-wrap">' +
+                            '<label class="toggle-switch">' +
+                                '<input type="checkbox" class="exit-has-lock" onchange="toggleLockSection(this)"' + (hasLock ? ' checked' : '') + ' />' +
+                                '<span class="toggle-slider"></span>' +
+                            '</label>' +
+                            '<span class="toggle-label">Locked</span>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="exit-lock-section span2" style="' + (hasLock ? '' : 'display:none;') + '">' +
+                        '<div class="lock-section">' +
+                            '<div class="lock-section-title">Lock Settings</div>' +
+                            '<div class="exit-card-grid">' +
+                                '<div class="exit-field">' +
+                                    '<label>Difficulty (2&ndash;32)</label>' +
+                                    '<div class="slider-wrap">' +
+                                        '<input type="range" class="lock-difficulty" min="2" max="32" value="' + (lock.Difficulty || 5) + '" oninput="syncSlider(this); updateExitHeader(this);" />' +
+                                        '<span class="slider-value">' + (lock.Difficulty || 5) + '</span>' +
+                                    '</div>' +
+                                '</div>' +
+                                '<div class="exit-field">' +
+                                    '<label>Relock Interval</label>' +
+                                    '<input type="text" class="lock-relock" value="' + esc(lock.RelockInterval || '') + '" placeholder="e.g. 1 hour (default)" />' +
+                                '</div>' +
+                                '<div class="exit-field span2">' +
+                                    '<label>Trap Buff IDs (on failed pick)</label>' +
+                                    '<div class="buff-ids-wrap lock-trap-buffs">' + renderTrapBuffChips(trapBuffIds) + '</div>' +
+                                    '<button class="btn-add-sm" style="margin-top:0.3rem;" onclick="pickTrapBuff(this)">+ Add Trap Buff</button>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+
+        // Open the card if it's new (no name)
+        if (!name) {
+            card.querySelector('.exit-card-header').classList.add('open');
+            card.querySelector('.exit-card-body').classList.add('open');
         }
+
+        list.appendChild(card);
     }
 
-    function appendExitRow(list, name, ex) {
-        const row = document.createElement('div');
-        row.className = 'exit-row';
-        row.innerHTML =
-            '<input type="text" placeholder="Exit name (e.g. north)" value="' + esc(name || '') + '" />' +
-            '<input type="number" placeholder="Room ID" value="' + (ex.RoomId || '') + '" />' +
-            '<select>' +
-                '<option value="false"' + (!ex.Secret ? ' selected' : '') + '>Visible</option>' +
-                '<option value="true"' + (ex.Secret ? ' selected' : '') + '>Secret</option>' +
-            '</select>' +
-            '<button class="btn-icon" title="Remove" onclick="this.closest(\'.exit-row\').remove()">&times;</button>';
-        list.appendChild(row);
+    function renderTrapBuffChips(buffIds) {
+        return (buffIds || []).map(id => {
+            const name = PickerConfigs.buffName(id);
+            return '<span class="buff-chip" data-buff-id="' + id + '">' + esc(name) +
+                ' <button onclick="this.closest(\'.buff-chip\').remove()" title="Remove">&times;</button></span>';
+        }).join('');
     }
 
-    window.addExit = function () {
-        appendExitRow(document.getElementById('exits-list'), '', {});
+    window.toggleExitCard = function (header) {
+        header.classList.toggle('open');
+        header.nextElementSibling.classList.toggle('open');
     };
+
+    window.updateExitHeader = function (input) {
+        const card = input.closest('.exit-card');
+        const header = card.querySelector('.exit-card-header');
+        const nameVal = card.querySelector('.exit-name').value.trim() || 'New Exit';
+        const roomIdVal = card.querySelector('.exit-roomid').value.trim();
+        const isSecret = card.querySelector('.exit-secret').checked;
+        const hasLock = card.querySelector('.exit-has-lock').checked;
+        const lockDiff = hasLock ? parseInt(card.querySelector('.lock-difficulty').value, 10) || 0 : 0;
+
+        const badges = [];
+        if (isSecret) badges.push('<span class="exit-badge exit-badge-secret">hidden</span>');
+        if (hasLock && lockDiff > 0) badges.push('<span class="exit-badge">lock lvl ' + lockDiff + '</span>');
+
+        const removeBtn = header.querySelector('.btn-icon').outerHTML;
+        header.innerHTML =
+            esc(nameVal) +
+            (roomIdVal ? ' <span style="font-size:0.7rem; color:#888; font-weight:400;">&rarr; #' + roomIdVal + '</span>' : '') +
+            (badges.length ? ' ' + badges.join(' ') : '') +
+            removeBtn;
+        header.querySelector('.btn-icon').onclick = function (e) { this.closest('.exit-card').remove(); e.stopPropagation(); };
+        header.onclick = function () { toggleExitCard(this); };
+    };
+
+    window.toggleLockSection = function (cb) {
+        const lockDiv = cb.closest('.exit-card').querySelector('.exit-lock-section');
+        lockDiv.style.display = cb.checked ? '' : 'none';
+        updateExitHeader(cb);
+    };
+
+    window.syncSlider = function (input) {
+        input.nextElementSibling.textContent = input.value;
+    };
+
+    window.pickTrapBuff = function (btn) {
+        const trapWrap = btn.previousElementSibling; // .lock-trap-buffs
+        const existing = Array.from(trapWrap.querySelectorAll('.buff-chip')).map(c => parseInt(c.dataset.buffId, 10));
+        Picker.open({
+            ...PickerConfigs.buffs,
+            selected: existing,
+            onSelect: (buffs) => {
+                trapWrap.innerHTML = '';
+                for (const buff of buffs) {
+                    const chip = document.createElement('span');
+                    chip.className = 'buff-chip';
+                    chip.dataset.buffId = buff.BuffId;
+                    chip.innerHTML = esc(buff.Name) + ' <button onclick="this.closest(\'.buff-chip\').remove()" title="Remove">&times;</button>';
+                    trapWrap.appendChild(chip);
+                }
+                const card = trapWrap.closest('.exit-card');
+                if (card) updateExitHeader(card.querySelector('.exit-name'));
+            },
+        });
+    };
+
+    window.addExit = function () { appendExitCard(document.getElementById('exits-list'), '', {}); };
 
     function collectExits() {
         const exits = {};
-        document.querySelectorAll('#exits-list .exit-row').forEach(row => {
-            const inputs = row.querySelectorAll('input');
-            const sel = row.querySelector('select');
-            const name = inputs[0].value.trim();
-            const roomId = parseInt(inputs[1].value, 10);
-            if (name && !isNaN(roomId)) {
-                exits[name] = { RoomId: roomId, Secret: sel.value === 'true' };
+        document.querySelectorAll('#exits-list .exit-card').forEach(card => {
+            const name = card.querySelector('.exit-name').value.trim();
+            if (!name) return;
+            const roomId = parseInt(card.querySelector('.exit-roomid').value, 10);
+            if (!roomId) return;
+            const secret = card.querySelector('.exit-secret').checked;
+            const mapDir = card.querySelector('.exit-mapdir').value.trim();
+            const exitMsg = card.querySelector('.exit-message').value.trim();
+            const hasLock = card.querySelector('.exit-has-lock').checked;
+
+            const exitObj = { RoomId: roomId };
+            if (secret) exitObj.Secret = true;
+            if (mapDir) exitObj.MapDirection = mapDir;
+            if (exitMsg) exitObj.ExitMessage = exitMsg;
+
+            if (hasLock) {
+                const diff = parseInt(card.querySelector('.lock-difficulty').value, 10) || 5;
+                const relock = card.querySelector('.lock-relock').value.trim();
+                const trapBuffIds = Array.from(card.querySelectorAll('.lock-trap-buffs .buff-chip'))
+                    .map(c => parseInt(c.dataset.buffId, 10))
+                    .filter(n => !isNaN(n));
+                exitObj.Lock = { Difficulty: diff };
+                if (relock) exitObj.Lock.RelockInterval = relock;
+                if (trapBuffIds.length) exitObj.Lock.TrapBuffIds = trapBuffIds;
             }
+
+            exits[name] = exitObj;
         });
         return exits;
     }
