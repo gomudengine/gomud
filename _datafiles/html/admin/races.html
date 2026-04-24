@@ -206,6 +206,8 @@ async function loadRaces() {
     if (!res.ok) { console.error('Failed to load races:', res.error); return; }
     racesData = (res.data && res.data.data) || {};
     renderList();
+    const hashId = location.hash.slice(1);
+    if (hashId && racesData[hashId]) selectRace(hashId);
 }
 
 function filterRaces() {
@@ -244,6 +246,7 @@ function highlightRow(id) {
 function selectRace(id) {
     activeRaceId = id;
     isNew = false;
+    location.hash = id;
     highlightRow(id);
     populateForm(racesData[id]);
 }
@@ -374,6 +377,7 @@ async function deleteRace() {
     if (res.ok) {
         delete racesData[activeRaceId];
         activeRaceId = null;
+        history.replaceState(null, '', location.pathname + location.search);
         renderList();
         document.getElementById('editorForm').style.display = 'none';
         document.getElementById('editorPlaceholder').style.display = '';

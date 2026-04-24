@@ -516,6 +516,8 @@
         populateZoneFilter();
         renderList(allMobs);
         scriptSync = ScriptEditor.init('f-script');
+        const hashId = parseInt(location.hash.slice(1), 10);
+        if (hashId) loadMob(hashId);
     }
 
     function populateRaceSelect(races) {        const sel = document.getElementById('f-raceid');
@@ -644,7 +646,7 @@
 
         currentMobId = mobId;
         isNew = false;
-
+        location.hash = mobId;
         setActiveRow(mobId);
         showEditor();
         fillForm(mob, script);
@@ -758,6 +760,7 @@
     };
 
     window.cancelEdit = function () {
+        history.replaceState(null, '', location.pathname + location.search);
         document.getElementById('editor-placeholder').style.display = '';
         document.getElementById('editor-form').style.display = 'none';
         document.querySelectorAll('.mob-row').forEach(r => r.classList.remove('active'));

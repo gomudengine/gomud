@@ -515,7 +515,9 @@
         populateZoneFilter();
         populateBiomeSelects();
         buildTagPickerList('');
-        loadRoomList();
+        await loadRoomList();
+        const hashId = parseInt(location.hash.slice(1), 10);
+        if (hashId) loadRoom(hashId);
         scriptSync = ScriptEditor.init('f-script');
     }
 
@@ -630,6 +632,7 @@
         const script = (scriptRes.ok && scriptRes.data.data && scriptRes.data.data.script) || '';
         currentRoomId = roomId;
         isNew = false;
+        location.hash = roomId;
         setActiveRow(roomId);
         document.getElementById('zone-editor').style.display = 'none';
         showEditor();
@@ -706,6 +709,7 @@
     };
 
     window.cancelEdit = function () {
+        history.replaceState(null, '', location.pathname + location.search);
         document.getElementById('editor-placeholder').style.display = '';
         document.getElementById('editor-form').style.display = 'none';
         document.getElementById('zone-editor').style.display = 'none';

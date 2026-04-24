@@ -291,6 +291,8 @@
 
         renderList(Object.values(allBuffs).sort((a, b) => a.BuffId - b.BuffId));
         scriptSync = ScriptEditor.init('f-script');
+        const hashId = parseInt(location.hash.slice(1), 10);
+        if (hashId) loadBuff(hashId);
     }
 
     // -------------------------------------------------------------------------
@@ -337,7 +339,7 @@
         allBuffs[spec.BuffId] = spec;
         currentBuffId = buffId;
         isNew = false;
-
+        location.hash = buffId;
         setActiveRow(buffId);
         showEditor();
         fillForm(spec, script);
@@ -390,6 +392,7 @@
     };
 
     window.cancelEdit = function () {
+        history.replaceState(null, '', location.pathname + location.search);
         document.getElementById('editor-placeholder').style.display = '';
         document.getElementById('editor-form').style.display = 'none';
         document.querySelectorAll('.buff-row').forEach(r => r.classList.remove('active'));

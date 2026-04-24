@@ -326,6 +326,8 @@
 
         allMutators = (res.data.data || []).sort((a, b) => a.MutatorId.localeCompare(b.MutatorId));
         renderList(allMutators);
+        const hashId = decodeURIComponent(location.hash.slice(1));
+        if (hashId) loadMutator(hashId);
     }
 
     // -------------------------------------------------------------------------
@@ -364,7 +366,7 @@
         const m = res.data.data;
         currentMutatorId = mutatorId;
         isNew = false;
-
+        location.hash = encodeURIComponent(mutatorId);
         setActiveRow(mutatorId);
         showEditor();
         fillForm(m);
@@ -443,6 +445,7 @@
     };
 
     window.cancelEdit = function () {
+        history.replaceState(null, '', location.pathname + location.search);
         document.getElementById('editor-placeholder').style.display = '';
         document.getElementById('editor-form').style.display = 'none';
         document.querySelectorAll('.mut-row').forEach(r => r.classList.remove('active'));

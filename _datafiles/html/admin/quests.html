@@ -240,6 +240,8 @@
         if (!res.ok) { showStatus('Failed to load quests: ' + res.error, false); return; }
         allQuests = (res.data.data || []).sort((a, b) => a.QuestId - b.QuestId);
         renderList(allQuests);
+        const hashId = parseInt(location.hash.slice(1), 10);
+        if (hashId) loadQuest(hashId);
     }
 
     // -------------------------------------------------------------------------
@@ -333,6 +335,7 @@
         if (!quest) return;
         currentQuestId = questId;
         isNew = false;
+        location.hash = questId;
         setActiveRow(questId);
         showEditor();
         fillForm(quest);
@@ -510,6 +513,7 @@
     };
 
     window.cancelEdit = function () {
+        history.replaceState(null, '', location.pathname + location.search);
         document.getElementById('editor-placeholder').style.display = '';
         document.getElementById('editor-form').style.display = 'none';
         document.querySelectorAll('.quest-row').forEach(r => r.classList.remove('active'));

@@ -378,6 +378,8 @@
         populateTypeSelects();
         renderList(allItems);
         scriptSync = ScriptEditor.init('f-script');
+        const hashId = parseInt(location.hash.slice(1), 10);
+        if (hashId) loadItem(hashId);
     }
 
     // -------------------------------------------------------------------------
@@ -476,7 +478,7 @@
 
         currentItemId = itemId;
         isNew = false;
-
+        location.hash = itemId;
         setActiveRow(itemId);
         showEditor();
         fillForm(item, script);
@@ -563,6 +565,7 @@
     };
 
     window.cancelEdit = function () {
+        history.replaceState(null, '', location.pathname + location.search);
         document.getElementById('editor-placeholder').style.display = '';
         document.getElementById('editor-form').style.display = 'none';
         document.querySelectorAll('.item-row').forEach(r => r.classList.remove('active'));
