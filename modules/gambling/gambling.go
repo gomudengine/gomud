@@ -22,13 +22,6 @@ var (
 	files embed.FS
 )
 
-const dieItemId = 1040000
-const coinItemId = 1040001
-const tarotItemId = 1040002
-const eightItemId = 1040003
-const bottleItemId = 1040004
-const cardsItemId = 1040005
-
 const defaultCost = 10
 
 func init() {
@@ -46,12 +39,12 @@ func init() {
 
 	g.plug.Web.AdminPage("Config", "gambling-config", "html/admin/gambling-config.html", true, "Modules", "Gambling", nil)
 	for itemId, path := range map[int]string{
-		dieItemId:    `files/datafiles/items/1040000-6_sided_die.js`,
-		coinItemId:   `files/datafiles/items/1040001-lucky_coin.js`,
-		tarotItemId:  `files/datafiles/items/1040002-tarot_deck.js`,
-		eightItemId:  `files/datafiles/items/1040003-magic_8_ball.js`,
-		bottleItemId: `files/datafiles/items/1040004-empty_bottle.js`,
-		cardsItemId:  `files/datafiles/items/1040005-deck_of_cards.js`,
+		1040000: `files/datafiles/items/1040000-6_sided_die.js`,
+		1040001: `files/datafiles/items/1040001-lucky_coin.js`,
+		1040002: `files/datafiles/items/1040002-tarot_deck.js`,
+		1040003: `files/datafiles/items/1040003-magic_8_ball.js`,
+		1040004: `files/datafiles/items/1040004-empty_bottle.js`,
+		1040005: `files/datafiles/items/1040005-deck_of_cards.js`,
 	} {
 		scriptBytes, err := fs.ReadFile(files, path)
 		if err != nil {

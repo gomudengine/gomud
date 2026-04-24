@@ -25,16 +25,57 @@ type clawPrize struct {
 	defaultWt int    // weight used when config key is absent
 }
 
-// clawPrizes is the ordered list of prizes the claw machine can award.
-// Weights are relative: a prize with weight 20 is twice as likely as one with weight 10.
-// Set a prize's weight to 0 in config to remove it from the pool entirely.
-var clawPrizes = []clawPrize{
-	{dieItemId, `6-sided die`, `ClawPrizeDie`, 20},
-	{coinItemId, `lucky coin`, `ClawPrizeCoin`, 20},
-	{bottleItemId, `empty bottle`, `ClawPrizeBottle`, 20},
-	{cardsItemId, `deck of cards`, `ClawPrizeCards`, 15},
-	{eightItemId, `magic 8-ball`, `ClawPrize8Ball`, 15},
-	{tarotItemId, `tarot deck`, `ClawPrizeTarot`, 10},
+// defaultClawPrizeItemIds maps each ClawPrizeN config key to its default item ID.
+var defaultClawPrizeItemIds = map[string]int{
+	`ClawPrize1`: 1040001,
+	`ClawPrize2`: 1040004,
+	`ClawPrize3`: 1040002,
+	`ClawPrize4`: 1040005,
+	`ClawPrize5`: 1040003,
+	`ClawPrize6`: 1040000,
+}
+
+// clawPrizeNames maps each ClawPrizeN config key to its display name.
+var clawPrizeNames = map[string]string{
+	`ClawPrize1`: `lucky coin`,
+	`ClawPrize2`: `empty bottle`,
+	`ClawPrize3`: `tarot deck`,
+	`ClawPrize4`: `deck of cards`,
+	`ClawPrize5`: `magic 8-ball`,
+	`ClawPrize6`: `6-sided die`,
+}
+
+// clawPrizeOrder is the canonical order prizes are evaluated in.
+var clawPrizeOrder = []string{`ClawPrize1`, `ClawPrize2`, `ClawPrize3`, `ClawPrize4`, `ClawPrize5`, `ClawPrize6`}
+
+// clawPrizeDefaultWeights maps each ClawPrizeN config key to its default weight.
+var clawPrizeDefaultWeights = map[string]int{
+	`ClawPrize1`: 20,
+	`ClawPrize2`: 20,
+	`ClawPrize3`: 10,
+	`ClawPrize4`: 15,
+	`ClawPrize5`: 15,
+	`ClawPrize6`: 20,
+}
+
+// buildClawPrizes constructs the prize list from config, using defaults for any missing values.
+func (g *GamblingModule) buildClawPrizes() []clawPrize {
+	prizes := make([]clawPrize, 0, len(clawPrizeOrder))
+	for _, key := range clawPrizeOrder {
+		itemId := defaultClawPrizeItemIds[key]
+		if v, ok := g.plug.Config.Get(key).(int); ok && v > 0 {
+			itemId = v
+		}
+		chanceKey := key + `Chance`
+		defaultWt := clawPrizeDefaultWeights[key]
+		prizes = append(prizes, clawPrize{
+			itemId:    itemId,
+			name:      clawPrizeNames[key],
+			configKey: chanceKey,
+			defaultWt: defaultWt,
+		})
+	}
+	return prizes
 }
 
 // roomHasClaw returns true when the room carries a "claw machine" tag.
@@ -58,22 +99,23 @@ func (g *GamblingModule) clawPrizeWeight(p clawPrize) int {
 // pickClawPrize selects a prize using weighted random selection over the active pool.
 // Returns nil if the pool is empty (all weights zero).
 func (g *GamblingModule) pickClawPrize() *clawPrize {
+	prizes := g.buildClawPrizes()
 	total := 0
-	for i := range clawPrizes {
-		total += g.clawPrizeWeight(clawPrizes[i])
+	for i := range prizes {
+		total += g.clawPrizeWeight(prizes[i])
 	}
 	if total <= 0 {
 		return nil
 	}
 	roll := util.Rand(total)
 	cumulative := 0
-	for i := range clawPrizes {
-		cumulative += g.clawPrizeWeight(clawPrizes[i])
+	for i := range prizes {
+		cumulative += g.clawPrizeWeight(prizes[i])
 		if roll < cumulative {
-			return &clawPrizes[i]
+			return &prizes[i]
 		}
 	}
-	return &clawPrizes[len(clawPrizes)-1]
+	return &prizes[len(prizes)-1]
 }
 
 // onRoomLookClaw injects a claw machine alert when the room has the claw machine tag.
@@ -211,19 +253,20 @@ func (g *GamblingModule) clawMachineNounDesc() string {
 	}
 
 	totalWeight := 0
-	for i := range clawPrizes {
-		totalWeight += g.clawPrizeWeight(clawPrizes[i])
+	prizes := g.buildClawPrizes()
+	for i := range prizes {
+		totalWeight += g.clawPrizeWeight(prizes[i])
 	}
 
 	type weightedPrize struct {
 		prize clawPrize
 		wt    int
 	}
-	sorted := make([]weightedPrize, 0, len(clawPrizes))
-	for i := range clawPrizes {
-		wt := g.clawPrizeWeight(clawPrizes[i])
+	sorted := make([]weightedPrize, 0, len(prizes))
+	for i := range prizes {
+		wt := g.clawPrizeWeight(prizes[i])
 		if wt > 0 {
-			sorted = append(sorted, weightedPrize{clawPrizes[i], wt})
+			sorted = append(sorted, weightedPrize{prizes[i], wt})
 		}
 	}
 	sort.Slice(sorted, func(i, j int) bool { return sorted[i].wt > sorted[j].wt })

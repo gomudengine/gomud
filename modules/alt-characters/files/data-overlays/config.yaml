@@ -1,8 +1,6 @@
-Modules:
-  alt-characters:
-    # - MaxAltCharacters -
-    #   How many characters beyond their original character can they create? Players
-    #   can swap between characters and work on them independently if this is set
-    #   greater than 0. Otherwise they are locked to a single character and have to
-    #   sign up with a new user login if they intend to create a new character.
-    MaxAltCharacters: 3
+  # - MaxAltCharacters -
+  #   How many characters beyond their original character can they create? Players
+  #   can swap between characters and work on them independently if this is set
+  #   greater than 0. Otherwise they are locked to a single character and have to
+  #   sign up with a new user login if they intend to create a new character.
+MaxAltCharacters: 3
