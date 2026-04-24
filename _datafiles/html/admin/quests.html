@@ -253,7 +253,7 @@
         wrap.dataset.value = value;
         const display = wrap.querySelector('.reward-picker-display');
         if (!display) return;
-        if (!value && value !== 0) {
+        if (!value) {
             display.textContent = 'none';
             display.className = 'reward-picker-display empty';
         } else {
