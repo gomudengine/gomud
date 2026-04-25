@@ -62,14 +62,17 @@ func GetAllZoneSummaries() []ZoneSummary {
 }
 
 func GetPaginatedRoomSummaries(zone string, search string, page int, perPage int) PaginatedRooms {
+	all := perPage == -1
 	if page < 1 {
 		page = 1
 	}
-	if perPage < 1 {
-		perPage = 50
-	}
-	if perPage > 200 {
-		perPage = 200
+	if !all {
+		if perPage < 1 {
+			perPage = 50
+		}
+		if perPage > 200 {
+			perPage = 200
+		}
 	}
 
 	search = strings.ToLower(strings.TrimSpace(search))
@@ -111,16 +114,21 @@ func GetPaginatedRoomSummaries(zone string, search string, page int, perPage int
 	sort.Ints(matchingIds)
 
 	total := len(matchingIds)
-	start := (page - 1) * perPage
-	if start > total {
-		start = total
+	var pageIds []int
+	if all {
+		pageIds = matchingIds
+		perPage = total
+	} else {
+		start := (page - 1) * perPage
+		if start > total {
+			start = total
+		}
+		end := start + perPage
+		if end > total {
+			end = total
+		}
+		pageIds = matchingIds[start:end]
 	}
-	end := start + perPage
-	if end > total {
-		end = total
-	}
-
-	pageIds := matchingIds[start:end]
 	rooms := make([]RoomSummary, 0, len(pageIds))
 
 	for _, roomId := range pageIds {

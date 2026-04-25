@@ -111,6 +111,15 @@ func apiV1GetRooms(w http.ResponseWriter, r *http.Request) {
 	zone := r.URL.Query().Get("zone")
 	search := r.URL.Query().Get("search")
 
+	if r.URL.Query().Get("all") == "true" {
+		result := rooms.GetPaginatedRoomSummaries(zone, search, 1, -1)
+		writeJSON(w, http.StatusOK, APIResponse[rooms.PaginatedRooms]{
+			Success: true,
+			Data:    result,
+		})
+		return
+	}
+
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	if page < 1 {
 		page = 1
