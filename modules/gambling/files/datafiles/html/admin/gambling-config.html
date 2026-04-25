@@ -116,9 +116,19 @@
     let configData = {};
 
     async function init() {
-        const res = await AdminAPI.get('/admin/api/v1/config');
-        if (!res.ok) { showStatus('Failed to load configuration: ' + res.error, false); return; }
-        const all = res.data.data || {};
+        const [cfgRes, itemsRes] = await AdminAPI.all([
+            AdminAPI.get('/admin/api/v1/config'),
+            AdminAPI.get('/admin/api/v1/items'),
+        ]);
+        if (!cfgRes.ok) { showStatus('Failed to load configuration: ' + cfgRes.error, false); return; }
+        if (itemsRes.ok) {
+            const itemList = (itemsRes.data && itemsRes.data.data) || [];
+            const items = Array.isArray(itemList) ? itemList : Object.values(itemList);
+            for (const item of items) {
+                if (item.ItemId != null) itemNameCache[item.ItemId] = item.Name || '';
+            }
+        }
+        const all = cfgRes.data.data || {};
         for (const [fullKey, val] of Object.entries(all)) {
             if (fullKey.startsWith(PREFIX)) {
                 configData[fullKey.slice(PREFIX.length)] = String(val);
