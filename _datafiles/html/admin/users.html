@@ -44,11 +44,22 @@
     .range-wrap input[type="range"] { flex: 1; accent-color: #1a1a2e; }
     .range-val { font-family: monospace; font-size: 0.85rem; font-weight: 600; min-width: 2.5rem; text-align: center; color: #1a1a2e; }
 
+    /* section cards */
+    .section-card {
+        grid-column: 1 / -1;
+        border: 1px solid #e0e0e0; border-radius: 6px;
+        padding: 1rem 1.1rem 0.75rem;
+        background: #fafafa;
+        display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem 1.25rem;
+    }
+    .section-card + .section-card { margin-top: 0.25rem; }
+    .section-card .span2 { grid-column: 1 / -1; }
+
     /* section headings */
     .section-title {
         font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
-        letter-spacing: 0.06em; color: #666; padding: 0.5rem 0 0.4rem;
-        border-bottom: 1px solid #eee; margin-bottom: 0.75rem; grid-column: 1 / -1;
+        letter-spacing: 0.06em; color: #444; padding: 0 0 0.5rem;
+        border-bottom: 2px solid #1a1a2e; margin-bottom: 0.25rem; grid-column: 1 / -1;
     }
 
     /* tags editor */
@@ -160,180 +171,185 @@
         </div>
 
         <div class="form-grid">
-            <div class="section-title">Account</div>
 
-            <div class="field">
-                <label>Username</label>
-                <input type="text" id="f-username" placeholder="username" />
-                <div class="field-hint">Changing the username does not update the login index — use with care.</div>
-            </div>
-            <div class="field">
-                <label>Role</label>
-                <select id="f-role">
-                    <option value="user">user</option>
-                    <option value="admin">admin</option>
-                    <option value="guest">guest</option>
-                </select>
-            </div>
+            <div class="section-card">
+                <div class="section-title">Account</div>
 
-            <div class="field">
-                <label>Email Address</label>
-                <input type="text" id="f-email" placeholder="optional" />
-            </div>
-            <div class="field">
-                <label>New Password</label>
-                <input type="password" id="f-password" placeholder="leave blank to keep current" autocomplete="new-password" />
-                <div class="field-hint">Will be bcrypt-hashed before saving. Leave blank to keep the existing password.</div>
-            </div>
+                <div class="field">
+                    <label>Username</label>
+                    <input type="text" id="f-username" placeholder="username" />
+                    <div class="field-hint">Changing the username does not update the login index — use with care.</div>
+                </div>
+                <div class="field">
+                    <label>Role</label>
+                    <select id="f-role">
+                        <option value="user">user</option>
+                        <option value="admin">admin</option>
+                        <option value="guest">guest</option>
+                    </select>
+                </div>
 
-            <div class="field">
-                <label>Muted</label>
-                <div class="toggle-field">
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="f-muted" />
-                        <span class="toggle-track"></span>
-                    </label>
-                    <span class="toggle-label">Cannot send custom communications</span>
+                <div class="field">
+                    <label>Email Address</label>
+                    <input type="text" id="f-email" placeholder="optional" />
+                </div>
+                <div class="field">
+                    <label>New Password</label>
+                    <input type="password" id="f-password" placeholder="leave blank to keep current" autocomplete="new-password" />
+                    <div class="field-hint">Will be bcrypt-hashed before saving. Leave blank to keep the existing password.</div>
+                </div>
+
+                <div class="field">
+                    <label>Muted</label>
+                    <div class="toggle-field">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="f-muted" />
+                            <span class="toggle-track"></span>
+                        </label>
+                        <span class="toggle-label">Cannot send custom communications</span>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label>Screen Reader</label>
+                    <div class="toggle-field">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="f-screenreader" />
+                            <span class="toggle-track"></span>
+                        </label>
+                        <span class="toggle-label">Strip excess symbols for screen readers</span>
+                    </div>
                 </div>
             </div>
 
-            <div class="field">
-                <label>Screen Reader</label>
-                <div class="toggle-field">
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="f-screenreader" />
-                        <span class="toggle-track"></span>
-                    </label>
-                    <span class="toggle-label">Strip excess symbols for screen readers</span>
+            <div class="section-card">
+                <div class="section-title">Character</div>
+
+                <div class="field">
+                    <label>Character Name</label>
+                    <input type="text" id="f-name" placeholder="e.g. Aldric" />
                 </div>
-            </div>
-
-            <div class="section-title">Character</div>
-
-            <div class="field">
-                <label>Character Name</label>
-                <input type="text" id="f-name" placeholder="e.g. Aldric" />
-            </div>
-            <div class="field">
-                <label>Race</label>
-                <select id="f-raceid">
-                    <option value="0">&mdash; none &mdash;</option>
-                </select>
-            </div>
-
-            <div class="field span2">
-                <label>Description</label>
-                <textarea id="f-description" rows="6" placeholder="Description shown to other players"></textarea>
-            </div>
-
-            <div class="field">
-                <label>Level</label>
-                <input type="number" id="f-level" min="1" placeholder="1" />
-            </div>
-            <div class="field">
-                <label>Gold</label>
-                <input type="number" id="f-gold" min="0" placeholder="0" />
-            </div>
-
-            <div class="field">
-                <label>Alignment</label>
-                <div class="range-wrap">
-                    <input type="range" id="f-alignment" min="-100" max="100" value="0"
-                           oninput="document.getElementById('f-alignment-val').textContent=this.value" />
-                    <span class="range-val" id="f-alignment-val">0</span>
+                <div class="field">
+                    <label>Race</label>
+                    <select id="f-raceid">
+                        <option value="0">&mdash; none &mdash;</option>
+                    </select>
                 </div>
-                <div class="field-hint">-100 (evil) to 100 (good)</div>
-            </div>
 
-            <div class="section-title">Stats (Training Bonuses)</div>
-
-            <div class="field">
-                <label>Strength</label>
-                <input type="number" id="f-stat-strength" value="0" />
-            </div>
-            <div class="field">
-                <label>Speed</label>
-                <input type="number" id="f-stat-speed" value="0" />
-            </div>
-            <div class="field">
-                <label>Smarts</label>
-                <input type="number" id="f-stat-smarts" value="0" />
-            </div>
-            <div class="field">
-                <label>Vitality</label>
-                <input type="number" id="f-stat-vitality" value="0" />
-            </div>
-            <div class="field">
-                <label>Mysticism</label>
-                <input type="number" id="f-stat-mysticism" value="0" />
-            </div>
-            <div class="field">
-                <label>Perception</label>
-                <input type="number" id="f-stat-perception" value="0" />
-            </div>
-
-            <div class="section-title">Equipment</div>
-
-            <div class="field">
-                <label>Weapon</label>
-                <div class="shop-picker-wrap" id="f-eq-weapon" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-weapon')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-weapon')">&times;</button></div>
-            </div>
-            <div class="field">
-                <label>Offhand</label>
-                <div class="shop-picker-wrap" id="f-eq-offhand" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-offhand')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-offhand')">&times;</button></div>
-            </div>
-            <div class="field">
-                <label>Head</label>
-                <div class="shop-picker-wrap" id="f-eq-head" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-head')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-head')">&times;</button></div>
-            </div>
-            <div class="field">
-                <label>Neck</label>
-                <div class="shop-picker-wrap" id="f-eq-neck" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-neck')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-neck')">&times;</button></div>
-            </div>
-            <div class="field">
-                <label>Body</label>
-                <div class="shop-picker-wrap" id="f-eq-body" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-body')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-body')">&times;</button></div>
-            </div>
-            <div class="field">
-                <label>Belt</label>
-                <div class="shop-picker-wrap" id="f-eq-belt" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-belt')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-belt')">&times;</button></div>
-            </div>
-            <div class="field">
-                <label>Gloves</label>
-                <div class="shop-picker-wrap" id="f-eq-gloves" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-gloves')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-gloves')">&times;</button></div>
-            </div>
-            <div class="field">
-                <label>Ring</label>
-                <div class="shop-picker-wrap" id="f-eq-ring" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-ring')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-ring')">&times;</button></div>
-            </div>
-            <div class="field">
-                <label>Legs</label>
-                <div class="shop-picker-wrap" id="f-eq-legs" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-legs')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-legs')">&times;</button></div>
-            </div>
-            <div class="field">
-                <label>Feet</label>
-                <div class="shop-picker-wrap" id="f-eq-feet" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-feet')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-feet')">&times;</button></div>
-            </div>
-
-            <div class="section-title">Inventory</div>
-
-            <div class="field span2">
-                <div class="buff-ids-wrap" id="items-list"></div>
-                <button class="btn-add-sm" style="margin-top:0.4rem;" onclick="pickItem()">+ Add Item</button>
-                <div class="field-hint">Items the character is carrying</div>
-            </div>
-
-            <div class="section-title">Shop</div>
-
-            <div class="field span2">
-                <div class="shop-entries" id="shop-list"></div>
-                <div style="display:flex; gap:0.5rem; margin-top:0.5rem; flex-wrap:wrap;">
-                    <button class="btn-add-sm" onclick="addShopEntry('item')">+ Item</button>
-                    <button class="btn-add-sm" onclick="addShopEntry('mob')">+ Mob for Hire</button>
-                    <button class="btn-add-sm" onclick="addShopEntry('buff')">+ Buff</button>
-                    <button class="btn-add-sm" onclick="addShopEntry('pet')">+ Pet</button>
+                <div class="field span2">
+                    <label>Description</label>
+                    <textarea id="f-description" rows="6" placeholder="Description shown to other players"></textarea>
                 </div>
-                <div class="field-hint">Leave empty if not a shopkeeper. QuantityMax: 0 = always in stock, -1 = never restocks.</div>
+
+                <div class="field">
+                    <label>Level</label>
+                    <input type="number" id="f-level" min="1" placeholder="1" />
+                </div>
+                <div class="field">
+                    <label>Gold</label>
+                    <input type="number" id="f-gold" min="0" placeholder="0" />
+                </div>
+
+                <div class="field">
+                    <label>Alignment</label>
+                    <div class="range-wrap">
+                        <input type="range" id="f-alignment" min="-100" max="100" value="0"
+                               oninput="document.getElementById('f-alignment-val').textContent=this.value" />
+                        <span class="range-val" id="f-alignment-val">0</span>
+                    </div>
+                    <div class="field-hint">-100 (evil) to 100 (good)</div>
+                </div>
+
+                <div class="section-title" style="margin-top:0.5rem;">Stats (Training Bonuses)</div>
+
+                <div class="field">
+                    <label>Strength</label>
+                    <input type="number" id="f-stat-strength" value="0" />
+                </div>
+                <div class="field">
+                    <label>Speed</label>
+                    <input type="number" id="f-stat-speed" value="0" />
+                </div>
+                <div class="field">
+                    <label>Smarts</label>
+                    <input type="number" id="f-stat-smarts" value="0" />
+                </div>
+                <div class="field">
+                    <label>Vitality</label>
+                    <input type="number" id="f-stat-vitality" value="0" />
+                </div>
+                <div class="field">
+                    <label>Mysticism</label>
+                    <input type="number" id="f-stat-mysticism" value="0" />
+                </div>
+                <div class="field">
+                    <label>Perception</label>
+                    <input type="number" id="f-stat-perception" value="0" />
+                </div>
+
+                <div class="section-title" style="margin-top:0.5rem;">Equipment</div>
+
+                <div class="field">
+                    <label>Weapon</label>
+                    <div class="shop-picker-wrap" id="f-eq-weapon" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-weapon')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-weapon')">&times;</button></div>
+                </div>
+                <div class="field">
+                    <label>Offhand</label>
+                    <div class="shop-picker-wrap" id="f-eq-offhand" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-offhand')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-offhand')">&times;</button></div>
+                </div>
+                <div class="field">
+                    <label>Head</label>
+                    <div class="shop-picker-wrap" id="f-eq-head" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-head')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-head')">&times;</button></div>
+                </div>
+                <div class="field">
+                    <label>Neck</label>
+                    <div class="shop-picker-wrap" id="f-eq-neck" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-neck')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-neck')">&times;</button></div>
+                </div>
+                <div class="field">
+                    <label>Body</label>
+                    <div class="shop-picker-wrap" id="f-eq-body" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-body')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-body')">&times;</button></div>
+                </div>
+                <div class="field">
+                    <label>Belt</label>
+                    <div class="shop-picker-wrap" id="f-eq-belt" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-belt')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-belt')">&times;</button></div>
+                </div>
+                <div class="field">
+                    <label>Gloves</label>
+                    <div class="shop-picker-wrap" id="f-eq-gloves" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-gloves')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-gloves')">&times;</button></div>
+                </div>
+                <div class="field">
+                    <label>Ring</label>
+                    <div class="shop-picker-wrap" id="f-eq-ring" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-ring')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-ring')">&times;</button></div>
+                </div>
+                <div class="field">
+                    <label>Legs</label>
+                    <div class="shop-picker-wrap" id="f-eq-legs" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-legs')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-legs')">&times;</button></div>
+                </div>
+                <div class="field">
+                    <label>Feet</label>
+                    <div class="shop-picker-wrap" id="f-eq-feet" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-feet')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-feet')">&times;</button></div>
+                </div>
+
+                <div class="section-title" style="margin-top:0.5rem;">Inventory</div>
+
+                <div class="field span2">
+                    <div class="buff-ids-wrap" id="items-list"></div>
+                    <button class="btn-add-sm" style="margin-top:0.4rem;" onclick="pickItem()">+ Add Item</button>
+                    <div class="field-hint">Items the character is carrying</div>
+                </div>
+
+                <div class="section-title" style="margin-top:0.5rem;">Shop</div>
+
+                <div class="field span2">
+                    <div class="shop-entries" id="shop-list"></div>
+                    <div style="display:flex; gap:0.5rem; margin-top:0.5rem; flex-wrap:wrap;">
+                        <button class="btn-add-sm" onclick="addShopEntry('item')">+ Item</button>
+                        <button class="btn-add-sm" onclick="addShopEntry('mob')">+ Mob for Hire</button>
+                        <button class="btn-add-sm" onclick="addShopEntry('buff')">+ Buff</button>
+                        <button class="btn-add-sm" onclick="addShopEntry('pet')">+ Pet</button>
+                    </div>
+                    <div class="field-hint">Leave empty if not a shopkeeper. QuantityMax: 0 = always in stock, -1 = never restocks.</div>
+                </div>
             </div>
         </div>
 

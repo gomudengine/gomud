@@ -83,11 +83,22 @@
         min-width: 2.5rem; text-align: center; color: #1a1a2e;
     }
 
+    /* section cards */
+    .section-card {
+        grid-column: 1 / -1;
+        border: 1px solid #e0e0e0; border-radius: 6px;
+        padding: 1rem 1.1rem 0.75rem;
+        background: #fafafa;
+        display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem 1.25rem;
+    }
+    .section-card + .section-card { margin-top: 0.25rem; }
+    .section-card .span2 { grid-column: 1 / -1; }
+
     /* section headings inside editor */
     .section-title {
         font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
-        letter-spacing: 0.06em; color: #666; padding: 0.5rem 0 0.4rem;
-        border-bottom: 1px solid #eee; margin-bottom: 0.75rem; grid-column: 1 / -1;
+        letter-spacing: 0.06em; color: #444; padding: 0 0 0.5rem;
+        border-bottom: 2px solid #1a1a2e; margin-bottom: 0.25rem; grid-column: 1 / -1;
     }
 
     /* tags editor */
@@ -234,231 +245,234 @@
             </div>
 
             <div class="form-grid">
-                <div class="section-title">Identity</div>
 
-                <div class="field">
-                    <label>Name</label>
-                    <input type="text" id="f-name" placeholder="e.g. goblin" />
-                </div>
-                <div class="field">
-                    <label>Zone</label>
-                    <input type="text" id="f-zone" placeholder="e.g. Frostfang" />
-                    <div class="field-hint">Zone folder for file storage</div>
-                </div>
+                <div class="section-card">
+                    <div class="section-title">Identity</div>
 
-                <div class="field span2">
-                    <label>Description</label>
-                    <textarea id="f-description" rows="10" placeholder="Description shown to players"></textarea>
-                </div>
-
-                <div class="field">
-                    <label>Race</label>
-                    <select id="f-raceid">
-                        <option value="0">&mdash; none &mdash;</option>
-                    </select>
-                </div>
-                <div class="field">
-                    <label>Level</label>
-                    <input type="number" id="f-level" min="1" placeholder="1" />
-                </div>
-
-                <div class="section-title">Behavior</div>
-
-                <div class="field">
-                    <label>Hostile</label>
-                    <select id="f-hostile">
-                        <option value="false">No</option>
-                        <option value="true">Yes - attacks on sight</option>
-                    </select>
-                </div>
-                <div class="field">
-                    <label>Activity Level</label>
-                    <div class="range-wrap">
-                        <input type="range" id="f-activitylevel" min="1" max="100" value="10"
-                               oninput="document.getElementById('f-activitylevel-val').textContent=this.value" />
-                        <span class="range-val" id="f-activitylevel-val">10</span>
+                    <div class="field">
+                        <label>Zone</label>
+                        <input type="text" id="f-zone" placeholder="e.g. Frostfang" />
+                        <div class="field-hint">Zone folder for file storage</div>
                     </div>
-                    <div class="field-hint">1-100% chance of acting each round</div>
-                </div>
-                <div class="field">
-                    <label>Max Wander</label>
-                    <input type="number" id="f-maxwander" min="0" placeholder="0" />
-                    <div class="field-hint">Max rooms to wander from home (0 = stationary)</div>
-                </div>
-                <div class="field">
-                    <label>Item Drop Chance</label>
-                    <input type="number" id="f-itemdropchance" min="0" max="100" placeholder="0" />
-                    <div class="field-hint">% chance of dropping items on death</div>
-                </div>
-
-                <div class="section-title">Character</div>
-
-                <div class="field">
-                    <label>Alignment</label>
-                    <div class="range-wrap">
-                        <input type="range" id="f-alignment" min="-100" max="100" value="0"
-                               oninput="document.getElementById('f-alignment-val').textContent=this.value" />
-                        <span class="range-val" id="f-alignment-val">0</span>
+                    <div class="field">
+                        <label>Script Tag</label>
+                        <input type="text" id="f-scripttag" placeholder="e.g. winterfire" />
+                        <div class="field-hint">Identifier used in the script filename</div>
                     </div>
-                    <div class="field-hint">-100 (evil) to 100 (good), 0 = default from race</div>
-                </div>
-                <div class="field">
-                    <label>Gold</label>
-                    <input type="number" id="f-gold" min="0" placeholder="0" />
-                </div>
 
-                <div class="section-title">Groups</div>
-
-                <div class="field span2">
-                    <label>Groups (allegiances)</label>
-                    <div class="tags-wrap" id="groups-list"></div>
-                    <div style="display:flex; gap:0.4rem; align-items:center; margin-top:0.4rem;">
-                        <input type="text" class="tag-add-input" id="groups-input" placeholder="group name"
-                               onkeydown="if(event.key==='Enter'){addTag('groups-list','groups-input');}" />
-                        <button class="btn-add-sm" onclick="addTag('groups-list','groups-input')">+ Add</button>
+                    <div class="field">
+                        <label>Hostile</label>
+                        <select id="f-hostile">
+                            <option value="false">No</option>
+                            <option value="true">Yes - attacks on sight</option>
+                        </select>
                     </div>
-                    <div class="field-hint">Groups this mob belongs to for ally/hate detection</div>
-                </div>
-
-                <div class="field span2">
-                    <label>Hates (groups/races)</label>
-                    <div class="tags-wrap" id="hates-list"></div>
-                    <div style="display:flex; gap:0.4rem; align-items:center; margin-top:0.4rem;">
-                        <input type="text" class="tag-add-input" id="hates-input" placeholder="group or race"
-                               onkeydown="if(event.key==='Enter'){addTag('hates-list','hates-input');}" />
-                        <button class="btn-add-sm" onclick="addTag('hates-list','hates-input')">+ Add</button>
+                    <div class="field">
+                        <label>Activity Level</label>
+                        <div class="range-wrap">
+                            <input type="range" id="f-activitylevel" min="1" max="100" value="10"
+                                   oninput="document.getElementById('f-activitylevel-val').textContent=this.value" />
+                            <span class="range-val" id="f-activitylevel-val">10</span>
+                        </div>
+                        <div class="field-hint">1-100% chance of acting each round</div>
                     </div>
-                    <div class="field-hint">Groups or race names this mob will attack. Use * for all.</div>
-                </div>
-
-                <div class="section-title">Commands</div>
-
-                <div class="field span2">
-                    <label>Idle Commands</label>
-                    <textarea id="f-idlecommands" rows="4" placeholder="One command per line, e.g.&#10;emote looks around.&#10;wander&#10;say Welcome!"></textarea>
-                    <div class="field-hint">Randomly chosen each idle round</div>
-                </div>
-                <div class="field span2">
-                    <label>Angry Commands</label>
-                    <textarea id="f-angrycommands" rows="3" placeholder="One command per line, e.g.&#10;emote snarls!&#10;say You'll regret that!"></textarea>
-                    <div class="field-hint">Randomly chosen when entering combat</div>
-                </div>
-                <div class="field span2">
-                    <label>Combat Commands</label>
-                    <textarea id="f-combatcommands" rows="3" placeholder="One command per line, e.g.&#10;callforhelp 7:guard:calls for the guards."></textarea>
-                    <div class="field-hint">Randomly chosen during combat</div>
-                </div>
-
-                <div class="section-title">Quest &amp; Buffs</div>
-
-                <div class="field span2">
-                    <label>Quest Flags</label>
-                    <div class="tags-wrap" id="questflags-list"></div>
-                    <button class="btn-add-sm" style="margin-top:0.4rem;" onclick="pickQuestFlag()">+ Add Quest Flag</button>
-                    <div class="field-hint">Quest flags set on this mob (e.g. 5-start, 5-return). If the quest is available to a player, this will cause a symbol to show next to the mob name.</div>
-                </div>
-
-                <div class="field span2">
-                    <label>Buff IDs (applied on spawn)</label>
-                    <div class="buff-ids-wrap" id="buffids-list"></div>
-                    <button class="btn-add-sm" style="margin-top:0.4rem;" onclick="pickBuffId('buffids-list')">+ Add Buff</button>
-                </div>
-
-                <div class="field">
-                    <label>Script Tag</label>
-                    <input type="text" id="f-scripttag" placeholder="e.g. winterfire" />
-                    <div class="field-hint">Identifier used in the script filename</div>
-                </div>
-
-                <div class="section-title">Stats (Training Bonuses)</div>
-
-                <div class="field">
-                    <label>Strength</label>
-                    <input type="number" id="f-stat-strength" value="0" />
-                </div>
-                <div class="field">
-                    <label>Speed</label>
-                    <input type="number" id="f-stat-speed" value="0" />
-                </div>
-                <div class="field">
-                    <label>Smarts</label>
-                    <input type="number" id="f-stat-smarts" value="0" />
-                </div>
-                <div class="field">
-                    <label>Vitality</label>
-                    <input type="number" id="f-stat-vitality" value="0" />
-                </div>
-                <div class="field">
-                    <label>Mysticism</label>
-                    <input type="number" id="f-stat-mysticism" value="0" />
-                </div>
-                <div class="field">
-                    <label>Perception</label>
-                    <input type="number" id="f-stat-perception" value="0" />
-                </div>
-
-                <div class="section-title">Equipment</div>
-
-                <div class="field">
-                    <label>Weapon</label>
-                    <div class="shop-picker-wrap" id="f-eq-weapon" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-weapon')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-weapon')">&times;</button></div>
-                </div>
-                <div class="field">
-                    <label>Offhand</label>
-                    <div class="shop-picker-wrap" id="f-eq-offhand" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-offhand')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-offhand')">&times;</button></div>
-                </div>
-                <div class="field">
-                    <label>Head</label>
-                    <div class="shop-picker-wrap" id="f-eq-head" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-head')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-head')">&times;</button></div>
-                </div>
-                <div class="field">
-                    <label>Neck</label>
-                    <div class="shop-picker-wrap" id="f-eq-neck" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-neck')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-neck')">&times;</button></div>
-                </div>
-                <div class="field">
-                    <label>Body</label>
-                    <div class="shop-picker-wrap" id="f-eq-body" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-body')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-body')">&times;</button></div>
-                </div>
-                <div class="field">
-                    <label>Belt</label>
-                    <div class="shop-picker-wrap" id="f-eq-belt" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-belt')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-belt')">&times;</button></div>
-                </div>
-                <div class="field">
-                    <label>Gloves</label>
-                    <div class="shop-picker-wrap" id="f-eq-gloves" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-gloves')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-gloves')">&times;</button></div>
-                </div>
-                <div class="field">
-                    <label>Ring</label>
-                    <div class="shop-picker-wrap" id="f-eq-ring" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-ring')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-ring')">&times;</button></div>
-                </div>
-                <div class="field">
-                    <label>Legs</label>
-                    <div class="shop-picker-wrap" id="f-eq-legs" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-legs')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-legs')">&times;</button></div>
-                </div>
-                <div class="field">
-                    <label>Feet</label>
-                    <div class="shop-picker-wrap" id="f-eq-feet" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-feet')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-feet')">&times;</button></div>
-                </div>
-
-                <div class="section-title">Inventory</div>
-
-                <div class="field span2">
-                    <div class="buff-ids-wrap" id="items-list"></div>
-                    <button class="btn-add-sm" style="margin-top:0.4rem;" onclick="pickItem()">+ Add Item</button>
-                    <div class="field-hint">Items the mob carries</div>
-                </div>
-
-                <div class="section-title">Shop</div>
-
-                <div class="field span2">
-                    <div class="shop-entries" id="shop-list"></div>
-                    <div style="display:flex; gap:0.5rem; margin-top:0.5rem; flex-wrap:wrap;">
-                        <button class="btn-add-sm" onclick="addShopEntry('item')">+ Item</button>
-                        <button class="btn-add-sm" onclick="addShopEntry('mob')">+ Mob for Hire</button>
-                        <button class="btn-add-sm" onclick="addShopEntry('buff')">+ Buff</button>
-                        <button class="btn-add-sm" onclick="addShopEntry('pet')">+ Pet</button>
+                    <div class="field">
+                        <label>Max Wander</label>
+                        <input type="number" id="f-maxwander" min="0" placeholder="0" />
+                        <div class="field-hint">Max rooms to wander from home (0 = stationary)</div>
                     </div>
-                    <div class="field-hint">Leave empty if not a shopkeeper. QuantityMax: 0 = always in stock, -1 = never restocks (temporary).</div>
+                    <div class="field">
+                        <label>Item Drop Chance</label>
+                        <input type="number" id="f-itemdropchance" min="0" max="100" placeholder="0" />
+                        <div class="field-hint">% chance of dropping items on death</div>
+                    </div>
+
+                    <div class="section-title" style="margin-top:0.5rem;">Groups</div>
+
+                    <div class="field span2">
+                        <label>Groups (allegiances)</label>
+                        <div class="tags-wrap" id="groups-list"></div>
+                        <div style="display:flex; gap:0.4rem; align-items:center; margin-top:0.4rem;">
+                            <input type="text" class="tag-add-input" id="groups-input" placeholder="group name"
+                                   onkeydown="if(event.key==='Enter'){addTag('groups-list','groups-input');}" />
+                            <button class="btn-add-sm" onclick="addTag('groups-list','groups-input')">+ Add</button>
+                        </div>
+                        <div class="field-hint">Groups this mob belongs to for ally/hate detection</div>
+                    </div>
+
+                    <div class="field span2">
+                        <label>Hates (groups/races)</label>
+                        <div class="tags-wrap" id="hates-list"></div>
+                        <div style="display:flex; gap:0.4rem; align-items:center; margin-top:0.4rem;">
+                            <input type="text" class="tag-add-input" id="hates-input" placeholder="group or race"
+                                   onkeydown="if(event.key==='Enter'){addTag('hates-list','hates-input');}" />
+                            <button class="btn-add-sm" onclick="addTag('hates-list','hates-input')">+ Add</button>
+                        </div>
+                        <div class="field-hint">Groups or race names this mob will attack. Use * for all.</div>
+                    </div>
+
+                    <div class="section-title" style="margin-top:0.5rem;">Commands</div>
+
+                    <div class="field span2">
+                        <label>Idle Commands</label>
+                        <textarea id="f-idlecommands" rows="4" placeholder="One command per line, e.g.&#10;emote looks around.&#10;wander&#10;say Welcome!"></textarea>
+                        <div class="field-hint">Randomly chosen each idle round</div>
+                    </div>
+                    <div class="field span2">
+                        <label>Angry Commands</label>
+                        <textarea id="f-angrycommands" rows="3" placeholder="One command per line, e.g.&#10;emote snarls!&#10;say You'll regret that!"></textarea>
+                        <div class="field-hint">Randomly chosen when entering combat</div>
+                    </div>
+                    <div class="field span2">
+                        <label>Combat Commands</label>
+                        <textarea id="f-combatcommands" rows="3" placeholder="One command per line, e.g.&#10;callforhelp 7:guard:calls for the guards."></textarea>
+                        <div class="field-hint">Randomly chosen during combat</div>
+                    </div>
+
+                    <div class="section-title" style="margin-top:0.5rem;">Quest &amp; Buffs</div>
+
+                    <div class="field span2">
+                        <label>Quest Flags</label>
+                        <div class="tags-wrap" id="questflags-list"></div>
+                        <button class="btn-add-sm" style="margin-top:0.4rem;" onclick="pickQuestFlag()">+ Add Quest Flag</button>
+                        <div class="field-hint">Quest flags set on this mob (e.g. 5-start, 5-return). If the quest is available to a player, this will cause a symbol to show next to the mob name.</div>
+                    </div>
+
+                    <div class="field span2">
+                        <label>Buff IDs (applied on spawn)</label>
+                        <div class="buff-ids-wrap" id="buffids-list"></div>
+                        <button class="btn-add-sm" style="margin-top:0.4rem;" onclick="pickBuffId('buffids-list')">+ Add Buff</button>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <div class="section-title">Character</div>
+
+                    <div class="field">
+                        <label>Name</label>
+                        <input type="text" id="f-name" placeholder="e.g. goblin" />
+                    </div>
+                    <div class="field">
+                        <label>Race</label>
+                        <select id="f-raceid">
+                            <option value="0">&mdash; none &mdash;</option>
+                        </select>
+                    </div>
+
+                    <div class="field span2">
+                        <label>Description</label>
+                        <textarea id="f-description" rows="10" placeholder="Description shown to players"></textarea>
+                    </div>
+
+                    <div class="field">
+                        <label>Level</label>
+                        <input type="number" id="f-level" min="1" placeholder="1" />
+                    </div>
+                    <div class="field">
+                        <label>Gold</label>
+                        <input type="number" id="f-gold" min="0" placeholder="0" />
+                    </div>
+
+                    <div class="field">
+                        <label>Alignment</label>
+                        <div class="range-wrap">
+                            <input type="range" id="f-alignment" min="-100" max="100" value="0"
+                                   oninput="document.getElementById('f-alignment-val').textContent=this.value" />
+                            <span class="range-val" id="f-alignment-val">0</span>
+                        </div>
+                        <div class="field-hint">-100 (evil) to 100 (good), 0 = default from race</div>
+                    </div>
+
+                    <div class="section-title" style="margin-top:0.5rem;">Stats (Training Bonuses)</div>
+
+                    <div class="field">
+                        <label>Strength</label>
+                        <input type="number" id="f-stat-strength" value="0" />
+                    </div>
+                    <div class="field">
+                        <label>Speed</label>
+                        <input type="number" id="f-stat-speed" value="0" />
+                    </div>
+                    <div class="field">
+                        <label>Smarts</label>
+                        <input type="number" id="f-stat-smarts" value="0" />
+                    </div>
+                    <div class="field">
+                        <label>Vitality</label>
+                        <input type="number" id="f-stat-vitality" value="0" />
+                    </div>
+                    <div class="field">
+                        <label>Mysticism</label>
+                        <input type="number" id="f-stat-mysticism" value="0" />
+                    </div>
+                    <div class="field">
+                        <label>Perception</label>
+                        <input type="number" id="f-stat-perception" value="0" />
+                    </div>
+
+                    <div class="section-title" style="margin-top:0.5rem;">Equipment</div>
+
+                    <div class="field">
+                        <label>Weapon</label>
+                        <div class="shop-picker-wrap" id="f-eq-weapon" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-weapon')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-weapon')">&times;</button></div>
+                    </div>
+                    <div class="field">
+                        <label>Offhand</label>
+                        <div class="shop-picker-wrap" id="f-eq-offhand" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-offhand')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-offhand')">&times;</button></div>
+                    </div>
+                    <div class="field">
+                        <label>Head</label>
+                        <div class="shop-picker-wrap" id="f-eq-head" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-head')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-head')">&times;</button></div>
+                    </div>
+                    <div class="field">
+                        <label>Neck</label>
+                        <div class="shop-picker-wrap" id="f-eq-neck" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-neck')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-neck')">&times;</button></div>
+                    </div>
+                    <div class="field">
+                        <label>Body</label>
+                        <div class="shop-picker-wrap" id="f-eq-body" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-body')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-body')">&times;</button></div>
+                    </div>
+                    <div class="field">
+                        <label>Belt</label>
+                        <div class="shop-picker-wrap" id="f-eq-belt" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-belt')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-belt')">&times;</button></div>
+                    </div>
+                    <div class="field">
+                        <label>Gloves</label>
+                        <div class="shop-picker-wrap" id="f-eq-gloves" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-gloves')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-gloves')">&times;</button></div>
+                    </div>
+                    <div class="field">
+                        <label>Ring</label>
+                        <div class="shop-picker-wrap" id="f-eq-ring" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-ring')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-ring')">&times;</button></div>
+                    </div>
+                    <div class="field">
+                        <label>Legs</label>
+                        <div class="shop-picker-wrap" id="f-eq-legs" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-legs')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-legs')">&times;</button></div>
+                    </div>
+                    <div class="field">
+                        <label>Feet</label>
+                        <div class="shop-picker-wrap" id="f-eq-feet" data-value="0"><span class="shop-picker-display empty">nothing</span><button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickEquip('f-eq-feet')">Pick&hellip;</button><button type="button" class="btn-icon" title="Clear" onclick="clearEquip('f-eq-feet')">&times;</button></div>
+                    </div>
+
+                    <div class="section-title" style="margin-top:0.5rem;">Inventory</div>
+
+                    <div class="field span2">
+                        <div class="buff-ids-wrap" id="items-list"></div>
+                        <button class="btn-add-sm" style="margin-top:0.4rem;" onclick="pickItem()">+ Add Item</button>
+                        <div class="field-hint">Items the mob carries</div>
+                    </div>
+
+                    <div class="section-title" style="margin-top:0.5rem;">Shop</div>
+
+                    <div class="field span2">
+                        <div class="shop-entries" id="shop-list"></div>
+                        <div style="display:flex; gap:0.5rem; margin-top:0.5rem; flex-wrap:wrap;">
+                            <button class="btn-add-sm" onclick="addShopEntry('item')">+ Item</button>
+                            <button class="btn-add-sm" onclick="addShopEntry('mob')">+ Mob for Hire</button>
+                            <button class="btn-add-sm" onclick="addShopEntry('buff')">+ Buff</button>
+                            <button class="btn-add-sm" onclick="addShopEntry('pet')">+ Pet</button>
+                        </div>
+                        <div class="field-hint">Leave empty if not a shopkeeper. QuantityMax: 0 = always in stock, -1 = never restocks (temporary).</div>
+                    </div>
                 </div>
             </div>
 
