@@ -185,6 +185,7 @@ func main() {
 	// Register the plugin filesystem with the template system
 	templates.RegisterFS(plugins.GetPluginRegistry())
 	items.RegisterFS(plugins.GetPluginRegistry())
+	mutators.RegisterFS(plugins.GetPluginRegistry())
 	usercommands.AddFunctionExporter(plugins.GetPluginRegistry())
 	users.AddFunctionExporter(plugins.GetPluginRegistry())
 	usercommands.SetRoomTagProvider(plugins.GetRegisteredRoomTags)

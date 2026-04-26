@@ -331,5 +331,7 @@ func LoadDataFiles() {
 
 	allMutators = tmpMutators
 
+	loadPluginMutators(allMutators)
+
 	mudlog.Info("mutators.LoadDataFiles()", "loadedCount", len(allMutators), "Time Taken", time.Since(start))
 }
