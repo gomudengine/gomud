@@ -1317,6 +1317,7 @@ func handleSSHConnection(connDetails *connections.ConnectionDetails, reqs <-chan
 						cs.Display.ScreenWidth = cols
 						cs.Display.ScreenHeight = rows
 						connections.OverwriteClientSettings(connDetails.ConnectionId(), cs)
+						connections.NotifyWindowChange(connDetails.ConnectionId(), cols, rows)
 					}
 				}
 				if req.WantReply {
