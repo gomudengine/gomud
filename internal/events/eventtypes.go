@@ -410,3 +410,10 @@ type CLIRequest struct {
 }
 
 func (c CLIRequest) Type() string { return `CLIRequest` }
+
+// If a potentially fire-starting event occured in this room
+type FireBlaze struct {
+	RoomId int
+}
+
+func (c FireBlaze) Type() string { return `FireBlaze` }
