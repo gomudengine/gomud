@@ -24,7 +24,6 @@ help:
       - killstats
       - encumbrance
       - death
-      - character
       - pets
       - train
       - stat-train
@@ -35,7 +34,6 @@ help:
       - shout
       - broadcast
       - whisper
-      - inbox
     shops:
       - appraise
       - bank
@@ -100,6 +98,7 @@ help:
       - backstab
       - brawling
       - bump
+      - changeform
       - dual-wield
       - tackle
       - disarm
@@ -127,12 +126,12 @@ help:
       - build
       - command
       - copyover
-      - 
+      - formset
       - item
       - grant
       - locate
+      - mob
       - modify
-      - mudmail
       - mute
       - paz
       - prepare
@@ -144,7 +143,10 @@ help:
       - server
       - skillset
       - spawn
+      - spell
       - syslogs
+      - teleport
+      - unmute
       - zap
       - zone
       - visit

@@ -171,7 +171,7 @@ func (bs *Buffs) Started(buffId int) {
 	}
 }
 
-func (bs *Buffs) AddBuff(buffId int, isPermanent bool) bool {
+func (bs *Buffs) AddBuff(buffId int, isPermanent bool, triggerCountOverride ...int) bool {
 	if buffInfo := GetBuffSpec(buffId); buffInfo != nil {
 
 		newBuff := Buff{
@@ -179,6 +179,10 @@ func (bs *Buffs) AddBuff(buffId int, isPermanent bool) bool {
 			RoundCounter: 0,
 			PermaBuff:    false,
 			TriggersLeft: buffInfo.TriggerCount,
+		}
+
+		if len(triggerCountOverride) > 0 && triggerCountOverride[0] > 0 {
+			newBuff.TriggersLeft = triggerCountOverride[0]
 		}
 
 		if isPermanent {
@@ -314,7 +318,8 @@ func (bs *Buffs) Prune() (prunedBuffs []*Buff) {
 
 func GetDurations(buff *Buff, spec *BuffSpec) (roundsLeft int, totalRounds int) {
 
-	totalRounds = spec.TriggerCount * spec.RoundInterval
+	totalRounds = buff.TriggersLeft * spec.RoundInterval
+	roundsLeft = totalRounds
 
-	return totalRounds - buff.RoundCounter, totalRounds
+	return roundsLeft, totalRounds
 }

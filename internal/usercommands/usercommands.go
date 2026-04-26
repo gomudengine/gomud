@@ -69,6 +69,7 @@ var (
 		`bump`:        {Bump, false, false},
 		`buy`:         {Buy, false, false},
 		`cast`:        {Cast, false, false},
+		`changeform`:  {ChangeForm, false, false},
 		`cooldowns`:   {Cooldowns, true, false},
 		`command`:     {Command, false, true}, // Admin only
 		`copyover`:    {Copyover, true, true}, // Admin only
@@ -84,6 +85,7 @@ var (
 		`experience`:  {Experience, true, false},
 		`equip`:       {Equip, false, false},
 		`flee`:        {Flee, false, false},
+		`formset`:     {FormSet, false, true}, // Admin only
 		`gearup`:      {Gearup, false, false},
 		`get`:         {Get, false, false},
 		`give`:        {Give, false, false},

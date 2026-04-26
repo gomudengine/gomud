@@ -8,6 +8,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/keywords"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/races"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/usercommands"
 	"github.com/GoMudEngine/GoMud/internal/users"
@@ -419,6 +420,41 @@ func GetAutoComplete(userId int, inputText string) []string {
 						if strings.HasPrefix(strings.ToLower(u.Character.Name), targetName) {
 							result = append(result, u.Character.Name[targetNameLen:])
 						}
+					}
+				}
+			}
+
+		} else if cmd == `formset` {
+
+			if len(parts) == 2 {
+				if room := rooms.LoadRoom(user.Character.RoomId); room != nil {
+					for _, uid := range room.GetPlayers() {
+						if u := users.GetByUserId(uid); u != nil {
+							if strings.HasPrefix(strings.ToLower(u.Character.Name), targetName) {
+								result = append(result, u.Character.Name[targetNameLen:])
+							}
+						}
+					}
+					for _, mobInstId := range room.GetMobs() {
+						if mob := mobs.GetInstance(mobInstId); mob != nil {
+							if strings.HasPrefix(strings.ToLower(mob.Character.Name), targetName) {
+								result = append(result, mob.Character.Name[targetNameLen:])
+							}
+						}
+					}
+				}
+			} else if len(parts) >= 3 {
+				racePart := strings.ToLower(strings.Join(parts[2:], ` `))
+				racePartLen := len(racePart)
+				for _, r := range races.GetRaces() {
+					rName := strings.ToLower(r.Name)
+					if strings.HasPrefix(rName, racePart) {
+						result = append(result, r.Name[racePartLen:])
+					}
+				}
+				for _, opt := range []string{`revert`, `short`, `medium`, `long`} {
+					if strings.HasPrefix(opt, racePart) {
+						result = append(result, opt[racePartLen:])
 					}
 				}
 			}

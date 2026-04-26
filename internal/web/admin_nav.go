@@ -90,6 +90,14 @@ func buildAdminNav() []WebNavItem {
 			},
 		},
 		{
+			Name:   "Spells",
+			Target: "/admin/spells",
+			SubItems: []WebNavSub{
+				{Label: "View / Edit", Target: "/admin/spells"},
+				{Label: "API Docs", Target: "/admin/spells-api"},
+			},
+		},
+		{
 			Name:   "Quests",
 			Target: "/admin/quests",
 			SubItems: []WebNavSub{

@@ -52,6 +52,7 @@ type Character struct {
 	RoomIdOnReset    int                            // The room they are sent to if their RoomId isn't found.
 	Zone             string                         // The zone the character is in. The folder the room can be located in too.
 	RaceId           int                            // Character race
+	FormRaceId       int                            `yaml:"formraceid,omitempty"` // Temporary race override (0 = not transformed)
 	Stats            stats.Statistics               // Character stats
 	Level            int                            // The level of the character
 	Experience       int                            // The experience of the character
@@ -139,6 +140,16 @@ func New() *Character {
 // returns description unless description is a hash
 // which points to another description location.
 func (c *Character) GetDescription() string {
+	if c.FormRaceId > 0 {
+		trueRace := races.GetRace(c.RaceId)
+		formRace := races.GetRace(c.FormRaceId)
+		if trueRace != nil && formRace != nil {
+			return strings.ReplaceAll(
+				strings.ReplaceAll(c.Description, trueRace.Name, formRace.Name),
+				strings.ToLower(trueRace.Name), strings.ToLower(formRace.Name),
+			)
+		}
+	}
 	return c.Description
 }
 
@@ -343,7 +354,7 @@ func (c *Character) SetKey(lockId string, sequence string) {
 
 func (c *Character) GetDefaultDiceRoll() (attacks int, dCount int, dSides int, bonus int, buffOnCrit []int) {
 	// default racial
-	raceInfo := races.GetRace(c.RaceId)
+	raceInfo := races.GetRace(c.GetRaceId())
 
 	attacks = raceInfo.Damage.Attacks
 	dCount = raceInfo.Damage.DiceCount
@@ -414,6 +425,14 @@ func (c *Character) LearnSpell(spellName string) bool {
 	return false
 }
 
+func (c *Character) UnLearnSpell(spellName string) bool {
+	if _, ok := c.SpellBook[spellName]; !ok {
+		return false
+	}
+	delete(c.SpellBook, spellName)
+	return true
+}
+
 func (c *Character) GrantXP(xp int) (actualXP int, xpScale int) {
 
 	if xp == 0 {
@@ -466,7 +485,7 @@ func (c *Character) Charm(userId int, rounds int, expireCommand string) {
 }
 
 func (c *Character) KnowsFirstAid() bool {
-	if r := races.GetRace(c.RaceId); r != nil {
+	if r := races.GetRace(c.GetRaceId()); r != nil {
 		return r.KnowsFirstAid
 	}
 	return false
@@ -629,6 +648,12 @@ func (c *Character) GetAdjectives() []string {
 	if c.HasBuffFlag(buffs.Poison) {
 		retAdjectives = append(retAdjectives, `poisoned`)
 	}
+
+	if c.FormRaceId > 0 {
+		if r := races.GetRace(c.FormRaceId); r != nil {
+			retAdjectives = append(retAdjectives, strings.ToLower(r.Name)+` form`)
+		}
+	}
 	// End dynamic adjectives
 
 	retAdjectives = append(retAdjectives, c.Adjectives...)
@@ -768,7 +793,7 @@ func (c *Character) HandsRequired(i items.Item) int {
 		return iSpec.Hands
 	}
 
-	raceInfo := races.GetRace(c.RaceId)
+	raceInfo := races.GetRace(c.GetRaceId())
 	if raceInfo.Size == races.Large {
 		return 1
 	}
@@ -1209,9 +1234,9 @@ func (c *Character) HasBuff(buffId int) bool {
 	return c.Buffs.HasBuff(buffId)
 }
 
-func (c *Character) AddBuff(buffId int, isPermanent bool) error {
+func (c *Character) AddBuff(buffId int, isPermanent bool, triggerCountOverride ...int) error {
 	buffId = int(math.Abs(float64(buffId)))
-	if !c.Buffs.AddBuff(buffId, isPermanent) {
+	if !c.Buffs.AddBuff(buffId, isPermanent, triggerCountOverride...) {
 		return fmt.Errorf(`failed to add buff. target: "%s" buffId: %d`, c.Name, buffId)
 	}
 	c.Validate()
@@ -1427,12 +1452,13 @@ func (c *Character) RecalculateStats() {
 	beforeManaMax := c.ManaMax
 	beforeStats := c.Stats
 
-	if raceInfo := races.GetRace(c.RaceId); raceInfo != nil {
-		c.TNLScale = raceInfo.TNLScale
-		// Safety check: ensure TNLScale is never 0
+	if trueRaceInfo := races.GetRace(c.RaceId); trueRaceInfo != nil {
+		c.TNLScale = trueRaceInfo.TNLScale
 		if c.TNLScale == 0 {
 			c.TNLScale = 1.0
 		}
+	}
+	if raceInfo := races.GetRace(c.GetRaceId()); raceInfo != nil {
 		c.Stats.Strength.Base = raceInfo.Stats.Strength.Base
 		c.Stats.Speed.Base = raceInfo.Stats.Speed.Base
 		c.Stats.Smarts.Base = raceInfo.Stats.Smarts.Base
@@ -1639,7 +1665,7 @@ func (c *Character) Validate(recalcPermaBuffs ...bool) error {
 	c.Equipment.Feet.Validate()
 	// Done with validation
 
-	if raceInfo := races.GetRace(c.RaceId); raceInfo != nil {
+	if raceInfo := races.GetRace(c.GetRaceId()); raceInfo != nil {
 
 		c.Equipment.EnableAll()
 
@@ -1713,6 +1739,27 @@ func (c *Character) Validate(recalcPermaBuffs ...bool) error {
 
 	}
 
+	if !c.Equipment.Weapon.IsDisabled() && c.Equipment.Weapon.ItemId > 0 {
+		weaponHands := c.HandsRequired(c.Equipment.Weapon)
+		offhandHands := 0
+		if !c.Equipment.Offhand.IsDisabled() && c.Equipment.Offhand.ItemId > 0 {
+			offhandHands = c.HandsRequired(c.Equipment.Offhand)
+			if offhandHands < 1 {
+				offhandHands = 1
+			}
+		}
+		if weaponHands+offhandHands > 2 {
+			if offhandHands > 0 {
+				c.StoreItem(c.Equipment.Offhand)
+				c.Equipment.Offhand = items.Item{}
+			}
+			if weaponHands > 2 {
+				c.StoreItem(c.Equipment.Weapon)
+				c.Equipment.Weapon = items.Item{}
+			}
+		}
+	}
+
 	if len(recalcPermaBuffs) > 0 && recalcPermaBuffs[0] {
 		c.reapplyPermabuffs()
 	}
@@ -1720,11 +1767,51 @@ func (c *Character) Validate(recalcPermaBuffs ...bool) error {
 	return nil
 }
 
+func (c *Character) GetRaceId() int {
+	if c.FormRaceId > 0 {
+		return c.FormRaceId
+	}
+	return c.RaceId
+}
+
 func (c *Character) Race() string {
-	if r := races.GetRace(c.RaceId); r != nil {
+	if r := races.GetRace(c.GetRaceId()); r != nil {
 		return r.Name
 	}
 	return `Ghostly Spirit`
+}
+
+func (c *Character) RaceSize() string {
+	if r := races.GetRace(c.GetRaceId()); r != nil {
+		return string(r.Size)
+	}
+	return string(races.Medium)
+}
+
+func (c *Character) IsFormChanged() bool {
+	return c.FormRaceId > 0
+}
+
+func (c *Character) ApplyFormChange(newRaceId int) []items.Item {
+	if races.GetRace(newRaceId) == nil {
+		return nil
+	}
+
+	if c.IsFormChanged() {
+		c.RevertFormChange()
+	}
+
+	c.FormRaceId = newRaceId
+	c.Validate(true)
+
+	return nil
+}
+
+func (c *Character) RevertFormChange() []items.Item {
+	c.FormRaceId = 0
+	c.Validate(true)
+
+	return nil
 }
 
 func (c *Character) UpdateAlignment(amt int) {
@@ -2004,7 +2091,7 @@ func (c *Character) reapplyPermabuffs(removedItems ...items.Item) {
 	}
 
 	// Apply any buffs that come from a race
-	if rInfo := races.GetRace(c.RaceId); rInfo != nil {
+	if rInfo := races.GetRace(c.GetRaceId()); rInfo != nil {
 		for _, buffId := range rInfo.BuffIds {
 			buffIdCount[buffId] = 100 // Don't allow racial buffs to be removed, keep this number high
 		}

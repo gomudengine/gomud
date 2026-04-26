@@ -91,7 +91,7 @@ func Peep(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 					itemNamesFormatted = append(itemNamesFormatted, iNameFormatted)
 				}
 
-				raceInfo := races.GetRace(u.Character.RaceId)
+				raceInfo := races.GetRace(u.Character.GetRaceId())
 
 				diceRoll := raceInfo.Damage.DiceRoll
 				if u.Character.Equipment.Weapon.ItemId != 0 {
@@ -156,7 +156,7 @@ func Peep(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 					itemNamesFormatted = append(itemNamesFormatted, iNameFormatted)
 				}
 
-				raceInfo := races.GetRace(m.Character.RaceId)
+				raceInfo := races.GetRace(m.Character.GetRaceId())
 
 				diceRoll := raceInfo.Damage.DiceRoll
 				if m.Character.Equipment.Weapon.ItemId != 0 {

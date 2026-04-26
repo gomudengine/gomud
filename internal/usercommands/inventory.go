@@ -128,7 +128,7 @@ func Inventory(rest string, user *users.UserRecord, room *rooms.Room, flags even
 		itemNamesFormatted = append(itemNamesFormatted, iNameFormatted)
 	}
 
-	raceInfo := races.GetRace(user.Character.RaceId)
+	raceInfo := races.GetRace(user.Character.GetRaceId())
 
 	diceRoll := raceInfo.Damage.DiceRoll
 	if user.Character.Equipment.Weapon.ItemId != 0 {

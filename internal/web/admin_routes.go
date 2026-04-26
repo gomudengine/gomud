@@ -117,6 +117,13 @@ func registerAdminRoutes(mux *http.ServeMux) {
 		doBasicAuth(adminStatsAPI),
 	))
 
+	mux.HandleFunc("GET /admin/spells", RunWithMUDLocked(
+		doBasicAuth(adminSpells),
+	))
+	mux.HandleFunc("GET /admin/spells-api", RunWithMUDLocked(
+		doBasicAuth(adminSpellsAPI),
+	))
+
 	mux.HandleFunc("GET /admin/audio", RunWithMUDLocked(
 		doBasicAuth(adminAudio),
 	))

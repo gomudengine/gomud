@@ -76,6 +76,20 @@ const PickerConfigs = {
         sort: (a, b) => a.MobId - b.MobId,
     },
 
+    spells: {
+        title:      'Select Spell',
+        source:     '/admin/api/v2/spells',
+        idKey:      'SpellId',
+        columns: [
+            { key: 'SpellId', label: 'ID',     width: '10rem', mono: true },
+            { key: 'Name',    label: 'Name',   flex: true },
+            { key: 'Type',    label: 'Type',   width: '8rem' },
+            { key: 'School',  label: 'School', width: '8rem' },
+        ],
+        searchKeys: ['SpellId', 'Name'],
+        sort: (a, b) => a.Name.localeCompare(b.Name),
+    },
+
     mutators: {
         title:      'Select Mutator',
         source:     '/admin/api/v1/mutators',

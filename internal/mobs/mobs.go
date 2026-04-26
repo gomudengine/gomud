@@ -174,7 +174,7 @@ func NewMobById(mobId MobId, homeRoomId int, forceLevel ...int) *Mob {
 		}
 
 		if mob.Character.Alignment == 0 {
-			if raceInfo := races.GetRace(mob.Character.RaceId); raceInfo != nil {
+			if raceInfo := races.GetRace(mob.Character.GetRaceId()); raceInfo != nil {
 				if raceInfo.DefaultAlignment != 0 {
 					mob.Character.Alignment = raceInfo.DefaultAlignment
 				}
@@ -370,7 +370,7 @@ func (m *Mob) IsTameable() bool {
 	if len(m.ScriptTag) > 0 {
 		return false
 	}
-	if r := races.GetRace(m.Character.RaceId); r != nil {
+	if r := races.GetRace(m.Character.GetRaceId()); r != nil {
 		if !r.Tameable {
 			return false
 		}
@@ -514,7 +514,7 @@ func (r *Mob) HatesMob(m *Mob) bool {
 		return false // Can't hate exact same as self
 	}
 
-	mRace := races.GetRace(m.Character.RaceId)
+	mRace := races.GetRace(m.Character.GetRaceId())
 	raceName := strings.ToLower(mRace.Name)
 	for _, rGroup := range r.Groups {
 		if rGroup == raceName {
@@ -548,7 +548,7 @@ func (m *Mob) GetAngryCommand() string {
 	}
 
 	// default to race based actions
-	r := races.GetRace(m.Character.RaceId)
+	r := races.GetRace(m.Character.GetRaceId())
 	actionCt := len(r.AngryCommands)
 	if actionCt > 0 {
 		return r.AngryCommands[util.Rand(actionCt)]

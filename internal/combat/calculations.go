@@ -206,7 +206,7 @@ func ChanceToTame(s *users.UserRecord, t *mobs.Mob) int {
 		proficiencyModifier = MOD_SKILL_MAX
 	}
 
-	raceInfo := races.GetRace(s.Character.RaceId)
+	raceInfo := races.GetRace(s.Character.GetRaceId())
 
 	sizeModifier := 0
 	switch raceInfo.Size {

@@ -123,6 +123,14 @@ func adminMobsAPI(w http.ResponseWriter, r *http.Request) {
 	serveAdminTemplate(w, r, "mobs-api.html", nil)
 }
 
+func adminSpells(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "spells.html", nil)
+}
+
+func adminSpellsAPI(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "spells-api.html", nil)
+}
+
 func adminMutators(w http.ResponseWriter, r *http.Request) {
 	serveAdminTemplate(w, r, "mutators.html", nil)
 }
