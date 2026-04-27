@@ -102,6 +102,9 @@ func Teleport(rest string, user *users.UserRecord, room *rooms.Room, flags event
 			user.SendText(fmt.Sprintf("Moved to room %d.", gotoRoomId))
 
 			gotoRoom := rooms.LoadRoom(gotoRoomId)
+			if gotoRoom == nil {
+				return true, nil
+			}
 			gotoRoom.SendText(
 				fmt.Sprintf(`<ansi fg="username">%s</ansi> appears in a flash of light!`, targetUser.Character.Name),
 				targetUser.UserId,

@@ -11,7 +11,9 @@
     .api-entry[open] summary::before { transform: rotate(90deg); }
     .api-entry summary:hover { background: #fafafa; }
     .method { font-family: monospace; font-size: 0.8rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 3px; flex-shrink: 0; }
-    .method-get { background: #e6f4ea; color: #1e6e34; }
+    .method-get   { background: #e6f4ea; color: #1e6e34; }
+    .method-post  { background: #e3f2fd; color: #0d47a1; }
+    .method-patch { background: #fff3e0; color: #8a4a00; }
     .api-path { font-family: monospace; font-size: 0.9rem; color: #1a1a2e; }
     .api-desc { font-size: 0.85rem; color: #555; margin-left: auto; text-align: right; }
     .api-body { padding: 0.75rem 1rem 1rem; border-top: 1px solid #eee; background: #fafafa; }
@@ -119,6 +121,223 @@
                     <div class="resp-body">
                         <p>Returned when the <code>name</code> query parameter is missing.</p>
                         <div class="curl-block">{"success":false,"error":"name query parameter is required"}</div>
+                    </div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-get">GET</span>
+            <span class="api-path">/admin/api/v1/users/{userid}</span>
+            <span class="api-desc">Get a user by ID</span>
+        </summary>
+        <div class="api-body">
+            <p>
+                Returns the full <code>UserRecord</code> for the given numeric user ID.
+                Online users are served from the in-memory cache; offline users are loaded
+                from disk.
+            </p>
+
+            <table class="params-table">
+                <thead><tr><th>Parameter</th><th>In</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr>
+                        <td>userid <span class="required">required</span></td>
+                        <td>path</td>
+                        <td>Numeric user ID.</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="str">"http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/users/42"</span></div>
+
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body">
+                        <div class="curl-block">{
+  "success": true,
+  "data": {
+    "userid": 42,
+    "role": "user",
+    "username": "alice",
+    "password": "$2a$10$...",
+    "joined": "2024-01-15T10:30:00Z",
+    "emailaddress": "alice@example.com",
+    "muted": false,
+    "screenreader": false
+  }
+}</div>
+                    </div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request</span></summary>
+                    <div class="resp-body">
+                        <p>Returned when the <code>userid</code> path segment is not a valid integer.</p>
+                        <div class="curl-block">{"success":false,"error":"invalid user id: abc"}</div>
+                    </div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">404</span> <span class="resp-label">Not Found</span></summary>
+                    <div class="resp-body">
+                        <div class="curl-block">{"success":false,"error":"user not found"}</div>
+                    </div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-patch">PATCH</span>
+            <span class="api-path">/admin/api/v1/users/{userid}</span>
+            <span class="api-desc">Update a user record</span>
+        </summary>
+        <div class="api-body">
+            <p>
+                Merges the supplied JSON fields into the existing <code>UserRecord</code> and
+                persists the result to disk. Only fields present in the request body are
+                applied. The <code>UserId</code> is always preserved from the URL and cannot
+                be changed.
+            </p>
+            <p>
+                To change a password use <code>SetPassword</code> via the in-game admin
+                commands; the <code>password</code> field written here is stored as-is and
+                must already be a valid bcrypt hash if you supply it.
+            </p>
+
+            <table class="params-table">
+                <thead><tr><th>Parameter</th><th>In</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr>
+                        <td>userid <span class="required">required</span></td>
+                        <td>path</td>
+                        <td>Numeric user ID.</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="flag">-X</span> PATCH \
+     <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
+     <span class="flag">-d</span> <span class="str">'{"role":"admin","emailaddress":"newemail@example.com"}'</span> \
+     <span class="str">"http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/users/42"</span></div>
+
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body">
+                        <p>Returns the full updated <code>UserRecord</code>.</p>
+                        <div class="curl-block">{
+  "success": true,
+  "data": {
+    "userid": 42,
+    "role": "admin",
+    "username": "alice",
+    "emailaddress": "newemail@example.com",
+    ...
+  }
+}</div>
+                    </div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request</span></summary>
+                    <div class="resp-body">
+                        <div class="curl-block">{"success":false,"error":"malformed request body: ..."}</div>
+                    </div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">404</span> <span class="resp-label">Not Found</span></summary>
+                    <div class="resp-body">
+                        <div class="curl-block">{"success":false,"error":"user not found"}</div>
+                    </div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-post">POST</span>
+            <span class="api-path">/admin/api/v1/users</span>
+            <span class="api-desc">Create a new user</span>
+        </summary>
+        <div class="api-body">
+            <p>
+                Creates a new user account. A fresh <code>UserRecord</code> is initialised
+                with <code>NewUserRecord</code>, the supplied fields are applied, and the
+                record is saved. The <code>UserId</code> is assigned automatically.
+            </p>
+            <p>
+                The request will be rejected with <code>409 Conflict</code> if the username
+                is already taken.
+            </p>
+
+            <table class="params-table">
+                <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr>
+                        <td>Username <span class="required">required</span></td>
+                        <td>string</td>
+                        <td>Desired username. Must pass server name-validation rules.</td>
+                    </tr>
+                    <tr>
+                        <td>Password</td>
+                        <td>string</td>
+                        <td>Plain-text password. Hashed with bcrypt before storage. Optional — account will have no password if omitted.</td>
+                    </tr>
+                    <tr>
+                        <td>Role</td>
+                        <td>string</td>
+                        <td>Account role (<code>user</code>, <code>admin</code>, etc.). Defaults to <code>user</code> when omitted.</td>
+                    </tr>
+                    <tr>
+                        <td>EmailAddress</td>
+                        <td>string</td>
+                        <td>Optional email address.</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="flag">-X</span> POST \
+     <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
+     <span class="flag">-d</span> <span class="str">'{"Username":"bob","Password":"s3cr3t","Role":"user","EmailAddress":"bob@example.com"}'</span> \
+     <span class="str">"http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/users"</span></div>
+
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">201</span> <span class="resp-label">Created</span></summary>
+                    <div class="resp-body">
+                        <p>Returns the newly created <code>UserRecord</code>.</p>
+                        <div class="curl-block">{
+  "success": true,
+  "data": {
+    "userid": 101,
+    "role": "user",
+    "username": "bob",
+    "emailaddress": "bob@example.com",
+    "joined": "2026-04-23T12:00:00Z",
+    ...
+  }
+}</div>
+                    </div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request</span></summary>
+                    <div class="resp-body">
+                        <p>Returned when the body is malformed, <code>Username</code> is missing, or the name fails validation.</p>
+                        <div class="curl-block">{"success":false,"error":"Username is required"}</div>
+                    </div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">409</span> <span class="resp-label">Conflict</span></summary>
+                    <div class="resp-body">
+                        <p>Returned when the username is already in use.</p>
+                        <div class="curl-block">{"success":false,"error":"username already exists"}</div>
                     </div>
                 </details>
             </div>

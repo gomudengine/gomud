@@ -45,6 +45,7 @@ func init() {
 		panic(err)
 	}
 
+	m.plug.Web.AdminPage("Config", "alt-characters-config", "html/admin/alt-characters-config.html", true, "Modules", "Alt Characters", nil)
 	m.plug.AddUserCommand(`character`, m.characterCommand, true, false)
 
 	m.plug.ReserveTags(characterTag)
@@ -258,12 +259,7 @@ func (m *AltCharactersModule) onRoomLook(d rooms.RoomTemplateDetails) rooms.Room
 }
 
 func roomIsCharacter(room *rooms.Room) bool {
-	for _, t := range room.Tags {
-		if strings.EqualFold(t, characterTag) {
-			return true
-		}
-	}
-	return false
+	return room.HasTag(characterTag)
 }
 
 // ---------------------------------------------------------------------------

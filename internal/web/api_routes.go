@@ -5,9 +5,19 @@ import (
 )
 
 func registerAdminAPIRoutes(mux *http.ServeMux) {
+	// Tags
+	mux.HandleFunc("GET /admin/api/v1/tags", RunWithMUDLocked(
+		doBasicAuth(apiV1GetTags),
+	))
+
 	// Stats
 	mux.HandleFunc("GET /admin/api/v1/stats/memory", RunWithMUDLocked(
 		doBasicAuth(apiV1GetStatsMemory),
+	))
+
+	// Connections
+	mux.HandleFunc("GET /admin/api/v1/connections", RunWithMUDLocked(
+		doBasicAuth(apiV1GetConnections),
 	))
 
 	// Config
@@ -95,6 +105,15 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /admin/api/v1/users/search", RunWithMUDLocked(
 		doBasicAuth(apiV1SearchUsers),
 	))
+	mux.HandleFunc("POST /admin/api/v1/users", RunWithMUDLocked(
+		doBasicAuth(apiV1CreateUser),
+	))
+	mux.HandleFunc("GET /admin/api/v1/users/{userid}", RunWithMUDLocked(
+		doBasicAuth(apiV1GetUser),
+	))
+	mux.HandleFunc("PATCH /admin/api/v1/users/{userid}", RunWithMUDLocked(
+		doBasicAuth(apiV1PatchUser),
+	))
 
 	// Color Aliases
 	mux.HandleFunc("GET /admin/api/v1/color-aliases", RunWithMUDLocked(
@@ -147,6 +166,71 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 		doBasicAuth(apiV1DeleteMob),
 	))
 
+	// Zones
+	mux.HandleFunc("GET /admin/api/v1/zones", RunWithMUDLocked(
+		doBasicAuth(apiV1GetZones),
+	))
+	mux.HandleFunc("POST /admin/api/v1/zones", RunWithMUDLocked(
+		doBasicAuth(apiV1CreateZone),
+	))
+	mux.HandleFunc("PATCH /admin/api/v1/zones/{zonename}", RunWithMUDLocked(
+		doBasicAuth(apiV1PatchZone),
+	))
+	mux.HandleFunc("DELETE /admin/api/v1/zones/{zonename}", RunWithMUDLocked(
+		doBasicAuth(apiV1DeleteZone),
+	))
+
+	// Rooms — static sub-routes before wildcard {roomId}
+	mux.HandleFunc("GET /admin/api/v1/rooms/biomes", RunWithMUDLocked(
+		doBasicAuth(apiV1GetBiomes),
+	))
+	mux.HandleFunc("GET /admin/api/v1/rooms", RunWithMUDLocked(
+		doBasicAuth(apiV1GetRooms),
+	))
+	mux.HandleFunc("POST /admin/api/v1/rooms", RunWithMUDLocked(
+		doBasicAuth(apiV1CreateRoom),
+	))
+	mux.HandleFunc("GET /admin/api/v1/rooms/{roomId}/script", RunWithMUDLocked(
+		doBasicAuth(apiV1GetRoomScript),
+	))
+	mux.HandleFunc("PUT /admin/api/v1/rooms/{roomId}/script", RunWithMUDLocked(
+		doBasicAuth(apiV1PutRoomScript),
+	))
+	mux.HandleFunc("GET /admin/api/v1/rooms/{roomId}", RunWithMUDLocked(
+		doBasicAuth(apiV1GetRoom),
+	))
+	mux.HandleFunc("PATCH /admin/api/v1/rooms/{roomId}", RunWithMUDLocked(
+		doBasicAuth(apiV1PatchRoom),
+	))
+	mux.HandleFunc("DELETE /admin/api/v1/rooms/{roomId}", RunWithMUDLocked(
+		doBasicAuth(apiV1DeleteRoom),
+	))
+
+	// Mutators
+	mux.HandleFunc("GET /admin/api/v1/mutators", RunWithMUDLocked(
+		doBasicAuth(apiV1GetMutators),
+	))
+	mux.HandleFunc("POST /admin/api/v1/mutators", RunWithMUDLocked(
+		doBasicAuth(apiV1CreateMutator),
+	))
+	mux.HandleFunc("GET /admin/api/v1/mutators/{mutatorId}", RunWithMUDLocked(
+		doBasicAuth(apiV1GetMutator),
+	))
+	mux.HandleFunc("PATCH /admin/api/v1/mutators/{mutatorId}", RunWithMUDLocked(
+		doBasicAuth(apiV1PatchMutator),
+	))
+	mux.HandleFunc("DELETE /admin/api/v1/mutators/{mutatorId}", RunWithMUDLocked(
+		doBasicAuth(apiV1DeleteMutator),
+	))
+
+	// Audio
+	mux.HandleFunc("GET /admin/api/v1/audio", RunWithMUDLocked(
+		doBasicAuth(apiV1GetAudio),
+	))
+	mux.HandleFunc("PATCH /admin/api/v1/audio", RunWithMUDLocked(
+		doBasicAuth(apiV1PatchAudio),
+	))
+
 	// Keywords
 	mux.HandleFunc("GET /admin/api/v1/keywords", RunWithMUDLocked(
 		doBasicAuth(apiV1GetKeywords),
@@ -167,5 +251,28 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 	))
 	mux.HandleFunc("DELETE /admin/api/v1/races/{raceId}", RunWithMUDLocked(
 		doBasicAuth(apiV1DeleteRace),
+	))
+
+	// Spells — script sub-route before wildcard {spellId}
+	mux.HandleFunc("GET /admin/api/v2/spells", RunWithMUDLocked(
+		doBasicAuth(apiV2GetSpells),
+	))
+	mux.HandleFunc("POST /admin/api/v2/spells", RunWithMUDLocked(
+		doBasicAuth(apiV2CreateSpell),
+	))
+	mux.HandleFunc("GET /admin/api/v2/spells/{spellId}/script", RunWithMUDLocked(
+		doBasicAuth(apiV2GetSpellScript),
+	))
+	mux.HandleFunc("PUT /admin/api/v2/spells/{spellId}/script", RunWithMUDLocked(
+		doBasicAuth(apiV2PutSpellScript),
+	))
+	mux.HandleFunc("GET /admin/api/v2/spells/{spellId}", RunWithMUDLocked(
+		doBasicAuth(apiV2GetSpell),
+	))
+	mux.HandleFunc("PATCH /admin/api/v2/spells/{spellId}", RunWithMUDLocked(
+		doBasicAuth(apiV2PatchSpell),
+	))
+	mux.HandleFunc("DELETE /admin/api/v2/spells/{spellId}", RunWithMUDLocked(
+		doBasicAuth(apiV2DeleteSpell),
 	))
 }

@@ -120,6 +120,20 @@ func SendPayload(payload webHookPayload) {
 	send(marshalled)
 }
 
+var httpClient = &http.Client{
+	Transport: &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout:   3 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		TLSHandshakeTimeout:   3 * time.Second,
+		ResponseHeaderTimeout: 3 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		MaxIdleConns:          2,
+		IdleConnTimeout:       60 * time.Second,
+	},
+}
+
 func send(marshalled []byte) {
 
 	if isRequestBackoff() {
@@ -128,20 +142,13 @@ func send(marshalled []byte) {
 
 	go func() {
 		request, err := http.NewRequest("POST", WebhookUrl, bytes.NewReader(marshalled))
+		if err != nil {
+			mudlog.Error(`discord`, `error`, fmt.Sprintf("Failed to create request: %v", err))
+			return
+		}
 		request.Header.Set("Content-Type", "application/json; charset=UTF-8")
 
-		client := &http.Client{
-			Transport: &http.Transport{
-				Dial: (&net.Dialer{
-					Timeout:   3 * time.Second,
-					KeepAlive: 3 * time.Second,
-				}).Dial,
-				TLSHandshakeTimeout:   3 * time.Second,
-				ResponseHeaderTimeout: 3 * time.Second,
-				ExpectContinueTimeout: 1 * time.Second,
-			},
-		}
-		response, err := client.Do(request)
+		response, err := httpClient.Do(request)
 		if err != nil {
 
 			doRequestBackoff()
@@ -149,6 +156,7 @@ func send(marshalled []byte) {
 			mudlog.Error(`discord`, `error`, err)
 			return
 		}
+		defer response.Body.Close()
 
 		// Expect 204 No Content reply
 		if response.StatusCode != 204 {

@@ -33,17 +33,10 @@ func Whisper(rest string, user *users.UserRecord, room *rooms.Room, flags events
 		return true, nil
 	}
 
-	sourceIsMod := user.Role != users.RoleUser
 	targetIsMod := toUser.Role != users.RoleUser
 
 	if user.Muted && !targetIsMod {
 		user.SendText(`You are <ansi fg="alert-5">MUTED</ansi>. You can only send <ansi fg="command">whisper</ansi>'s to Admins and Moderators.`)
-		return true, nil
-	}
-
-	// Whisper do allow special communication between mods/admins and users
-	if toUser.Deafened && !sourceIsMod {
-		user.SendText(`That user is <ansi fg="alert-5">DEAFENED</ansi> and cannot receive communications from other players.`)
 		return true, nil
 	}
 

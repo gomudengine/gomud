@@ -227,6 +227,7 @@ func GetPath(startRoomId int, endRoomId ...int) ([]pathStep, error) {
 		cacheKey.endRoomId = roomId
 
 		if pCache, ok := pathCache.Get(cacheKey); ok {
+			pathCacheHits.Add(1)
 
 			if pCache.err != nil {
 				return pCache.steps, fmt.Errorf("%d => %d: %w", rNow, roomId, pCache.err)
@@ -236,6 +237,8 @@ func GetPath(startRoomId int, endRoomId ...int) ([]pathStep, error) {
 			rNow = roomId
 			continue
 		}
+
+		pathCacheMisses.Add(1)
 
 		if !m.HasRoom(roomId) {
 			err := fmt.Errorf("%d => %d (room not in mapper): %w", rNow, roomId, ErrPathNotFound)

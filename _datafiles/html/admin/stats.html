@@ -21,7 +21,7 @@
     .status-bar.error { background: #fde8e8; color: #8a0000; display: block; }
 
     /* runtime card grid — for UnitCount metrics from the Go section */
-    .runtime-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.75rem; margin-bottom: 2rem; }
+    .runtime-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem; margin-bottom: 2rem; }
     .runtime-card { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 1rem 1.1rem; }
     .runtime-card .rc-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: #888; margin-bottom: 0.35rem; }
     .runtime-card .rc-value { font-size: 1.6rem; font-weight: 700; color: #1a1a2e; line-height: 1.1; }
@@ -106,17 +106,99 @@
     'use strict';
 
     // -------------------------------------------------------------------------
-    // Tooltip definitions for Go runtime metrics
+    // Tooltip definitions keyed by section name, then metric name
     // -------------------------------------------------------------------------
-    const GO_TIPS = {
-        'HeapAlloc (!Freed)':   'Bytes of heap objects currently allocated and not yet freed by the garbage collector. This is the most useful live memory figure — it shows how much your application is actively using right now.',
-        'HeapSys (!Reclaimed)': 'Total bytes of heap memory obtained from the OS. Includes memory the GC has freed internally but not yet returned to the OS. Will always be >= HeapAlloc.',
-        'StackSys (Reserved)':  'Total bytes of memory reserved by the OS for goroutine stacks. Each goroutine starts with a small stack that grows as needed.',
-        'StackInuse (In Use)':  'Bytes of stack memory currently in use across all goroutines. A subset of StackSys.',
-        'Sys (Everything)':     'Total bytes of memory obtained from the OS across all categories: heap, stacks, internal runtime structures, and GC metadata. The broadest view of process memory.',
-        'GC Count':             'Total number of completed garbage collection cycles since the process started. Frequent GC can indicate high allocation pressure.',
-        'Maximum Processors':   'The value of GOMAXPROCS — the maximum number of OS threads that can execute Go code simultaneously. Typically equals the number of logical CPU cores.',
-        'Goroutines Count':     'Number of goroutines currently running or waiting. A steadily growing count may indicate a goroutine leak.',
+    const TIPS = {
+        'Go': {
+            'HeapAlloc (!Freed)':   'Bytes of heap objects currently allocated and not yet freed by the garbage collector. This is the most useful live memory figure — it shows how much your application is actively using right now.',
+            'HeapSys (!Reclaimed)': 'Total bytes of heap memory obtained from the OS. Includes memory the GC has freed internally but not yet returned to the OS. Will always be >= HeapAlloc.',
+            'StackSys (Reserved)':  'Total bytes of memory reserved by the OS for goroutine stacks. Each goroutine starts with a small stack that grows as needed.',
+            'StackInuse (In Use)':  'Bytes of stack memory currently in use across all goroutines. A subset of StackSys.',
+            'Sys (Everything)':     'Total bytes of memory obtained from the OS across all categories: heap, stacks, internal runtime structures, and GC metadata. The broadest view of process memory.',
+            'GC Count':             'Total number of completed garbage collection cycles since the process started. Frequent GC can indicate high allocation pressure.',
+            'Maximum Processors':   'The value of GOMAXPROCS — the maximum number of OS threads that can execute Go code simultaneously. Typically equals the number of logical CPU cores.',
+            'Goroutines Count':     'Number of goroutines currently running or waiting. A steadily growing count may indicate a goroutine leak.',
+        },
+        'Scripting': {
+            'roomVMCache':       'Cached JavaScript VM instances for room scripts. Each VM holds a compiled Goja runtime.',
+            'mobVMCache':        'Cached JavaScript VM instances for mob scripts, keyed by script ID.',
+            'itemVMCache':       'Cached JavaScript VM instances for item scripts, keyed by script ID.',
+            'buffVMCache':       'Cached JavaScript VM instances for buff scripts, keyed by buff ID.',
+            'spellVMCache':      'Cached JavaScript VM instances for spell scripts, keyed by spell ID.',
+            'moduleFunctions':   'Go functions registered and exposed to the JavaScript scripting runtime by modules.',
+        },
+        'Templates': {
+            'templateCache':       'Compiled Go text/template objects cached by file path. Avoids re-parsing template files on every render.',
+            'templateConfigCache': 'Per-user template configuration cached by user ID.',
+        },
+        'Connections': {
+            'netConnections': 'Active network connections (telnet, WebSocket, SSH) currently tracked by the server.',
+        },
+        'Mapper': {
+            'mapperZoneCache':     'Crawled zone map data cached by zone name. Each entry holds a full room graph for pathfinding and rendering.',
+            'roomIdToMapperCache': 'Reverse lookup from room ID to zone cache key.',
+            'pathCache':           'LRU cache of pathfinding results between room pairs. Fixed capacity of 128 entries.',
+            'pathCacheHits':       'Number of pathfinding requests served from the LRU cache without recomputing.',
+            'pathCacheMisses':     'Number of pathfinding requests that required a fresh A* search.',
+        },
+        'Buffs': {
+            'buffs': 'Loaded buff specifications from data files.',
+        },
+        'Quests': {
+            'quests': 'Loaded quest definitions from data files.',
+        },
+        'Spells': {
+            'allSpells': 'Loaded spell definitions from data files.',
+        },
+        'Races': {
+            'races': 'Loaded race definitions from data files.',
+        },
+        'Pets': {
+            'petTypes': 'Loaded pet type specifications from data files.',
+        },
+        'ColorPatterns': {
+            'numericPatterns':  'Compiled numeric color patterns used for text colorization.',
+            'ShortTagPatterns': 'Compiled short-tag color patterns used for text colorization.',
+        },
+        'Conversations': {
+            'converseCheckCache':  'Cache of conversation availability checks, keyed by mob/zone identifiers.',
+            'conversations':       'Currently active NPC conversation instances.',
+            'conversationCounter': 'Counts of conversation instances by type, used for limiting concurrent conversations.',
+        },
+        'Parties': {
+            'partyMap': 'Active party groups indexed by leader user ID.',
+        },
+        'BadInputTracker': {
+            'badCommands': 'Unrecognized commands tracked for analysis. Grows unbounded until manually cleared via admin.',
+        },
+        'Web': {
+            'authCache': 'Basic auth credential cache with expiration. Avoids re-validating passwords on every admin request.',
+        },
+        'Events': {
+            'eventListeners':         'Registered event listener callbacks grouped by event type.',
+            'eventsWithoutListeners': 'Debug tracker of event types fired without any registered listeners.',
+        },
+        'Rooms': {
+            'rooms':              'All currently loaded room objects in memory.',
+            'zones':              'Zone configuration objects, one per zone.',
+            'roomsWithUsers':     'Tracks which rooms currently have users in them.',
+            'roomIdToFileCache':  'Maps room IDs to their data file paths.',
+        },
+        'Mobs': {
+            'mobs':            'Mob template/spec definitions loaded from data files.',
+            'allMobNames':     'Cached list of all mob names for search and autocomplete.',
+            'mobInstances':    'Live mob instances currently spawned in the world.',
+            'mobsHatePlayers': 'Hate/aggro relationships between mobs and players.',
+        },
+        'Items': {
+            'items': 'Item definitions loaded from data files.',
+        },
+        'Users': {
+            'Users':           'User account records currently loaded in memory.',
+            'Usernames':       'Username-to-ID index for fast lookups.',
+            'Connections':     'User-level connection mappings.',
+            'UserConnections': 'Reverse mapping from connection ID to user.',
+        },
     };
 
     // -------------------------------------------------------------------------
@@ -151,7 +233,8 @@
     // Wrap a metric name in a tooltip span if a tip exists for it.
     // Returns plain escaped text when no tip is defined.
     function metricNameHtml(metric, sectionName) {
-        const tip = sectionName === 'Go' ? GO_TIPS[metric] : null;
+        const sectionTips = TIPS[sectionName];
+        const tip = sectionTips ? sectionTips[metric] : null;
         if (!tip) return esc(metric);
         return '<span class="has-tip" data-tip="' + esc(tip) + '">' + esc(metric) + '</span>';
     }
@@ -192,7 +275,8 @@
                 if (entry.unit !== 'count') continue;
                 const card = document.createElement('div');
                 card.className = 'runtime-card';
-                const tip = name === 'Go' ? GO_TIPS[metric] : null;
+                const sectionTips = TIPS[name];
+                const tip = sectionTips ? sectionTips[metric] : null;
                 const labelHtml = tip
                     ? '<span class="has-tip" data-tip="' + esc(tip) + '">' + esc(cleanLabel(metric)) + '</span>'
                     : esc(cleanLabel(metric));

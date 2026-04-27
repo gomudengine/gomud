@@ -34,7 +34,7 @@ func Grant(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 
 	lastWord := args[len(args)-1]
 
-	if len(args) >= 2 && len(lastWord) >= 3 && lastWord[0:3] == `exp` || lastWord == `xp` {
+	if len(args) >= 2 && (len(lastWord) >= 3 && lastWord[0:3] == `exp` || lastWord == `xp`) {
 
 		expAmt := 0
 

@@ -2,35 +2,252 @@
 
 <style>
     h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
-    .subtitle { color: #555; margin-bottom: 2rem; font-size: 0.9rem; }
-    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem; }
+    .subtitle { color: #555; margin-bottom: 1.5rem; font-size: 0.9rem; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
     .card { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 1.25rem; }
     .card h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: #666; margin-bottom: 0.5rem; }
     .card .value { font-size: 1.75rem; font-weight: 700; color: #1a1a2e; }
     .card .detail { font-size: 0.85rem; color: #555; margin-top: 0.25rem; }
     .card a { display: inline-block; margin-top: 0.75rem; font-size: 0.85rem; color: #1a1a2e; text-decoration: underline; }
     .card a:hover { color: #444; }
+
+    /* toolbar */
+    .toolbar { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .btn { padding: 0.4rem 1rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.875rem; font-weight: 600; }
+    .btn-primary { background: #1a1a2e; color: #fff; }
+    .btn-primary:hover { background: #2d2d4e; }
+    .btn-primary:disabled { background: #999; cursor: default; }
+    .refresh-rate { display: flex; align-items: center; gap: 0.6rem; font-size: 0.82rem; color: #555; }
+    .refresh-rate input[type="range"] { width: 120px; accent-color: #1a1a2e; cursor: pointer; }
+    .refresh-rate-label { min-width: 2.5rem; font-size: 0.82rem; color: #1a1a2e; font-weight: 600; }
+    .refresh-countdown { font-size: 0.78rem; color: #888; min-width: 9rem; }
+    .last-updated { font-size: 0.78rem; color: #aaa; margin-left: auto; }
+
+    /* status */
+    .status-bar { display: none; padding: 0.5rem 0.85rem; border-radius: 4px; font-size: 0.85rem; margin-bottom: 1rem; }
+    .status-bar.error { background: #fde8e8; color: #8a0000; display: block; }
+
+    /* runtime card grid */
+    .runtime-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem; margin-bottom: 2rem; }
+    .runtime-card { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 1rem 1.1rem; }
+    .runtime-card .rc-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: #888; margin-bottom: 0.35rem; }
+    .runtime-card .rc-value { font-size: 1.6rem; font-weight: 700; color: #1a1a2e; line-height: 1.1; }
+    .runtime-card .rc-unit { font-size: 0.72rem; color: #aaa; margin-top: 0.2rem; }
 </style>
 
 <h1>{{.CONFIG.Server.MudName}}</h1>
 <p class="subtitle">Version {{.CONFIG.Server.CurrentVersion}}</p>
 
-<div class="grid">
-    <div class="card">
+<div class="toolbar">
+    <button class="btn btn-primary" id="refresh-btn" onclick="loadDashboard()">Refresh</button>
+    <span class="refresh-rate">
+        <span>Refresh every</span>
+        <input type="range" id="refresh-slider" min="0" max="60" value="4"
+               oninput="onSliderInput()" />
+        <span class="refresh-rate-label" id="refresh-rate-label">4s</span>
+        <span class="refresh-countdown" id="refresh-countdown"></span>
+    </span>
+    <span class="last-updated" id="last-updated"></span>
+</div>
+
+<div id="status-bar" class="status-bar"></div>
+
+<div class="grid" id="connections-grid">
+    <div class="card" id="card-telnet">
         <h2>Telnet Ports</h2>
         <div class="value">{{range .STATS.TelnetPorts}}{{.}} {{end}}</div>
         <div class="detail">{{.STATS.TelnetConnections}} connected</div>
     </div>
-    <div class="card">
+    <div class="card" id="card-websocket">
         <h2>WebSocket Port</h2>
         <div class="value">{{if .STATS.WebSocketPort}}{{.STATS.WebSocketPort}}{{else}}&mdash;{{end}}</div>
         <div class="detail">{{.STATS.WebSocketConnections}} connected</div>
     </div>
-    <div class="card">
+    <div class="card" id="card-ssh">
         <h2>SSH Port</h2>
         <div class="value">{{if .STATS.SSHPort}}{{.STATS.SSHPort}}{{else}}&mdash;{{end}}</div>
         <div class="detail">{{.STATS.SSHConnections}} connected</div>
     </div>
 </div>
+
+<div id="runtime-grid" class="runtime-grid"></div>
+
+<script>
+(function () {
+    'use strict';
+
+    function esc(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function fmtCount(n) {
+        return n.toLocaleString();
+    }
+
+    function cleanLabel(s) {
+        return s.replace(/\s*\([^)]*\)\s*$/, '').trim();
+    }
+
+    // -------------------------------------------------------------------------
+    // Connection cards
+    // -------------------------------------------------------------------------
+    function applyConnections(data) {
+        var card;
+
+        card = document.getElementById('card-telnet');
+        card.querySelector('.value').textContent = (data.telnet_ports || []).join(' ') || '—';
+        card.querySelector('.detail').textContent = data.telnet_connections + ' connected';
+
+        card = document.getElementById('card-websocket');
+        card.querySelector('.value').textContent = data.websocket_port || '—';
+        card.querySelector('.detail').textContent = data.websocket_connections + ' connected';
+
+        card = document.getElementById('card-ssh');
+        card.querySelector('.value').textContent = data.ssh_port || '—';
+        card.querySelector('.detail').textContent = data.ssh_connections + ' connected';
+    }
+
+    // -------------------------------------------------------------------------
+    // Runtime stats cards (count-unit metrics from memory stats)
+    // -------------------------------------------------------------------------
+    function renderRuntimeCards(sections) {
+        var grid = document.getElementById('runtime-grid');
+        grid.innerHTML = '';
+
+        var order = ['Go'].concat(Object.keys(sections).filter(function (k) { return k !== 'Go'; }));
+        for (var oi = 0; oi < order.length; oi++) {
+            var name = order[oi];
+            var section = sections[name];
+            if (!section) continue;
+            var metrics = Object.entries(section);
+            for (var mi = 0; mi < metrics.length; mi++) {
+                var metric = metrics[mi][0];
+                var entry = metrics[mi][1];
+                if (entry.unit !== 'count') continue;
+                var card = document.createElement('div');
+                card.className = 'runtime-card';
+                card.innerHTML =
+                    '<div class="rc-label">' + esc(cleanLabel(metric)) + '</div>' +
+                    '<div class="rc-value">' + fmtCount(entry.memory) + '</div>' +
+                    '<div class="rc-unit">' + esc(name) + '</div>';
+                grid.appendChild(card);
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Fetch + apply
+    // -------------------------------------------------------------------------
+    async function fetchAll() {
+        return AdminAPI.all([
+            AdminAPI.get('/admin/api/v1/connections', true),
+            AdminAPI.get('/admin/api/v1/stats/memory', true)
+        ]);
+    }
+
+    async function applyAll(results) {
+        var connRes = results[0];
+        var statsRes = results[1];
+
+        if (!connRes.ok) {
+            showStatus('Failed to load connections: ' + (connRes.error || 'unknown error'));
+            return;
+        }
+        if (!statsRes.ok) {
+            showStatus('Failed to load stats: ' + (statsRes.error || 'unknown error'));
+            return;
+        }
+
+        clearStatus();
+        applyConnections((connRes.data && connRes.data.data) || {});
+        renderRuntimeCards((statsRes.data && statsRes.data.data) || {});
+        document.getElementById('last-updated').textContent =
+            'Last updated: ' + new Date().toLocaleTimeString();
+    }
+
+    window.loadDashboard = async function () {
+        var btn = document.getElementById('refresh-btn');
+        btn.disabled = true;
+        btn.textContent = 'Loading...';
+
+        var results = await fetchAll();
+
+        btn.disabled = false;
+        btn.textContent = 'Refresh';
+
+        await applyAll(results);
+        resetCountdown();
+    };
+
+    // -------------------------------------------------------------------------
+    // Auto-refresh
+    // -------------------------------------------------------------------------
+    var tickTimer    = null;
+    var secondsLeft  = 0;
+    var intervalSecs = 4;
+
+    var countdownEl  = document.getElementById('refresh-countdown');
+    var rateLabelEl  = document.getElementById('refresh-rate-label');
+    var sliderEl     = document.getElementById('refresh-slider');
+
+    function updateCountdownDisplay() {
+        if (intervalSecs === 0) {
+            countdownEl.textContent = '';
+        } else {
+            countdownEl.textContent = 'Refreshing in ' + secondsLeft + 's';
+        }
+    }
+
+    function resetCountdown() {
+        secondsLeft = intervalSecs;
+        updateCountdownDisplay();
+    }
+
+    function startTicker() {
+        clearInterval(tickTimer);
+        if (intervalSecs === 0) {
+            countdownEl.textContent = '';
+            return;
+        }
+        resetCountdown();
+        tickTimer = setInterval(async function () {
+            secondsLeft -= 1;
+            if (secondsLeft <= 0) {
+                var results = await fetchAll();
+                await applyAll(results);
+                secondsLeft = intervalSecs;
+            }
+            updateCountdownDisplay();
+        }, 1000);
+    }
+
+    window.onSliderInput = function () {
+        intervalSecs = parseInt(sliderEl.value, 10);
+        rateLabelEl.textContent = intervalSecs === 0 ? 'Off' : intervalSecs + 's';
+        startTicker();
+    };
+
+    // -------------------------------------------------------------------------
+    // Status
+    // -------------------------------------------------------------------------
+    function showStatus(msg) {
+        var bar = document.getElementById('status-bar');
+        bar.textContent = msg;
+        bar.className = 'status-bar error';
+    }
+
+    function clearStatus() {
+        var bar = document.getElementById('status-bar');
+        bar.textContent = '';
+        bar.className = 'status-bar';
+    }
+
+    // -------------------------------------------------------------------------
+    // Boot
+    // -------------------------------------------------------------------------
+    loadDashboard();
+    startTicker();
+})();
+</script>
 
 {{template "footer" .}}

@@ -30,12 +30,6 @@ func Broadcast_SendToAll(e events.Event) events.ListenerReturn {
 
 	for _, u := range users.GetAllActiveUsers() {
 
-		if broadcast.IsCommunication {
-			if u.Deafened && !broadcast.SourceIsMod {
-				continue
-			}
-		}
-
 		events.AddToQueue(events.RedrawPrompt{UserId: u.UserId}, 100)
 
 		if u.ScreenReader {

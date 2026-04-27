@@ -40,7 +40,6 @@ type UserRecord struct {
 	Character      *characters.Character `yaml:"character,omitempty"`
 	ConfigOptions  map[string]any        `yaml:"configoptions,omitempty"`
 	Muted          bool                  `yaml:"muted,omitempty"`        // Cannot SEND custom communications to anyone but admin/mods
-	Deafened       bool                  `yaml:"deafened,omitempty"`     // Cannot HEAR custom communications from anyone but admin/mods
 	ScreenReader   bool                  `yaml:"screenreader,omitempty"` // Are they using a screen reader? (We should remove excess symbols)
 	EmailAddress   string                `yaml:"emailaddress,omitempty"` // Email address (if provided)
 	TipsComplete   map[string]bool       `yaml:"tipscomplete,omitempty"` // Tips the user has followed/completed so they can be quiet

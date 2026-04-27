@@ -5,7 +5,9 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 )
 
@@ -63,6 +65,11 @@ func apiV1CreateMob(w http.ResponseWriter, r *http.Request) {
 	var spec mobs.Mob
 	if err := json.NewDecoder(r.Body).Decode(&spec); err != nil {
 		writeAPIError(w, http.StatusBadRequest, "malformed request body: "+err.Error())
+		return
+	}
+
+	if spec.Character.Name == "" {
+		writeAPIError(w, http.StatusBadRequest, "Character.Name is required")
 		return
 	}
 
@@ -183,6 +190,27 @@ func apiV1PutMobStock(w http.ResponseWriter, r *http.Request) {
 	var entry characters.ShopItem
 	if err := json.NewDecoder(r.Body).Decode(&entry); err != nil {
 		writeAPIError(w, http.StatusBadRequest, "malformed request body: "+err.Error())
+		return
+	}
+
+	if entry.Price < 0 {
+		writeAPIError(w, http.StatusBadRequest, "price must be non-negative")
+		return
+	}
+	if entry.Quantity < -1 {
+		writeAPIError(w, http.StatusBadRequest, "quantity must be -1 or greater")
+		return
+	}
+	if entry.ItemId != 0 && items.GetItemSpec(entry.ItemId) == nil {
+		writeAPIError(w, http.StatusBadRequest, "item_id does not exist: "+strconv.Itoa(entry.ItemId))
+		return
+	}
+	if entry.MobId != 0 && mobs.GetMobSpec(mobs.MobId(entry.MobId)) == nil {
+		writeAPIError(w, http.StatusBadRequest, "mob_id does not exist: "+strconv.Itoa(entry.MobId))
+		return
+	}
+	if entry.BuffId != 0 && buffs.GetBuffSpec(entry.BuffId) == nil {
+		writeAPIError(w, http.StatusBadRequest, "buff_id does not exist: "+strconv.Itoa(entry.BuffId))
 		return
 	}
 

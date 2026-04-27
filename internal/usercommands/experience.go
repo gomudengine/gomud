@@ -25,7 +25,7 @@ func Experience(rest string, user *users.UserRecord, room *rooms.Room, flags eve
 		startLevel := 1
 		endLevel := 25
 
-		chartRace := user.Character.RaceId
+		chartRace := user.Character.GetRaceId()
 
 		// xp chart elf 50
 		if len(args) > 1 {

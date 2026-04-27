@@ -51,8 +51,35 @@ func (a ScriptActor) GetRace() string {
 	return a.characterRecord.Race()
 }
 
-func (a ScriptActor) GetSize() string {
+func (a ScriptActor) GetTrueRace() string {
 	if r := races.GetRace(a.characterRecord.RaceId); r != nil {
+		return r.Name
+	}
+	return `Ghostly Spirit`
+}
+
+func (a ScriptActor) IsFormChanged() bool {
+	return a.characterRecord.IsFormChanged()
+}
+
+func (a ScriptActor) ApplyFormChange(raceId int) bool {
+	if races.GetRace(raceId) == nil {
+		return false
+	}
+	a.characterRecord.ApplyFormChange(raceId)
+	return true
+}
+
+func (a ScriptActor) RevertFormChange() bool {
+	if !a.characterRecord.IsFormChanged() {
+		return false
+	}
+	a.characterRecord.RevertFormChange()
+	return true
+}
+
+func (a ScriptActor) GetSize() string {
+	if r := races.GetRace(a.characterRecord.GetRaceId()); r != nil {
 		return string(r.Size)
 	}
 	return string(races.Medium)

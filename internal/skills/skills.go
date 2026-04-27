@@ -34,6 +34,7 @@ const (
 	Protection  SkillTag = `protection`  // TODO
 	Tame        SkillTag = `tame`        // [LVL 1-4] Give mushroom to fairie in ROOM 558, train in ROOM 830
 	Trading     SkillTag = `trading`     // TODO
+	ChangeForm  SkillTag = `changeform`  // TODO
 )
 
 var (
@@ -78,6 +79,7 @@ var (
 		"monster hunter": {
 			Tame,
 			Track,
+			ChangeForm,
 		},
 		"sorcerer": {
 			Cast,

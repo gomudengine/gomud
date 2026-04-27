@@ -149,7 +149,9 @@ func item_Create(rest string, user *users.UserRecord, room *rooms.Room, flags ev
 
 	if len(rest) > 0 {
 		if itemId := items.FindItem(rest); itemId > 0 {
-			newItemSpec = *(items.GetItemSpec(itemId))
+			if spec := items.GetItemSpec(itemId); spec != nil {
+				newItemSpec = *spec
+			}
 		}
 	}
 

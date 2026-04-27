@@ -8,6 +8,7 @@
 #     ExperienceEnabled: true
 #     GoldEnabled: true
 #     KillsEnabled: true
+#     ExplorationEnabled: true
 ################################################################################
 # - Size -
 #   Maximum size of each leaderboard. 0 to disable.
@@ -21,3 +22,6 @@ GoldEnabled: true
 # - KillsEnabled -
 # Enable leaderboard for character with the most total kills
 KillsEnabled: true
+# - ExplorationEnabled -
+# Enable leaderboard for character with the most rooms explored
+ExplorationEnabled: true

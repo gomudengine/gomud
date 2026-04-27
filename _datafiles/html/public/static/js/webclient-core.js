@@ -1759,11 +1759,24 @@ const Client = (() => {
         });
     }
 
+    function toggleDockAutoHide(enabled) {
+        const container = document.getElementById('main-container');
+        if (enabled) {
+            container.classList.add('dock-autohide');
+        } else {
+            container.classList.remove('dock-autohide');
+        }
+        localStorage.setItem('dockAutoHide', JSON.stringify(enabled));
+        requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+    }
+
     function toggleMenu() {
         const backdrop = document.getElementById('settings-backdrop');
         const isOpen   = backdrop.classList.contains('open');
         if (!isOpen) {
             buildWindowToggles();
+            const ahCb = document.getElementById('dock-autohide-checkbox');
+            if (ahCb) { ahCb.checked = document.getElementById('main-container').classList.contains('dock-autohide'); }
             backdrop.classList.add('open');
         } else {
             backdrop.classList.remove('open');
@@ -1772,6 +1785,7 @@ const Client = (() => {
 
     function resetLayout() {
         LayoutStore.reset();
+        toggleDockAutoHide(false);
 
         // Close all windows first, then reopen each one in its default state.
         VirtualWindows.getWindows().forEach(win => {
@@ -1911,6 +1925,12 @@ const Client = (() => {
         // Initialise dock slots first — VirtualWindows.openAll() depends on them.
         DockSlots.left  = new DockSlot('left');
         DockSlots.right = new DockSlot('right');
+
+        try {
+            if (JSON.parse(localStorage.getItem('dockAutoHide'))) {
+                document.getElementById('main-container').classList.add('dock-autohide');
+            }
+        } catch (e) {}
 
         connectButton = document.getElementById('connect-button');
         textOutput    = document.getElementById('terminal');
@@ -2129,6 +2149,7 @@ const Client = (() => {
         init,
         toggleMenu,
         toggleMuteAll,
+        toggleDockAutoHide,
         resetLayout,
         resetVolumeControls,
         buildSliders,

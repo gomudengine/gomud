@@ -54,6 +54,47 @@ func Spell(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		return spell_List(strings.TrimSpace(rest[4:]), user, room, flags)
 	}
 
+	if args[0] == `give` || args[0] == `take` {
+		if len(args) < 3 {
+			infoOutput, _ := templates.Process("admincommands/help/command.spell", nil, user.UserId)
+			user.SendText(infoOutput)
+			return true, nil
+		}
+
+		targetUser := users.GetByCharacterName(args[1])
+		if targetUser == nil {
+			user.SendText(fmt.Sprintf(`Could not find online user "%s".`, args[1]))
+			return true, nil
+		}
+
+		spellName := strings.Join(args[2:], ` `)
+		spellData := spells.FindSpellByName(spellName)
+		if spellData == nil {
+			user.SendText(fmt.Sprintf(`Could not find spell "%s".`, spellName))
+			return true, nil
+		}
+
+		if args[0] == `give` {
+			if targetUser.Character.HasSpell(spellData.SpellId) {
+				user.SendText(fmt.Sprintf(`%s already knows <ansi fg="spell">%s</ansi>.`, targetUser.Character.Name, spellData.Name))
+				return true, nil
+			}
+			targetUser.Character.LearnSpell(spellData.SpellId)
+			user.SendText(fmt.Sprintf(`Granted <ansi fg="spell">%s</ansi> to <ansi fg="username">%s</ansi>.`, spellData.Name, targetUser.Character.Name))
+		} else {
+			if !targetUser.Character.HasSpell(spellData.SpellId) {
+				user.SendText(fmt.Sprintf(`%s does not know <ansi fg="spell">%s</ansi>.`, targetUser.Character.Name, spellData.Name))
+				return true, nil
+			}
+			targetUser.Character.UnLearnSpell(spellData.SpellId)
+			user.SendText(fmt.Sprintf(`Removed <ansi fg="spell">%s</ansi> from <ansi fg="username">%s</ansi>.`, spellData.Name, targetUser.Character.Name))
+		}
+
+		return true, nil
+	}
+
+	infoOutput, _ := templates.Process("admincommands/help/command.spell", nil, user.UserId)
+	user.SendText(infoOutput)
 	return true, nil
 }
 

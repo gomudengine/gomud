@@ -24,9 +24,49 @@
 const AdminAPI = (() => {
     'use strict';
 
-    const CACHE_TTL_MS = 30000; // how long GET results are cached (ms)
+    const CACHE_TTL_MS = 300000; // how long GET results are cached (ms)
+    const CACHE_PREFIX = 'adminapi_cache:';
 
-    const _cache = new Map();
+    function _cacheKey(path) {
+        return CACHE_PREFIX + path;
+    }
+
+    function _cacheGet(path) {
+        try {
+            const raw = sessionStorage.getItem(_cacheKey(path));
+            if (!raw) return undefined;
+            return JSON.parse(raw);
+        } catch (_) {
+            return undefined;
+        }
+    }
+
+    function _cacheSet(path, entry) {
+        try {
+            sessionStorage.setItem(_cacheKey(path), JSON.stringify(entry));
+        } catch (_) {
+            // sessionStorage full or unavailable; skip caching
+        }
+    }
+
+    function _cacheDelete(path) {
+        try {
+            sessionStorage.removeItem(_cacheKey(path));
+        } catch (_) {}
+    }
+
+    function _cacheKeys() {
+        const keys = [];
+        try {
+            for (let i = 0; i < sessionStorage.length; i++) {
+                const k = sessionStorage.key(i);
+                if (k && k.startsWith(CACHE_PREFIX)) {
+                    keys.push(k.slice(CACHE_PREFIX.length));
+                }
+            }
+        } catch (_) {}
+        return keys;
+    }
 
     // /admin/api/v1/items/attack-messages -> /admin/api/v1/items
     function _rootPath(path) {
@@ -35,8 +75,11 @@ const AdminAPI = (() => {
 
     function _invalidate(path) {
         const prefix = _rootPath(path);
-        for (const key of _cache.keys()) {
-            if (key.startsWith(prefix)) _cache.delete(key);
+        for (const key of _cacheKeys()) {
+            if (key.startsWith(prefix)) {
+                console.log('Cache invalidated:', key);
+                _cacheDelete(key);
+            }
         }
     }
 
@@ -104,13 +147,17 @@ const AdminAPI = (() => {
      */
     async function get(path, bypassCache = false) {
         if (!bypassCache) {
-            const cached = _cache.get(path);
-            if (cached && Date.now() < cached.expires) return cached.result;
+            const cached = _cacheGet(path);
+            if (cached && Date.now() < cached.expires) {
+                console.log('Loaded from cache:', path);
+                return cached.result;
+            }
         }
 
         const result = await request('GET', path);
         if (result.ok) {
-            _cache.set(path, { result, expires: Date.now() + CACHE_TTL_MS });
+            console.log('Loaded new:', path);
+            _cacheSet(path, { result, expires: Date.now() + CACHE_TTL_MS });
         }
         return result;
     }

@@ -52,6 +52,9 @@ func (r *Quest) Id() int {
 }
 
 func (r *Quest) Validate() error {
+	if r.Name == "" {
+		return fmt.Errorf("quest has no name")
+	}
 	return nil
 }
 

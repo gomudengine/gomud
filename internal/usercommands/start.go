@@ -6,7 +6,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -195,43 +194,38 @@ func Start(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 	// Trigger a player changed event
 	events.AddToQueue(events.PlayerChanged{UserId: user.UserId})
 
-	duration := time.Now().Sub(user.Joined)
-	if duration.Hours() > 1 {
+	question := cmdPrompt.Ask(`Would you l ike to skip the tutorial?`, []string{`yes`, `no`}, `yes`)
+	if !question.Done {
+		return true, nil
+	}
 
-		question := cmdPrompt.Ask(`Skip tutorial?`, []string{`yes`, `no`}, `yes`)
-		if !question.Done {
-			return true, nil
-		}
+	if question.Response != `no` {
 
-		if question.Response != `no` {
+		user.ClearPrompt()
 
-			user.ClearPrompt()
+		user.SendText(fmt.Sprintf(`<ansi fg="magenta">Suddenly, a vortex appears before you, drawing you in before you have any chance to react!</ansi>%s`, term.CRLFStr))
 
-			user.SendText(fmt.Sprintf(`<ansi fg="magenta">Suddenly, a vortex appears before you, drawing you in before you have any chance to react!</ansi>%s`, term.CRLFStr))
+		if destRoom := rooms.LoadRoom(rooms.StartRoomIdAlias); destRoom != nil {
 
-			if destRoom := rooms.LoadRoom(rooms.StartRoomIdAlias); destRoom != nil {
+			rooms.MoveToRoom(user.UserId, destRoom.RoomId)
 
-				rooms.MoveToRoom(user.UserId, destRoom.RoomId)
+			// Tell the new room they have arrived
 
-				// Tell the new room they have arrived
+			destRoom.SendText(
+				fmt.Sprintf(configs.GetTextFormatsConfig().EnterRoomMessageWrapper.String(),
+					fmt.Sprintf(`<ansi fg="username">%s</ansi> enters from <ansi fg="exit">somewhere</ansi>.`, user.Character.Name),
+				),
+				user.UserId,
+			)
 
-				destRoom.SendText(
-					fmt.Sprintf(configs.GetTextFormatsConfig().EnterRoomMessageWrapper.String(),
-						fmt.Sprintf(`<ansi fg="username">%s</ansi> enters from <ansi fg="exit">somewhere</ansi>.`, user.Character.Name),
-					),
-					user.UserId,
-				)
-
-				if doLook, err := scripting.TryRoomScriptEvent(`onEnter`, user.UserId, destRoom.RoomId); err != nil || doLook {
-					Look(``, user, destRoom, events.CmdSecretly) // Do a secret look.
-				}
-
-				room.PlaySound(`room-exit`, `movement`, user.UserId)
-				destRoom.PlaySound(`room-enter`, `movement`, user.UserId)
-
-				return true, nil
+			if doLook, err := scripting.TryRoomScriptEvent(`onEnter`, user.UserId, destRoom.RoomId); err != nil || doLook {
+				Look(``, user, destRoom, events.CmdSecretly) // Do a secret look.
 			}
 
+			room.PlaySound(`room-exit`, `movement`, user.UserId)
+			destRoom.PlaySound(`room-enter`, `movement`, user.UserId)
+
+			return true, nil
 		}
 
 	}

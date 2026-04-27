@@ -40,9 +40,9 @@ func LookForTrouble(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) 
 				continue
 			}
 
-			raceInfo := races.GetRace(user.Character.RaceId)
+			raceInfo := races.GetRace(user.Character.GetRaceId())
 			if raceInfo == nil {
-				mudlog.Error("RaceError", "Not Found", user.Character.RaceId)
+				mudlog.Error("RaceError", "Not Found", user.Character.GetRaceId())
 				continue
 			}
 
@@ -114,7 +114,7 @@ func LookForTrouble(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) 
 				continue
 			}
 
-			raceInfo := races.GetRace(mob.Character.RaceId)
+			raceInfo := races.GetRace(mob.Character.GetRaceId())
 
 			if mob.HatesMob(considerMob) || mob.HatesRace(raceInfo.Name) {
 				possibleMobTargets = append(possibleMobTargets, considerMobInstanceId)

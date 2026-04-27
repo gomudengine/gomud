@@ -28,6 +28,7 @@ var (
 		roomsWithUsers:    make(map[int]int),
 		roomsWithMobs:     make(map[int]int),
 		roomIdToFileCache: make(map[int]string),
+		roomSummaries:     make(map[int]RoomSummaryInfo),
 	}
 )
 
@@ -35,12 +36,19 @@ const (
 	StartRoomIdAlias = 0
 )
 
+type RoomSummaryInfo struct {
+	Title string
+	Zone  string
+	Biome string
+}
+
 type RoomManager struct {
 	rooms             map[int]*Room
-	zones             map[string]*ZoneConfig // a map of zone name to room id
-	roomsWithUsers    map[int]int            // key is roomId to # players
-	roomsWithMobs     map[int]int            // key is roomId to # mobs
-	roomIdToFileCache map[int]string         // key is room id, value is the file path
+	zones             map[string]*ZoneConfig  // a map of zone name to room id
+	roomsWithUsers    map[int]int             // key is roomId to # players
+	roomsWithMobs     map[int]int             // key is roomId to # mobs
+	roomIdToFileCache map[int]string          // key is room id, value is the file path
+	roomSummaries     map[int]RoomSummaryInfo // lightweight room info for admin listing
 }
 
 // Deletes any knowledge of a room in memory.

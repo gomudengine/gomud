@@ -69,12 +69,12 @@ var (
 		`bump`:        {Bump, false, false},
 		`buy`:         {Buy, false, false},
 		`cast`:        {Cast, false, false},
+		`changeform`:  {ChangeForm, false, false},
 		`cooldowns`:   {Cooldowns, true, false},
 		`command`:     {Command, false, true}, // Admin only
 		`copyover`:    {Copyover, true, true}, // Admin only
 		`conditions`:  {Conditions, true, false},
 		`consider`:    {Consider, true, false},
-		`deafen`:      {Deafen, true, true}, // Admin only
 		`default`:     {Default, false, false},
 		`disarm`:      {Disarm, false, false},
 		`drop`:        {Drop, true, false},
@@ -85,6 +85,7 @@ var (
 		`experience`:  {Experience, true, false},
 		`equip`:       {Equip, false, false},
 		`flee`:        {Flee, false, false},
+		`formset`:     {FormSet, false, true}, // Admin only
 		`gearup`:      {Gearup, false, false},
 		`get`:         {Get, false, false},
 		`give`:        {Give, false, false},
@@ -166,8 +167,7 @@ var (
 		`unenchant`:  {Unenchant, false, false},
 		`uncurse`:    {Uncurse, false, false},
 		`unlock`:     {Unlock, false, false},
-		`undeafen`:   {UnDeafen, true, true}, // Admin only
-		`unmute`:     {UnMute, true, true},   // Admin only
+		`unmute`:     {UnMute, true, true}, // Admin only
 		`use`:        {Use, false, false},
 		`dual-wield`: {DualWield, true, false},
 		`whisper`:    {Whisper, true, false},

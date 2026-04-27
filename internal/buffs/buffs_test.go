@@ -20,56 +20,47 @@ func TestGetDurations(t *testing.T) {
 		{
 			name: "Normal case",
 			args: args{
-				buff: &Buff{RoundCounter: 2},
-				spec: &BuffSpec{TriggerCount: 5, RoundInterval: 3},
+				buff: &Buff{TriggersLeft: 5},
+				spec: &BuffSpec{RoundInterval: 3},
 			},
-			wantRounds: 13, // (5*3)-2 = 15-2 = 13
+			wantRounds: 15,
 			wantTotal:  15,
 		},
 		{
-			name: "Zero rounds passed",
+			name: "One trigger left",
 			args: args{
-				buff: &Buff{RoundCounter: 0},
-				spec: &BuffSpec{TriggerCount: 4, RoundInterval: 2},
+				buff: &Buff{TriggersLeft: 1},
+				spec: &BuffSpec{RoundInterval: 2},
 			},
-			wantRounds: 8,
-			wantTotal:  8,
+			wantRounds: 2,
+			wantTotal:  2,
 		},
 		{
-			name: "All rounds passed",
+			name: "Zero triggers left",
 			args: args{
-				buff: &Buff{RoundCounter: 12},
-				spec: &BuffSpec{TriggerCount: 3, RoundInterval: 4},
+				buff: &Buff{TriggersLeft: 0},
+				spec: &BuffSpec{RoundInterval: 5},
 			},
-			wantRounds: 0, // (3*4)-12 = 12-12 = 0
-			wantTotal:  12,
-		},
-		{
-			name: "RoundCounter greater than total",
-			args: args{
-				buff: &Buff{RoundCounter: 10},
-				spec: &BuffSpec{TriggerCount: 2, RoundInterval: 4},
-			},
-			wantRounds: -2, // (2*4)-10 = 8-10 = -2
-			wantTotal:  8,
-		},
-		{
-			name: "Zero trigger count",
-			args: args{
-				buff: &Buff{RoundCounter: 1},
-				spec: &BuffSpec{TriggerCount: 0, RoundInterval: 5},
-			},
-			wantRounds: -1, // (0*5)-1 = 0-1 = -1
+			wantRounds: 0,
 			wantTotal:  0,
 		},
 		{
 			name: "Zero round interval",
 			args: args{
-				buff: &Buff{RoundCounter: 3},
-				spec: &BuffSpec{TriggerCount: 4, RoundInterval: 0},
+				buff: &Buff{TriggersLeft: 4},
+				spec: &BuffSpec{RoundInterval: 0},
 			},
-			wantRounds: -3, // (4*0)-3 = 0-3 = -3
+			wantRounds: 0,
 			wantTotal:  0,
+		},
+		{
+			name: "Overridden trigger count",
+			args: args{
+				buff: &Buff{TriggersLeft: 80},
+				spec: &BuffSpec{TriggerCount: 20, RoundInterval: 1},
+			},
+			wantRounds: 80,
+			wantTotal:  80,
 		},
 	}
 	for _, tt := range tests {

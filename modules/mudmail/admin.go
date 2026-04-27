@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
@@ -29,6 +30,8 @@ type adminMessageEntry struct {
 	FromName   string `json:"from_name"`
 	Body       string `json:"body"`
 	Gold       int    `json:"gold,omitempty"`
+	ItemId     int    `json:"item_id,omitempty"`
+	ItemName   string `json:"item_name,omitempty"`
 	Read       bool   `json:"read"`
 	DateSent   string `json:"date_sent"`    // RFC3339Nano
 	DateSentUs int64  `json:"date_sent_us"` // microseconds since Unix epoch
@@ -39,6 +42,7 @@ type adminSendRequest struct {
 	FromName string `json:"from_name"`
 	Body     string `json:"body"`
 	Gold     int    `json:"gold,omitempty"`
+	ItemId   int    `json:"item_id,omitempty"`
 	// If UserId is 0 (or omitted), the message is sent to everyone.
 	UserId int `json:"user_id,omitempty"`
 }
@@ -111,17 +115,37 @@ func (m *MudmailModule) apiAdminSendMudmail(r *http.Request) (int, bool, any) {
 	if req.Body == "" {
 		return http.StatusBadRequest, false, map[string]string{"error": "body is required"}
 	}
+	if req.Gold < 0 {
+		return http.StatusBadRequest, false, map[string]string{"error": "gold must be non-negative"}
+	}
 
 	if req.UserId != 0 {
-		m.SendMudMail(req.UserId, req.FromName, req.Body, req.Gold, nil)
+		var itm *items.Item
+		if req.ItemId > 0 {
+			newItem := items.New(req.ItemId)
+			if newItem.ItemId == 0 {
+				return http.StatusBadRequest, false, map[string]string{"error": "item_id not found"}
+			}
+			itm = &newItem
+		}
+		m.SendMudMail(req.UserId, req.FromName, req.Body, req.Gold, itm)
 		return http.StatusOK, true, map[string]any{"sent_to": req.UserId}
 	}
 
 	// Broadcast to everyone.
+	var broadcastItem *items.Item
+	if req.ItemId > 0 {
+		newItem := items.New(req.ItemId)
+		if newItem.ItemId == 0 {
+			return http.StatusBadRequest, false, map[string]string{"error": "item_id not found"}
+		}
+		broadcastItem = &newItem
+	}
 	msg := Message{
 		FromName: req.FromName,
 		Body:     req.Body,
 		Gold:     req.Gold,
+		Item:     broadcastItem,
 		DateSent: time.Now(),
 	}
 
@@ -234,7 +258,7 @@ func toSummaryEntry(userId int, username string, msg Message) adminSummaryEntry 
 
 // toAdminEntry converts a Message into the full JSON-friendly adminMessageEntry.
 func toAdminEntry(userId int, username string, msg Message) adminMessageEntry {
-	return adminMessageEntry{
+	entry := adminMessageEntry{
 		UserId:     userId,
 		Username:   username,
 		FromName:   msg.FromName,
@@ -244,4 +268,9 @@ func toAdminEntry(userId int, username string, msg Message) adminMessageEntry {
 		DateSent:   msg.DateSent.UTC().Format(time.RFC3339Nano),
 		DateSentUs: msg.DateSent.UnixMicro(),
 	}
+	if msg.Item != nil && msg.Item.ItemId > 0 {
+		entry.ItemId = msg.Item.ItemId
+		entry.ItemName = msg.Item.GetSpec().Name
+	}
+	return entry
 }

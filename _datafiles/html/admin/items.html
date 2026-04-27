@@ -110,7 +110,6 @@
     }
     .buff-chip button { background: none; border: none; cursor: pointer; color: #3949ab; font-size: 0.85rem; line-height: 1; padding: 0; }
     .buff-chip button:hover { color: #c00; }
-    .buff-add-input { width: 80px; padding: 0.25rem 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.82rem; }
 
     /* script editor */
     .script-toggle {
@@ -198,6 +197,7 @@
                     <div class="field-with-btn">
                         <input type="text" id="f-displayname" placeholder="e.g. :rainbow or &lt;ansi fg=&quot;red&quot;&gt;...&lt;/ansi&gt;" />
                         <button class="btn-search" onclick="pickColorPattern()" title="Browse color patterns">&#x1F50D;</button>
+                        <button class="btn-search" onclick="openAnsiComposer()" title="ANSI tag composer">&#x1F6E0;</button>
                     </div>
                     <div class="field-hint">Leave blank to use Name. Prefix with <code>:</code> for a color pattern.</div>
                 </div>
@@ -288,7 +288,12 @@
                 </div>
                 <div class="field">
                     <label>Quest Token</label>
-                    <input type="text" id="f-questtoken" placeholder="e.g. 1001-start" />
+                    <div class="field-with-btn">
+                        <span id="f-questtoken-display" style="flex:1; padding:0.4rem 0.6rem; border:1px solid #ccc; border-radius:4px; font-size:0.875rem; background:#fff; color:#aaa; font-style:italic; min-height:2rem; display:flex; align-items:center;">none</span>
+                        <button class="btn-search" onclick="pickQuestToken()" title="Browse quests">&#x1F50D;</button>
+                        <button class="btn-search" onclick="clearQuestToken()" title="Clear" style="font-size:0.85rem;">&times;</button>
+                    </div>
+                    <input type="hidden" id="f-questtoken" />
                     <div class="field-hint">Quest progress granted when item is obtained</div>
                 </div>
                 <div class="field">
@@ -310,21 +315,13 @@
 
                 <div class="field span2">
                     <label>Buff IDs (applied on use)</label>
-                    <div class="buff-ids-wrap" id="buffids-wrap">
-                        <input type="number" class="buff-add-input" id="buffids-input" placeholder="ID" min="1"
-                               onkeydown="if(event.key==='Enter'){addBuffId('buffids-list','buffids-input');}" />
-                        <button class="btn-add-sm" onclick="addBuffId('buffids-list','buffids-input')">+ Add</button>
-                    </div>
-                    <div class="buff-ids-wrap" id="buffids-list" style="margin-top:0.4rem;"></div>
+                    <div class="buff-ids-wrap" id="buffids-list"></div>
+                    <button class="btn-add-sm" style="margin-top:0.4rem;" onclick="pickBuffId('buffids-list')">+ Add Buff</button>
                 </div>
                 <div class="field span2">
                     <label>Worn Buff IDs (active while equipped)</label>
-                    <div class="buff-ids-wrap" id="wornbuffids-wrap">
-                        <input type="number" class="buff-add-input" id="wornbuffids-input" placeholder="ID" min="1"
-                               onkeydown="if(event.key==='Enter'){addBuffId('wornbuffids-list','wornbuffids-input');}" />
-                        <button class="btn-add-sm" onclick="addBuffId('wornbuffids-list','wornbuffids-input')">+ Add</button>
-                    </div>
-                    <div class="buff-ids-wrap" id="wornbuffids-list" style="margin-top:0.4rem;"></div>
+                    <div class="buff-ids-wrap" id="wornbuffids-list"></div>
+                    <button class="btn-add-sm" style="margin-top:0.4rem;" onclick="pickBuffId('wornbuffids-list')">+ Add Buff</button>
                 </div>
             </div>
 
@@ -381,6 +378,8 @@
         populateTypeSelects();
         renderList(allItems);
         scriptSync = ScriptEditor.init('f-script');
+        const hashId = parseInt(location.hash.slice(1), 10);
+        if (hashId) loadItem(hashId);
     }
 
     // -------------------------------------------------------------------------
@@ -479,7 +478,7 @@
 
         currentItemId = itemId;
         isNew = false;
-
+        location.hash = itemId;
         setActiveRow(itemId);
         showEditor();
         fillForm(item, script);
@@ -514,6 +513,16 @@
         setVal('f-damagereduction', item.DamageReduction || 0);
         setVal('f-breakchance', item.BreakChance || 0);
         setVal('f-questtoken', item.QuestToken || '');
+        const qtDisplay = document.getElementById('f-questtoken-display');
+        if (item.QuestToken) {
+            qtDisplay.textContent = item.QuestToken;
+            qtDisplay.style.color = '#333';
+            qtDisplay.style.fontStyle = 'normal';
+        } else {
+            qtDisplay.textContent = 'none';
+            qtDisplay.style.color = '#aaa';
+            qtDisplay.style.fontStyle = 'italic';
+        }
         setVal('f-cursed', item.Cursed ? 'true' : 'false');
 
         // Weapon
@@ -556,6 +565,7 @@
     };
 
     window.cancelEdit = function () {
+        history.replaceState(null, '', location.pathname + location.search);
         document.getElementById('editor-placeholder').style.display = '';
         document.getElementById('editor-form').style.display = 'none';
         document.querySelectorAll('.item-row').forEach(r => r.classList.remove('active'));
@@ -605,23 +615,32 @@
     function renderBuffChips(listId, ids) {
         const list = document.getElementById(listId);
         list.innerHTML = '';
-        for (const id of ids) appendBuffChip(list, id);
+        for (const id of ids) appendBuffChip(list, id, null);
     }
 
-    function appendBuffChip(list, id) {
+    function appendBuffChip(list, id, name) {
         const chip = document.createElement('span');
         chip.className = 'buff-chip';
         chip.dataset.id = id;
-        chip.innerHTML = `${id} <button title="Remove" onclick="this.closest('.buff-chip').remove()">&times;</button>`;
+        const label = name != null ? `#${id} ${esc(name)}` : esc(PickerConfigs.buffName(id));
+        chip.innerHTML = `${label} <button title="Remove" onclick="this.closest('.buff-chip').remove()">&times;</button>`;
         list.appendChild(chip);
     }
 
-    window.addBuffId = function (listId, inputId) {
-        const input = document.getElementById(inputId);
-        const id = parseInt(input.value, 10);
-        if (!id || id < 1) return;
-        appendBuffChip(document.getElementById(listId), id);
-        input.value = '';
+    window.pickBuffId = function (listId) {
+        const listEl = document.getElementById(listId);
+        const existing = collectBuffIds(listId);
+        Picker.open({
+            ...PickerConfigs.buffs,
+            multi:    true,
+            selected: existing,
+            onSelect: (buffs) => {
+                listEl.innerHTML = '';
+                for (const buff of buffs) {
+                    appendBuffChip(listEl, buff.BuffId, buff.Name);
+                }
+            },
+        });
     };
 
     function collectBuffIds(listId) {
@@ -759,6 +778,34 @@
     function esc(s) {
         return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
+
+    window.pickQuestToken = function () {
+        QuestTokenPicker.pick((token, label) => {
+            document.getElementById('f-questtoken').value = token;
+            const display = document.getElementById('f-questtoken-display');
+            display.textContent = label;
+            display.style.color = '#333';
+            display.style.fontStyle = 'normal';
+        });
+    };
+
+    window.clearQuestToken = function () {
+        document.getElementById('f-questtoken').value = '';
+        const display = document.getElementById('f-questtoken-display');
+        display.textContent = 'none';
+        display.style.color = '#aaa';
+        display.style.fontStyle = 'italic';
+    };
+
+    window.openAnsiComposer = function () {
+        const input = document.getElementById('f-displayname');
+        AnsiComposerPicker.open({
+            initial: input.value,
+            onApply: (result) => {
+                input.value = result;
+            },
+        });
+    };
 
     window.pickColorPattern = function () {
         SelectDialog.open({

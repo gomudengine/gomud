@@ -22,6 +22,9 @@ func Prepare(rest string, user *users.UserRecord, room *rooms.Room, flags events
 	allRoomIds := rooms.GetAllRoomIds()
 	for _, roomId := range allRoomIds {
 		room := rooms.LoadRoom(roomId)
+		if room == nil {
+			continue
+		}
 		room.Prepare(false) // we are preparing all rooms, no need to check adjacent rooms
 	}
 

@@ -185,9 +185,11 @@ func main() {
 	// Register the plugin filesystem with the template system
 	templates.RegisterFS(plugins.GetPluginRegistry())
 	items.RegisterFS(plugins.GetPluginRegistry())
+	mutators.RegisterFS(plugins.GetPluginRegistry())
 	usercommands.AddFunctionExporter(plugins.GetPluginRegistry())
 	users.AddFunctionExporter(plugins.GetPluginRegistry())
 	usercommands.SetRoomTagProvider(plugins.GetRegisteredRoomTags)
+	web.SetRoomTagProvider(plugins.GetRegisteredRoomTags)
 
 	inputhandlers.AddIACHandler(plugins.GetPluginRegistry())
 	inputhandlers.AddTextPrefixHandler(plugins.GetPluginRegistry())
@@ -1018,6 +1020,7 @@ func HandleWebSocketConnection(conn *websocket.Conn) {
 			}
 
 			mudlog.Warn("WS Read", "error", err)
+			connections.Remove(connDetails.ConnectionId())
 			break
 		}
 
@@ -1314,6 +1317,7 @@ func handleSSHConnection(connDetails *connections.ConnectionDetails, reqs <-chan
 						cs.Display.ScreenWidth = cols
 						cs.Display.ScreenHeight = rows
 						connections.OverwriteClientSettings(connDetails.ConnectionId(), cs)
+						connections.NotifyWindowChange(connDetails.ConnectionId(), cols, rows)
 					}
 				}
 				if req.WantReply {

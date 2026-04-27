@@ -86,6 +86,8 @@ func init() {
 		panic(err)
 	}
 
+	g.plug.Web.AdminPage("Config", "gmcp-config", "html/admin/gmcp-config.html", true, "Modules", "GMCP", nil)
+
 	// Register callbacks for load/save
 	g.plug.Callbacks.SetOnLoad(g.load)
 	g.plug.Callbacks.SetOnSave(g.save)

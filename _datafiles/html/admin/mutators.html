@@ -1,0 +1,1091 @@
+{{template "header" .}}
+
+<style>
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #555; margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+    /* layout */
+    .page-layout { display: grid; grid-template-columns: 300px 1fr; gap: 1.25rem; align-items: start; }
+    @media (max-width: 860px) { .page-layout { grid-template-columns: 1fr; } }
+
+    /* sidebar */
+    .sidebar { background: #fff; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; }
+    .sidebar-header { padding: 0.75rem 0.9rem; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 0.5rem; }
+    .sidebar-header input[type="search"] { flex: 1; padding: 0.35rem 0.6rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; }
+    .mut-list { overflow-y: auto; max-height: 72vh; }
+    .mut-row {
+        padding: 0.55rem 0.9rem; cursor: pointer; border-bottom: 1px solid #f0f0f0;
+        display: flex; align-items: baseline; gap: 0.5rem; font-size: 0.875rem;
+    }
+    .mut-row:last-child { border-bottom: none; }
+    .mut-row:hover { background: #f5f7ff; }
+    .mut-row.active { background: #1a1a2e; color: #fff; }
+    .mut-id { font-size: 0.78rem; color: #999; font-family: monospace; }
+    .mut-row.active .mut-id { color: #8899cc; }
+    .no-items { padding: 1.5rem; text-align: center; color: #888; font-size: 0.85rem; }
+
+    /* new btn */
+    .btn-new {
+        margin: 0.6rem 0.9rem; padding: 0.4rem 0.9rem; border: none; border-radius: 4px;
+        background: #1e6e34; color: #fff; font-size: 0.85rem; font-weight: 600;
+        cursor: pointer; text-align: center;
+    }
+    .btn-new:hover { background: #145728; }
+
+    /* editor panel */
+    .editor-panel { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 1.25rem; }
+    .editor-placeholder { color: #aaa; text-align: center; padding: 4rem 1rem; font-size: 0.9rem; }
+
+    /* status */
+    .status-bar {
+        display: none; padding: 0.55rem 0.9rem; border-radius: 4px;
+        font-size: 0.85rem; margin-bottom: 1rem;
+    }
+    .status-bar.success { background: #e6f4ea; color: #1e6e34; display: block; }
+    .status-bar.error   { background: #fde8e8; color: #8a0000; display: block; }
+
+    /* form */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem 1.25rem; }
+    .form-grid .span2 { grid-column: 1 / -1; }
+    .field label { display: block; font-size: 0.78rem; font-weight: 600; color: #555; margin-bottom: 0.25rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .field input[type="text"],
+    .field input[type="number"],
+    .field select,
+    .field textarea {
+        width: 100%; padding: 0.4rem 0.6rem; border: 1px solid #ccc; border-radius: 4px;
+        font-size: 0.875rem; font-family: inherit; background: #fff;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid #1a1a2e; outline-offset: 1px; border-color: transparent; }
+    .field textarea { resize: vertical; min-height: 80px; }
+    .field-hint { font-size: 0.75rem; color: #888; margin-top: 0.2rem; }
+    .field-with-btn { display: flex; gap: 0.4rem; align-items: center; }
+    .field-with-btn input { flex: 1; }
+    .btn-search {
+        padding: 0.35rem 0.55rem; border: 1px solid #ccc; border-radius: 4px;
+        background: #f5f5f5; cursor: pointer; font-size: 0.95rem; line-height: 1;
+        flex-shrink: 0;
+    }
+    .btn-search:hover { background: #e8eaff; border-color: #7986cb; }
+
+    /* section headings */
+    .section-title {
+        font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.06em; color: #666; padding: 0.5rem 0 0.4rem;
+        border-bottom: 1px solid #eee; margin-bottom: 0.75rem; grid-column: 1 / -1;
+    }
+
+    /* buff ids */
+    .buff-ids-wrap { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+    .buff-chip {
+        display: inline-flex; align-items: center; gap: 0.3rem;
+        background: #e8eaf6; color: #3949ab; border-radius: 12px;
+        padding: 0.2rem 0.6rem; font-size: 0.8rem;
+    }
+    .buff-chip button { background: none; border: none; cursor: pointer; color: #3949ab; font-size: 0.85rem; line-height: 1; padding: 0; }
+    .buff-chip button:hover { color: #c00; }
+
+    .btn-add-sm {
+        font-size: 0.8rem; padding: 0.3rem 0.7rem; border: 1px dashed #aaa;
+        background: none; border-radius: 4px; cursor: pointer; color: #555; margin-top: 0.25rem;
+    }
+    .btn-add-sm:hover { border-color: #1a1a2e; color: #1a1a2e; }
+
+    /* exit cards */
+    .exit-card {
+        border: 1px solid #ddd; border-radius: 6px; margin-bottom: 0.6rem;
+        background: #fafafa; overflow: hidden;
+    }
+    .exit-card-header {
+        display: flex; align-items: center; gap: 0.5rem;
+        padding: 0.4rem 0.6rem; background: #f0f0f0; cursor: pointer;
+        font-size: 0.83rem; font-weight: 600; user-select: none;
+    }
+    .exit-card-header::before { content: "\25B6"; font-size: 0.55rem; transition: transform 0.15s; }
+    .exit-card-header.open::before { transform: rotate(90deg); }
+    .exit-card-body { display: none; padding: 0.75rem; }
+    .exit-card-body.open { display: block; }
+    .exit-card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 0.75rem; }
+    .exit-card-grid .span2 { grid-column: 1 / -1; }
+    .exit-field label { display: block; font-size: 0.73rem; font-weight: 600; color: #666; margin-bottom: 0.2rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .exit-field input[type="text"],
+    .exit-field input[type="number"],
+    .exit-field select { width: 100%; padding: 0.3rem 0.45rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.83rem; background: #fff; }
+    .exit-badge { font-size: 0.65rem; padding: 0.1rem 0.35rem; border-radius: 3px; background: #fce8e8; color: #8a0000; }
+    .exit-badge-secret { background: #e8f0fe; color: #1a4a8a; }
+    .lock-section { background: #fff8f0; border: 1px solid #f5d0a0; border-radius: 4px; padding: 0.6rem; margin-top: 0.5rem; }
+    .lock-section-title { font-size: 0.72rem; font-weight: 700; color: #8a4a00; text-transform: uppercase; margin-bottom: 0.5rem; }
+    /* toggle switch */
+    .toggle-wrap { display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0; }
+    .toggle-switch { position: relative; display: inline-block; width: 38px; height: 22px; flex-shrink: 0; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .toggle-slider {
+        position: absolute; inset: 0; background: #ccc; border-radius: 22px;
+        cursor: pointer; transition: background 0.2s;
+    }
+    .toggle-slider::before {
+        content: ''; position: absolute; width: 16px; height: 16px;
+        left: 3px; bottom: 3px; background: #fff; border-radius: 50%;
+        transition: transform 0.2s;
+    }
+    .toggle-switch input:checked + .toggle-slider { background: #3949ab; }
+    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(16px); }
+    .toggle-label { font-size: 0.83rem; color: #444; user-select: none; cursor: pointer; }
+    /* difficulty slider */
+    .slider-wrap { display: flex; align-items: center; gap: 0.6rem; }
+    .slider-wrap input[type=range] { flex: 1; accent-color: #3949ab; cursor: pointer; }
+    .slider-value { font-family: monospace; font-size: 0.85rem; font-weight: 700; color: #1a1a2e; min-width: 1.8rem; text-align: right; }
+    .btn-icon {
+        background: none; border: none; cursor: pointer; font-size: 1rem;
+        color: #888; padding: 0 0.2rem; line-height: 1;
+    }
+    .btn-icon:hover { color: #c00; }
+
+    /* tags */
+    .tag-wrap { display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center; }
+    .tag-chip {
+        display: inline-flex; align-items: center; gap: 0.25rem;
+        background: #e8eaf6; color: #3949ab; border-radius: 10px;
+        padding: 0.15rem 0.5rem; font-size: 0.78rem; cursor: default;
+    }
+    .tag-chip button { background: none; border: none; cursor: pointer; color: #3949ab; font-size: 0.82rem; line-height: 1; padding: 0; }
+    .tag-chip button:hover { color: #c00; }
+
+    /* tag picker */
+    .tag-picker-wrap { position: relative; display: inline-block; }
+    .tag-picker-dropdown {
+        display: none; position: absolute; top: 100%; left: 0; z-index: 200;
+        background: #fff; border: 1px solid #ccc; border-radius: 6px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.12); min-width: 260px; max-height: 320px;
+        overflow-y: auto; padding: 0.4rem 0;
+    }
+    .tag-picker-dropdown.open { display: block; }
+    .tag-picker-search { width: calc(100% - 1rem); margin: 0.3rem 0.5rem; padding: 0.3rem 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.82rem; }
+    .tag-picker-group { padding: 0.25rem 0.5rem 0; font-size: 0.7rem; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.05em; }
+    .tag-picker-item {
+        padding: 0.3rem 0.75rem; cursor: pointer; font-size: 0.82rem; display: flex; align-items: center; gap: 0.4rem;
+    }
+    .tag-picker-item:hover { background: #f0f4ff; }
+    .tag-picker-item.selected { color: #3949ab; font-weight: 600; }
+    .tag-picker-item.selected::before { content: "\2713"; font-size: 0.75rem; }
+    .tag-picker-item:not(.selected)::before { content: ""; display: inline-block; width: 0.9em; }
+    .tag-picker-empty { padding: 0.75rem; text-align: center; color: #aaa; font-size: 0.82rem; }
+    .btn-tag-picker {
+        padding: 0.3rem 0.6rem; border: 1px dashed #7986cb; border-radius: 4px;
+        background: none; cursor: pointer; font-size: 0.8rem; color: #3949ab;
+    }
+    .btn-tag-picker:hover { background: #e8eaf6; }
+
+    /* action bar */
+    .action-bar { display: flex; gap: 0.6rem; margin-top: 1.25rem; align-items: center; flex-wrap: wrap; }
+    .btn { padding: 0.45rem 1.1rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.875rem; font-weight: 600; }
+    .btn-primary { background: #1a1a2e; color: #fff; }
+    .btn-primary:hover { background: #2d2d4e; }
+    .btn-primary:disabled { background: #999; cursor: default; }
+    .btn-danger { background: #c0392b; color: #fff; }
+    .btn-danger:hover { background: #a93226; }
+    .btn-secondary { background: #eee; color: #333; }
+    .btn-secondary:hover { background: #ddd; }
+    .mut-id-display { font-family: monospace; font-size: 0.82rem; color: #888; margin-left: auto; }
+
+    /* editor header */
+    .editor-header { display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 1rem; }
+    .editor-header h2 { font-size: 1.1rem; flex: 1; }
+</style>
+
+<h1>Mutators</h1>
+<p class="subtitle">Browse, edit, and create room mutator definitions.</p>
+
+<div id="status-bar" class="status-bar"></div>
+
+<div class="page-layout">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <button class="btn-new" onclick="newMutator()">+ New Mutator</button>
+        <div class="sidebar-header">
+            <input type="search" id="mut-search" placeholder="Search mutators..." oninput="filterMutators()" />
+        </div>
+        <div class="mut-list" id="mut-list">
+            <div class="no-items">Loading...</div>
+        </div>
+    </div>
+
+    <!-- Editor -->
+    <div class="editor-panel" id="editor-panel">
+        <div class="editor-placeholder" id="editor-placeholder">
+            Select a mutator from the list to edit it,<br>or click <strong>+ New Mutator</strong> to create one.
+        </div>
+        <div id="editor-form" style="display:none;">
+            <div class="editor-header">
+                <h2 id="editor-title">Mutator Editor</h2>
+            </div>
+
+            <div class="form-grid">
+                <div class="section-title">Identity</div>
+
+                <div class="field span2">
+                    <label>Mutator ID</label>
+                    <input type="text" id="f-mutatorid" placeholder="e.g. desert-sun" />
+                    <div class="field-hint">Lowercase alphanumeric with hyphens/underscores. Cannot be changed after creation.</div>
+                </div>
+
+                <div class="section-title">Room Title Modifier</div>
+
+                <div class="field">
+                    <label>Behavior</label>
+                    <select id="f-name-behavior">
+                        <option value="">(none)</option>
+                        <option value="prepend">prepend</option>
+                        <option value="append">append</option>
+                        <option value="replace">replace</option>
+                    </select>
+                    <div class="field-hint">How the text is applied to the room title. <b>prepend</b> adds before, <b>append</b> adds after, <b>replace</b> substitutes it entirely. If text is empty with <b>replace</b>, only the color pattern is applied to the existing title.</div>
+                </div>
+                <div class="field">
+                    <label>Text</label>
+                    <input type="text" id="f-name-text" placeholder="e.g. (scorching)" />
+                    <div class="field-hint">Text injected into the room title. e.g. "(scorching)" appended makes "Town Square (scorching)".</div>
+                </div>
+                <div class="field span2">
+                    <label>Color Pattern</label>
+                    <div class="field-with-btn">
+                        <input type="text" id="f-name-colorpattern" placeholder="e.g. flame" />
+                        <button class="btn-search" onclick="pickColorPattern('f-name-colorpattern')" title="Browse color patterns">&#x1F50D;</button>
+                    </div>
+                    <div class="field-hint">Applied to the injected text (or the whole title on replace with no text).</div>
+                </div>
+
+                <div class="section-title">Room Description Modifier</div>
+
+                <div class="field">
+                    <label>Behavior</label>
+                    <select id="f-desc-behavior">
+                        <option value="">(none)</option>
+                        <option value="prepend">prepend</option>
+                        <option value="append">append</option>
+                        <option value="replace">replace</option>
+                    </select>
+                    <div class="field-hint"><b>prepend</b> inserts a line above the room description, <b>append</b> inserts a line below, <b>replace</b> substitutes the entire description. If text is empty with <b>replace</b>, only the color pattern is applied.</div>
+                </div>
+                <div class="field">
+                    <label>Text</label>
+                    <input type="text" id="f-desc-text" placeholder="e.g. A pale mist covers the forest floor." />
+                    <div class="field-hint">Descriptive text added to the room description while the mutator is active.</div>
+                </div>
+                <div class="field span2">
+                    <label>Color Pattern</label>
+                    <div class="field-with-btn">
+                        <input type="text" id="f-desc-colorpattern" placeholder="e.g. mute-green" />
+                        <button class="btn-search" onclick="pickColorPattern('f-desc-colorpattern')" title="Browse color patterns">&#x1F50D;</button>
+                    </div>
+                    <div class="field-hint">Color pattern applied to the injected description text.</div>
+                </div>
+
+                <div class="section-title">Room Alert Modifier</div>
+
+                <div class="field span2" style="margin-bottom: 0.25rem;">
+                    <div class="field-hint">Alerts are special highlighted messages shown below the room description (like "You can train here!"). Mutator alerts are always added to the alert list &mdash; they never overwrite existing room alerts.</div>
+                </div>
+                <div class="field span2">
+                    <label>Text</label>
+                    <input type="text" id="f-alert-text" placeholder="e.g. A wildfire is burning here!" />
+                    <div class="field-hint">Alert text shown to players while the mutator is active. Automatically centered if shorter than 65 characters. Leave blank for no alert.</div>
+                </div>
+                <div class="field span2">
+                    <label>Color Pattern</label>
+                    <div class="field-with-btn">
+                        <input type="text" id="f-alert-colorpattern" placeholder="e.g. flame" />
+                        <button class="btn-search" onclick="pickColorPattern('f-alert-colorpattern')" title="Browse color patterns">&#x1F50D;</button>
+                    </div>
+                    <div class="field-hint">Color pattern applied to the alert text.</div>
+                </div>
+
+                <div class="section-title">Lifecycle &amp; Timing</div>
+
+                <div class="field">
+                    <label>Decay Rate</label>
+                    <input type="text" id="f-decayrate" placeholder="e.g. 10 minutes, sunrise" />
+                    <div class="field-hint">How long the mutator stays active before it despawns. Accepts durations ("10 minutes", "3 day") or in-game time-of-day events ("sunrise", "sunset", "noon", "midnight"). Leave blank for a permanent mutator.</div>
+                </div>
+                <div class="field">
+                    <label>Respawn Rate</label>
+                    <input type="text" id="f-respawnrate" placeholder="e.g. midnight, noon, 1 day" />
+                    <div class="field-hint">After decaying, how long until the mutator re-activates. Uses the same format as Decay Rate. Time-of-day events ("noon", "midnight", "sunrise", "sunset") delay initialization until that event occurs. Leave blank if the mutator should not respawn.</div>
+                </div>
+                <div class="field span2">
+                    <label>Decay Into ID</label>
+                    <div class="field-with-btn">
+                        <input type="text" id="f-decayintoid" placeholder="e.g. another-mutator-id" />
+                        <button class="btn-search" onclick="pickDecayIntoId()" title="Browse mutators">&#x1F50D;</button>
+                    </div>
+                    <div class="field-hint">When this mutator decays, it transforms into this other mutator instead of simply despawning. This can form chains or circular cycles (e.g. day/night alternation).</div>
+                </div>
+
+                <div class="section-title">Buffs</div>
+
+                <div class="field span2">
+                    <label>Player Buff IDs</label>
+                    <div class="buff-ids-wrap" id="playerbuffids-list"></div>
+                    <button class="btn-add-sm" style="margin-top:0.4rem;" onclick="pickBuffId('playerbuffids-list')">+ Add Buff</button>
+                    <div class="field-hint">Buffs continuously applied to all players and their followers while they are in this room and the mutator is active. Applied each round as an "area" buff.</div>
+                </div>
+                <div class="field span2">
+                    <label>Mob Buff IDs</label>
+                    <div class="buff-ids-wrap" id="mobbuffids-list"></div>
+                    <button class="btn-add-sm" style="margin-top:0.4rem;" onclick="pickBuffId('mobbuffids-list')">+ Add Buff</button>
+                    <div class="field-hint">Buffs continuously applied to all mobs in the room while the mutator is active. Applied each round as an "area" buff.</div>
+                </div>
+                <div class="field span2">
+                    <label>Native Buff IDs</label>
+                    <div class="buff-ids-wrap" id="nativebuffids-list"></div>
+                    <button class="btn-add-sm" style="margin-top:0.4rem;" onclick="pickBuffId('nativebuffids-list')">+ Add Buff</button>
+                    <div class="field-hint">Buffs applied only to mobs that originally spawned in this room (not wandering mobs). Useful for giving "home turf" advantages to native creatures.</div>
+                </div>
+
+                <div class="section-title">Room Effects</div>
+
+                <div class="field">
+                    <label>Light Modifier</label>
+                    <select id="f-lightmod">
+                        <option value="-2">-2 (very dark)</option>
+                        <option value="-1">-1 (darker)</option>
+                        <option value="0" selected>0 (no change)</option>
+                        <option value="1">1 (brighter)</option>
+                        <option value="2">2 (very bright)</option>
+                    </select>
+                    <div class="field-hint">Adjusts the room's visibility level. Added to the room's base visibility (0=dark, 1=can see room, 2=can see room and exits). Final value is clamped to 0&ndash;2. Negative values can make lit rooms dark; positive values can illuminate dark rooms.</div>
+                </div>
+                <div class="field">
+                    <label>PvP Override</label>
+                    <select id="f-pvp">
+                        <option value="">No override</option>
+                        <option value="enabled">Force Enabled</option>
+                        <option value="disabled">Force Disabled</option>
+                    </select>
+                    <div class="field-hint">Overrides the room's PvP setting while the mutator is active. Only visible to players when global PvP is set to "limited" mode. Multiple mutators on the same room apply in order &mdash; the last one wins.</div>
+                </div>
+
+                <div class="section-title">Tags</div>
+
+                <div class="field span2">
+                    <label>Tags</label>
+                    <div class="tag-wrap" id="tags-list"></div>
+                    <div style="margin-top:0.4rem; display:flex; gap:0.4rem; align-items:center; flex-wrap:wrap;">
+                        <div class="tag-picker-wrap">
+                            <button class="btn-tag-picker" onclick="toggleTagPicker(event)">+ Pick Tag</button>
+                            <div class="tag-picker-dropdown" id="tag-picker-dropdown">
+                                <input type="search" class="tag-picker-search" id="tag-picker-search" placeholder="Filter tags..." oninput="filterTagPicker()" />
+                                <div id="tag-picker-list"></div>
+                            </div>
+                        </div>
+                        <span style="font-size:0.75rem; color:#aaa;">or type a custom tag:</span>
+                        <input type="text" id="tag-input" placeholder="custom tag..." style="flex:1; min-width:120px; padding:0.3rem 0.5rem; border:1px solid #ccc; border-radius:4px; font-size:0.82rem;" onkeydown="if(event.key==='Enter'){event.preventDefault();addCustomTag();}" />
+                        <button class="btn-add-sm" onclick="addCustomTag()">+</button>
+                    </div>
+                    <div class="field-hint">Tags applied to the room while this mutator is active. These do not modify the room's permanent tags. Modules and scripts can check for these tags at runtime.</div>
+                </div>
+
+                <div class="section-title">Exits</div>
+
+                <div class="field span2">
+                    <div id="exits-list"></div>
+                    <button class="btn-add-sm" onclick="addExit()">+ Add Exit</button>
+                    <div class="field-hint">Temporary exits that appear only while this mutator is active. Applied after normal room exits, so they can override existing exits with the same name. Secret exits are only visible to players who have previously visited the destination room.</div>
+                </div>
+            </div>
+
+            <div class="action-bar">
+                <button class="btn btn-primary" id="save-btn" onclick="saveMutator()">Save Mutator</button>
+                <button class="btn btn-secondary" onclick="cancelEdit()">Cancel</button>
+                <button class="btn btn-danger" id="delete-btn" onclick="deleteMutator()" style="margin-left:auto;">Delete Mutator</button>
+                <span class="mut-id-display" id="mut-id-display"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    let allMutators = [];
+    let allTags = [];
+    let currentMutatorId = null;
+    let isNew = false;
+
+    // -------------------------------------------------------------------------
+    // Init
+    // -------------------------------------------------------------------------
+    async function init() {
+        const [mutatorsRes, tagsRes] = await AdminAPI.all([
+            AdminAPI.get('/admin/api/v1/mutators'),
+            AdminAPI.get('/admin/api/v1/tags'),
+        ]);
+        if (!mutatorsRes.ok) { showStatus('Failed to load mutators: ' + mutatorsRes.error, false); return; }
+
+        allMutators = (mutatorsRes.data.data || []).sort((a, b) => a.MutatorId.localeCompare(b.MutatorId));
+        allTags = (tagsRes.ok && tagsRes.data.data) || [];
+        renderList(allMutators);
+        buildTagPickerList('');
+        const hashId = decodeURIComponent(location.hash.slice(1));
+        if (hashId) loadMutator(hashId);
+    }
+
+    // -------------------------------------------------------------------------
+    // Sidebar list
+    // -------------------------------------------------------------------------
+    function renderList(muts) {
+        const list = document.getElementById('mut-list');
+        if (muts.length === 0) {
+            list.innerHTML = '<div class="no-items">No mutators found.</div>';
+            return;
+        }
+        list.innerHTML = '';
+        for (const m of muts) {
+            const row = document.createElement('div');
+            row.className = 'mut-row' + (m.MutatorId === currentMutatorId ? ' active' : '');
+            row.dataset.id = m.MutatorId;
+            row.innerHTML = '<span class="mut-id">' + esc(m.MutatorId) + '</span>';
+            row.onclick = () => loadMutator(m.MutatorId);
+            list.appendChild(row);
+        }
+    }
+
+    window.filterMutators = function () {
+        const q = document.getElementById('mut-search').value.toLowerCase();
+        const filtered = allMutators.filter(m => !q || m.MutatorId.toLowerCase().includes(q));
+        renderList(filtered);
+    };
+
+    // -------------------------------------------------------------------------
+    // Load mutator into editor
+    // -------------------------------------------------------------------------
+    async function loadMutator(mutatorId) {
+        const res = await AdminAPI.get('/admin/api/v1/mutators/' + encodeURIComponent(mutatorId));
+        if (!res.ok) { showStatus('Failed to load mutator: ' + res.error, false); return; }
+
+        const m = res.data.data;
+        currentMutatorId = mutatorId;
+        isNew = false;
+        location.hash = encodeURIComponent(mutatorId);
+        setActiveRow(mutatorId);
+        showEditor();
+        fillForm(m);
+    }
+
+    function setActiveRow(mutatorId) {
+        document.querySelectorAll('.mut-row').forEach(r => {
+            r.classList.toggle('active', r.dataset.id === mutatorId);
+        });
+    }
+
+    function showEditor() {
+        document.getElementById('editor-placeholder').style.display = 'none';
+        document.getElementById('editor-form').style.display = 'block';
+        document.getElementById('delete-btn').style.display = isNew ? 'none' : '';
+    }
+
+    function fillForm(m) {
+        document.getElementById('editor-title').textContent = isNew ? 'New Mutator' : m.MutatorId;
+        document.getElementById('mut-id-display').textContent = isNew ? '' : m.MutatorId;
+
+        const idField = document.getElementById('f-mutatorid');
+        setVal('f-mutatorid', m.MutatorId || '');
+        idField.disabled = !isNew;
+
+        // Name modifier
+        const nm = m.NameModifier || {};
+        setVal('f-name-behavior', nm.Behavior || '');
+        setVal('f-name-text', nm.Text || '');
+        setVal('f-name-colorpattern', nm.ColorPattern || '');
+
+        // Description modifier
+        const dm = m.DescriptionModifier || {};
+        setVal('f-desc-behavior', dm.Behavior || '');
+        setVal('f-desc-text', dm.Text || '');
+        setVal('f-desc-colorpattern', dm.ColorPattern || '');
+
+        // Alert modifier
+        const am = m.AlertModifier || {};
+        setVal('f-alert-text', am.Text || '');
+        setVal('f-alert-colorpattern', am.ColorPattern || '');
+
+        // Timing
+        setVal('f-decayrate', m.DecayRate || '');
+        setVal('f-respawnrate', m.RespawnRate || '');
+        setVal('f-decayintoid', m.DecayIntoId || '');
+
+        // Tags
+        renderTags(m.Tags || []);
+
+        // Buffs
+        renderBuffChips('playerbuffids-list', m.PlayerBuffIds || []);
+        renderBuffChips('mobbuffids-list', m.MobBuffIds || []);
+        renderBuffChips('nativebuffids-list', m.NativeBuffIds || []);
+
+        // Room effects
+        setVal('f-lightmod', String(m.LightMod || 0));
+        const pvp = m.Pvp || {};
+        if (pvp.Enabled) setVal('f-pvp', 'enabled');
+        else if (pvp.Disabled) setVal('f-pvp', 'disabled');
+        else setVal('f-pvp', '');
+
+        // Exits
+        renderExits(m.Exits || {});
+    }
+
+    // -------------------------------------------------------------------------
+    // New mutator
+    // -------------------------------------------------------------------------
+    window.newMutator = function () {
+        currentMutatorId = null;
+        isNew = true;
+        document.querySelectorAll('.mut-row').forEach(r => r.classList.remove('active'));
+        showEditor();
+        fillForm({});
+        document.getElementById('editor-title').textContent = 'New Mutator';
+        document.getElementById('mut-id-display').textContent = '';
+        document.getElementById('delete-btn').style.display = 'none';
+    };
+
+    window.cancelEdit = function () {
+        history.replaceState(null, '', location.pathname + location.search);
+        document.getElementById('editor-placeholder').style.display = '';
+        document.getElementById('editor-form').style.display = 'none';
+        document.querySelectorAll('.mut-row').forEach(r => r.classList.remove('active'));
+        currentMutatorId = null;
+        isNew = false;
+    };
+
+    // -------------------------------------------------------------------------
+    // Buff chips
+    // -------------------------------------------------------------------------
+    function renderBuffChips(listId, ids) {
+        const list = document.getElementById(listId);
+        list.innerHTML = '';
+        for (const id of ids) appendBuffChip(list, id, null);
+    }
+
+    function appendBuffChip(list, id, name) {
+        const chip = document.createElement('span');
+        chip.className = 'buff-chip';
+        chip.dataset.id = id;
+        const label = name != null ? '#' + id + ' ' + esc(name) : esc(PickerConfigs.buffName(id));
+        chip.innerHTML = label + ' <button title="Remove" onclick="this.closest(\'.buff-chip\').remove()">&times;</button>';
+        list.appendChild(chip);
+    }
+
+    window.pickBuffId = function (listId) {
+        const listEl = document.getElementById(listId);
+        const existing = collectBuffIds(listId);
+        Picker.open({
+            ...PickerConfigs.buffs,
+            multi:    true,
+            selected: existing,
+            onSelect: (buffs) => {
+                listEl.innerHTML = '';
+                for (const buff of buffs) {
+                    appendBuffChip(listEl, buff.BuffId, buff.Name);
+                }
+            },
+        });
+    };
+
+    function collectBuffIds(listId) {
+        return Array.from(document.querySelectorAll('#' + listId + ' .buff-chip')).map(c => parseInt(c.dataset.id, 10));
+    }
+
+    // -------------------------------------------------------------------------
+    // Exits editor
+    // -------------------------------------------------------------------------
+    function renderExits(exits) {
+        const list = document.getElementById('exits-list');
+        list.innerHTML = '';
+        for (const [name, ex] of Object.entries(exits)) appendExitCard(list, name, ex);
+    }
+
+    function appendExitCard(list, name, ex) {
+        ex = ex || {};
+        const lock = ex.Lock || {};
+        const hasLock = (lock.Difficulty || 0) > 0;
+        const trapBuffIds = lock.TrapBuffIds || [];
+
+        const card = document.createElement('div');
+        card.className = 'exit-card';
+
+        const badges = [];
+        if (ex.Secret) badges.push('<span class="exit-badge exit-badge-secret">hidden</span>');
+        if (hasLock) badges.push('<span class="exit-badge">lock lvl ' + lock.Difficulty + '</span>');
+
+        card.innerHTML =
+            '<div class="exit-card-header" onclick="toggleExitCard(this)">' +
+                esc(name || 'New Exit') +
+                (ex.RoomId ? ' <span style="font-size:0.7rem; color:#888; font-weight:400;">&rarr; #' + ex.RoomId + '</span>' : '') +
+                (badges.length ? ' ' + badges.join(' ') : '') +
+                '<button class="btn-icon" style="margin-left:auto;" title="Remove exit" onclick="this.closest(\'.exit-card\').remove(); event.stopPropagation();">&times;</button>' +
+            '</div>' +
+            '<div class="exit-card-body">' +
+                '<div class="exit-card-grid">' +
+                    '<div class="exit-field">' +
+                        '<label>Exit Name</label>' +
+                        '<input type="text" class="exit-name" value="' + esc(name) + '" oninput="updateExitHeader(this)" />' +
+                    '</div>' +
+                    '<div class="exit-field">' +
+                        '<label>Target Room ID</label>' +
+                        '<input type="number" class="exit-roomid" value="' + (ex.RoomId || '') + '" oninput="updateExitHeader(this)" />' +
+                    '</div>' +
+                    '<div class="exit-field">' +
+                        '<label>Map Direction</label>' +
+                        '<input type="text" class="exit-mapdir" value="' + esc(ex.MapDirection || '') + '" placeholder="e.g. north" />' +
+                    '</div>' +
+                    '<div class="exit-field">' +
+                        '<label>Hidden (Secret)</label>' +
+                        '<div class="toggle-wrap">' +
+                            '<label class="toggle-switch">' +
+                                '<input type="checkbox" class="exit-secret" onchange="updateExitHeader(this)"' + (ex.Secret ? ' checked' : '') + ' />' +
+                                '<span class="toggle-slider"></span>' +
+                            '</label>' +
+                            '<span class="toggle-label">Hidden from players</span>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="exit-field span2">' +
+                        '<label>Exit Message</label>' +
+                        '<input type="text" class="exit-message" value="' + esc(ex.ExitMessage || '') + '" placeholder="Message shown before traversing (optional)" />' +
+                    '</div>' +
+                    '<div class="exit-field span2">' +
+                        '<label>Lock</label>' +
+                        '<div class="toggle-wrap">' +
+                            '<label class="toggle-switch">' +
+                                '<input type="checkbox" class="exit-has-lock" onchange="toggleLockSection(this)"' + (hasLock ? ' checked' : '') + ' />' +
+                                '<span class="toggle-slider"></span>' +
+                            '</label>' +
+                            '<span class="toggle-label">Locked</span>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="exit-lock-section span2" style="' + (hasLock ? '' : 'display:none;') + '">' +
+                        '<div class="lock-section">' +
+                            '<div class="lock-section-title">Lock Settings</div>' +
+                            '<div class="exit-card-grid">' +
+                                '<div class="exit-field">' +
+                                    '<label>Difficulty (2&ndash;32)</label>' +
+                                    '<div class="slider-wrap">' +
+                                        '<input type="range" class="lock-difficulty" min="2" max="32" value="' + (lock.Difficulty || 5) + '" oninput="syncSlider(this); updateExitHeader(this);" />' +
+                                        '<span class="slider-value">' + (lock.Difficulty || 5) + '</span>' +
+                                    '</div>' +
+                                '</div>' +
+                                '<div class="exit-field">' +
+                                    '<label>Relock Interval</label>' +
+                                    '<input type="text" class="lock-relock" value="' + esc(lock.RelockInterval || '') + '" placeholder="e.g. 1 hour (default)" />' +
+                                '</div>' +
+                                '<div class="exit-field span2">' +
+                                    '<label>Trap Buff IDs (on failed pick)</label>' +
+                                    '<div class="buff-ids-wrap lock-trap-buffs">' + renderTrapBuffChips(trapBuffIds) + '</div>' +
+                                    '<button class="btn-add-sm" style="margin-top:0.3rem;" onclick="pickTrapBuff(this)">+ Add Trap Buff</button>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+
+        // Open the card if it's new (no name)
+        if (!name) {
+            card.querySelector('.exit-card-header').classList.add('open');
+            card.querySelector('.exit-card-body').classList.add('open');
+        }
+
+        list.appendChild(card);
+    }
+
+    function renderTrapBuffChips(buffIds) {
+        return (buffIds || []).map(id => {
+            const name = PickerConfigs.buffName(id);
+            return '<span class="buff-chip" data-buff-id="' + id + '">' + esc(name) +
+                ' <button onclick="this.closest(\'.buff-chip\').remove()" title="Remove">&times;</button></span>';
+        }).join('');
+    }
+
+    window.toggleExitCard = function (header) {
+        header.classList.toggle('open');
+        header.nextElementSibling.classList.toggle('open');
+    };
+
+    window.updateExitHeader = function (input) {
+        const card = input.closest('.exit-card');
+        const header = card.querySelector('.exit-card-header');
+        const nameVal = card.querySelector('.exit-name').value.trim() || 'New Exit';
+        const roomIdVal = card.querySelector('.exit-roomid').value.trim();
+        const isSecret = card.querySelector('.exit-secret').checked;
+        const hasLock = card.querySelector('.exit-has-lock').checked;
+        const lockDiff = hasLock ? parseInt(card.querySelector('.lock-difficulty').value, 10) || 0 : 0;
+
+        const badges = [];
+        if (isSecret) badges.push('<span class="exit-badge exit-badge-secret">hidden</span>');
+        if (hasLock && lockDiff > 0) badges.push('<span class="exit-badge">lock lvl ' + lockDiff + '</span>');
+
+        const removeBtn = header.querySelector('.btn-icon').outerHTML;
+        header.innerHTML =
+            esc(nameVal) +
+            (roomIdVal ? ' <span style="font-size:0.7rem; color:#888; font-weight:400;">&rarr; #' + roomIdVal + '</span>' : '') +
+            (badges.length ? ' ' + badges.join(' ') : '') +
+            removeBtn;
+        header.querySelector('.btn-icon').onclick = function (e) { this.closest('.exit-card').remove(); e.stopPropagation(); };
+        header.onclick = function () { toggleExitCard(this); };
+    };
+
+    window.toggleLockSection = function (cb) {
+        const lockDiv = cb.closest('.exit-card').querySelector('.exit-lock-section');
+        lockDiv.style.display = cb.checked ? '' : 'none';
+        updateExitHeader(cb);
+    };
+
+    window.syncSlider = function (input) {
+        input.nextElementSibling.textContent = input.value;
+    };
+
+    window.pickTrapBuff = function (btn) {
+        const trapWrap = btn.previousElementSibling; // .lock-trap-buffs
+        const existing = Array.from(trapWrap.querySelectorAll('.buff-chip')).map(c => parseInt(c.dataset.buffId, 10));
+        Picker.open({
+            ...PickerConfigs.buffs,
+            selected: existing,
+            onSelect: (buffs) => {
+                trapWrap.innerHTML = '';
+                for (const buff of buffs) {
+                    const chip = document.createElement('span');
+                    chip.className = 'buff-chip';
+                    chip.dataset.buffId = buff.BuffId;
+                    chip.innerHTML = esc(buff.Name) + ' <button onclick="this.closest(\'.buff-chip\').remove()" title="Remove">&times;</button>';
+                    trapWrap.appendChild(chip);
+                }
+                const card = trapWrap.closest('.exit-card');
+                if (card) updateExitHeader(card.querySelector('.exit-name'));
+            },
+        });
+    };
+
+    window.addExit = function () { appendExitCard(document.getElementById('exits-list'), '', {}); };
+
+    function collectExits() {
+        const exits = {};
+        document.querySelectorAll('#exits-list .exit-card').forEach(card => {
+            const name = card.querySelector('.exit-name').value.trim();
+            if (!name) return;
+            const roomId = parseInt(card.querySelector('.exit-roomid').value, 10);
+            if (!roomId) return;
+            const secret = card.querySelector('.exit-secret').checked;
+            const mapDir = card.querySelector('.exit-mapdir').value.trim();
+            const exitMsg = card.querySelector('.exit-message').value.trim();
+            const hasLock = card.querySelector('.exit-has-lock').checked;
+
+            const exitObj = { RoomId: roomId };
+            if (secret) exitObj.Secret = true;
+            if (mapDir) exitObj.MapDirection = mapDir;
+            if (exitMsg) exitObj.ExitMessage = exitMsg;
+
+            if (hasLock) {
+                const diff = parseInt(card.querySelector('.lock-difficulty').value, 10) || 5;
+                const relock = card.querySelector('.lock-relock').value.trim();
+                const trapBuffIds = Array.from(card.querySelectorAll('.lock-trap-buffs .buff-chip'))
+                    .map(c => parseInt(c.dataset.buffId, 10))
+                    .filter(n => !isNaN(n));
+                exitObj.Lock = { Difficulty: diff };
+                if (relock) exitObj.Lock.RelockInterval = relock;
+                if (trapBuffIds.length) exitObj.Lock.TrapBuffIds = trapBuffIds;
+            }
+
+            exits[name] = exitObj;
+        });
+        return exits;
+    }
+
+    // -------------------------------------------------------------------------
+    // Tags
+    // -------------------------------------------------------------------------
+    function renderTags(tags) {
+        const list = document.getElementById('tags-list');
+        list.innerHTML = '';
+        for (const t of tags) appendTagChip(list, t);
+    }
+
+    function appendTagChip(list, tag) {
+        const chip = document.createElement('span');
+        chip.className = 'tag-chip';
+        chip.dataset.tag = tag;
+        chip.innerHTML = esc(tag) + ' <button onclick="removeTag(this)" title="Remove tag">&times;</button>';
+        list.appendChild(chip);
+    }
+
+    window.removeTag = function (btn) {
+        btn.closest('.tag-chip').remove();
+        updateTagPickerState();
+    };
+
+    function collectTags() {
+        return Array.from(document.querySelectorAll('#tags-list .tag-chip')).map(c => c.dataset.tag);
+    }
+
+    window.addCustomTag = function () {
+        const input = document.getElementById('tag-input');
+        const val = input.value.trim().toLowerCase();
+        if (!val) return;
+        if (collectTags().includes(val)) { input.value = ''; return; }
+        appendTagChip(document.getElementById('tags-list'), val);
+        input.value = '';
+        updateTagPickerState();
+    };
+
+    // -------------------------------------------------------------------------
+    // Tag picker
+    // -------------------------------------------------------------------------
+    function buildTagPickerList(filter) {
+        const container = document.getElementById('tag-picker-list');
+        container.innerHTML = '';
+
+        if (allTags.length === 0) {
+            container.innerHTML = '<div class="tag-picker-empty">No registered tags found.<br>Modules register tags at startup.</div>';
+            return;
+        }
+
+        const current = collectTags();
+        const filterLc = filter.toLowerCase();
+
+        const groups = {};
+        for (const entry of allTags) {
+            if (filterLc && !entry.tag.toLowerCase().includes(filterLc) && !entry.module.toLowerCase().includes(filterLc)) continue;
+            if (!groups[entry.module]) groups[entry.module] = [];
+            groups[entry.module].push(entry.tag);
+        }
+
+        let anyItem = false;
+        for (const mod of Object.keys(groups).sort()) {
+            const grpEl = document.createElement('div');
+            grpEl.className = 'tag-picker-group';
+            grpEl.textContent = mod;
+            container.appendChild(grpEl);
+            for (const tag of groups[mod]) {
+                anyItem = true;
+                const item = document.createElement('div');
+                item.className = 'tag-picker-item' + (current.includes(tag) ? ' selected' : '');
+                item.dataset.tag = tag;
+                item.textContent = tag;
+                item.onclick = () => toggleTagFromPicker(tag, item);
+                container.appendChild(item);
+            }
+        }
+
+        if (!anyItem) {
+            container.innerHTML = '<div class="tag-picker-empty">No matching tags.</div>';
+        }
+    }
+
+    function updateTagPickerState() {
+        const current = collectTags();
+        document.querySelectorAll('#tag-picker-list .tag-picker-item').forEach(item => {
+            item.classList.toggle('selected', current.includes(item.dataset.tag));
+        });
+    }
+
+    function toggleTagFromPicker(tag, itemEl) {
+        const list = document.getElementById('tags-list');
+        const current = collectTags();
+        if (current.includes(tag)) {
+            list.querySelectorAll('.tag-chip').forEach(c => { if (c.dataset.tag === tag) c.remove(); });
+            itemEl.classList.remove('selected');
+        } else {
+            appendTagChip(list, tag);
+            itemEl.classList.add('selected');
+        }
+    }
+
+    window.toggleTagPicker = function (e) {
+        e.stopPropagation();
+        const dd = document.getElementById('tag-picker-dropdown');
+        const isOpen = dd.classList.contains('open');
+        closeTagPicker();
+        if (!isOpen) {
+            buildTagPickerList(document.getElementById('tag-picker-search').value);
+            dd.classList.add('open');
+        }
+    };
+
+    function closeTagPicker() {
+        document.getElementById('tag-picker-dropdown').classList.remove('open');
+    }
+
+    window.filterTagPicker = function () {
+        buildTagPickerList(document.getElementById('tag-picker-search').value);
+    };
+
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest('.tag-picker-wrap')) closeTagPicker();
+    });
+
+    // -------------------------------------------------------------------------
+    // Color pattern picker
+    // -------------------------------------------------------------------------
+    window.pickColorPattern = function (targetId) {
+        SelectDialog.open({
+            title: 'Pick a Color Pattern',
+            apiPath: '/admin/api/v1/colorpatterns',
+            transform: data => Object.keys(data).sort().map(k => ({
+                label: k,
+                value: k,
+                html: AnsiColors.swatchHtml(data[k], 12),
+            })),
+            onSelect: value => {
+                document.getElementById(targetId).value = value;
+            },
+        });
+    };
+
+    // -------------------------------------------------------------------------
+    // Decay-into picker
+    // -------------------------------------------------------------------------
+    window.pickDecayIntoId = function () {
+        Picker.open({
+            ...PickerConfigs.mutators,
+            onSelect: (mut) => {
+                document.getElementById('f-decayintoid').value = mut.MutatorId;
+            },
+        });
+    };
+
+    // -------------------------------------------------------------------------
+    // Build text modifier object (returns null if empty)
+    // -------------------------------------------------------------------------
+    function buildTextMod(behaviorId, textId, colorId) {
+        const behavior = document.getElementById(behaviorId).value;
+        const text = document.getElementById(textId).value.trim();
+        const color = document.getElementById(colorId).value.trim();
+        if (!behavior && !text && !color) return null;
+        const mod = {};
+        if (behavior) mod.Behavior = behavior;
+        if (text) mod.Text = text;
+        if (color) mod.ColorPattern = color;
+        return mod;
+    }
+
+    function buildAlertMod() {
+        const text = document.getElementById('f-alert-text').value.trim();
+        const color = document.getElementById('f-alert-colorpattern').value.trim();
+        if (!text && !color) return null;
+        const mod = {};
+        if (text) mod.Text = text;
+        if (color) mod.ColorPattern = color;
+        return mod;
+    }
+
+    // -------------------------------------------------------------------------
+    // Save
+    // -------------------------------------------------------------------------
+    window.saveMutator = async function () {
+        const btn = document.getElementById('save-btn');
+        btn.disabled = true; btn.textContent = 'Saving...';
+
+        const pvpVal = document.getElementById('f-pvp').value;
+
+        const payload = {
+            MutatorId:           document.getElementById('f-mutatorid').value.trim(),
+            NameModifier:        buildTextMod('f-name-behavior', 'f-name-text', 'f-name-colorpattern'),
+            DescriptionModifier: buildTextMod('f-desc-behavior', 'f-desc-text', 'f-desc-colorpattern'),
+            AlertModifier:       buildAlertMod(),
+            DecayRate:           document.getElementById('f-decayrate').value.trim(),
+            RespawnRate:         document.getElementById('f-respawnrate').value.trim(),
+            DecayIntoId:         document.getElementById('f-decayintoid').value.trim(),
+            PlayerBuffIds:       collectBuffIds('playerbuffids-list'),
+            MobBuffIds:          collectBuffIds('mobbuffids-list'),
+            NativeBuffIds:       collectBuffIds('nativebuffids-list'),
+            Tags:                collectTags(),
+            LightMod:            parseInt(document.getElementById('f-lightmod').value, 10) || 0,
+            Pvp: {
+                Enabled:  pvpVal === 'enabled',
+                Disabled: pvpVal === 'disabled',
+            },
+            Exits:               collectExits(),
+        };
+
+        let res;
+        if (isNew) {
+            res = await AdminAPI.post('/admin/api/v1/mutators', payload);
+        } else {
+            res = await AdminAPI.patch('/admin/api/v1/mutators/' + encodeURIComponent(currentMutatorId), payload);
+        }
+
+        btn.disabled = false; btn.textContent = 'Save Mutator';
+
+        if (!res.ok) {
+            showStatus('Save failed: ' + res.error, false);
+            return;
+        }
+
+        const saved = res.data.data;
+        showStatus('Mutator saved successfully.', true);
+
+        // Refresh list
+        const listRes = await AdminAPI.get('/admin/api/v1/mutators', true);
+        if (listRes.ok) {
+            allMutators = (listRes.data.data || []).sort((a, b) => a.MutatorId.localeCompare(b.MutatorId));
+        } else if (isNew) {
+            allMutators.push(saved);
+            allMutators.sort((a, b) => a.MutatorId.localeCompare(b.MutatorId));
+        }
+
+        currentMutatorId = saved.MutatorId;
+        isNew = false;
+        filterMutators();
+        setActiveRow(saved.MutatorId);
+        document.getElementById('editor-title').textContent = saved.MutatorId;
+        document.getElementById('mut-id-display').textContent = saved.MutatorId;
+        document.getElementById('delete-btn').style.display = '';
+        document.getElementById('f-mutatorid').disabled = true;
+    };
+
+    // -------------------------------------------------------------------------
+    // Delete
+    // -------------------------------------------------------------------------
+    window.deleteMutator = async function () {
+        if (!currentMutatorId) return;
+        if (!confirm('Delete mutator "' + currentMutatorId + '"? This cannot be undone.')) return;
+
+        const res = await AdminAPI.delete('/admin/api/v1/mutators/' + encodeURIComponent(currentMutatorId));
+        if (!res.ok) { showStatus('Delete failed: ' + res.error, false); return; }
+
+        allMutators = allMutators.filter(m => m.MutatorId !== currentMutatorId);
+        filterMutators();
+        cancelEdit();
+        showStatus('Mutator deleted.', true);
+    };
+
+    // -------------------------------------------------------------------------
+    // Status
+    // -------------------------------------------------------------------------
+    function showStatus(msg, ok) {
+        const bar = document.getElementById('status-bar');
+        bar.textContent = msg;
+        bar.className = 'status-bar ' + (ok ? 'success' : 'error');
+        clearTimeout(bar._t);
+        bar._t = setTimeout(() => { bar.className = 'status-bar'; }, 6000);
+    }
+
+    // -------------------------------------------------------------------------
+    // Utilities
+    // -------------------------------------------------------------------------
+    function setVal(id, val) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (el.tagName === 'SELECT') {
+            el.value = String(val);
+        } else {
+            el.value = val;
+        }
+    }
+
+    function esc(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    init();
+})();
+</script>
+
+{{template "footer" .}}

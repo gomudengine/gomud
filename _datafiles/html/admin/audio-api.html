@@ -1,0 +1,101 @@
+{{template "header" .}}
+
+<style>
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #555; margin-bottom: 2rem; font-size: 0.9rem; }
+    .api-list { display: flex; flex-direction: column; gap: 0.5rem; }
+    .api-entry { background: #fff; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; }
+    .api-entry summary { display: flex; align-items: baseline; gap: 0.75rem; padding: 0.65rem 1rem; cursor: pointer; user-select: none; list-style: none; }
+    .api-entry summary::-webkit-details-marker { display: none; }
+    .api-entry summary::before { content: "\25B6"; font-size: 0.65rem; color: #888; transition: transform 0.15s; flex-shrink: 0; }
+    .api-entry[open] summary::before { transform: rotate(90deg); }
+    .api-entry summary:hover { background: #fafafa; }
+    .method { font-family: monospace; font-size: 0.8rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 3px; flex-shrink: 0; }
+    .method-get   { background: #e6f4ea; color: #1e6e34; }
+    .method-patch { background: #fff3e0; color: #8a4a00; }
+    .api-path { font-family: monospace; font-size: 0.9rem; color: #1a1a2e; }
+    .api-desc { font-size: 0.85rem; color: #555; margin-left: auto; text-align: right; }
+    .api-body { padding: 0.75rem 1rem 1rem; border-top: 1px solid #eee; background: #fafafa; }
+    .api-body p { font-size: 0.85rem; color: #444; margin-bottom: 0.5rem; }
+    .api-body ul { font-size: 0.85rem; color: #444; margin: 0.25rem 0 0.5rem 1.25rem; }
+    .api-body li { margin-bottom: 0.2rem; }
+    .curl-block { background: #1a1a2e; color: #c9d1d9; font-family: monospace; font-size: 0.82rem; padding: 0.85rem 1rem; border-radius: 5px; white-space: pre; overflow-x: auto; line-height: 1.6; margin-bottom: 0.5rem; }
+    .curl-block .kw   { color: #79c0ff; }
+    .curl-block .str  { color: #a5d6ff; }
+    .curl-block .flag { color: #d2a8ff; }
+    .response-examples { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
+    .resp-entry { border: 1px solid #ddd; border-radius: 4px; overflow: hidden; }
+    .resp-entry summary { display: flex; align-items: baseline; gap: 0.6rem; padding: 0.45rem 0.75rem; cursor: pointer; user-select: none; list-style: none; background: #f5f5f5; font-size: 0.82rem; }
+    .resp-entry summary::-webkit-details-marker { display: none; }
+    .resp-entry summary::before { content: "\25B6"; font-size: 0.6rem; color: #888; transition: transform 0.15s; flex-shrink: 0; }
+    .resp-entry[open] summary::before { transform: rotate(90deg); }
+    .resp-entry summary:hover { background: #efefef; }
+    .resp-body { padding: 0.6rem 0.75rem 0.75rem; border-top: 1px solid #eee; background: #fafafa; }
+    .resp-body p { font-size: 0.82rem; color: #444; margin-bottom: 0.4rem; }
+    .status-ok  { background: #e6f4ea; color: #1e6e34; }
+    .status-err { background: #fde8e8; color: #8a0000; }
+    .resp-label { font-size: 0.8rem; color: #444; }
+</style>
+
+<h1>Audio API Reference</h1>
+<p class="subtitle">REST endpoints for reading and managing audio configuration entries.</p>
+
+<div class="api-list">
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-get">GET</span>
+            <span class="api-path">/admin/api/v1/audio</span>
+            <span class="api-desc">Return sounds and music</span>
+        </summary>
+        <div class="api-body">
+            <p>Returns two sections:</p>
+            <ul>
+                <li><code>sounds</code> &mdash; map of identifier &rarr; audio config loaded from <code>audio.yaml</code>. Each entry has an optional <code>description</code>, a <code>filepath</code> (relative to <code>WebCDNLocation</code>, or host root if blank), and an optional <code>volume</code> (0&ndash;100).</li>
+                <li><code>music</code> &mdash; sorted list of filenames found in <code>PublicHtml/static/audio/music/</code>. Files whose names begin with <code>_</code> are excluded. This list is read-only.</li>
+            </ul>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/audio</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"sounds":{"intro":{"description":"Plays at login screen","filepath":"static/audio/music/intro.mp3","volume":20},"levelup":{"description":"When leveling up","filepath":"static/audio/sound/other/levelup.mp3"}},"music":["static/audio/music/catacombs.mp3","static/audio/music/dark-forest.mp3","static/audio/music/frostfang.mp3","static/audio/music/intro.mp3"]}}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-patch">PATCH</span>
+            <span class="api-path">/admin/api/v1/audio</span>
+            <span class="api-desc">Replace the sounds configuration</span>
+        </summary>
+        <div class="api-body">
+            <p>Replaces the entire sounds configuration with the provided map. The body must be a JSON object mapping identifiers to audio config objects. The updated configuration is written to <code>audio.yaml</code> and reloaded in memory.</p>
+            <p>The <code>music</code> list is derived from disk and cannot be modified through this endpoint. The response includes the saved sounds and the current music file list.</p>
+            <p>Each entry supports three optional fields: <code>description</code> (string), <code>filepath</code> (string), and <code>volume</code> (integer 0&ndash;100).</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> <span class="flag">-X</span> PATCH \
+     <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
+     <span class="flag">-d</span> <span class="str">'{"intro":{"description":"Plays at login screen","filepath":"static/audio/music/intro.mp3","volume":20},"levelup":{"description":"When leveling up","filepath":"static/audio/sound/other/levelup.mp3"}}'</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/audio</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"sounds":{"intro":{"description":"Plays at login screen","filepath":"static/audio/music/intro.mp3","volume":20},"levelup":{"description":"When leveling up","filepath":"static/audio/sound/other/levelup.mp3"}},"music":["static/audio/music/catacombs.mp3","static/audio/music/dark-forest.mp3","static/audio/music/frostfang.mp3","static/audio/music/intro.mp3"]}}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"malformed request body: unexpected EOF"}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">500</span> <span class="resp-label">Internal Server Error</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"writing audio config file: permission denied"}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+</div>
+
+{{template "footer" .}}

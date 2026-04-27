@@ -52,7 +52,8 @@ func init() {
 	if err := t.plug.AttachFileSystem(files); err != nil {
 		panic(err)
 	}
-	//
+
+	t.plug.Web.AdminPage("Config", "leaderboards-config", "html/admin/leaderboards-config.html", true, "Modules", "Leaderboards", nil) //
 	// Register any user/mob commands
 	//
 	t.plug.AddUserCommand(`leaderboard`, t.leaderboardCommand, true, false)
@@ -81,14 +82,16 @@ type LeaderboardModule struct {
 
 	lastCalculated time.Time // When the LB's were last generated
 
-	LBSize            int
-	GoldEnabled       bool
-	ExperienceEnabled bool
-	KillsEnabled      bool
+	LBSize             int
+	GoldEnabled        bool
+	ExperienceEnabled  bool
+	KillsEnabled       bool
+	ExplorationEnabled bool
 
-	LB_Gold       leaderboardData `yaml:"LB_Gold,omitempty"`
-	LB_Experience leaderboardData `yaml:"LB_Experience,omitempty"`
-	LB_Kills      leaderboardData `yaml:"LB_Kills,omitempty"`
+	LB_Gold        leaderboardData `yaml:"LB_Gold,omitempty"`
+	LB_Experience  leaderboardData `yaml:"LB_Experience,omitempty"`
+	LB_Kills       leaderboardData `yaml:"LB_Kills,omitempty"`
+	LB_Exploration leaderboardData `yaml:"LB_Exploration,omitempty"`
 }
 
 func (l *LeaderboardModule) webLeaderboardData(r *http.Request) map[string]any {
@@ -113,6 +116,9 @@ func (l *LeaderboardModule) loadLBs() {
 
 	l.KillsEnabled = true
 	l.LB_Kills = leaderboardData{Name: `Kills`, ValueColor: `red-bold`}
+
+	l.ExplorationEnabled = true
+	l.LB_Exploration = leaderboardData{Name: `Exploration`, ValueColor: `cyan-bold`}
 }
 
 func (l *LeaderboardModule) saveLBs() {
@@ -166,6 +172,7 @@ func (l *LeaderboardModule) Reset(maxSize int) {
 	l.LB_Gold.Reset(maxSize)
 	l.LB_Experience.Reset(maxSize)
 	l.LB_Kills.Reset(maxSize)
+	l.LB_Exploration.Reset(maxSize)
 }
 
 func (l *LeaderboardModule) RefreshConfig() {
@@ -186,6 +193,18 @@ func (l *LeaderboardModule) RefreshConfig() {
 	if killsEnabled, ok := l.plug.Config.Get(`KillsEnabled`).(bool); ok {
 		l.KillsEnabled = killsEnabled
 	}
+
+	if explorationEnabled, ok := l.plug.Config.Get(`ExplorationEnabled`).(bool); ok {
+		l.ExplorationEnabled = explorationEnabled
+	}
+}
+
+func explorationScore(char characters.Character) int {
+	total := 0
+	for _, bs := range char.ZonesVisited {
+		total += bs.Count()
+	}
+	return total
 }
 
 func (l *LeaderboardModule) Update() {
@@ -213,6 +232,10 @@ func (l *LeaderboardModule) Update() {
 			l.LB_Kills.Consider(u.UserId, *u.Character, u.Character.KD.TotalKills)
 		}
 
+		if l.ExplorationEnabled {
+			l.LB_Exploration.Consider(u.UserId, *u.Character, explorationScore(*u.Character))
+		}
+
 		var altChars []characters.Character
 		if fn, ok := usercommands.GetExportedFunction(`LoadAlts`); ok {
 			if loadAlts, ok := fn.(func(int) []characters.Character); ok {
@@ -233,6 +256,10 @@ func (l *LeaderboardModule) Update() {
 
 			if l.KillsEnabled {
 				l.LB_Kills.Consider(u.UserId, char, char.KD.TotalKills)
+			}
+
+			if l.ExplorationEnabled {
+				l.LB_Exploration.Consider(u.UserId, char, explorationScore(char))
 			}
 
 		}
@@ -257,6 +284,10 @@ func (l *LeaderboardModule) Update() {
 			l.LB_Kills.Consider(u.UserId, *u.Character, u.Character.KD.TotalKills)
 		}
 
+		if l.ExplorationEnabled {
+			l.LB_Exploration.Consider(u.UserId, *u.Character, explorationScore(*u.Character))
+		}
+
 		var altChars []characters.Character
 		if fn, ok := usercommands.GetExportedFunction(`LoadAlts`); ok {
 			if loadAlts, ok := fn.(func(int) []characters.Character); ok {
@@ -277,6 +308,10 @@ func (l *LeaderboardModule) Update() {
 
 			if l.KillsEnabled {
 				l.LB_Kills.Consider(u.UserId, char, char.KD.TotalKills)
+			}
+
+			if l.ExplorationEnabled {
+				l.LB_Exploration.Consider(u.UserId, char, explorationScore(char))
 			}
 
 		}
@@ -325,6 +360,10 @@ func (l *LeaderboardModule) getCurrentLeaderboards() []leaderboardData {
 
 	if l.KillsEnabled {
 		ret = append(ret, l.LB_Kills)
+	}
+
+	if l.ExplorationEnabled {
+		ret = append(ret, l.LB_Exploration)
 	}
 
 	return ret

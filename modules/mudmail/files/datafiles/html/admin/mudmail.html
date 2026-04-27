@@ -33,12 +33,27 @@
     #status-bar.success { background: #e6f4ea; color: #1e6e34; display: block; }
     #status-bar.error   { background: #fde8e8; color: #8a0000; display: block; }
 
-    /* ---- lookup toolbar ---- */
-    .lookup-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
-    .lookup-row input[type="number"] {
-        width: 140px; padding: 0.4rem 0.6rem; border: 1px solid #ccc;
-        border-radius: 4px; font-size: 0.875rem;
+    /* ---- picker display ---- */
+    .picker-display-wrap { display: flex; gap: 0.4rem; align-items: center; }
+    .picker-display {
+        flex: 1; padding: 0.4rem 0.6rem; border: 1px solid #ccc; border-radius: 4px;
+        font-size: 0.875rem; background: #fff; color: #aaa; font-style: italic;
+        min-height: 2.1rem; display: flex; align-items: center;
     }
+    .picker-display.has-value { color: #1a1a2e; font-style: normal; font-family: monospace; }
+    .btn-pick {
+        padding: 0.35rem 0.65rem; border: 1px solid #ccc; border-radius: 4px;
+        background: #f5f5f5; cursor: pointer; font-size: 0.875rem; line-height: 1;
+        flex-shrink: 0; font-weight: 600;
+    }
+    .btn-pick:hover { background: #e8eaff; border-color: #7986cb; }
+    .btn-clear {
+        padding: 0.35rem 0.5rem; border: 1px solid #ccc; border-radius: 4px;
+        background: #f5f5f5; cursor: pointer; font-size: 1rem; line-height: 1;
+        flex-shrink: 0; color: #888;
+    }
+    .btn-clear:hover { background: #fde8e8; border-color: #e57373; color: #c00; }
+    .lookup-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
 
     /* ---- inbox table ---- */
     .table-wrap { background: #fff; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; }
@@ -75,17 +90,32 @@
         <input type="text" id="from-name" placeholder="System" value="System" />
     </div>
     <div class="form-row">
-        <label for="recipient-id">Recipient User ID</label>
-        <input type="number" id="recipient-id" placeholder="Leave blank to send to everyone" min="1" style="max-width:220px;" />
-        <span class="form-hint">Leave blank to broadcast to all players. Enter a user ID to send to one player.</span>
+        <label>Recipient</label>
+        <div class="picker-display-wrap">
+            <span id="recipient-display" class="picker-display">everyone (broadcast)</span>
+            <button type="button" class="btn-pick" onclick="pickRecipient()">Pick User&hellip;</button>
+            <button type="button" class="btn-clear" title="Clear (send to everyone)" onclick="clearRecipient()">&times;</button>
+        </div>
+        <input type="hidden" id="recipient-id" value="0" />
+        <span class="form-hint">Leave blank to broadcast to all players.</span>
     </div>
     <div class="form-row">
-        <label for="body">Message</label>
+        <label>Message</label>
         <textarea id="body" placeholder="Your message here..."></textarea>
     </div>
     <div class="form-row">
-        <label for="gold">Attach Gold</label>
+        <label>Attach Gold</label>
         <input type="number" id="gold" value="0" min="0" style="max-width:120px;" />
+    </div>
+    <div class="form-row">
+        <label>Attach Item</label>
+        <div class="picker-display-wrap">
+            <span id="item-display" class="picker-display">none</span>
+            <button type="button" class="btn-pick" onclick="pickMailItem()">Pick Item&hellip;</button>
+            <button type="button" class="btn-clear" title="Remove item" onclick="clearMailItem()">&times;</button>
+        </div>
+        <input type="hidden" id="item-id" value="0" />
+        <span class="form-hint">A fresh copy of this item will be created and attached to the message.</span>
     </div>
     <button class="btn btn-primary" id="send-btn" onclick="sendMail()">Send</button>
 </div>
@@ -94,10 +124,9 @@
 <div class="panel">
     <h2>Inbox Lookup</h2>
     <div class="lookup-row">
-        <label for="lookup-uid" style="font-size:0.82rem;font-weight:600;color:#444;">User ID</label>
-        <input type="number" id="lookup-uid" placeholder="e.g. 42" min="1"
-               onkeydown="if(event.key==='Enter') loadMessages()" />
-        <button class="btn btn-primary" onclick="loadMessages()">Load</button>
+        <span id="lookup-display" class="picker-display" style="max-width:280px;">no user selected</span>
+        <button type="button" class="btn-pick" onclick="pickLookupUser()">Pick User&hellip;</button>
+        <button type="button" class="btn-clear" title="Clear" onclick="clearLookupUser()">&times;</button>
     </div>
     <div class="table-wrap">
         <table id="mail-table">
@@ -126,14 +155,74 @@
     // Track which rows have their detail pane open.
     const openDetails = new Set();
 
+    // ── Recipient picker ─────────────────────────────────────────────
+    window.pickRecipient = function () {
+        UserPicker.open({
+            onSelect: (user) => {
+                document.getElementById('recipient-id').value = user.user_id;
+                const display = document.getElementById('recipient-display');
+                display.textContent = '#' + user.user_id + ' ' + user.username;
+                display.className = 'picker-display has-value';
+            },
+        });
+    };
+
+    window.clearRecipient = function () {
+        document.getElementById('recipient-id').value = '0';
+        const display = document.getElementById('recipient-display');
+        display.textContent = 'everyone (broadcast)';
+        display.className = 'picker-display';
+    };
+
+    // ── Item picker ──────────────────────────────────────────────────
+    window.pickMailItem = function () {
+        Picker.open({
+            ...PickerConfigs.items,
+            onSelect: (item) => {
+                document.getElementById('item-id').value = item.ItemId;
+                const display = document.getElementById('item-display');
+                display.textContent = '#' + item.ItemId + ' ' + item.Name;
+                display.className = 'picker-display has-value';
+            },
+        });
+    };
+
+    window.clearMailItem = function () {
+        document.getElementById('item-id').value = '0';
+        const display = document.getElementById('item-display');
+        display.textContent = 'none';
+        display.className = 'picker-display';
+    };
+
+    // ── Lookup user picker ───────────────────────────────────────────
+    window.pickLookupUser = function () {
+        UserPicker.open({
+            onSelect: (user) => {
+                currentUserId = user.user_id;
+                const display = document.getElementById('lookup-display');
+                display.textContent = '#' + user.user_id + ' ' + user.username;
+                display.className = 'picker-display has-value';
+                loadMessages();
+            },
+        });
+    };
+
+    window.clearLookupUser = function () {
+        currentUserId = 0;
+        const display = document.getElementById('lookup-display');
+        display.textContent = 'no user selected';
+        display.className = 'picker-display';
+        document.getElementById('mail-body').innerHTML =
+            '<tr><td colspan="5" style="padding:1.5rem;text-align:center;color:#888;">Pick a user above to view their inbox.</td></tr>';
+        document.getElementById('no-results').style.display = 'none';
+    };
+
     // ── Load summaries ───────────────────────────────────────────────
     window.loadMessages = async function () {
-        const uid = parseInt(document.getElementById('lookup-uid').value, 10);
-        if (!uid || uid <= 0) {
-            showStatus('Enter a valid User ID.', false);
+        if (!currentUserId || currentUserId <= 0) {
+            showStatus('Pick a user first.', false);
             return;
         }
-        currentUserId = uid;
         openDetails.clear();
 
         document.getElementById('mail-body').innerHTML =
@@ -226,6 +315,7 @@
         const msg = res.data.data || {};
         let meta = '';
         if (msg.gold > 0) meta += '<span class="badge-attach">Gold: ' + escHtml(String(msg.gold)) + '</span> ';
+        if (msg.item_id > 0) meta += '<span class="badge-attach">Item: #' + escHtml(String(msg.item_id)) + (msg.item_name ? ' ' + escHtml(msg.item_name) : '') + '</span> ';
 
         detailTr.querySelector('td').innerHTML =
             '<pre class="detail-body">' + escHtml(msg.body || '') + '</pre>' +
@@ -235,10 +325,11 @@
 
     // ── Send ────────────────────────────────────────────────────────
     window.sendMail = async function () {
-        const fromName   = document.getElementById('from-name').value.trim();
+        const fromName    = document.getElementById('from-name').value.trim();
         const recipientId = parseInt(document.getElementById('recipient-id').value, 10) || 0;
-        const body       = document.getElementById('body').value.trim();
-        const gold       = parseInt(document.getElementById('gold').value, 10) || 0;
+        const body        = document.getElementById('body').value.trim();
+        const gold        = parseInt(document.getElementById('gold').value, 10) || 0;
+        const itemId      = parseInt(document.getElementById('item-id').value, 10) || 0;
 
         if (!fromName) { showStatus('From Name is required.', false); return; }
         if (!body)     { showStatus('Message body is required.', false); return; }
@@ -248,9 +339,8 @@
         btn.textContent = 'Sending...';
 
         const payload = { from_name: fromName, body, gold };
-        if (recipientId > 0) {
-            payload.user_id = recipientId;
-        }
+        if (recipientId > 0) payload.user_id = recipientId;
+        if (itemId > 0)      payload.item_id = itemId;
 
         const res = await AdminAPI.post('/admin/api/v1/mudmail', payload);
         btn.disabled = false;
@@ -270,8 +360,8 @@
 
         document.getElementById('body').value = '';
         document.getElementById('gold').value = '0';
+        clearMailItem();
 
-        // Reload the inbox view if we sent to the currently displayed user.
         if (currentUserId > 0 && (recipientId === 0 || recipientId === currentUserId)) {
             loadMessages();
         }

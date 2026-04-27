@@ -28,6 +28,8 @@ func init() {
 		panic(err)
 	}
 
+	m.plug.Web.AdminPage("Config", "zombiemode-config", "html/admin/zombiemode-config.html", true, "Modules", "Zombie Mode", nil)
+
 	m.plug.AddUserCommand(`zombie`, m.zombieCommand, false, false)
 	m.plug.AddUserCommand(`zombieact`, m.zombieActCommand, true, false)
 
@@ -227,6 +229,11 @@ func (m *ZombieModule) onInput(e events.Event) events.ListenerReturn {
 
 	// Ignore the zombieact tick and any commands the AI issued (tagged with cmdZombieAI).
 	if evt.InputText == `zombieact` || evt.Flags.Has(cmdZombieAI) {
+		return events.Continue
+	}
+
+	// Allow "zombie status" without waking up.
+	if strings.TrimSpace(strings.ToLower(evt.InputText)) == `zombie status` {
 		return events.Continue
 	}
 

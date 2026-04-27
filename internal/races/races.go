@@ -93,7 +93,16 @@ func (r *Race) Validate() error {
 	if r.Size == "" {
 		return errors.New("race has no size")
 	}
-	r.Size = Size(strings.ToLower(string(r.Size))) // Sometimes a mismatching CaSe value is provided.
+	r.Size = Size(strings.ToLower(string(r.Size)))
+	if r.Size != Small && r.Size != Medium && r.Size != Large {
+		return fmt.Errorf("invalid size %q: must be small, medium, or large", r.Size)
+	}
+
+	if r.DefaultAlignment < -100 {
+		r.DefaultAlignment = -100
+	} else if r.DefaultAlignment > 100 {
+		r.DefaultAlignment = 100
+	}
 
 	// Recalculate stats, based on level one because this is actually the baseline for the race
 	r.Stats.Strength.Recalculate(1)

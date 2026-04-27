@@ -1,0 +1,1879 @@
+{{template "header" .}}
+
+<style>
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #555; margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+    /* layout */
+    .page-layout { display: grid; grid-template-columns: 340px 1fr; gap: 1.25rem; align-items: start; }
+    @media (max-width: 960px) { .page-layout { grid-template-columns: 1fr; } }
+
+    /* sidebar */
+    .sidebar { background: #fff; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; }
+    .sidebar-controls { padding: 0.6rem 0.75rem; border-bottom: 1px solid #eee; display: flex; flex-direction: column; gap: 0.45rem; }
+    .sidebar-controls select, .sidebar-controls input[type="search"] {
+        width: 100%; padding: 0.35rem 0.6rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; background: #fff;
+    }
+    .sidebar-btn-row { display: flex; gap: 0.4rem; }
+    .room-list { overflow-y: auto; max-height: 62vh; }
+    .room-row {
+        padding: 0.45rem 0.75rem; cursor: pointer; border-bottom: 1px solid #f0f0f0;
+        display: flex; align-items: baseline; gap: 0.5rem; font-size: 0.84rem;
+    }
+    .room-row:last-child { border-bottom: none; }
+    .room-row:hover { background: #f5f7ff; }
+    .room-row.active { background: #1a1a2e; color: #fff; }
+    .room-id { font-size: 0.72rem; color: #999; font-family: monospace; flex-shrink: 0; width: 3rem; }
+    .room-row.active .room-id { color: #8899cc; }
+    .room-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+    .room-badge {
+        font-size: 0.65rem; padding: 0.1rem 0.3rem; border-radius: 3px;
+        background: #e8eaf6; color: #3949ab; flex-shrink: 0;
+    }
+    .room-row.active .room-badge { background: #3949ab; color: #fff; }
+    .room-script-badge {
+        font-size: 0.65rem; padding: 0.1rem 0.3rem; border-radius: 3px;
+        background: #fff3e0; color: #8a4a00; flex-shrink: 0;
+    }
+    .room-row.active .room-script-badge { background: #8a4a00; color: #fff; }
+
+    .pager { display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-top: 1px solid #eee; font-size: 0.8rem; color: #666; }
+    .pager button { padding: 0.25rem 0.6rem; border: 1px solid #ccc; border-radius: 4px; background: #fff; cursor: pointer; font-size: 0.8rem; }
+    .pager button:disabled { opacity: 0.4; cursor: default; }
+    .pager button:hover:not(:disabled) { background: #f0f0f0; }
+    .pager-info { font-size: 0.75rem; color: #999; }
+
+    /* btn */
+    .btn-new {
+        flex: 1; padding: 0.35rem 0.5rem; border: none; border-radius: 4px;
+        font-size: 0.8rem; font-weight: 600; cursor: pointer; text-align: center;
+    }
+    .btn-new-room { background: #1e6e34; color: #fff; }
+    .btn-new-room:hover { background: #145728; }
+    .btn-new-zone { background: #1a1a2e; color: #fff; }
+    .btn-new-zone:hover { background: #2d2d4e; }
+    .btn-zone-edit {
+        padding: 0.2rem 0.5rem; border: 1px solid #ccc; border-radius: 4px;
+        background: #f5f5f5; cursor: pointer; font-size: 0.75rem; flex-shrink: 0;
+    }
+    .btn-zone-edit:hover { background: #e8eaff; border-color: #7986cb; }
+
+    /* editor panel */
+    .editor-panel { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 1.25rem; }
+    .editor-placeholder { color: #aaa; text-align: center; padding: 4rem 1rem; font-size: 0.9rem; }
+
+    /* status */
+    .status-bar { display: none; padding: 0.55rem 0.9rem; border-radius: 4px; font-size: 0.85rem; margin-bottom: 1rem; }
+    .status-bar.success { background: #e6f4ea; color: #1e6e34; display: block; }
+    .status-bar.error   { background: #fde8e8; color: #8a0000; display: block; }
+
+    /* form */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem 1.25rem; }
+    .form-grid .span2 { grid-column: 1 / -1; }
+    .field label { display: block; font-size: 0.78rem; font-weight: 600; color: #555; margin-bottom: 0.25rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .field input[type="text"],
+    .field input[type="number"],
+    .field select,
+    .field textarea {
+        width: 100%; padding: 0.4rem 0.6rem; border: 1px solid #ccc; border-radius: 4px;
+        font-size: 0.875rem; font-family: inherit; background: #fff;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid #1a1a2e; outline-offset: 1px; border-color: transparent; }
+    .field textarea { resize: vertical; min-height: 80px; }
+    .field-hint { font-size: 0.75rem; color: #888; margin-top: 0.2rem; }
+
+    .section-title {
+        font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.06em; color: #666; padding: 0.5rem 0 0.4rem;
+        border-bottom: 1px solid #eee; margin-bottom: 0.75rem; grid-column: 1 / -1;
+    }
+
+    /* collapsible sections */
+    .collapse-toggle {
+        display: flex; align-items: center; gap: 0.5rem; cursor: pointer;
+        font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.06em; color: #666; padding: 0.5rem 0 0.4rem;
+        border-bottom: 1px solid #eee; margin-bottom: 0.75rem; grid-column: 1 / -1;
+        user-select: none;
+    }
+    .collapse-toggle::before { content: "\25B6"; font-size: 0.6rem; transition: transform 0.15s; }
+    .collapse-toggle.open::before { transform: rotate(90deg); }
+    .collapse-body { display: none; grid-column: 1 / -1; }
+    .collapse-body.open { display: block; }
+
+    /* exit rows */
+    .exit-card {
+        border: 1px solid #ddd; border-radius: 6px; margin-bottom: 0.6rem;
+        background: #fafafa; overflow: hidden;
+    }
+    .exit-card-header {
+        display: flex; align-items: center; gap: 0.5rem;
+        padding: 0.4rem 0.6rem; background: #f0f0f0; cursor: pointer;
+        font-size: 0.83rem; font-weight: 600; user-select: none;
+    }
+    .exit-card-header::before { content: "\25B6"; font-size: 0.55rem; transition: transform 0.15s; }
+    .exit-card-header.open::before { transform: rotate(90deg); }
+    .exit-card-body { display: none; padding: 0.75rem; }
+    .exit-card-body.open { display: block; }
+    .exit-card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 0.75rem; }
+    .exit-card-grid .span2 { grid-column: 1 / -1; }
+    .exit-field label { display: block; font-size: 0.73rem; font-weight: 600; color: #666; margin-bottom: 0.2rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .exit-field input[type="text"],
+    .exit-field input[type="number"],
+    .exit-field select { width: 100%; padding: 0.3rem 0.45rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.83rem; background: #fff; }
+    .exit-badge { font-size: 0.65rem; padding: 0.1rem 0.35rem; border-radius: 3px; background: #fce8e8; color: #8a0000; }
+    .exit-badge-secret { background: #e8f0fe; color: #1a4a8a; }
+    .lock-section { background: #fff8f0; border: 1px solid #f5d0a0; border-radius: 4px; padding: 0.6rem; margin-top: 0.5rem; }
+    .lock-section-title { font-size: 0.72rem; font-weight: 700; color: #8a4a00; text-transform: uppercase; margin-bottom: 0.5rem; }
+
+    /* buff chips */
+    .buff-ids-wrap { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; }
+    .buff-chip {
+        display: inline-flex; align-items: center; gap: 0.25rem;
+        background: #e8eaf6; color: #3949ab; border-radius: 12px;
+        padding: 0.15rem 0.5rem; font-size: 0.78rem;
+    }
+    .buff-chip button { background: none; border: none; cursor: pointer; color: #3949ab; font-size: 0.82rem; line-height: 1; padding: 0; }
+    .buff-chip button:hover { color: #c00; }
+
+    /* spawn cards */
+    .spawn-card {
+        border: 1px solid #ddd; border-radius: 6px; margin-bottom: 0.6rem;
+        background: #fafafa; overflow: hidden;
+    }
+    .spawn-card-header {
+        display: flex; align-items: center; gap: 0.5rem;
+        padding: 0.4rem 0.6rem; background: #f0f0f0; cursor: pointer;
+        font-size: 0.83rem; font-weight: 600; user-select: none;
+    }
+    .spawn-card-header::before { content: "\25B6"; font-size: 0.55rem; transition: transform 0.15s; }
+    .spawn-card-header.open::before { transform: rotate(90deg); }
+    .spawn-card-body { display: none; padding: 0.75rem; }
+    .spawn-card-body.open { display: block; }
+    .spawn-card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 0.75rem; }
+    .spawn-card-grid .span2 { grid-column: 1 / -1; }
+    .spawn-field label { display: block; font-size: 0.73rem; font-weight: 600; color: #666; margin-bottom: 0.2rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .spawn-field input[type="text"],
+    .spawn-field input[type="number"],
+    .spawn-field select { width: 100%; padding: 0.3rem 0.45rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.83rem; background: #fff; }
+    .spawn-field input:focus, .spawn-field select:focus { outline: 2px solid #1a1a2e; outline-offset: 1px; border-color: transparent; }
+    .spawn-field .field-hint { font-size: 0.71rem; color: #999; margin-top: 0.15rem; }
+    .spawn-type-badge {
+        font-size: 0.65rem; padding: 0.1rem 0.35rem; border-radius: 3px; font-weight: 600; text-transform: uppercase; flex-shrink: 0;
+    }
+    .spawn-type-mob  { background: #e3f2fd; color: #0d47a1; }
+    .spawn-type-item { background: #e6f4ea; color: #1e6e34; }
+    .spawn-picker-wrap { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
+    .spawn-picker-display { font-size: 0.82rem; color: #333; font-family: monospace; }
+    .spawn-picker-display.empty { color: #aaa; font-style: italic; font-family: inherit; }
+    .btn-icon { background: none; border: none; cursor: pointer; font-size: 1rem; color: #888; padding: 0 0.2rem; line-height: 1; }
+    .btn-icon:hover { color: #c00; }
+    .btn-add-sm {
+        font-size: 0.8rem; padding: 0.3rem 0.7rem; border: 1px dashed #aaa;
+        background: none; border-radius: 4px; cursor: pointer; color: #555; margin-top: 0.25rem;
+    }
+    .btn-add-sm:hover { border-color: #1a1a2e; color: #1a1a2e; }
+
+    /* tags */
+    .tag-wrap { display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center; }
+    .tag-chip {
+        display: inline-flex; align-items: center; gap: 0.25rem;
+        background: #e8eaf6; color: #3949ab; border-radius: 10px;
+        padding: 0.15rem 0.5rem; font-size: 0.78rem; cursor: default;
+    }
+    .tag-chip button { background: none; border: none; cursor: pointer; color: #3949ab; font-size: 0.82rem; line-height: 1; padding: 0; }
+    .tag-chip button:hover { color: #c00; }
+
+    /* music picker */
+    .music-picker-wrap { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; position: relative; }
+    .music-picker-display { font-size: 0.82rem; color: #333; font-family: monospace; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .music-picker-display.empty { color: #aaa; font-style: italic; font-family: inherit; }
+    .music-picker-dropdown {
+        display: none; position: absolute; top: 100%; left: 0; z-index: 300;
+        background: #fff; border: 1px solid #ccc; border-radius: 6px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.12); min-width: 320px; max-height: 280px;
+        overflow-y: auto; padding: 0.3rem 0;
+    }
+    .music-picker-dropdown.open { display: block; }
+    .music-picker-search { width: calc(100% - 1rem); margin: 0.3rem 0.5rem; padding: 0.3rem 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.82rem; box-sizing: border-box; }
+    .music-picker-item {
+        padding: 0.3rem 0.75rem; cursor: pointer; font-size: 0.82rem; font-family: monospace;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .music-picker-item:hover { background: #f0f4ff; }
+    .music-picker-item.selected { color: #3949ab; font-weight: 600; background: #f0f4ff; }
+    .music-picker-empty { padding: 0.75rem; text-align: center; color: #aaa; font-size: 0.82rem; }
+    .music-picker-clear { padding: 0.3rem 0.75rem; cursor: pointer; font-size: 0.8rem; color: #888; border-top: 1px solid #eee; margin-top: 0.2rem; }
+    .music-picker-clear:hover { color: #c00; background: #fff5f5; }
+
+    /* tag picker */
+    .tag-picker-wrap { position: relative; display: inline-block; }
+    .tag-picker-dropdown {
+        display: none; position: absolute; top: 100%; left: 0; z-index: 200;
+        background: #fff; border: 1px solid #ccc; border-radius: 6px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.12); min-width: 260px; max-height: 320px;
+        overflow-y: auto; padding: 0.4rem 0;
+    }
+    .tag-picker-dropdown.open { display: block; }
+    .tag-picker-search { width: calc(100% - 1rem); margin: 0.3rem 0.5rem; padding: 0.3rem 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.82rem; }
+    .tag-picker-group { padding: 0.25rem 0.5rem 0; font-size: 0.7rem; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.05em; }
+    .tag-picker-item {
+        padding: 0.3rem 0.75rem; cursor: pointer; font-size: 0.82rem; display: flex; align-items: center; gap: 0.4rem;
+    }
+    .tag-picker-item:hover { background: #f0f4ff; }
+    .tag-picker-item.selected { color: #3949ab; font-weight: 600; }
+    .tag-picker-item.selected::before { content: "✓"; font-size: 0.75rem; }
+    .tag-picker-item:not(.selected)::before { content: ""; display: inline-block; width: 0.9em; }
+    .tag-picker-empty { padding: 0.75rem; text-align: center; color: #aaa; font-size: 0.82rem; }
+    .btn-tag-picker {
+        padding: 0.3rem 0.6rem; border: 1px dashed #7986cb; border-radius: 4px;
+        background: none; cursor: pointer; font-size: 0.8rem; color: #3949ab;
+    }
+    .btn-tag-picker:hover { background: #e8eaf6; }
+
+    /* toggle switch */
+    .toggle-wrap { display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0; }
+    .toggle-switch { position: relative; display: inline-block; width: 38px; height: 22px; flex-shrink: 0; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .toggle-slider {
+        position: absolute; inset: 0; background: #ccc; border-radius: 22px;
+        cursor: pointer; transition: background 0.2s;
+    }
+    .toggle-slider::before {
+        content: ''; position: absolute; width: 16px; height: 16px;
+        left: 3px; bottom: 3px; background: #fff; border-radius: 50%;
+        transition: transform 0.2s;
+    }
+    .toggle-switch input:checked + .toggle-slider { background: #3949ab; }
+    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(16px); }
+    .toggle-label { font-size: 0.83rem; color: #444; user-select: none; cursor: pointer; }
+
+    /* difficulty slider */
+    .slider-wrap { display: flex; align-items: center; gap: 0.6rem; }
+    .slider-wrap input[type=range] { flex: 1; accent-color: #3949ab; cursor: pointer; }
+    .slider-value { font-family: monospace; font-size: 0.85rem; font-weight: 700; color: #1a1a2e; min-width: 1.8rem; text-align: right; }
+
+    /* action bar */
+    .action-bar { display: flex; gap: 0.6rem; margin-top: 1.25rem; align-items: center; flex-wrap: wrap; }
+    .btn { padding: 0.45rem 1.1rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.875rem; font-weight: 600; }
+    .btn-primary { background: #1a1a2e; color: #fff; }
+    .btn-primary:hover { background: #2d2d4e; }
+    .btn-primary:disabled { background: #999; cursor: default; }
+    .btn-danger { background: #c0392b; color: #fff; }
+    .btn-danger:hover { background: #a93226; }
+    .btn-secondary { background: #eee; color: #333; }
+    .btn-secondary:hover { background: #ddd; }
+    .id-display { font-family: monospace; font-size: 0.82rem; color: #888; margin-left: auto; }
+
+    .editor-header { display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 1rem; }
+    .editor-header h2 { font-size: 1.1rem; flex: 1; }
+    .editor-header .badge { font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 3px; background: #e8eaf6; color: #3949ab; }
+
+    /* idle messages list */
+    .idle-list { display: flex; flex-direction: column; gap: 0.3rem; }
+    .idle-row { display: flex; gap: 0.4rem; align-items: center; }
+    .idle-row input { flex: 1; }
+
+    /* noun rows */
+    .noun-row { display: flex; gap: 0.4rem; align-items: center; margin-bottom: 0.3rem; }
+    .noun-row input { flex: 1; }
+
+    /* training rows */
+    .train-row { display: flex; gap: 0.4rem; align-items: center; margin-bottom: 0.3rem; }
+    .train-row input[type="text"] { flex: 2; }
+    .train-row input[type="number"] { width: 60px; }
+
+    /* zone editor overlay */
+    .zone-editor { background: #f8f8ff; border: 1px solid #ccd; border-radius: 6px; padding: 1rem; margin-bottom: 1rem; }
+    .zone-editor h3 { font-size: 0.95rem; margin-bottom: 0.75rem; }
+
+    /* script editor */
+    .script-toggle {
+        display: flex; align-items: center; gap: 0.6rem; cursor: pointer;
+        font-size: 0.85rem; color: #1a1a2e; font-weight: 600; padding: 0.5rem 0;
+        user-select: none;
+    }
+    .script-toggle::before { content: "\25B6"; font-size: 0.65rem; transition: transform 0.15s; }
+    .script-toggle.open::before { transform: rotate(90deg); }
+    .script-area { display: none; margin-top: 0.5rem; }
+    .script-area.open { display: block; }
+    .script-area textarea {
+        width: 100%; min-height: 500px; font-family: monospace; font-size: 0.82rem;
+        padding: 0.6rem 0.75rem; border: 1px solid #ccc; border-radius: 4px;
+        resize: vertical; background: #1a1a2e; color: #c9d1d9; line-height: 1.55;
+        box-sizing: border-box;
+    }
+    .script-area textarea:focus { outline: 2px solid #4a6fa5; outline-offset: 1px; }
+    .script-hint { font-size: 0.75rem; color: #888; margin-top: 0.3rem; }
+</style>
+
+<h1>Rooms</h1>
+<p class="subtitle">Browse, edit, and create rooms and zones. <a href="/admin/rooms-api">API Docs</a></p>
+
+<div id="status-bar" class="status-bar"></div>
+
+<div class="page-layout">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-controls">
+            <div class="sidebar-btn-row">
+                <button class="btn-new btn-new-room" onclick="newRoom()">+ New Room</button>
+                <button class="btn-new btn-new-zone" onclick="newZone()">+ New Zone</button>
+            </div>
+            <div style="display:flex; gap:0.4rem; align-items:center;">
+                <select id="zone-filter" onchange="onZoneChange()" style="flex:1;"></select>
+                <button class="btn-zone-edit" onclick="editZone()" title="Edit selected zone config">Edit Zone</button>
+            </div>
+            <input type="search" id="room-search" placeholder="Search by ID or title..." oninput="debounceSearch()" />
+        </div>
+        <div class="room-list" id="room-list">
+            <div class="no-items">Loading...</div>
+        </div>
+        <div class="pager" id="pager" style="display:none;">
+            <button id="pager-prev" onclick="prevPage()">&laquo; Prev</button>
+            <span id="pager-text">Page 1</span>
+            <button id="pager-next" onclick="nextPage()">Next &raquo;</button>
+            <span class="pager-info" id="pager-total"></span>
+        </div>
+    </div>
+
+    <!-- Editor -->
+    <div class="editor-panel" id="editor-panel">
+        <div class="editor-placeholder" id="editor-placeholder">
+            Select a room from the list to edit it,<br>or click <strong>+ New Room</strong> to create one.
+        </div>
+
+        <!-- Zone editor (hidden by default) -->
+        <div id="zone-editor" style="display:none;">
+            <div class="zone-editor">
+                <h3 id="zone-editor-title">Zone Config</h3>
+                <div class="form-grid">
+                    <div class="field">
+                        <label>Default Biome</label>
+                        <select id="zf-biome"></select>
+                    </div>
+                    <div class="field">
+                        <label>Music File</label>
+                        <div class="music-picker-wrap" id="zf-music-wrap">
+                            <span class="music-picker-display empty" id="zf-music-display">none</span>
+                            <input type="hidden" id="zf-music" />
+                            <button type="button" class="btn-add-sm" style="margin-top:0" onclick="openMusicPicker('zf')">Pick&hellip;</button>
+                            <button type="button" class="btn-icon" title="Clear" onclick="clearMusicPicker('zf')">&times;</button>
+                            <div class="music-picker-dropdown" id="zf-music-dropdown">
+                                <input type="search" class="music-picker-search" id="zf-music-search" placeholder="Filter music files..." oninput="filterMusicPicker('zf')" />
+                                <div id="zf-music-list"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label>Auto-Scale Min Level</label>
+                        <input type="number" id="zf-scalemin" min="0" />
+                    </div>
+                    <div class="field">
+                        <label>Auto-Scale Max Level</label>
+                        <input type="number" id="zf-scalemax" min="0" />
+                    </div>
+                    <div class="field span2">
+                        <label>Idle Messages</label>
+                        <div class="idle-list" id="zf-idle-list"></div>
+                        <button class="btn-add-sm" onclick="addZoneIdleMsg()">+ Add Message</button>
+                    </div>
+                </div>
+                <div class="action-bar" style="margin-top:0.75rem;">
+                    <button class="btn btn-primary" onclick="saveZone()">Save Zone</button>
+                    <button class="btn btn-secondary" onclick="closeZoneEditor()">Close</button>
+                    <button class="btn btn-danger" onclick="deleteZone()" style="margin-left:auto;">Delete Zone</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Room editor -->
+        <div id="editor-form" style="display:none;">
+            <div class="editor-header">
+                <h2 id="editor-title">Room Editor</h2>
+                <span class="badge" id="editor-zone-badge"></span>
+            </div>
+
+            <div class="form-grid">
+                <div class="section-title">Identity</div>
+                <div class="field">
+                    <label>Zone</label>
+                    <select id="f-zone"></select>
+                </div>
+                <div class="field">
+                    <label>Title</label>
+                    <input type="text" id="f-title" placeholder="Room title" />
+                </div>
+                <div class="field span2">
+                    <label>Description</label>
+                    <textarea id="f-description" rows="4" placeholder="Room description shown to players"></textarea>
+                </div>
+
+                <div class="section-title">Map &amp; Appearance</div>
+                <div class="field">
+                    <label>Biome</label>
+                    <select id="f-biome"></select>
+                    <div class="field-hint">Overrides the zone default biome for this room</div>
+                </div>
+                <div class="field">
+                    <label>Map Symbol</label>
+                    <input type="text" id="f-mapsymbol" maxlength="4" placeholder="e.g. #" />
+                </div>
+                <div class="field">
+                    <label>Map Legend</label>
+                    <input type="text" id="f-maplegend" placeholder="Legend text" />
+                </div>
+                <div class="field">
+                    <label>Music File</label>
+                    <div class="music-picker-wrap" id="f-musicfile-wrap">
+                        <span class="music-picker-display empty" id="f-musicfile-display">none (inherits zone)</span>
+                        <input type="hidden" id="f-musicfile" />
+                        <button type="button" class="btn-add-sm" style="margin-top:0" onclick="openMusicPicker('f')">Pick&hellip;</button>
+                        <button type="button" class="btn-icon" title="Clear" onclick="clearMusicPicker('f')">&times;</button>
+                        <div class="music-picker-dropdown" id="f-musicfile-dropdown">
+                            <input type="search" class="music-picker-search" id="f-musicfile-search" placeholder="Filter music files..." oninput="filterMusicPicker('f')" />
+                            <div id="f-musicfile-list"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-title">Properties</div>
+                <div class="field">
+                    <label>Is Bank</label>
+                    <div class="toggle-wrap">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="f-isbank" />
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span class="toggle-label">Players can deposit/withdraw gold</span>
+                    </div>
+                </div>
+                <div class="field">
+                    <label>PvP</label>
+                    <div class="toggle-wrap">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="f-pvp" />
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span class="toggle-label">PvP enabled</span>
+                    </div>
+                    <div class="field-hint">Only relevant when global PvP is set to "limited"</div>
+                </div>
+                <div class="field span2">
+                    <label>Tags</label>
+                    <div class="tag-wrap" id="tags-list"></div>
+                    <div style="margin-top:0.4rem; display:flex; gap:0.4rem; align-items:center; flex-wrap:wrap;">
+                        <div class="tag-picker-wrap">
+                            <button class="btn-tag-picker" onclick="toggleTagPicker(event)">+ Pick Tag</button>
+                            <div class="tag-picker-dropdown" id="tag-picker-dropdown">
+                                <input type="search" class="tag-picker-search" id="tag-picker-search" placeholder="Filter tags..." oninput="filterTagPicker()" />
+                                <div id="tag-picker-list"></div>
+                            </div>
+                        </div>
+                        <span style="font-size:0.75rem; color:#aaa;">or type a custom tag:</span>
+                        <input type="text" id="tag-input" placeholder="custom tag..." style="flex:1; min-width:120px; padding:0.3rem 0.5rem; border:1px solid #ccc; border-radius:4px; font-size:0.82rem;" onkeydown="if(event.key==='Enter'){event.preventDefault();addCustomTag();}" />
+                        <button class="btn-add-sm" onclick="addCustomTag()">+</button>
+                    </div>
+                </div>
+
+                <!-- Exits -->
+                <div class="collapse-toggle open" onclick="toggleSection(this)">Exits</div>
+                <div class="collapse-body open">
+                    <div id="exits-list"></div>
+                    <button class="btn-add-sm" onclick="addExit()">+ Add Exit</button>
+                </div>
+
+                <!-- Spawn Info -->
+                <div class="collapse-toggle" onclick="toggleSection(this)">Spawn Info</div>
+                <div class="collapse-body">
+                    <div id="spawns-list"></div>
+                    <div style="display:flex; gap:0.5rem; margin-top:0.25rem;">
+                        <button class="btn-add-sm" onclick="addSpawn('mob')">+ Mob Spawn</button>
+                        <button class="btn-add-sm" onclick="addSpawn('item')">+ Item / Gold Spawn</button>
+                    </div>
+                </div>
+
+                <!-- Skill Training -->
+                <div class="collapse-toggle" onclick="toggleSection(this)">Skill Training</div>
+                <div class="collapse-body">
+                    <div id="training-list"></div>
+                    <button class="btn-add-sm" onclick="addTraining()">+ Add Skill</button>
+                </div>
+
+                <!-- Idle Messages -->
+                <div class="collapse-toggle" onclick="toggleSection(this)">Idle Messages</div>
+                <div class="collapse-body">
+                    <div class="idle-list" id="idle-list"></div>
+                    <button class="btn-add-sm" onclick="addIdleMsg()">+ Add Message</button>
+                </div>
+
+                <!-- Nouns -->
+                <div class="collapse-toggle" onclick="toggleSection(this)">Nouns</div>
+                <div class="collapse-body">
+                    <div id="nouns-list"></div>
+                    <button class="btn-add-sm" onclick="addNoun()">+ Add Noun</button>
+                    <div class="field-hint">Nouns highlighted in room description. Key = noun text, Value = description revealed on search.</div>
+                </div>
+            </div>
+
+            <!-- Script editor -->
+            <div style="margin-top:1.25rem; border-top: 1px solid #eee; padding-top: 1rem;">
+                <div class="script-toggle" id="script-toggle" onclick="toggleScript()">Script</div>
+                <div class="script-area" id="script-area">
+                    <textarea id="f-script" spellcheck="false" placeholder="// JavaScript for this room's events (onEnter, onExit, onCommand, etc.)&#10;// Leave blank to delete the script file."></textarea>
+                    <div class="script-hint">Saved as a .js file alongside the room's YAML. Clear the field and save to delete the script.</div>
+                </div>
+            </div>
+
+            <div class="action-bar">
+                <button class="btn btn-primary" id="save-btn" onclick="saveRoom()">Save Room</button>
+                <button class="btn btn-secondary" onclick="cancelEdit()">Cancel</button>
+                <button class="btn btn-danger" id="delete-btn" onclick="deleteRoom()" style="margin-left:auto;">Delete Room</button>
+                <span class="id-display" id="room-id-display"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Buff picker modal -->
+<div id="buff-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:500; align-items:center; justify-content:center;">
+    <div style="background:#fff; border-radius:8px; padding:1.25rem; max-width:400px; width:90%; max-height:80vh; display:flex; flex-direction:column; gap:0.75rem;">
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+            <strong style="font-size:0.95rem;">Select Buff</strong>
+            <button onclick="closeBuffModal()" style="background:none; border:none; cursor:pointer; font-size:1.2rem; color:#666;">&times;</button>
+        </div>
+        <input type="search" id="buff-modal-search" placeholder="Search buffs..." style="padding:0.35rem 0.6rem; border:1px solid #ccc; border-radius:4px; font-size:0.85rem;" oninput="filterBuffModal()" />
+        <div id="buff-modal-list" style="overflow-y:auto; flex:1; border:1px solid #eee; border-radius:4px;"></div>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    let allZones = [];
+    let biomes = [];
+    let allTags = [];   // [{tag, module}, ...]
+    let allBuffs = {};  // id -> spec
+    let allMusicFiles = []; // string[]
+    let currentPage = 1;
+    let totalRooms = 0;
+    let perPage = 50;
+    let currentRoomId = null;
+    let isNew = false;
+    let searchTimer = null;
+    let buffPickerTarget = null; // exit card element
+    let scriptSync = null;
+
+    // -------------------------------------------------------------------------
+    // Init
+    // -------------------------------------------------------------------------
+    async function init() {
+        const [zonesRes, biomesRes, tagsRes, buffsRes, audioRes] = await AdminAPI.all([
+            AdminAPI.get('/admin/api/v1/zones'),
+            AdminAPI.get('/admin/api/v1/rooms/biomes'),
+            AdminAPI.get('/admin/api/v1/tags'),
+            AdminAPI.get('/admin/api/v1/buffs'),
+            AdminAPI.get('/admin/api/v1/audio'),
+        ]);
+        if (!zonesRes.ok) { showStatus('Failed to load zones: ' + zonesRes.error, false); return; }
+        allZones = zonesRes.data.data || [];
+        biomes = (biomesRes.ok && biomesRes.data.data) || [];
+        allTags = (tagsRes.ok && tagsRes.data.data) || [];
+        allBuffs = (buffsRes.ok && buffsRes.data.data && buffsRes.data.data.specs) || {};
+        allMusicFiles = (audioRes.ok && audioRes.data.data && audioRes.data.data.music) || [];
+        populateZoneFilter();
+        populateBiomeSelects();
+        buildTagPickerList('');
+        await loadRoomList();
+        const hashId = parseInt(location.hash.slice(1), 10);
+        if (hashId) loadRoom(hashId);
+        scriptSync = ScriptEditor.init('f-script');
+    }
+
+    // -------------------------------------------------------------------------
+    // Zone filter
+    // -------------------------------------------------------------------------
+    function populateZoneFilter() {
+        const sel = document.getElementById('zone-filter');
+        sel.innerHTML = '<option value="">All Zones</option>';
+        for (const z of allZones) {
+            const o = document.createElement('option');
+            o.value = z.Name;
+            o.textContent = z.Name + ' (' + z.RoomCount + ')';
+            sel.appendChild(o);
+        }
+
+        const zoneSel = document.getElementById('f-zone');
+        zoneSel.innerHTML = '';
+        for (const z of allZones) {
+            const o = document.createElement('option');
+            o.value = z.Name; o.textContent = z.Name;
+            zoneSel.appendChild(o);
+        }
+    }
+
+    function populateBiomeSelects() {
+        for (const selId of ['f-biome', 'zf-biome']) {
+            const sel = document.getElementById(selId);
+            sel.innerHTML = '<option value="">(default / inherit)</option>';
+            for (const b of biomes) {
+                const o = document.createElement('option');
+                o.value = b.BiomeId; o.textContent = b.Name || b.BiomeId;
+                sel.appendChild(o);
+            }
+        }
+    }
+
+    window.onZoneChange = function () { currentPage = 1; loadRoomList(); };
+
+    // -------------------------------------------------------------------------
+    // Room list (paginated)
+    // -------------------------------------------------------------------------
+    async function loadRoomList() {
+        const zone = document.getElementById('zone-filter').value;
+        const search = document.getElementById('room-search').value.trim();
+        const params = new URLSearchParams({ page: currentPage, perPage: perPage });
+        if (zone) params.set('zone', zone);
+        if (search) params.set('search', search);
+
+        const res = await AdminAPI.get('/admin/api/v1/rooms?' + params.toString(), true);
+        if (!res.ok) { showStatus('Failed to load rooms: ' + res.error, false); return; }
+
+        const data = res.data.data;
+        totalRooms = data.total;
+        renderRoomList(data.rooms || []);
+        renderPager();
+    }
+
+    function renderRoomList(rooms) {
+        const list = document.getElementById('room-list');
+        if (rooms.length === 0) {
+            list.innerHTML = '<div class="no-items">No rooms found.</div>';
+            return;
+        }
+        list.innerHTML = '';
+        for (const r of rooms) {
+            const row = document.createElement('div');
+            row.className = 'room-row' + (r.RoomId === currentRoomId ? ' active' : '');
+            row.dataset.id = r.RoomId;
+            const badges = [];
+            if (r.ExitCount) badges.push(r.ExitCount + ' exits');
+            if (r.SpawnCount) badges.push(r.SpawnCount + ' spawns');
+            row.innerHTML =
+                '<span class="room-id">#' + r.RoomId + '</span>' +
+                '<span class="room-title">' + esc(r.Title) + '</span>' +
+                (r.HasScript ? '<span class="room-script-badge">JS</span>' : '') +
+                (badges.length ? '<span class="room-badge">' + esc(badges.join(', ')) + '</span>' : '');
+            row.onclick = () => loadRoom(r.RoomId);
+            list.appendChild(row);
+        }
+    }
+
+    function renderPager() {
+        const totalPages = Math.max(1, Math.ceil(totalRooms / perPage));
+        const pager = document.getElementById('pager');
+        pager.style.display = totalRooms > 0 ? '' : 'none';
+        document.getElementById('pager-prev').disabled = currentPage <= 1;
+        document.getElementById('pager-next').disabled = currentPage >= totalPages;
+        document.getElementById('pager-text').textContent = 'Page ' + currentPage + ' / ' + totalPages;
+        document.getElementById('pager-total').textContent = totalRooms + ' rooms';
+    }
+
+    window.prevPage = function () { if (currentPage > 1) { currentPage--; loadRoomList(); } };
+    window.nextPage = function () { currentPage++; loadRoomList(); };
+
+    window.debounceSearch = function () {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => { currentPage = 1; loadRoomList(); }, 250);
+    };
+
+    // -------------------------------------------------------------------------
+    // Load room into editor
+    // -------------------------------------------------------------------------
+    async function loadRoom(roomId) {
+        const [roomRes, scriptRes] = await AdminAPI.all([
+            AdminAPI.get('/admin/api/v1/rooms/' + roomId),
+            AdminAPI.get('/admin/api/v1/rooms/' + roomId + '/script'),
+        ]);
+        if (!roomRes.ok) { showStatus('Failed to load room: ' + roomRes.error, false); return; }
+
+        const r = roomRes.data.data;
+        const script = (scriptRes.ok && scriptRes.data.data && scriptRes.data.data.script) || '';
+        currentRoomId = roomId;
+        isNew = false;
+        location.hash = roomId;
+        setActiveRow(roomId);
+        document.getElementById('zone-editor').style.display = 'none';
+        showEditor();
+        fillForm(r, script);
+    }
+
+    function setActiveRow(roomId) {
+        document.querySelectorAll('.room-row').forEach(row => {
+            row.classList.toggle('active', Number(row.dataset.id) === roomId);
+        });
+    }
+
+    function showEditor() {
+        document.getElementById('editor-placeholder').style.display = 'none';
+        document.getElementById('editor-form').style.display = 'block';
+        document.getElementById('delete-btn').style.display = isNew ? 'none' : '';
+    }
+
+    function fillForm(r, script) {
+        document.getElementById('editor-title').textContent = isNew ? 'New Room' : r.Title;
+        document.getElementById('editor-zone-badge').textContent = r.Zone || '';
+        document.getElementById('room-id-display').textContent = isNew ? '' : 'ID: ' + r.RoomId;
+
+        setVal('f-zone', r.Zone || '');
+        setVal('f-title', r.Title || '');
+        setVal('f-description', r.Description || '');
+        setVal('f-biome', r.Biome || '');
+        setVal('f-mapsymbol', r.MapSymbol || '');
+        setVal('f-maplegend', r.MapLegend || '');
+        setMusicPickerValue('f', r.MusicFile || '');
+        document.getElementById('f-isbank').checked = !!r.IsBank;
+        document.getElementById('f-pvp').checked = !!r.Pvp;
+
+        renderTags(r.Tags || []);
+        renderExits(r.Exits || {});
+        renderSpawns(r.SpawnInfo || []);
+        renderTraining(r.SkillTraining || {});
+        renderIdleMsgs('idle-list', r.IdleMessages || []);
+        renderNouns(r.Nouns || {});
+
+        // Script — ScriptEditor.init returns a plain sync function
+        setVal('f-script', script);
+        if (scriptSync) scriptSync();
+        // Reset toggle state
+        const toggle = document.getElementById('script-toggle');
+        const area = document.getElementById('script-area');
+        toggle.classList.toggle('open', script.length > 0);
+        area.classList.toggle('open', script.length > 0);
+    }
+
+    // -------------------------------------------------------------------------
+    // New room / zone
+    // -------------------------------------------------------------------------
+    window.newRoom = async function () {
+        const zone = document.getElementById('zone-filter').value;
+        if (!zone) { showStatus('Select a zone first, then click + New Room.', false); return; }
+        const res = await AdminAPI.post('/admin/api/v1/rooms', { Zone: zone });
+        if (!res.ok) { showStatus('Create failed: ' + res.error, false); return; }
+        showStatus('Room created.', true);
+        loadRoomList();
+        loadRoom(res.data.data.RoomId);
+    };
+
+    window.newZone = function () {
+        const name = prompt('Zone name (letters, numbers, spaces, underscores):');
+        if (!name) return;
+        AdminAPI.post('/admin/api/v1/zones', { Name: name }).then(res => {
+            if (!res.ok) { showStatus('Create zone failed: ' + res.error, false); return; }
+            showStatus('Zone "' + name + '" created.', true);
+            AdminAPI.get('/admin/api/v1/zones', true).then(r => {
+                if (r.ok) { allZones = r.data.data || []; populateZoneFilter(); }
+            });
+        });
+    };
+
+    window.cancelEdit = function () {
+        history.replaceState(null, '', location.pathname + location.search);
+        document.getElementById('editor-placeholder').style.display = '';
+        document.getElementById('editor-form').style.display = 'none';
+        document.getElementById('zone-editor').style.display = 'none';
+        document.querySelectorAll('.room-row').forEach(r => r.classList.remove('active'));
+        currentRoomId = null;
+        isNew = false;
+    };
+
+    // -------------------------------------------------------------------------
+    // Script toggle
+    // -------------------------------------------------------------------------
+    window.toggleScript = function () {
+        const toggle = document.getElementById('script-toggle');
+        const area = document.getElementById('script-area');
+        toggle.classList.toggle('open');
+        area.classList.toggle('open');
+    };
+
+    // -------------------------------------------------------------------------
+    // Tags
+    // -------------------------------------------------------------------------
+    function renderTags(tags) {
+        const list = document.getElementById('tags-list');
+        list.innerHTML = '';
+        for (const t of tags) appendTagChip(list, t);
+    }
+
+    function appendTagChip(list, tag) {
+        const chip = document.createElement('span');
+        chip.className = 'tag-chip';
+        chip.dataset.tag = tag;
+        chip.innerHTML = esc(tag) + ' <button onclick="removeTag(this)" title="Remove tag">&times;</button>';
+        list.appendChild(chip);
+    }
+
+    window.removeTag = function (btn) {
+        const chip = btn.closest('.tag-chip');
+        const tag = chip.dataset.tag;
+        chip.remove();
+        // refresh picker state
+        updateTagPickerState();
+    };
+
+    function collectTags() {
+        return Array.from(document.querySelectorAll('#tags-list .tag-chip')).map(c => c.dataset.tag);
+    }
+
+    window.addCustomTag = function () {
+        const input = document.getElementById('tag-input');
+        const val = input.value.trim().toLowerCase();
+        if (!val) return;
+        const current = collectTags();
+        if (current.includes(val)) { input.value = ''; return; }
+        appendTagChip(document.getElementById('tags-list'), val);
+        input.value = '';
+        updateTagPickerState();
+    };
+
+    // -------------------------------------------------------------------------
+    // Tag picker
+    // -------------------------------------------------------------------------
+    function buildTagPickerList(filter) {
+        const container = document.getElementById('tag-picker-list');
+        container.innerHTML = '';
+
+        if (allTags.length === 0) {
+            container.innerHTML = '<div class="tag-picker-empty">No registered tags found.<br>Modules register tags at startup.</div>';
+            return;
+        }
+
+        const current = collectTags();
+        const filterLc = filter.toLowerCase();
+
+        // group by module
+        const groups = {};
+        for (const entry of allTags) {
+            if (filterLc && !entry.tag.toLowerCase().includes(filterLc) && !entry.module.toLowerCase().includes(filterLc)) continue;
+            if (!groups[entry.module]) groups[entry.module] = [];
+            groups[entry.module].push(entry.tag);
+        }
+
+        let anyItem = false;
+        for (const mod of Object.keys(groups).sort()) {
+            const grpEl = document.createElement('div');
+            grpEl.className = 'tag-picker-group';
+            grpEl.textContent = mod;
+            container.appendChild(grpEl);
+            for (const tag of groups[mod]) {
+                anyItem = true;
+                const item = document.createElement('div');
+                item.className = 'tag-picker-item' + (current.includes(tag) ? ' selected' : '');
+                item.dataset.tag = tag;
+                item.textContent = tag;
+                item.onclick = () => toggleTagFromPicker(tag, item);
+                container.appendChild(item);
+            }
+        }
+
+        if (!anyItem) {
+            container.innerHTML = '<div class="tag-picker-empty">No matching tags.</div>';
+        }
+    }
+
+    function updateTagPickerState() {
+        const current = collectTags();
+        document.querySelectorAll('#tag-picker-list .tag-picker-item').forEach(item => {
+            item.classList.toggle('selected', current.includes(item.dataset.tag));
+        });
+    }
+
+    function toggleTagFromPicker(tag, itemEl) {
+        const list = document.getElementById('tags-list');
+        const current = collectTags();
+        if (current.includes(tag)) {
+            // remove
+            list.querySelectorAll('.tag-chip').forEach(c => { if (c.dataset.tag === tag) c.remove(); });
+            itemEl.classList.remove('selected');
+        } else {
+            appendTagChip(list, tag);
+            itemEl.classList.add('selected');
+        }
+    }
+
+    window.toggleTagPicker = function (e) {
+        e.stopPropagation();
+        const dd = document.getElementById('tag-picker-dropdown');
+        const isOpen = dd.classList.contains('open');
+        closeTagPicker();
+        if (!isOpen) {
+            buildTagPickerList(document.getElementById('tag-picker-search').value);
+            dd.classList.add('open');
+        }
+    };
+
+    function closeTagPicker() {
+        document.getElementById('tag-picker-dropdown').classList.remove('open');
+    }
+
+    window.filterTagPicker = function () {
+        buildTagPickerList(document.getElementById('tag-picker-search').value);
+    };
+
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest('.tag-picker-wrap')) closeTagPicker();
+        if (!e.target.closest('.music-picker-wrap')) closeMusicPickers();
+    });
+
+    // -------------------------------------------------------------------------
+    // Music file picker
+    // -------------------------------------------------------------------------
+    function setMusicPickerValue(prefix, value) {
+        const hiddenId = prefix === 'f' ? 'f-musicfile' : 'zf-music';
+        const displayId = hiddenId + '-display';
+        const hidden = document.getElementById(hiddenId);
+        const display = document.getElementById(displayId);
+        if (!hidden || !display) return;
+        hidden.value = value;
+        if (value) {
+            display.textContent = value.replace(/^.*\//, '');
+            display.className = 'music-picker-display';
+        } else {
+            display.textContent = prefix === 'f' ? 'none (inherits zone)' : 'none';
+            display.className = 'music-picker-display empty';
+        }
+    }
+
+    function buildMusicPickerList(prefix, filter) {
+        const listId = (prefix === 'f' ? 'f-musicfile' : 'zf-music') + '-list';
+        const hiddenId = prefix === 'f' ? 'f-musicfile' : 'zf-music';
+        const container = document.getElementById(listId);
+        if (!container) return;
+        container.innerHTML = '';
+
+        const current = document.getElementById(hiddenId).value;
+        const filterLc = filter.toLowerCase();
+        const filtered = allMusicFiles.filter(f => !filterLc || f.toLowerCase().includes(filterLc));
+
+        if (filtered.length === 0) {
+            container.innerHTML = '<div class="music-picker-empty">' +
+                (allMusicFiles.length === 0 ? 'No music files found.' : 'No matching files.') +
+                '</div>';
+            return;
+        }
+
+        for (const path of filtered) {
+            const name = path.replace(/^.*\//, '');
+            const item = document.createElement('div');
+            item.className = 'music-picker-item' + (path === current ? ' selected' : '');
+            item.textContent = name;
+            item.title = path;
+            item.onclick = () => { setMusicPickerValue(prefix, path); closeMusicPickers(); };
+            container.appendChild(item);
+        }
+
+        const clearRow = document.createElement('div');
+        clearRow.className = 'music-picker-clear';
+        clearRow.textContent = 'Clear (no music)';
+        clearRow.onclick = () => { setMusicPickerValue(prefix, ''); closeMusicPickers(); };
+        container.appendChild(clearRow);
+    }
+
+    window.openMusicPicker = function (prefix) {
+        closeMusicPickers();
+        const dropdownId = (prefix === 'f' ? 'f-musicfile' : 'zf-music') + '-dropdown';
+        const searchId = (prefix === 'f' ? 'f-musicfile' : 'zf-music') + '-search';
+        const dd = document.getElementById(dropdownId);
+        if (!dd) return;
+        const searchEl = document.getElementById(searchId);
+        if (searchEl) searchEl.value = '';
+        buildMusicPickerList(prefix, '');
+        dd.classList.add('open');
+        if (searchEl) searchEl.focus();
+    };
+
+    window.clearMusicPicker = function (prefix) {
+        setMusicPickerValue(prefix, '');
+    };
+
+    window.filterMusicPicker = function (prefix) {
+        const searchId = (prefix === 'f' ? 'f-musicfile' : 'zf-music') + '-search';
+        const searchEl = document.getElementById(searchId);
+        buildMusicPickerList(prefix, searchEl ? searchEl.value : '');
+    };
+
+    function closeMusicPickers() {
+        document.querySelectorAll('.music-picker-dropdown.open').forEach(d => d.classList.remove('open'));
+    }
+
+    // -------------------------------------------------------------------------
+    // Exits
+    // -------------------------------------------------------------------------
+    function renderExits(exits) {
+        const list = document.getElementById('exits-list');
+        list.innerHTML = '';
+        for (const [name, ex] of Object.entries(exits)) appendExitCard(list, name, ex);
+    }
+
+    function appendExitCard(list, name, ex) {
+        ex = ex || {};
+        const lock = ex.Lock || {};
+        const hasLock = (lock.Difficulty || 0) > 0;
+        const trapBuffIds = lock.TrapBuffIds || [];
+
+        const card = document.createElement('div');
+        card.className = 'exit-card';
+
+        const badges = [];
+        if (ex.Secret) badges.push('<span class="exit-badge exit-badge-secret">hidden</span>');
+        if (hasLock) badges.push('<span class="exit-badge">lock lvl ' + lock.Difficulty + '</span>');
+
+        card.innerHTML =
+            '<div class="exit-card-header" onclick="toggleExitCard(this)">' +
+                esc(name || 'New Exit') +
+                (ex.RoomId ? ' <span style="font-size:0.7rem; color:#888; font-weight:400;">&rarr; #' + ex.RoomId + '</span>' : '') +
+                (badges.length ? ' ' + badges.join(' ') : '') +
+                '<button class="btn-icon" style="margin-left:auto;" title="Remove exit" onclick="this.closest(\'.exit-card\').remove(); event.stopPropagation();">&times;</button>' +
+            '</div>' +
+            '<div class="exit-card-body">' +
+                '<div class="exit-card-grid">' +
+                    '<div class="exit-field">' +
+                        '<label>Exit Name</label>' +
+                        '<input type="text" class="exit-name" value="' + esc(name) + '" oninput="updateExitHeader(this)" />' +
+                    '</div>' +
+                    '<div class="exit-field">' +
+                        '<label>Target Room ID</label>' +
+                        '<input type="number" class="exit-roomid" value="' + (ex.RoomId || '') + '" oninput="updateExitHeader(this)" />' +
+                    '</div>' +
+                    '<div class="exit-field">' +
+                        '<label>Map Direction</label>' +
+                        '<input type="text" class="exit-mapdir" value="' + esc(ex.MapDirection || '') + '" placeholder="e.g. north" />' +
+                    '</div>' +
+                    '<div class="exit-field">' +
+                        '<label>Hidden (Secret)</label>' +
+                        '<div class="toggle-wrap">' +
+                            '<label class="toggle-switch">' +
+                                '<input type="checkbox" class="exit-secret" onchange="updateExitHeader(this)"' + (ex.Secret ? ' checked' : '') + ' />' +
+                                '<span class="toggle-slider"></span>' +
+                            '</label>' +
+                            '<span class="toggle-label">Hidden from players</span>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="exit-field span2">' +
+                        '<label>Exit Message</label>' +
+                        '<input type="text" class="exit-message" value="' + esc(ex.ExitMessage || '') + '" placeholder="Message shown before traversing (optional)" />' +
+                    '</div>' +
+                    '<div class="exit-field span2">' +
+                        '<label>Lock</label>' +
+                        '<div class="toggle-wrap">' +
+                            '<label class="toggle-switch">' +
+                                '<input type="checkbox" class="exit-has-lock" onchange="toggleLockSection(this)"' + (hasLock ? ' checked' : '') + ' />' +
+                                '<span class="toggle-slider"></span>' +
+                            '</label>' +
+                            '<span class="toggle-label">Locked</span>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="exit-lock-section span2" style="' + (hasLock ? '' : 'display:none;') + '">' +
+                        '<div class="lock-section">' +
+                            '<div class="lock-section-title">Lock Settings</div>' +
+                            '<div class="exit-card-grid">' +
+                                '<div class="exit-field">' +
+                                    '<label>Difficulty (2–32)</label>' +
+                                    '<div class="slider-wrap">' +
+                                        '<input type="range" class="lock-difficulty" min="2" max="32" value="' + (lock.Difficulty || 5) + '" oninput="syncSlider(this); updateExitHeader(this);" />' +
+                                        '<span class="slider-value">' + (lock.Difficulty || 5) + '</span>' +
+                                    '</div>' +
+                                '</div>' +
+                                '<div class="exit-field">' +
+                                    '<label>Relock Interval</label>' +
+                                    '<input type="text" class="lock-relock" value="' + esc(lock.RelockInterval || '') + '" placeholder="e.g. 1 hour (default)" />' +
+                                '</div>' +
+                                '<div class="exit-field span2">' +
+                                    '<label>Trap Buff IDs (on failed pick)</label>' +
+                                    '<div class="buff-ids-wrap lock-trap-buffs">' + renderTrapBuffChips(trapBuffIds) + '</div>' +
+                                    '<button class="btn-add-sm" style="margin-top:0.3rem;" onclick="pickTrapBuff(this)">+ Add Trap Buff</button>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+
+        // Open the card if it's new (no name)
+        if (!name) {
+            card.querySelector('.exit-card-header').classList.add('open');
+            card.querySelector('.exit-card-body').classList.add('open');
+        }
+
+        list.appendChild(card);
+    }
+
+    function renderTrapBuffChips(buffIds) {
+        return (buffIds || []).map(id => {
+            const spec = allBuffs[id];
+            const label = spec ? spec.Name : 'buff #' + id;
+            return '<span class="buff-chip" data-buff-id="' + id + '">' + esc(label) +
+                ' <button onclick="this.closest(\'.buff-chip\').remove()" title="Remove">&times;</button></span>';
+        }).join('');
+    }
+
+    window.toggleExitCard = function (header) {
+        header.classList.toggle('open');
+        header.nextElementSibling.classList.toggle('open');
+    };
+
+    window.updateExitHeader = function (input) {
+        const card = input.closest('.exit-card');
+        const header = card.querySelector('.exit-card-header');
+        const nameVal = card.querySelector('.exit-name').value.trim() || 'New Exit';
+        const roomIdVal = card.querySelector('.exit-roomid').value.trim();
+        const isSecret = card.querySelector('.exit-secret').checked;
+        const hasLock = card.querySelector('.exit-has-lock').checked;
+        const lockDiff = hasLock ? parseInt(card.querySelector('.lock-difficulty').value, 10) || 0 : 0;
+
+        const badges = [];
+        if (isSecret) badges.push('<span class="exit-badge exit-badge-secret">hidden</span>');
+        if (hasLock && lockDiff > 0) badges.push('<span class="exit-badge">lock lvl ' + lockDiff + '</span>');
+
+        // preserve the remove button
+        const removeBtn = header.querySelector('.btn-icon').outerHTML;
+        header.innerHTML =
+            esc(nameVal) +
+            (roomIdVal ? ' <span style="font-size:0.7rem; color:#888; font-weight:400;">&rarr; #' + roomIdVal + '</span>' : '') +
+            (badges.length ? ' ' + badges.join(' ') : '') +
+            removeBtn;
+        header.querySelector('.btn-icon').onclick = function (e) { this.closest('.exit-card').remove(); e.stopPropagation(); };
+        header.onclick = function () { toggleExitCard(this); };
+    };
+
+    window.toggleLockSection = function (cb) {
+        const lockDiv = cb.closest('.exit-card').querySelector('.exit-lock-section');
+        lockDiv.style.display = cb.checked ? '' : 'none';
+        updateExitHeader(cb);
+    };
+
+    window.syncSlider = function (input) {
+        input.nextElementSibling.textContent = input.value;
+    };
+
+    window.pickTrapBuff = function (btn) {
+        buffPickerTarget = btn.previousElementSibling; // .lock-trap-buffs
+        openBuffModal();
+    };
+
+    window.addExit = function () { appendExitCard(document.getElementById('exits-list'), '', {}); };
+
+    function collectExits() {
+        const exits = {};
+        document.querySelectorAll('#exits-list .exit-card').forEach(card => {
+            const name = card.querySelector('.exit-name').value.trim();
+            if (!name) return;
+            const roomId = parseInt(card.querySelector('.exit-roomid').value, 10);
+            if (!roomId) return;
+            const secret = card.querySelector('.exit-secret').checked;
+            const mapDir = card.querySelector('.exit-mapdir').value.trim();
+            const exitMsg = card.querySelector('.exit-message').value.trim();
+            const hasLock = card.querySelector('.exit-has-lock').checked;
+
+            const exitObj = { RoomId: roomId };
+            if (secret) exitObj.Secret = true;
+            if (mapDir) exitObj.MapDirection = mapDir;
+            if (exitMsg) exitObj.ExitMessage = exitMsg;
+
+            if (hasLock) {
+                const diff = parseInt(card.querySelector('.lock-difficulty').value, 10) || 5;
+                const relock = card.querySelector('.lock-relock').value.trim();
+                const trapBuffIds = Array.from(card.querySelectorAll('.lock-trap-buffs .buff-chip'))
+                    .map(c => parseInt(c.dataset.buffId, 10))
+                    .filter(n => !isNaN(n));
+                exitObj.Lock = { Difficulty: diff };
+                if (relock) exitObj.Lock.RelockInterval = relock;
+                if (trapBuffIds.length) exitObj.Lock.TrapBuffIds = trapBuffIds;
+            }
+
+            exits[name] = exitObj;
+        });
+        return exits;
+    }
+
+    // -------------------------------------------------------------------------
+    // Buff picker modal (for trap buffs)
+    // -------------------------------------------------------------------------
+    function openBuffModal() {
+        renderBuffModalList('');
+        document.getElementById('buff-modal').style.display = 'flex';
+        document.getElementById('buff-modal-search').value = '';
+        document.getElementById('buff-modal-search').focus();
+    }
+
+    window.closeBuffModal = function () {
+        document.getElementById('buff-modal').style.display = 'none';
+        buffPickerTarget = null;
+    };
+
+    window.filterBuffModal = function () {
+        renderBuffModalList(document.getElementById('buff-modal-search').value);
+    };
+
+    function renderBuffModalList(filter) {
+        const container = document.getElementById('buff-modal-list');
+        const filterLc = filter.toLowerCase();
+        container.innerHTML = '';
+
+        const entries = Object.entries(allBuffs)
+            .filter(([id, spec]) => spec.Name !== 'empty')
+            .filter(([id, spec]) => !filterLc || spec.Name.toLowerCase().includes(filterLc) || String(id).includes(filterLc))
+            .sort((a, b) => a[1].Name.localeCompare(b[1].Name));
+
+        if (entries.length === 0) {
+            container.innerHTML = '<div style="padding:1rem; text-align:center; color:#aaa; font-size:0.85rem;">No buffs found.</div>';
+            return;
+        }
+
+        for (const [id, spec] of entries) {
+            const row = document.createElement('div');
+            row.style.cssText = 'padding:0.4rem 0.75rem; cursor:pointer; font-size:0.85rem; border-bottom:1px solid #f0f0f0;';
+            row.innerHTML = '<strong>' + esc(spec.Name) + '</strong> <span style="color:#aaa; font-size:0.75rem;">#' + id + '</span>';
+            row.onmouseover = () => row.style.background = '#f5f7ff';
+            row.onmouseout = () => row.style.background = '';
+            row.onclick = () => selectTrapBuff(parseInt(id, 10), spec.Name);
+            container.appendChild(row);
+        }
+    }
+
+    function selectTrapBuff(buffId, buffName) {
+        if (!buffPickerTarget) return;
+        // avoid duplicates
+        const existing = Array.from(buffPickerTarget.querySelectorAll('.buff-chip')).map(c => parseInt(c.dataset.buffId, 10));
+        if (existing.includes(buffId)) { closeBuffModal(); return; }
+        const chip = document.createElement('span');
+        chip.className = 'buff-chip';
+        chip.dataset.buffId = buffId;
+        chip.innerHTML = esc(buffName) + ' <button onclick="this.closest(\'.buff-chip\').remove()" title="Remove">&times;</button>';
+        buffPickerTarget.appendChild(chip);
+        closeBuffModal();
+        // update the exit header
+        const card = buffPickerTarget.closest('.exit-card');
+        if (card) updateExitHeader(card.querySelector('.exit-name'));
+    }
+
+    // -------------------------------------------------------------------------
+    // Spawn Info
+    // -------------------------------------------------------------------------
+    function renderSpawns(spawns) {
+        const list = document.getElementById('spawns-list');
+        list.innerHTML = '';
+        for (const s of spawns) appendSpawnCard(list, s, false);
+    }
+
+    function spawnCardType(s) {
+        return s.MobId ? 'mob' : 'item';
+    }
+
+    function buildSpawnHeaderSummary(s, type) {
+        if (type === 'mob') {
+            const name = s.Name || s._mobName || (s.MobId ? 'Mob #' + s.MobId : 'No mob selected');
+            return name + (s.RespawnRate ? '  —  ' + s.RespawnRate : '');
+        }
+        const parts = [];
+        if (s.ItemId) parts.push('Item #' + s.ItemId);
+        if (s.Gold) parts.push(s.Gold + ' gold');
+        if (!parts.length) parts.push('Empty spawn');
+        if (s.RespawnRate) parts.push(s.RespawnRate);
+        return parts.join('  —  ');
+    }
+
+    function renderSpawnBuffChips(buffIds) {
+        return (buffIds || []).map(id => {
+            const spec = allBuffs[id];
+            const label = spec ? spec.Name : 'buff #' + id;
+            return '<span class="buff-chip" data-buff-id="' + id + '">' + esc(label) +
+                ' <button onclick="this.closest(\'.buff-chip\').remove()" title="Remove">&times;</button></span>';
+        }).join('');
+    }
+
+    function appendSpawnCard(list, s, openOnAdd) {
+        s = s || {};
+        const type = s._type || spawnCardType(s);
+        const isMob = type === 'mob';
+        const hidden = 'display:none;';
+        const shown = '';
+
+        const card = document.createElement('div');
+        card.className = 'spawn-card';
+        card.dataset.spawnType = type;
+
+        const headerSummary = buildSpawnHeaderSummary(s, type);
+
+        card.innerHTML =
+            '<div class="spawn-card-header" onclick="toggleSpawnCard(this)">' +
+                '<span class="spawn-type-badge ' + (isMob ? 'spawn-type-mob' : 'spawn-type-item') + '">' +
+                    (isMob ? 'Mob' : 'Item / Gold') + '</span>' +
+                '<span class="spawn-header-summary">' + esc(headerSummary) + '</span>' +
+                '<button class="btn-icon" style="margin-left:auto;" title="Remove spawn" ' +
+                    'onclick="this.closest(\'.spawn-card\').remove();event.stopPropagation();">&times;</button>' +
+            '</div>' +
+            '<div class="spawn-card-body">' +
+            '<div class="spawn-card-grid">' +
+
+            // Mob picker
+            '<div class="spawn-field span2" style="' + (isMob ? shown : hidden) + '">' +
+                '<label>Mob</label>' +
+                '<div class="spawn-picker-wrap">' +
+                    '<span class="spawn-picker-display spawn-mob-display ' + (s.MobId ? '' : 'empty') + '">' +
+                        (s.MobId ? '#' + s.MobId : 'No mob selected') + '</span>' +
+                    '<input type="hidden" class="spawn-mobid" value="' + (s.MobId || 0) + '" data-mob-name="" />' +
+                    '<button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickSpawnMob(this)">Pick Mob&hellip;</button>' +
+                '</div>' +
+                '<div class="field-hint">The mob template to spawn in this room.</div>' +
+            '</div>' +
+
+            // Item picker
+            '<div class="spawn-field span2" style="' + (isMob ? hidden : shown) + '">' +
+                '<label>Item</label>' +
+                '<div class="spawn-picker-wrap">' +
+                    '<span class="spawn-picker-display spawn-item-display ' + (s.ItemId ? '' : 'empty') + '">' +
+                        (s.ItemId ? '#' + s.ItemId : 'No item (gold only)') + '</span>' +
+                    '<input type="hidden" class="spawn-itemid" value="' + (s.ItemId || 0) + '" />' +
+                    '<button type="button" class="btn-add-sm" style="margin-top:0" onclick="pickSpawnItem(this)">Pick Item&hellip;</button>' +
+                    '<button type="button" class="btn-icon" title="Clear item" onclick="clearSpawnItem(this)">&times;</button>' +
+                '</div>' +
+                '<div class="field-hint">Leave unset to spawn gold only.</div>' +
+            '</div>' +
+
+            // Gold (item spawn only)
+            '<div class="spawn-field" style="' + (isMob ? hidden : shown) + '">' +
+                '<label>Gold</label>' +
+                '<input type="number" class="spawn-gold" min="0" value="' + (s.Gold || 0) + '" />' +
+                '<div class="field-hint">Gold coins to spawn on the floor or in the container.</div>' +
+            '</div>' +
+
+            // Container (item spawn only)
+            '<div class="spawn-field" style="' + (isMob ? hidden : shown) + '">' +
+                '<label>Container</label>' +
+                '<input type="text" class="spawn-container" value="' + esc(s.Container || '') + '" placeholder="e.g. chest" />' +
+                '<div class="field-hint">Name of a container in this room. Leave blank to spawn on the floor.</div>' +
+            '</div>' +
+
+            // Respawn Rate (all types)
+            '<div class="spawn-field span2">' +
+                '<label>Respawn Rate</label>' +
+                '<input type="text" class="spawn-respawnrate" value="' + esc(s.RespawnRate || '') + '" ' +
+                    'placeholder="e.g. 15 real minutes, 1 hour" ' +
+                    'oninput="updateSpawnHeader(this.closest(&apos;.spawn-card&apos;))" />' +
+                '<div class="field-hint">How long after death/despawn before this spawns again. Defaults to 15 real minutes if blank.</div>' +
+            '</div>' +
+
+            // Name override (mob only)
+            '<div class="spawn-field" style="' + (isMob ? shown : hidden) + '">' +
+                '<label>Name Override</label>' +
+                '<input type="text" class="spawn-name" value="' + esc(s.Name || '') + '" placeholder="Leave blank to use mob default" ' +
+                    'oninput="updateSpawnHeader(this.closest(&apos;.spawn-card&apos;))" />' +
+                '<div class="field-hint">Replaces the mob\'s default name in-game.</div>' +
+            '</div>' +
+
+            // Spawn message (mob only)
+            '<div class="spawn-field" style="' + (isMob ? shown : hidden) + '">' +
+                '<label>Spawn Message</label>' +
+                '<input type="text" class="spawn-message" value="' + esc(s.Message || '') + '" placeholder="Shown to room on spawn" />' +
+                '<div class="field-hint">Replaces the default spawn announcement shown to players.</div>' +
+            '</div>' +
+
+            // Force Hostile (mob only)
+            '<div class="spawn-field" style="' + (isMob ? shown : hidden) + '">' +
+                '<label>Force Hostile</label>' +
+                '<div class="toggle-wrap">' +
+                    '<label class="toggle-switch">' +
+                        '<input type="checkbox" class="spawn-forcehostile"' + (s.ForceHostile ? ' checked' : '') + ' />' +
+                        '<span class="toggle-slider"></span>' +
+                    '</label>' +
+                    '<span class="toggle-label">Auto-attacks players</span>' +
+                '</div>' +
+                '<div class="field-hint">Overrides the mob template\'s hostile setting.</div>' +
+            '</div>' +
+
+            // Max Wander (mob only)
+            '<div class="spawn-field" style="' + (isMob ? shown : hidden) + '">' +
+                '<label>Max Wander</label>' +
+                '<input type="number" class="spawn-maxwander" value="' + (s.MaxWander != null && s.MaxWander !== 0 ? s.MaxWander : '') + '" placeholder="blank = mob default" />' +
+                '<div class="field-hint">Rooms mob can wander from spawn. 0 = stays put, -1 = unlimited.</div>' +
+            '</div>' +
+
+            // Force Level (mob only)
+            '<div class="spawn-field" style="' + (isMob ? shown : hidden) + '">' +
+                '<label>Force Level</label>' +
+                '<input type="number" class="spawn-level" min="0" value="' + (s.Level || '') + '" placeholder="0 = mob default" />' +
+                '<div class="field-hint">Force this mob to a specific level. 0 = use mob template level.</div>' +
+            '</div>' +
+
+            // Level Modifier (mob only)
+            '<div class="spawn-field" style="' + (isMob ? shown : hidden) + '">' +
+                '<label>Level Modifier</label>' +
+                '<input type="number" class="spawn-levelmod" value="' + (s.LevelMod || 0) + '" placeholder="0 = no change" />' +
+                '<div class="field-hint">Added to the mob\'s resolved level after zone auto-scale. Can be negative.</div>' +
+            '</div>' +
+
+            // Script Tag (mob only)
+            '<div class="spawn-field" style="' + (isMob ? shown : hidden) + '">' +
+                '<label>Script Tag</label>' +
+                '<input type="text" class="spawn-scripttag" value="' + esc(s.ScriptTag || '') + '" placeholder="Overrides mob script tag" />' +
+                '<div class="field-hint">Overrides which script file this mob uses. Leave blank for mob template default.</div>' +
+            '</div>' +
+
+            // Quest Flags (mob only)
+            '<div class="spawn-field span2" style="' + (isMob ? shown : hidden) + '">' +
+                '<label>Quest Flags</label>' +
+                '<div class="buff-ids-wrap spawn-questflags-wrap">' + renderSpawnQuestFlagChips(s.QuestFlags || []) + '</div>' +
+                '<button class="btn-add-sm" style="margin-top:0.3rem" onclick="pickSpawnQuestFlag(this)">+ Add Quest Flag</button>' +
+                '<div class="field-hint">Quest flag tokens assigned to this mob instance (e.g. 1001-start). Click to pick from the quest list.</div>' +
+            '</div>' +
+
+            // Buff IDs (mob only)
+            '<div class="spawn-field span2" style="' + (isMob ? shown : hidden) + '">' +
+                '<label>Permanent Buffs</label>' +
+                '<div class="buff-ids-wrap spawn-buffids">' + renderSpawnBuffChips(s.BuffIds || []) + '</div>' +
+                '<button class="btn-add-sm" style="margin-top:0.3rem" onclick="pickSpawnBuff(this)">+ Pick Buffs&hellip;</button>' +
+                '<div class="field-hint">Buffs always active on this mob instance.</div>' +
+            '</div>' +
+
+            // Idle Commands (mob only)
+            '<div class="spawn-field span2" style="' + (isMob ? shown : hidden) + '">' +
+                '<label>Idle Commands</label>' +
+                '<textarea class="spawn-idlecommands" rows="3" ' +
+                    'style="width:100%;padding:0.3rem 0.45rem;border:1px solid #ccc;border-radius:4px;font-size:0.82rem;font-family:inherit;resize:vertical;">' +
+                    esc((s.IdleCommands || []).join('\n')) +
+                '</textarea>' +
+                '<div class="field-hint">One command per line. Replaces the mob template\'s idle command list entirely.</div>' +
+            '</div>' +
+
+            '</div>' +  // end spawn-card-grid
+            '</div>';   // end spawn-card-body
+
+        if (openOnAdd) {
+            card.querySelector('.spawn-card-header').classList.add('open');
+            card.querySelector('.spawn-card-body').classList.add('open');
+        }
+
+        // For existing mob spawns, resolve the mob name asynchronously
+        if (!openOnAdd && s.MobId) {
+            AdminAPI.get('/admin/api/v1/mobs/' + s.MobId).then(res => {
+                if (!res.ok) return;
+                const mob = res.data && res.data.data;
+                const name = (mob && mob.Character && mob.Character.Name) || '';
+                if (!name) return;
+                const hiddenInput = card.querySelector('.spawn-mobid');
+                if (hiddenInput) hiddenInput.dataset.mobName = name;
+                const display = card.querySelector('.spawn-mob-display');
+                if (display) display.textContent = '#' + s.MobId + ' ' + name;
+                updateSpawnHeader(card);
+            });
+        }
+
+        list.appendChild(card);
+    }
+
+    window.toggleSpawnCard = function (header) {
+        header.classList.toggle('open');
+        header.nextElementSibling.classList.toggle('open');
+    };
+
+    window.addSpawn = function (type) {
+        appendSpawnCard(document.getElementById('spawns-list'), { _type: type || 'mob' }, true);
+    };
+
+    window.pickSpawnMob = function (btn) {
+        const card = btn.closest('.spawn-card');
+        Picker.open({
+            ...PickerConfigs.mobs,
+            onSelect: (mob) => {
+                const name = (mob.Character && mob.Character.Name) || 'Mob #' + mob.MobId;
+                card.querySelector('.spawn-mobid').value = mob.MobId;
+                card.querySelector('.spawn-mobid').dataset.mobName = name;
+                const display = card.querySelector('.spawn-mob-display');
+                display.textContent = '#' + mob.MobId + ' ' + name;
+                display.className = 'spawn-picker-display spawn-mob-display';
+                updateSpawnHeader(card);
+            },
+        });
+    };
+
+    window.pickSpawnItem = function (btn) {
+        const card = btn.closest('.spawn-card');
+        Picker.open({
+            ...PickerConfigs.items,
+            onSelect: (item) => {
+                card.querySelector('.spawn-itemid').value = item.ItemId;
+                const display = card.querySelector('.spawn-item-display');
+                display.textContent = '#' + item.ItemId + ' ' + item.Name;
+                display.className = 'spawn-picker-display spawn-item-display';
+                updateSpawnHeader(card);
+            },
+        });
+    };
+
+    window.clearSpawnItem = function (btn) {
+        const card = btn.closest('.spawn-card');
+        card.querySelector('.spawn-itemid').value = 0;
+        const display = card.querySelector('.spawn-item-display');
+        display.textContent = 'No item (gold only)';
+        display.className = 'spawn-picker-display spawn-item-display empty';
+        updateSpawnHeader(card);
+    };
+
+    function renderSpawnQuestFlagChips(flags) {
+        return (flags || []).map(token => {
+            return '<span class="buff-chip" data-quest-token="' + esc(token) + '">' + esc(token) +
+                ' <button onclick="this.closest(\'.buff-chip\').remove()" title="Remove">&times;</button></span>';
+        }).join('');
+    }
+
+    window.pickSpawnQuestFlag = function (btn) {
+        const card = btn.closest('.spawn-card');
+        const wrap = card.querySelector('.spawn-questflags-wrap');
+        QuestTokenPicker.pick((token, label) => {
+            // avoid duplicates
+            const existing = Array.from(wrap.querySelectorAll('.buff-chip')).map(c => c.dataset.questToken);
+            if (existing.includes(token)) return;
+            const chip = document.createElement('span');
+            chip.className = 'buff-chip';
+            chip.dataset.questToken = token;
+            chip.innerHTML = esc(label) + ' <button onclick="this.closest(\'.buff-chip\').remove()" title="Remove">&times;</button>';
+            wrap.appendChild(chip);
+        });
+    };
+
+    window.pickSpawnBuff = function (btn) {
+        const card = btn.closest('.spawn-card');
+        const wrap = card.querySelector('.spawn-buffids');
+        const existing = Array.from(wrap.querySelectorAll('.buff-chip')).map(c => parseInt(c.dataset.buffId, 10));
+        Picker.open({
+            ...PickerConfigs.buffs,
+            multi:    true,
+            selected: existing,
+            onSelect: (buffs) => {
+                wrap.innerHTML = renderSpawnBuffChips(buffs.map(b => b.BuffId));
+            },
+        });
+    };
+
+    window.updateSpawnHeader = function (card) {
+        const type = card.dataset.spawnType;
+        const s = {};
+        if (type === 'mob') {
+            s.MobId = parseInt(card.querySelector('.spawn-mobid').value, 10) || 0;
+            s._mobName = card.querySelector('.spawn-mobid').dataset.mobName || '';
+            s.Name = card.querySelector('.spawn-name').value.trim();
+        } else {
+            s.ItemId = parseInt(card.querySelector('.spawn-itemid').value, 10) || 0;
+            s.Gold = parseInt(card.querySelector('.spawn-gold').value, 10) || 0;
+        }
+        s.RespawnRate = card.querySelector('.spawn-respawnrate').value.trim();
+        const summary = card.querySelector('.spawn-header-summary');
+        if (summary) summary.textContent = buildSpawnHeaderSummary(s, type);
+    };
+
+    function collectSpawns() {
+        const spawns = [];
+        document.querySelectorAll('#spawns-list .spawn-card').forEach(card => {
+            const type = card.dataset.spawnType;
+            const s = {};
+
+            if (type === 'mob') {
+                const mobId = parseInt(card.querySelector('.spawn-mobid').value, 10);
+                if (!mobId) return;
+                s.MobId = mobId;
+
+                const name = card.querySelector('.spawn-name').value.trim();
+                if (name) s.Name = name;
+
+                const msg = card.querySelector('.spawn-message').value.trim();
+                if (msg) s.Message = msg;
+
+                if (card.querySelector('.spawn-forcehostile').checked) s.ForceHostile = true;
+
+                const maxWanderRaw = card.querySelector('.spawn-maxwander').value.trim();
+                if (maxWanderRaw !== '') {
+                    const mw = parseInt(maxWanderRaw, 10);
+                    if (!isNaN(mw)) s.MaxWander = mw;
+                }
+
+                const level = parseInt(card.querySelector('.spawn-level').value, 10);
+                if (level) s.Level = level;
+
+                const levelMod = parseInt(card.querySelector('.spawn-levelmod').value, 10);
+                if (levelMod) s.LevelMod = levelMod;
+
+                const scriptTag = card.querySelector('.spawn-scripttag').value.trim();
+                if (scriptTag) s.ScriptTag = scriptTag;
+
+                const questFlagsRaw = Array.from(card.querySelectorAll('.spawn-questflags-wrap .buff-chip'))
+                    .map(c => c.dataset.questToken).filter(Boolean);
+                if (questFlagsRaw.length) s.QuestFlags = questFlagsRaw;
+
+                const buffIds = Array.from(card.querySelectorAll('.spawn-buffids .buff-chip'))
+                    .map(c => parseInt(c.dataset.buffId, 10)).filter(n => !isNaN(n));
+                if (buffIds.length) s.BuffIds = buffIds;
+
+                const idleCmds = card.querySelector('.spawn-idlecommands').value
+                    .split('\n').map(l => l.trim()).filter(Boolean);
+                if (idleCmds.length) s.IdleCommands = idleCmds;
+
+            } else {
+                const itemId = parseInt(card.querySelector('.spawn-itemid').value, 10);
+                const gold = parseInt(card.querySelector('.spawn-gold').value, 10);
+                if (!itemId && !gold) return;
+                if (itemId) s.ItemId = itemId;
+                if (gold) s.Gold = gold;
+
+                const container = card.querySelector('.spawn-container').value.trim();
+                if (container) s.Container = container;
+            }
+
+            const rate = card.querySelector('.spawn-respawnrate').value.trim();
+            if (rate) s.RespawnRate = rate;
+
+            spawns.push(s);
+        });
+        return spawns;
+    }
+
+    // -------------------------------------------------------------------------
+    // Skill Training
+    // -------------------------------------------------------------------------
+    function renderTraining(training) {
+        const list = document.getElementById('training-list');
+        list.innerHTML = '';
+        for (const [skill, range] of Object.entries(training)) appendTrainRow(list, skill, range);
+    }
+
+    function appendTrainRow(list, skill, range) {
+        const row = document.createElement('div');
+        row.className = 'train-row';
+        row.innerHTML =
+            '<input type="text" placeholder="Skill name" value="' + esc(skill) + '" />' +
+            '<input type="number" placeholder="Min" value="' + (range.Min || 0) + '" />' +
+            '<input type="number" placeholder="Max" value="' + (range.Max || 0) + '" />' +
+            '<button class="btn-icon" onclick="this.closest(\'.train-row\').remove()">&times;</button>';
+        list.appendChild(row);
+    }
+
+    window.addTraining = function () { appendTrainRow(document.getElementById('training-list'), '', { Min: 0, Max: 0 }); };
+
+    function collectTraining() {
+        const t = {};
+        document.querySelectorAll('#training-list .train-row').forEach(row => {
+            const inputs = row.querySelectorAll('input');
+            const skill = inputs[0].value.trim();
+            if (skill) t[skill] = { Min: parseInt(inputs[1].value, 10) || 0, Max: parseInt(inputs[2].value, 10) || 0 };
+        });
+        return t;
+    }
+
+    // -------------------------------------------------------------------------
+    // Idle Messages
+    // -------------------------------------------------------------------------
+    function renderIdleMsgs(listId, msgs) {
+        const list = document.getElementById(listId);
+        list.innerHTML = '';
+        for (const m of msgs) appendIdleRow(list, m);
+    }
+
+    function appendIdleRow(list, msg) {
+        const row = document.createElement('div');
+        row.className = 'idle-row';
+        row.innerHTML =
+            '<input type="text" value="' + esc(msg) + '" style="padding:0.3rem 0.5rem; border:1px solid #ccc; border-radius:4px; font-size:0.82rem;" />' +
+            '<button class="btn-icon" onclick="this.closest(\'.idle-row\').remove()">&times;</button>';
+        list.appendChild(row);
+    }
+
+    window.addIdleMsg = function () { appendIdleRow(document.getElementById('idle-list'), ''); };
+    window.addZoneIdleMsg = function () { appendIdleRow(document.getElementById('zf-idle-list'), ''); };
+
+    function collectIdleMsgs(listId) {
+        return Array.from(document.querySelectorAll('#' + listId + ' .idle-row input')).map(i => i.value).filter(v => v.trim());
+    }
+
+    // -------------------------------------------------------------------------
+    // Nouns
+    // -------------------------------------------------------------------------
+    function renderNouns(nouns) {
+        const list = document.getElementById('nouns-list');
+        list.innerHTML = '';
+        for (const [k, v] of Object.entries(nouns)) appendNounRow(list, k, v);
+    }
+
+    function appendNounRow(list, noun, desc) {
+        const row = document.createElement('div');
+        row.className = 'noun-row';
+        row.innerHTML =
+            '<input type="text" placeholder="Noun" value="' + esc(noun) + '" />' +
+            '<input type="text" placeholder="Description" value="' + esc(desc) + '" />' +
+            '<button class="btn-icon" onclick="this.closest(\'.noun-row\').remove()">&times;</button>';
+        list.appendChild(row);
+    }
+
+    window.addNoun = function () { appendNounRow(document.getElementById('nouns-list'), '', ''); };
+
+    function collectNouns() {
+        const n = {};
+        document.querySelectorAll('#nouns-list .noun-row').forEach(row => {
+            const inputs = row.querySelectorAll('input');
+            const k = inputs[0].value.trim();
+            if (k) n[k] = inputs[1].value;
+        });
+        return n;
+    }
+
+    // -------------------------------------------------------------------------
+    // Collapse toggle
+    // -------------------------------------------------------------------------
+    window.toggleSection = function (el) {
+        el.classList.toggle('open');
+        const body = el.nextElementSibling;
+        if (body) body.classList.toggle('open');
+    };
+
+    // -------------------------------------------------------------------------
+    // Save room
+    // -------------------------------------------------------------------------
+    window.saveRoom = async function () {
+        const btn = document.getElementById('save-btn');
+        btn.disabled = true; btn.textContent = 'Saving...';
+
+        const script = document.getElementById('f-script').value;
+
+        const payload = {
+            Zone:          document.getElementById('f-zone').value,
+            Title:         document.getElementById('f-title').value.trim(),
+            Description:   document.getElementById('f-description').value.trim(),
+            Biome:         document.getElementById('f-biome').value,
+            MapSymbol:     document.getElementById('f-mapsymbol').value.trim(),
+            MapLegend:     document.getElementById('f-maplegend').value.trim(),
+            MusicFile:     document.getElementById('f-musicfile').value,
+            IsBank:        document.getElementById('f-isbank').checked,
+            Pvp:           document.getElementById('f-pvp').checked,
+            Tags:          collectTags(),
+            Exits:         collectExits(),
+            SpawnInfo:     collectSpawns(),
+            SkillTraining: collectTraining(),
+            IdleMessages:  collectIdleMsgs('idle-list'),
+            Nouns:         collectNouns(),
+        };
+
+        const [patchRes, scriptRes] = await AdminAPI.all([
+            AdminAPI.patch('/admin/api/v1/rooms/' + currentRoomId, payload),
+            AdminAPI.put('/admin/api/v1/rooms/' + currentRoomId + '/script', { script: script }),
+        ]);
+
+        btn.disabled = false; btn.textContent = 'Save Room';
+
+        if (!patchRes.ok) { showStatus('Save failed: ' + patchRes.error, false); return; }
+        if (!scriptRes.ok) { showStatus('Room saved but script save failed: ' + scriptRes.error, false); return; }
+
+        showStatus('Room saved.', true);
+        const saved = patchRes.data.data;
+        document.getElementById('editor-title').textContent = saved.Title;
+        document.getElementById('editor-zone-badge').textContent = saved.Zone;
+        loadRoomList();
+    };
+
+    // -------------------------------------------------------------------------
+    // Delete room
+    // -------------------------------------------------------------------------
+    window.deleteRoom = async function () {
+        if (!currentRoomId) return;
+        if (!confirm('Delete room #' + currentRoomId + '? This cannot be undone.')) return;
+        const res = await AdminAPI.delete('/admin/api/v1/rooms/' + currentRoomId);
+        if (!res.ok) { showStatus('Delete failed: ' + res.error, false); return; }
+        showStatus('Room deleted.', true);
+        cancelEdit();
+        loadRoomList();
+    };
+
+    // -------------------------------------------------------------------------
+    // Zone editor
+    // -------------------------------------------------------------------------
+    window.editZone = function () {
+        const zoneName = document.getElementById('zone-filter').value;
+        if (!zoneName) { showStatus('Select a zone to edit.', false); return; }
+        const zone = allZones.find(z => z.Name === zoneName);
+        if (!zone) return;
+
+        document.getElementById('editor-form').style.display = 'none';
+        document.getElementById('editor-placeholder').style.display = 'none';
+        document.getElementById('zone-editor').style.display = 'block';
+        document.getElementById('zone-editor-title').textContent = 'Zone: ' + zone.Name;
+
+        setVal('zf-biome', zone.DefaultBiome || '');
+        setMusicPickerValue('zf', zone.MusicFile || '');
+        setVal('zf-scalemin', zone.AutoScaleMin || 0);
+        setVal('zf-scalemax', zone.AutoScaleMax || 0);
+        renderIdleMsgs('zf-idle-list', zone.IdleMessages || []);
+    };
+
+    window.closeZoneEditor = function () {
+        document.getElementById('zone-editor').style.display = 'none';
+        document.getElementById('editor-placeholder').style.display = '';
+    };
+
+    window.saveZone = async function () {
+        const zoneName = document.getElementById('zone-filter').value;
+        if (!zoneName) return;
+        const payload = {
+            DefaultBiome: document.getElementById('zf-biome').value,
+            MusicFile:    document.getElementById('zf-music').value,
+            MobAutoScale: {
+                Minimum: parseInt(document.getElementById('zf-scalemin').value, 10) || 0,
+                Maximum: parseInt(document.getElementById('zf-scalemax').value, 10) || 0,
+            },
+            IdleMessages: collectIdleMsgs('zf-idle-list'),
+        };
+        const res = await AdminAPI.patch('/admin/api/v1/zones/' + encodeURIComponent(zoneName), payload);
+        if (!res.ok) { showStatus('Zone save failed: ' + res.error, false); return; }
+        showStatus('Zone saved.', true);
+        const zr = await AdminAPI.get('/admin/api/v1/zones', true);
+        if (zr.ok) { allZones = zr.data.data || []; populateZoneFilter(); document.getElementById('zone-filter').value = zoneName; }
+    };
+
+    window.deleteZone = async function () {
+        const zoneName = document.getElementById('zone-filter').value;
+        if (!zoneName) return;
+        if (!confirm('Delete zone "' + zoneName + '" and ALL its rooms? This cannot be undone.')) return;
+        const res = await AdminAPI.delete('/admin/api/v1/zones/' + encodeURIComponent(zoneName));
+        if (!res.ok) { showStatus('Delete zone failed: ' + res.error, false); return; }
+        showStatus('Zone deleted.', true);
+        closeZoneEditor();
+        const zr = await AdminAPI.get('/admin/api/v1/zones', true);
+        if (zr.ok) { allZones = zr.data.data || []; populateZoneFilter(); }
+        loadRoomList();
+    };
+
+    // -------------------------------------------------------------------------
+    // Utilities
+    // -------------------------------------------------------------------------
+    function showStatus(msg, ok) {
+        const bar = document.getElementById('status-bar');
+        bar.textContent = msg;
+        bar.className = 'status-bar ' + (ok ? 'success' : 'error');
+        clearTimeout(bar._t);
+        bar._t = setTimeout(() => { bar.className = 'status-bar'; }, 6000);
+    }
+
+    function setVal(id, val) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.value = el.tagName === 'SELECT' ? String(val) : val;
+    }
+
+    function esc(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    init();
+})();
+</script>
+
+{{template "footer" .}}

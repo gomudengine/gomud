@@ -60,6 +60,9 @@ func Give(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		mob.Character.CancelBuffsWithFlag(buffs.Hidden)
 
 		targetUser := users.GetByUserId(playerId)
+		if targetUser == nil {
+			return true, nil
+		}
 
 		// Swap the item location
 		if giveItem.ItemId > 0 {

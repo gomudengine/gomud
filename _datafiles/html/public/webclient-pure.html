@@ -43,6 +43,7 @@
             flex: 1;
             min-width: 0;
             position: relative;
+            padding-left: 20px;
         }
 
         #input-area {
@@ -113,7 +114,7 @@
             display: none;
             position: fixed;
             inset: 0;
-            background: var(--t-backdrop);
+            /* background: var(--t-backdrop); */
             z-index: 10000;
             align-items: center;
             justify-content: center;
@@ -1231,6 +1232,16 @@
                 </div>
                 <div class="settings-tab-panel" id="tab-windows">
                     <div class="settings-section">
+                        <div class="settings-section-title">Layout</div>
+                        <div class="win-toggle-row">
+                            <span>Auto-hide window docks</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="dock-autohide-checkbox" onchange="toggleDockAutoHide(this.checked)">
+                                <span class="toggle-track"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="settings-section">
                         <div class="settings-section-title">Windows</div>
                         <div id="windows-container"></div>
                     </div>
@@ -1607,6 +1618,7 @@
         function toggleMenu()            { Client.toggleMenu(); }
         function toggleMuteAll()         { Client.toggleMuteAll(); }
         function resetLayout()           { Client.resetLayout(); }
+        function toggleDockAutoHide(v)   { Client.toggleDockAutoHide(v); }
         function resetVolumeControls()   { Client.resetVolumeControls(); }
 
         // ---------------------------------------------------------------
