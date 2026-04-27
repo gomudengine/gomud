@@ -1,6 +1,8 @@
 # check=skip=InvalidDefaultArgInFrom
 ARG GO_VERSION
-FROM golang:${GO_VERSION}
+# GoMud currently uses Go 1.24,
+# but `actionlint` used below requires 1.25
+FROM golang:1.25
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV GOBIN=/usr/local/bin
