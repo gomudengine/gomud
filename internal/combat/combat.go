@@ -300,14 +300,16 @@ func calculateCombat(sourceChar characters.Character, targetChar characters.Char
 			sourceChar.SetAggro(sourceChar.Aggro.UserId, sourceChar.Aggro.MobInstanceId, characters.DefaultAttack)
 		}
 
-		for _, weapon := range attackWeapons {
+		for wIdx, weapon := range attackWeapons {
 
+			// Only the offhand weapon (index > 0) incurs a hit penalty for dual-wielding.
+			// The penalty is negative so Hits() subtracts it from the hit chance.
 			penalty := 0
-			if len(attackWeapons) > 1 {
+			if wIdx > 0 {
 				if dualWieldLevel < 4 {
-					penalty = 35 //35% penalty to hit
+					penalty = -35 //35% penalty to hit
 				} else {
-					penalty = 25 //25% penalty to hit
+					penalty = -25 //25% penalty to hit
 				}
 			}
 
@@ -318,9 +320,6 @@ func calculateCombat(sourceChar characters.Character, targetChar characters.Char
 
 			// Get default racial dice rolls
 			attacks, dCount, dSides, dBonus, critBuffs := sourceChar.GetDefaultDiceRoll()
-
-			// Add damage bonus due to statmods
-			dBonus += statModDBonus
 
 			if weapon.ItemId > 0 {
 
@@ -335,6 +334,9 @@ func calculateCombat(sourceChar characters.Character, targetChar characters.Char
 				dBonus += weapon.StatMod(string(statmods.RacialBonusPrefix) + strings.ToLower(targetChar.Race()))
 			}
 
+			// Apply damage stat modifier after weapon selection so it is never overwritten.
+			dBonus += statModDBonus
+
 			// zero means randomly selected, otherwise use the ItemId to consistently choose a message
 			msgSeed := 0
 			if configs.GetGamePlayConfig().ConsistentAttackMessages {
@@ -348,13 +350,18 @@ func calculateCombat(sourceChar characters.Character, targetChar characters.Char
 
 				attackTargetDamage := 0
 				attackTargetReduction := 0
+				isCrit := false
 
 				if Hits(sourceChar.Stats.Speed.ValueAdj, targetChar.Stats.Speed.ValueAdj, penalty) {
 					attackResult.Hit = true
 					attackTargetDamage = util.RollDice(dCount, dSides) + dBonus
 
-					if attackResult.Crit || Crits(sourceChar, targetChar) {
-						attackResult.Crit = true
+					// Backstab sets attackResult.Crit for the first hit only; subsequent
+					// hits use a fresh per-attack roll so crits don't cascade.
+					isCrit = attackResult.Crit || Crits(sourceChar, targetChar)
+					attackResult.Crit = false // consume the backstab flag after one use
+					if isCrit {
+						attackResult.Crit = true // record that at least one crit occurred this round
 						attackResult.BuffTarget = critBuffs
 						attackTargetDamage += dCount*dSides + dBonus
 					}
@@ -367,7 +374,11 @@ func calculateCombat(sourceChar characters.Character, targetChar characters.Char
 				}
 
 				// Calculate actual damage vs. possible damage pct
-				pctDamage := math.Ceil(float64(attackTargetDamage) / float64(dCount*dSides+dBonus) * 100)
+				maxDmg := dCount*dSides + dBonus
+				if maxDmg < 1 {
+					maxDmg = 1
+				}
+				pctDamage := math.Ceil(float64(attackTargetDamage) / float64(maxDmg) * 100)
 
 				msgs := items.GetAttackMessage(weaponSubType, int(pctDamage))
 
@@ -378,7 +389,7 @@ func calculateCombat(sourceChar characters.Character, targetChar characters.Char
 					msgs.Separate.ToAttacker, msgs.Separate.ToDefender, msgs.Separate.ToAttackerRoom, msgs.Separate.ToDefenderRoom,
 				)
 
-				if attackResult.Crit {
+				if isCrit {
 					toAttackerMsg = items.ItemMessage(`<ansi fg="yellow-bold">***</ansi> ` + string(toAttackerMsg) + ` <ansi fg="yellow-bold">***</ansi>`)
 					toDefenderMsg = items.ItemMessage(`<ansi fg="yellow-bold">***</ansi> ` + string(toDefenderMsg) + ` <ansi fg="yellow-bold">***</ansi>`)
 					toAttackerRoomMsg = items.ItemMessage(`<ansi fg="yellow-bold">***</ansi> ` + string(toAttackerRoomMsg) + ` <ansi fg="yellow-bold">***</ansi>`)
@@ -434,7 +445,19 @@ func calculateCombat(sourceChar characters.Character, targetChar characters.Char
 
 					for p := 0; p < pAttacks; p++ {
 
+						if !Hits(sourceChar.Stats.Speed.ValueAdj, targetChar.Stats.Speed.ValueAdj, 0) {
+							toAttackerMsg := fmt.Sprintf(`%s lunges at <ansi fg="%sname">%s</ansi> but misses!`, sourceChar.Pet.DisplayName(), string(targetType), targetChar.Name)
+							attackResult.SendToSource(toAttackerMsg)
+							continue
+						}
+
 						attackTargetDamage := util.RollDice(pDCount, pDSides) + pDBonus
+
+						pDefenseAmt := util.Rand(targetChar.GetDefense())
+						if pDefenseAmt > 0 {
+							reduction := int(math.Round((float64(pDefenseAmt) / 100) * float64(attackTargetDamage)))
+							attackTargetDamage -= reduction
+						}
 
 						attackResult.DamageToTarget += attackTargetDamage
 
@@ -511,6 +534,11 @@ func Crits(sourceChar characters.Character, targetChar characters.Character) boo
 	// Minimum 5% chance
 	if critChance < 5 {
 		critChance = 5
+	}
+
+	// Maximum 75% chance
+	if critChance > 75 {
+		critChance = 75
 	}
 
 	critRoll := util.Rand(100)

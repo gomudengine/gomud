@@ -3,9 +3,9 @@
  *
  * Lightweight floating-window library, purpose-built for the GoMud web client.
  *
- * Public API (mirrors WinBox subset):
+ * Public API (mirrors Winbox subset):
  *
- *   new WinBox(opts)
+ *   new VWin(opts)
  *     opts.title      string    — title bar text
  *     opts.mount      Element   — content element to place in the body area
  *     opts.x          number|'right'|'center'  — initial left position
@@ -24,7 +24,7 @@
  *     opts.oncreate   function(opts)    — called synchronously at end of constructor
  *
  *   Instance properties:
- *     .window   Element  — the root WinBox element (used by window-comm.js)
+ *     .window   Element  — the root VWin element (used by window-comm.js)
  *     .body     Element  — the scrollable content area
  *     .id       string
  *     .title    string
@@ -56,7 +56,7 @@
         _styleInjected = true;
         var s = document.createElement('style');
         s.textContent = [
-            '.winbox {',
+            '.vwin {',  
             '  position: fixed;',
             '  left: 0; top: 0;',
             '  background: #0050ff;',
@@ -68,7 +68,7 @@
             '}',
 
             /* Header */
-            '.wb-header {',
+            '.vw-header {',  
             '  position: absolute; left: 0; top: 0;',
             '  width: 100%; height: 35px; line-height: 35px;',
             '  color: #fff; overflow: hidden; z-index: 1;',
@@ -76,19 +76,19 @@
             '}',
 
             /* Drag area */
-            '.wb-drag {',
+            '.vw-drag {',  
             '  height: 100%; padding-left: 10px; cursor: move;',
             '  overflow: hidden;',
             '}',
 
             /* Title text */
-            '.wb-title {',
+            '.vw-title {',  
             '  font-family: Arial, sans-serif; font-size: 14px;',
             '  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;',
             '}',
 
             /* Body */
-            '.wb-body {',
+            '.vw-body {',  
             '  position: absolute; left: 0; right: 0; bottom: 0;',
             '  top: 35px;',
             '  overflow: auto;',
@@ -99,46 +99,46 @@
             '}',
 
             /* Control strip (right side of header) */
-            '.wb-control {',
+            '.vw-control {',  
             '  float: right; height: 100%;',
             '  display: flex; align-items: center;',
             '}',
-            '.wb-control span {',
+            '.vw-control span {',  
             '  display: inline-flex; align-items: center; justify-content: center;',
             '  width: 30px; height: 100%;',
             '  cursor: pointer; background-repeat: no-repeat; background-position: center;',
             '}',
 
             /* Close button — simple × drawn with CSS */
-            '.wb-close::before {',
+            '.vw-close::before {',  
             '  content: "\\00d7";',
             '  font-size: 18px; line-height: 1;',
             '  color: rgba(255,255,255,0.8);',
             '}',
-            '.wb-close:hover::before { color: #fff; }',
+            '.vw-close:hover::before { color: #fff; }',  
 
             /* Dock button added by webclient-core */
-            '.wb-dock-btn { background-size: 14px 14px; opacity: 0.7; }',
-            '.wb-dock-btn:hover { opacity: 1; }',
+            '.vw-dock-btn { background-size: 14px 14px; opacity: 0.7; }',
+            '.vw-dock-btn:hover { opacity: 1; }',  
 
             /* Resize handles */
-            '.wb-n, .wb-s { position: absolute; left: 0; right: 0; height: 6px; z-index: 2; }',
-            '.wb-n { top: -3px;    cursor: n-resize; }',
-            '.wb-s { bottom: -3px; cursor: s-resize; }',
-            '.wb-e, .wb-w { position: absolute; top: 0; bottom: 0; width: 6px; z-index: 2; }',
-            '.wb-e { right: -3px; cursor: e-resize; }',
-            '.wb-w { left: -3px;  cursor: w-resize; }',
-            '.wb-nw, .wb-ne, .wb-sw, .wb-se { position: absolute; width: 12px; height: 12px; z-index: 3; }',
-            '.wb-nw { top: -3px;    left: -3px;  cursor: nw-resize; }',
-            '.wb-ne { top: -3px;    right: -3px; cursor: ne-resize; }',
-            '.wb-sw { bottom: -3px; left: -3px;  cursor: sw-resize; }',
-            '.wb-se { bottom: -3px; right: -3px; cursor: se-resize; }',
+            '.vw-n, .vw-s { position: absolute; left: 0; right: 0; height: 6px; z-index: 2; }',
+            '.vw-n { top: -3px;    cursor: n-resize; }',
+            '.vw-s { bottom: -3px; cursor: s-resize; }',
+            '.vw-e, .vw-w { position: absolute; top: 0; bottom: 0; width: 6px; z-index: 2; }',
+            '.vw-e { right: -3px; cursor: e-resize; }',
+            '.vw-w { left: -3px;  cursor: w-resize; }',
+            '.vw-nw, .vw-ne, .vw-sw, .vw-se { position: absolute; width: 12px; height: 12px; z-index: 3; }',
+            '.vw-nw { top: -3px;    left: -3px;  cursor: nw-resize; }',
+            '.vw-ne { top: -3px;    right: -3px; cursor: ne-resize; }',
+            '.vw-sw { bottom: -3px; left: -3px;  cursor: sw-resize; }',
+            '.vw-se { bottom: -3px; right: -3px; cursor: se-resize; }',  
 
             /* Focus ring */
-            '.winbox.focus { box-shadow: 0 14px 28px rgba(0,0,0,.4), 0 10px 10px rgba(0,0,0,.35); }',
+            '.vwin.focus { box-shadow: 0 14px 28px rgba(0,0,0,.4), 0 10px 10px rgba(0,0,0,.35); }',  
 
             /* Drag-lock: disable pointer events on iframes while dragging/resizing */
-            '.wb-lock .wb-body { pointer-events: none; }',
+            '.vw-lock .vw-body { pointer-events: none; }',  
         ].join('\n');
         var head = document.head || document.getElementsByTagName('head')[0];
         if (head.firstChild) {
@@ -153,7 +153,7 @@
     // -------------------------------------------------------------------------
     var _zTop   = 10;    // current highest z-index
     var _idSeq  = 0;     // auto-incrementing window id counter
-    var _all    = [];    // all live WinBox instances
+    var _all    = [];    // all live VWin instances
 
     // -------------------------------------------------------------------------
     // Helpers
@@ -188,15 +188,15 @@
     }
 
     // -------------------------------------------------------------------------
-    // WinBox constructor
+    // VWin constructor
     // -------------------------------------------------------------------------
-    function WinBox(opts) {
-        if (!(this instanceof WinBox)) { return new WinBox(opts); }
+    function VWin(opts) {
+        if (!(this instanceof VWin)) { return new VWin(opts); }
 
         _injectStyle();
 
         // ---- parse opts ----
-        var id         = opts.id         || ('winbox-' + (++_idSeq));
+        var id         = opts.id         || ('vwin-' + (++_idSeq));
         var title      = opts.title      || '';
         var mount      = opts.mount      || null;
         var html       = opts.html       || null;
@@ -232,12 +232,12 @@
         // ---- build DOM ----
         var root_el = document.createElement('div');
         root_el.id        = id;
-        root_el.className = 'winbox' + (extraClass ? ' ' + extraClass : '');
-        root_el.winbox    = this;
+        root_el.className = 'vwin' + (extraClass ? ' ' + extraClass : '');
+        root_el.vwin      = this;
 
         // Header
         var hdr = document.createElement('div');
-        hdr.className = 'wb-header';
+        hdr.className = 'vw-header';
         if (headerH !== 35) {
             hdr.style.height     = headerH + 'px';
             hdr.style.lineHeight = headerH + 'px';
@@ -245,20 +245,20 @@
 
         // Control strip (right side of header — holds close button, custom controls)
         var ctrl = document.createElement('div');
-        ctrl.className = 'wb-control';
+        ctrl.className = 'vw-control';
 
         var closeBtn = document.createElement('span');
-        closeBtn.className = 'wb-close';
+        closeBtn.className = 'vw-close';
 
         ctrl.appendChild(closeBtn);
         hdr.appendChild(ctrl);
 
         // Drag area + title
         var drag = document.createElement('div');
-        drag.className = 'wb-drag';
+        drag.className = 'vw-drag';
 
         var titleEl = document.createElement('div');
-        titleEl.className   = 'wb-title';
+        titleEl.className   = 'vw-title';
         titleEl.textContent = title;
 
         drag.appendChild(titleEl);
@@ -266,7 +266,7 @@
 
         // Body
         var body = document.createElement('div');
-        body.className = 'wb-body';
+        body.className = 'vw-body';
         if (headerH !== 35) {
             body.style.top = headerH + 'px';
         }
@@ -279,7 +279,7 @@
         var handleEls = {};
         handles.forEach(function(d) {
             var el = document.createElement('div');
-            el.className = 'wb-' + d;
+            el.className = 'vw-' + d;
             handleEls[d] = el;
             root_el.appendChild(el);
         });
@@ -374,7 +374,7 @@
             startTop  = wb.y;
             active    = true;
 
-            document.body.classList.add('wb-lock');
+            document.body.classList.add('vw-lock');
 
             if (e.touches) {
                 document.addEventListener('touchmove', onMove, { capture: true, passive: false });
@@ -453,7 +453,7 @@
             if (!active) { return; }
             active = false;
             e.stopPropagation();
-            document.body.classList.remove('wb-lock');
+            document.body.classList.remove('vw-lock');
 
             document.removeEventListener('mousemove', onMove, { capture: true });
             document.removeEventListener('mouseup',   onEnd,  { capture: true });
@@ -468,7 +468,7 @@
     // -------------------------------------------------------------------------
     // Prototype methods
     // -------------------------------------------------------------------------
-    var P = WinBox.prototype;
+    var P = VWin.prototype;
 
     P.close = function () {
         if (this.onclose && this.onclose()) {
@@ -571,6 +571,6 @@
     // -------------------------------------------------------------------------
     // Expose globally
     // -------------------------------------------------------------------------
-    window.WinBox = WinBox;
+    window.VWin = VWin;
 
 })();
