@@ -2,7 +2,6 @@ package combat
 
 import (
 	"fmt"
-	"math"
 	"strconv"
 	"strings"
 
@@ -243,52 +242,29 @@ func calculateCombat(sourceChar characters.Character, targetChar characters.Char
 
 	attackResult := AttackResult{}
 
-	attackCount := combatAttackCount(sourceChar, targetChar)
+	atkCount := combatAttackCount(sourceChar, targetChar)
 
 	// Statmods can add a damage bonus...
 	statModDBonus := sourceChar.StatMod(`damage`)
 
-	for i := 0; i < attackCount; i++ {
+	for i := 0; i < atkCount; i++ {
 
-		mudlog.Debug(`calculateCombat`, `Atk`, fmt.Sprintf(`%d/%d`, i+1, attackCount), `Source`, fmt.Sprintf(`%s (%s)`, sourceChar.Name, sourceType), `Target`, fmt.Sprintf(`%s (%s)`, targetChar.Name, targetType))
+		mudlog.Debug(`calculateCombat`, `Atk`, fmt.Sprintf(`%d/%d`, i+1, atkCount), `Source`, fmt.Sprintf(`%s (%s)`, sourceChar.Name, sourceType), `Target`, fmt.Sprintf(`%s (%s)`, targetChar.Name, targetType))
 
 		attackWeapons := resolveAttackWeapons(sourceChar)
 
 		dualWieldLevel := sourceChar.GetSkillLevel(skills.DualWield)
 
 		if len(attackWeapons) > 1 {
-
-			maxWeapons := 1
-			if dualWieldLevel == 1 {
-				maxWeapons = 1
-			}
-
-			if dualWieldLevel == 2 {
-
-				roll := util.Rand(100)
-
-				util.LogRoll(`Both Weapons`, roll, 50)
-
-				if roll < 50 {
-					maxWeapons = 2
-				}
-			}
-
-			if dualWieldLevel >= 3 {
-				maxWeapons = 2
-			}
-
-			// If two martial weapons are equipped, allow dual wielding even without the stat.
-			if sourceChar.Equipment.Weapon.GetSpec().Subtype == items.Claws && sourceChar.Equipment.Offhand.GetSpec().Subtype == items.Claws {
-				maxWeapons = 2
-			}
+			bothClaws := sourceChar.Equipment.Weapon.GetSpec().Subtype == items.Claws &&
+				sourceChar.Equipment.Offhand.GetSpec().Subtype == items.Claws
+			maxWeapons := dualWieldActiveWeaponCount(dualWieldLevel, bothClaws)
+			util.LogRoll(`Both Weapons`, maxWeapons, 2)
 
 			for len(attackWeapons) > maxWeapons {
-				// Remove a random position
 				rnd := util.Rand(len(attackWeapons))
 				attackWeapons = append(attackWeapons[:rnd], attackWeapons[rnd+1:]...)
 			}
-
 		}
 
 		attackMessagePrefix := ``
@@ -303,14 +279,9 @@ func calculateCombat(sourceChar characters.Character, targetChar characters.Char
 		for wIdx, weapon := range attackWeapons {
 
 			// Only the offhand weapon (index > 0) incurs a hit penalty for dual-wielding.
-			// The penalty is negative so Hits() subtracts it from the hit chance.
 			penalty := 0
 			if wIdx > 0 {
-				if dualWieldLevel < 4 {
-					penalty = -35 //35% penalty to hit
-				} else {
-					penalty = -25 //25% penalty to hit
-				}
+				penalty = dualWieldHitPenalty(dualWieldLevel)
 			}
 
 			// Set the default weapon info
@@ -363,24 +334,14 @@ func calculateCombat(sourceChar characters.Character, targetChar characters.Char
 					if isCrit {
 						attackResult.Crit = true // record that at least one crit occurred this round
 						attackResult.BuffTarget = critBuffs
-						attackTargetDamage += dCount*dSides + dBonus
+						attackTargetDamage += critDamageBonus(dCount, dSides, dBonus)
 					}
 				}
 
-				defenseAmt := util.Rand(targetChar.GetDefense())
-				if defenseAmt > 0 {
-					attackTargetReduction = int(math.Round((float64(defenseAmt) / 100) * float64(attackTargetDamage)))
-					attackTargetDamage -= attackTargetReduction
-				}
+				attackTargetDamage, attackTargetReduction = applyDefenseReduction(attackTargetDamage, targetChar.GetDefense())
 
-				// Calculate actual damage vs. possible damage pct
-				maxDmg := dCount*dSides + dBonus
-				if maxDmg < 1 {
-					maxDmg = 1
-				}
-				pctDamage := math.Ceil(float64(attackTargetDamage) / float64(maxDmg) * 100)
-
-				msgs := items.GetAttackMessage(weaponSubType, int(pctDamage))
+				pct := damagePercentOfMax(attackTargetDamage, dCount, dSides, dBonus)
+				msgs := items.GetAttackMessage(weaponSubType, pct)
 
 				toAttackerMsg, toDefenderMsg, toAttackerRoomMsg, toDefenderRoomMsg := buildCombatMessages(
 					&sourceChar, &targetChar, sourceType, targetType,
@@ -453,11 +414,7 @@ func calculateCombat(sourceChar characters.Character, targetChar characters.Char
 
 						attackTargetDamage := util.RollDice(pDCount, pDSides) + pDBonus
 
-						pDefenseAmt := util.Rand(targetChar.GetDefense())
-						if pDefenseAmt > 0 {
-							reduction := int(math.Round((float64(pDefenseAmt) / 100) * float64(attackTargetDamage)))
-							attackTargetDamage -= reduction
-						}
+						attackTargetDamage, _ = applyDefenseReduction(attackTargetDamage, targetChar.GetDefense())
 
 						attackResult.DamageToTarget += attackTargetDamage
 
@@ -479,71 +436,4 @@ func calculateCombat(sourceChar characters.Character, targetChar characters.Char
 	}
 	return attackResult
 
-}
-
-// hit chance will be between 30 and 100
-func hitChance(attackSpd, defendSpd int) int {
-	atkPlusDef := float64(attackSpd + defendSpd)
-	if atkPlusDef < 1 {
-		atkPlusDef = 1
-	}
-	return 30 + int(float64(attackSpd)/atkPlusDef*70)
-}
-
-// Chance to hit
-func Hits(attackSpd, defendSpd, hitModifier int) bool {
-	// Attack speeds affect 90% of the hit chance
-	toHit := hitChance(attackSpd, defendSpd)
-	if hitModifier != 0 {
-		toHit += hitModifier
-	}
-
-	// Always at leat a 5% chance
-	if toHit < 5 {
-		toHit = 5
-	}
-
-	// Always at most a 95% chance
-	if toHit > 95 {
-		toHit = 95
-	}
-	hitRoll := util.Rand(100)
-
-	util.LogRoll(`Hits`, hitRoll, toHit)
-
-	return hitRoll < toHit
-}
-
-// Whether they crit
-func Crits(sourceChar characters.Character, targetChar characters.Character) bool {
-
-	levelDiff := sourceChar.Level - targetChar.Level
-	if levelDiff < 1 {
-		levelDiff = 1
-	}
-	critChance := 5 + int(math.Round(float64(sourceChar.Stats.Strength.ValueAdj+sourceChar.Stats.Speed.ValueAdj)/float64(levelDiff)))
-
-	if sourceChar.HasBuffFlag(buffs.Accuracy) {
-		critChance *= 2
-	}
-
-	if targetChar.HasBuffFlag(buffs.Blink) {
-		critChance /= 2
-	}
-
-	// Minimum 5% chance
-	if critChance < 5 {
-		critChance = 5
-	}
-
-	// Maximum 75% chance
-	if critChance > 75 {
-		critChance = 75
-	}
-
-	critRoll := util.Rand(100)
-
-	util.LogRoll(`Crits`, critRoll, critChance)
-
-	return critRoll < critChance
 }
