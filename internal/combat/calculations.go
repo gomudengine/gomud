@@ -11,33 +11,44 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
-// expectedDPS computes the expected damage per round that attacker deals to defender,
-// mirroring the logic in calculateCombat without any randomness.
-func expectedDPS(atkChar characters.Character, defChar characters.Character) float64 {
-
-	// Attack count: speed differential gives extra attacks, floored at 1.
-	attackCount := int(math.Ceil(float64(atkChar.Stats.Speed.ValueAdj-defChar.Stats.Speed.ValueAdj) / 25))
-	if attackCount < 1 {
-		attackCount = 1
-	}
-	attackCount += atkChar.StatMod(`attacks`)
-	if attackCount < 1 {
-		attackCount = 1
-	}
-
-	statDmgBonus := atkChar.StatMod(`damage`)
-
-	// Determine weapons the attacker uses, mirroring getAttackWeapons logic.
+// resolveAttackWeapons returns the candidate weapon list for a character,
+// applying the same selection logic used by calculateCombat.
+// It does not trim for dual-wield skill — callers handle that themselves.
+func resolveAttackWeapons(char characters.Character) []items.Item {
 	attackWeapons := []items.Item{}
-	if atkChar.Equipment.Weapon.ItemId > 0 {
-		attackWeapons = append(attackWeapons, atkChar.Equipment.Weapon)
+	if char.Equipment.Weapon.ItemId > 0 {
+		attackWeapons = append(attackWeapons, char.Equipment.Weapon)
 	}
-	if atkChar.Equipment.Offhand.ItemId > 0 && atkChar.Equipment.Offhand.GetSpec().Type == items.Weapon {
-		attackWeapons = append(attackWeapons, atkChar.Equipment.Offhand)
+	if char.Equipment.Offhand.ItemId > 0 && char.Equipment.Offhand.GetSpec().Type == items.Weapon {
+		attackWeapons = append(attackWeapons, char.Equipment.Offhand)
 	}
 	if len(attackWeapons) == 0 {
 		attackWeapons = append(attackWeapons, items.Item{ItemId: 0})
 	}
+	return attackWeapons
+}
+
+// combatAttackCount returns the number of attack iterations for a combat round.
+func combatAttackCount(sourceChar characters.Character, targetChar characters.Character) int {
+	attackCount := int(math.Ceil(float64(sourceChar.Stats.Speed.ValueAdj-targetChar.Stats.Speed.ValueAdj) / 25))
+	if attackCount < 1 {
+		attackCount = 1
+	}
+	attackCount += sourceChar.StatMod(`attacks`)
+	if attackCount < 1 {
+		attackCount = 1
+	}
+	return attackCount
+}
+
+// mirroring the logic in calculateCombat without any randomness.
+func expectedDPS(atkChar characters.Character, defChar characters.Character) float64 {
+
+	attackCount := combatAttackCount(atkChar, defChar)
+
+	statDmgBonus := atkChar.StatMod(`damage`)
+
+	attackWeapons := resolveAttackWeapons(atkChar)
 
 	// Resolve dual-wield: use expected number of weapons per attack.
 	// At level 1 only one weapon fires; at level 2 50% chance for both; level 3+ always both.
