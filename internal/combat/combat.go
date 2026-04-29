@@ -119,7 +119,7 @@ func GetWaitMessages(stepType items.Intensity, sourceChar *characters.Character,
 
 	// zero means randomly selected, otherwise use the ItemId to consistently choose a message
 	msgSeed := 0
-	if configs.GetGamePlayConfig().ConsistentAttackMessages {
+	if configs.GetCombatConfig().ConsistentAttackMessages {
 		msgSeed = sourceChar.Equipment.Weapon.ItemId
 	}
 
@@ -244,8 +244,8 @@ func calculateCombat(sourceChar characters.Character, targetChar characters.Char
 
 	atkCount := combatAttackCount(sourceChar, targetChar)
 
-	// Statmods can add a damage bonus...
-	statModDBonus := sourceChar.StatMod(`damage`)
+	// Statmods can add a damage bonus plus the stat-driven damage bonus.
+	statModDBonus := sourceChar.StatMod(`damage`) + damageBonus(sourceChar.Stats.Strength.ValueAdj, targetChar.Stats.Strength.ValueAdj)
 
 	for i := 0; i < atkCount; i++ {
 
@@ -310,7 +310,7 @@ func calculateCombat(sourceChar characters.Character, targetChar characters.Char
 
 			// zero means randomly selected, otherwise use the ItemId to consistently choose a message
 			msgSeed := 0
-			if configs.GetGamePlayConfig().ConsistentAttackMessages {
+			if configs.GetCombatConfig().ConsistentAttackMessages {
 				msgSeed = weapon.ItemId
 			}
 
@@ -324,6 +324,12 @@ func calculateCombat(sourceChar characters.Character, targetChar characters.Char
 				isCrit := false
 
 				if Hits(sourceChar.Stats.Speed.ValueAdj, targetChar.Stats.Speed.ValueAdj, penalty) {
+					// Check dodge before applying damage.
+					if Dodges(targetChar.Stats.Perception.ValueAdj, sourceChar.Stats.Perception.ValueAdj) {
+						attackResult.SendToSource(fmt.Sprintf(`<ansi fg="cyan">%s dodges your attack!</ansi>`, targetChar.Name))
+						attackResult.SendToTarget(`<ansi fg="cyan">You dodge the attack!</ansi>`)
+						continue
+					}
 					attackResult.Hit = true
 					attackTargetDamage = util.RollDice(dCount, dSides) + dBonus
 
@@ -334,7 +340,8 @@ func calculateCombat(sourceChar characters.Character, targetChar characters.Char
 					if isCrit {
 						attackResult.Crit = true // record that at least one crit occurred this round
 						attackResult.BuffTarget = critBuffs
-						attackTargetDamage += critDamageBonus(dCount, dSides, dBonus)
+						attackTargetDamage += critDamageBonus(dCount, dSides, dBonus,
+							sourceChar.Stats.Perception.ValueAdj, targetChar.Stats.Perception.ValueAdj)
 					}
 				}
 

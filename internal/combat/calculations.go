@@ -5,6 +5,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/races"
@@ -12,6 +13,20 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
+
+// statDelta returns the fraction of the configured range that the attacker
+// earns over the defender, clamped to [0, 1].
+// Formula: clamp(max(0, atkStat - defStat), 0, 100) / 100
+func statDelta(atkStat, defStat int) float64 {
+	delta := float64(atkStat - defStat)
+	if delta < 0 {
+		delta = 0
+	}
+	if delta > 100 {
+		delta = 100
+	}
+	return delta / 100.0
+}
 
 // resolveAttackWeapons returns the candidate weapon list for a character,
 // applying the same selection logic used by calculateCombat.
@@ -30,50 +45,45 @@ func resolveAttackWeapons(char characters.Character) []items.Item {
 	return attackWeapons
 }
 
-// attackCount returns the number of attack iterations given raw stat values.
-func attackCount(atkSpd, defSpd, attacksMod int) int {
-	count := int(math.Ceil(float64(atkSpd-defSpd) / 25))
-	if count < 1 {
-		count = 1
+// damageBonus returns the flat bonus damage an attacker earns over a defender
+// based on the Strength stat delta and the configured bounds.
+func damageBonus(atkStr, defStr int) int {
+	cfg := configs.GetCombatConfig()
+	minBonus := int(cfg.DamageBonusMin)
+	maxBonus := int(cfg.DamageBonusMax)
+	actual := int(math.Floor(statDelta(atkStr, defStr) * float64(maxBonus)))
+	if actual < minBonus {
+		actual = minBonus
 	}
-	count += attacksMod
-	if count < 1 {
-		count = 1
-	}
-	return count
+	return actual
 }
 
-// combatAttackCount is a thin wrapper around attackCount that extracts the
-// required fields from full Character values, preserving existing call sites.
-func combatAttackCount(sourceChar characters.Character, targetChar characters.Character) int {
-	return attackCount(
-		sourceChar.Stats.Speed.ValueAdj,
-		targetChar.Stats.Speed.ValueAdj,
-		sourceChar.StatMod(`attacks`),
-	)
-}
-
-// hitChance returns a hit probability in the range [30, 100] based on speeds.
-func hitChance(attackSpd, defendSpd int) int {
-	atkPlusDef := float64(attackSpd + defendSpd)
-	if atkPlusDef < 1 {
-		atkPlusDef = 1
+// hitChance returns a hit probability in [ToHitMin, ToHitMax] based on the
+// Speed stat delta between attacker and defender.
+func hitChance(atkSpd, defSpd int) int {
+	cfg := configs.GetCombatConfig()
+	minHit := int(cfg.ToHitMin)
+	maxHit := int(cfg.ToHitMax)
+	actual := int(math.Floor(statDelta(atkSpd, defSpd) * float64(maxHit)))
+	if actual < minHit {
+		actual = minHit
 	}
-	return 30 + int(float64(attackSpd)/atkPlusDef*70)
+	return actual
 }
 
 // Hits returns whether an attack connects, incorporating an optional modifier.
-func Hits(attackSpd, defendSpd, hitModifier int) bool {
-	toHit := hitChance(attackSpd, defendSpd)
-	if hitModifier != 0 {
-		toHit += hitModifier
-	}
+func Hits(atkSpd, defSpd, hitModifier int) bool {
+	toHit := hitChance(atkSpd, defSpd)
+	toHit += hitModifier
 
-	if toHit < 5 {
-		toHit = 5
+	cfg := configs.GetCombatConfig()
+	minHit := int(cfg.ToHitMin)
+	maxHit := int(cfg.ToHitMax)
+	if toHit < minHit {
+		toHit = minHit
 	}
-	if toHit > 95 {
-		toHit = 95
+	if toHit > maxHit {
+		toHit = maxHit
 	}
 
 	hitRoll := util.Rand(100)
@@ -81,40 +91,129 @@ func Hits(attackSpd, defendSpd, hitModifier int) bool {
 	return hitRoll < toHit
 }
 
-// critChance returns the integer crit probability (0-100) given attacker stats
-// and optional buff flags. It does not perform a roll.
-func critChance(atkStr, atkSpd, levelDiff int, hasAccuracy, targetHasBlink bool) int {
-	if levelDiff < 1 {
-		levelDiff = 1
+// extraAttackCount returns the number of bonus attacks for weaponless/claws
+// combat based on the Speed stat delta and the configured bounds.
+func extraAttackCount(atkSpd, defSpd int) int {
+	cfg := configs.GetCombatConfig()
+	minExtra := int(cfg.ExtraAttacksMin)
+	maxExtra := int(cfg.ExtraAttacksMax)
+	actual := int(math.Floor(statDelta(atkSpd, defSpd) * float64(maxExtra)))
+	if actual < minExtra {
+		actual = minExtra
 	}
-	chance := 5 + int(math.Round(float64(atkStr+atkSpd)/float64(levelDiff)))
+	return actual
+}
+
+// weaponlessAttackCount returns the total attack count (1 base + extra) for
+// unarmed or claws combat.
+func weaponlessAttackCount(atkSpd, defSpd, attacksMod int) int {
+	count := 1 + extraAttackCount(atkSpd, defSpd)
+	count += attacksMod
+	if count < 1 {
+		count = 1
+	}
+	return count
+}
+
+// combatAttackCount returns the attack count for the round. For weaponless or
+// claws attacks the extra-attack formula applies; armed attacks always yield 1.
+func combatAttackCount(sourceChar characters.Character, targetChar characters.Character) int {
+	weapons := resolveAttackWeapons(sourceChar)
+	isWeaponless := len(weapons) == 1 && weapons[0].ItemId == 0
+	isClaws := len(weapons) == 1 && weapons[0].ItemId > 0 && weapons[0].GetSpec().Subtype == items.Claws
+
+	if isWeaponless || isClaws {
+		return weaponlessAttackCount(
+			sourceChar.Stats.Speed.ValueAdj,
+			targetChar.Stats.Speed.ValueAdj,
+			sourceChar.StatMod(`attacks`),
+		)
+	}
+	return 1
+}
+
+// critChance returns the integer crit probability in [CritChanceMin,
+// CritChanceMax] based on the Smarts stat delta. Buff flags are applied after.
+func critChance(atkSmarts, defSmarts int, hasAccuracy, targetHasBlink bool) int {
+	cfg := configs.GetCombatConfig()
+	minChance := int(cfg.CritChanceMin)
+	maxChance := int(cfg.CritChanceMax)
+	actual := int(math.Floor(statDelta(atkSmarts, defSmarts) * float64(maxChance)))
+	if actual < minChance {
+		actual = minChance
+	}
 	if hasAccuracy {
-		chance *= 2
+		actual *= 2
 	}
 	if targetHasBlink {
-		chance /= 2
+		actual /= 2
 	}
-	if chance < 5 {
-		chance = 5
+	if actual < minChance {
+		actual = minChance
 	}
-	if chance > 75 {
-		chance = 75
+	if actual > 100 {
+		actual = 100
 	}
-	return chance
+	return actual
 }
 
 // Crits rolls whether an attack is a critical hit.
 func Crits(sourceChar characters.Character, targetChar characters.Character) bool {
 	chance := critChance(
-		sourceChar.Stats.Strength.ValueAdj,
-		sourceChar.Stats.Speed.ValueAdj,
-		sourceChar.Level-targetChar.Level,
+		sourceChar.Stats.Smarts.ValueAdj,
+		targetChar.Stats.Smarts.ValueAdj,
 		sourceChar.HasBuffFlag(buffs.Accuracy),
 		targetChar.HasBuffFlag(buffs.Blink),
 	)
 	critRoll := util.Rand(100)
 	util.LogRoll(`Crits`, critRoll, chance)
 	return critRoll < chance
+}
+
+// critMultiplier returns the damage multiplier for a critical hit in
+// [CritMultMin, CritMultMax] based on the Perception stat delta.
+func critMultiplier(atkPerc, defPerc int) float64 {
+	cfg := configs.GetCombatConfig()
+	minMult := float64(cfg.CritMultMin)
+	maxMult := float64(cfg.CritMultMax)
+	actual := statDelta(atkPerc, defPerc) * maxMult
+	if actual < minMult {
+		actual = minMult
+	}
+	return actual
+}
+
+// critDamageBonus returns the extra damage added to a hit that is a critical,
+// scaled by the attacker's crit multiplier relative to the defender.
+func critDamageBonus(dCount, dSides, dBonus, atkPerc, defPerc int) int {
+	base := dCount*dSides + dBonus
+	if base < 0 {
+		base = 0
+	}
+	mult := critMultiplier(atkPerc, defPerc)
+	return int(math.Floor(float64(base) * (mult - 1.0)))
+}
+
+// dodgeChance returns the probability in [DodgeChanceMin, DodgeChanceMax] that
+// the defender dodges an incoming hit, based on the defender's Perception
+// advantage over the attacker.
+func dodgeChance(defPerc, atkPerc int) int {
+	cfg := configs.GetCombatConfig()
+	minDodge := int(cfg.DodgeChanceMin)
+	maxDodge := int(cfg.DodgeChanceMax)
+	actual := int(math.Floor(statDelta(defPerc, atkPerc) * float64(maxDodge)))
+	if actual < minDodge {
+		actual = minDodge
+	}
+	return actual
+}
+
+// Dodges returns true when the defender successfully dodges an attack.
+func Dodges(defPerc, atkPerc int) bool {
+	chance := dodgeChance(defPerc, atkPerc)
+	roll := util.Rand(100)
+	util.LogRoll(`Dodges`, roll, chance)
+	return roll < chance
 }
 
 // dualWieldHitPenalty returns the negative hit modifier applied to the offhand
@@ -139,11 +238,6 @@ func dualWieldActiveWeaponCount(dwLevel int, bothClaws bool) int {
 		return 1
 	}
 	return 1
-}
-
-// critDamageBonus returns the extra damage added to a hit that is a critical.
-func critDamageBonus(dCount, dSides, dBonus int) int {
-	return dCount*dSides + dBonus
 }
 
 // applyDefenseReduction applies a stochastic defense roll to incoming damage,
@@ -196,11 +290,11 @@ func chanceToTame(
 	targetIsAggro bool,
 ) int {
 	const (
-		modSkillMin       = 1
-		modSkillMax       = 100
-		modLevelDiffMin   = -25
-		modLevelDiffMax   = 25
-		factorIsAggro     = 0.50
+		modSkillMin     = 1
+		modSkillMax     = 100
+		modLevelDiffMin = -25
+		modLevelDiffMax = 25
+		factorIsAggro   = 0.50
 	)
 
 	if proficiency < modSkillMin {
@@ -303,7 +397,7 @@ func expectedDPS(atkChar characters.Character, defChar characters.Character) flo
 
 	atkCount := combatAttackCount(atkChar, defChar)
 
-	statDmgBonus := atkChar.StatMod(`damage`)
+	statDmgBonus := damageBonus(atkChar.Stats.Strength.ValueAdj, defChar.Stats.Strength.ValueAdj)
 
 	attackWeapons := resolveAttackWeapons(atkChar)
 
@@ -327,13 +421,8 @@ func expectedDPS(atkChar characters.Character, defChar characters.Character) flo
 		}
 	}
 
+	// hitChance already enforces [ToHitMin, ToHitMax].
 	hitPct := float64(hitChance(atkChar.Stats.Speed.ValueAdj, defChar.Stats.Speed.ValueAdj)) / 100.0
-	if hitPct < 0.05 {
-		hitPct = 0.05
-	}
-	if hitPct > 0.95 {
-		hitPct = 0.95
-	}
 
 	dwLevel := atkChar.GetSkillLevel(skills.DualWield)
 	dwPenalty := 0.0
@@ -341,14 +430,25 @@ func expectedDPS(atkChar characters.Character, defChar characters.Character) flo
 		dwPenalty = float64(-dualWieldHitPenalty(dwLevel)) / 100.0
 	}
 
+	cfg := configs.GetCombatConfig()
+	minHitPct := float64(cfg.ToHitMin) / 100.0
+
 	critPct := float64(critChance(
-		atkChar.Stats.Strength.ValueAdj,
-		atkChar.Stats.Speed.ValueAdj,
-		atkChar.Level-defChar.Level,
+		atkChar.Stats.Smarts.ValueAdj,
+		defChar.Stats.Smarts.ValueAdj,
 		false,
 		false,
 	)) / 100.0
 
+	// A hit that lands is still negated if the defender dodges.
+	// Expected damage probability per attack = hitPct * (1 - dodgePct).
+	dodgePct := float64(dodgeChance(
+		defChar.Stats.Perception.ValueAdj,
+		atkChar.Stats.Perception.ValueAdj,
+	)) / 100.0
+
+	// Defense reduces damage by an expected fraction of defenseRating/200
+	// (average of a uniform roll over [0, defenseRating) divided by 100).
 	defenseFraction := float64(defChar.GetDefense()) / 200.0
 	if defenseFraction > 0.95 {
 		defenseFraction = 0.95
@@ -377,12 +477,16 @@ func expectedDPS(atkChar characters.Character, defChar characters.Character) flo
 				avgDmg = 0
 			}
 
-			critBonus := float64(critDamageBonus(dCount, dSides, dBonus)) * critPct
+			critBonusAmt := float64(critDamageBonus(dCount, dSides, dBonus,
+				atkChar.Stats.Perception.ValueAdj, defChar.Stats.Perception.ValueAdj))
+			critBonus := critBonusAmt * critPct
 
 			effHit := hitPct
 			if wIdx > 0 {
-				effHit = math.Max(0.05, hitPct-dwPenalty)
+				effHit = math.Max(minHitPct, hitPct-dwPenalty)
 			}
+			// Subtract the expected fraction of hits that get dodged.
+			effHit *= (1.0 - dodgePct)
 
 			rawDmg := (avgDmg + critBonus) * effHit
 			netDmg := rawDmg * (1.0 - defenseFraction)

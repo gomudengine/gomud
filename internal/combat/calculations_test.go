@@ -59,39 +59,61 @@ func TestAlignmentChange(t *testing.T) {
 	}
 }
 
-func TestAttackCount(t *testing.T) {
+// TestStatDelta verifies the clamped fractional delta helper.
+func TestStatDelta(t *testing.T) {
 	tests := []struct {
-		atkSpd     int
-		defSpd     int
-		attacksMod int
-		want       int
+		atk, def int
+		want     float64
 	}{
-		{50, 50, 0, 1},  // equal speed -> ceil(0/25)=0, floor to 1
-		{75, 50, 0, 1},  // diff=25 -> ceil(25/25)=1
-		{100, 50, 0, 2}, // diff=50 -> ceil(50/25)=2
-		{50, 100, 0, 1}, // negative diff -> floor to 1
-		{100, 50, 1, 3}, // 2 + attacksMod=1
-		{50, 50, -5, 1}, // 1 + (-5) = -4 -> floor to 1
+		{100, 0, 1.0}, // full advantage
+		{0, 100, 0.0}, // no advantage
+		{50, 0, 0.5},  // half
+		{0, 0, 0.0},   // equal
+		{200, 0, 1.0}, // clamped at 1
+		{50, 50, 0.0}, // equal stats
+		{75, 25, 0.5}, // 50 delta
 	}
 	for _, tt := range tests {
-		got := attackCount(tt.atkSpd, tt.defSpd, tt.attacksMod)
-		if got != tt.want {
-			t.Errorf("attackCount(%d, %d, %d) = %d; want %d", tt.atkSpd, tt.defSpd, tt.attacksMod, got, tt.want)
+		got := statDelta(tt.atk, tt.def)
+		if math.Abs(got-tt.want) > 1e-9 {
+			t.Errorf("statDelta(%d, %d) = %g; want %g", tt.atk, tt.def, got, tt.want)
 		}
 	}
 }
 
+// TestDamageBonus verifies damage bonus uses Strength delta and config bounds.
+// Default config: min=0, max=10.
+func TestDamageBonus(t *testing.T) {
+	tests := []struct {
+		atkStr, defStr int
+		wantMin        int
+		wantMax        int
+	}{
+		{0, 0, 0, 0},     // equal -> 0
+		{100, 0, 10, 10}, // full delta -> max (10)
+		{50, 0, 5, 5},    // half delta -> 5
+		{0, 100, 0, 0},   // no advantage -> min (0)
+	}
+	for _, tt := range tests {
+		got := damageBonus(tt.atkStr, tt.defStr)
+		if got < tt.wantMin || got > tt.wantMax {
+			t.Errorf("damageBonus(%d, %d) = %d; want [%d, %d]", tt.atkStr, tt.defStr, got, tt.wantMin, tt.wantMax)
+		}
+	}
+}
+
+// TestHitChance verifies hit chance uses Speed delta and config bounds.
+// Default config: min=25, max=100.
 func TestHitChance(t *testing.T) {
 	tests := []struct {
-		atkSpd  int
-		defSpd  int
-		wantMin int
-		wantMax int
+		atkSpd, defSpd int
+		wantMin        int
+		wantMax        int
 	}{
-		{0, 0, 30, 100},   // zero speeds: atkPlusDef clamped to 1, result = 30 + 0 = 30
-		{100, 0, 100, 100}, // attacker dominates: 30 + 70 = 100
-		{0, 100, 30, 30},   // defender dominates: 30 + 0 = 30
-		{50, 50, 65, 65},   // equal: 30 + 35 = 65
+		{0, 0, 25, 25},     // equal -> min (25)
+		{100, 0, 100, 100}, // full advantage -> max (100)
+		{50, 0, 50, 50},    // half delta -> floor(0.5*100)=50
+		{0, 100, 25, 25},   // no advantage -> min (25)
 	}
 	for _, tt := range tests {
 		got := hitChance(tt.atkSpd, tt.defSpd)
@@ -101,35 +123,145 @@ func TestHitChance(t *testing.T) {
 	}
 }
 
-func TestCritChance(t *testing.T) {
+// TestExtraAttackCount verifies extra attacks use Speed delta and config bounds.
+// Default config: min=0, max=3.
+func TestExtraAttackCount(t *testing.T) {
 	tests := []struct {
-		atkStr         int
-		atkSpd         int
-		levelDiff      int
-		hasAccuracy    bool
-		targetHasBlink bool
-		want           int
+		atkSpd, defSpd int
+		wantMin        int
+		wantMax        int
 	}{
-		// base: 5 + round((10+10)/1) = 25, no flags
-		{10, 10, 1, false, false, 25},
-		// accuracy doubles: 25*2 = 50
-		{10, 10, 1, true, false, 50},
-		// blink halves: 25/2 = 12
-		{10, 10, 1, false, true, 12},
-		// both: 25*2/2 = 25
-		{10, 10, 1, true, true, 25},
-		// clamp min: very low stats
-		{0, 0, 100, false, false, 5},
-		// clamp max: very high stats
-		{1000, 1000, 1, false, false, 75},
-		// levelDiff < 1 clamped to 1
-		{10, 10, -5, false, false, 25},
+		{0, 0, 0, 0},   // equal -> 0
+		{100, 0, 3, 3}, // full delta -> 3
+		{50, 0, 1, 2},  // half delta -> floor(0.5*3)=1
+		{0, 100, 0, 0}, // no advantage -> 0
 	}
 	for _, tt := range tests {
-		got := critChance(tt.atkStr, tt.atkSpd, tt.levelDiff, tt.hasAccuracy, tt.targetHasBlink)
-		if got != tt.want {
-			t.Errorf("critChance(%d, %d, %d, %v, %v) = %d; want %d",
-				tt.atkStr, tt.atkSpd, tt.levelDiff, tt.hasAccuracy, tt.targetHasBlink, got, tt.want)
+		got := extraAttackCount(tt.atkSpd, tt.defSpd)
+		if got < tt.wantMin || got > tt.wantMax {
+			t.Errorf("extraAttackCount(%d, %d) = %d; want [%d, %d]", tt.atkSpd, tt.defSpd, got, tt.wantMin, tt.wantMax)
+		}
+	}
+}
+
+// TestWeaponlessAttackCount verifies total weaponless attack count.
+func TestWeaponlessAttackCount(t *testing.T) {
+	tests := []struct {
+		atkSpd, defSpd, mod int
+		wantMin             int
+		wantMax             int
+	}{
+		{0, 0, 0, 1, 1},   // 1 base + 0 extra
+		{100, 0, 0, 4, 4}, // 1 base + 3 extra
+		{0, 0, -5, 1, 1},  // floored to 1
+		{100, 0, 1, 5, 5}, // 1 + 3 + 1 mod
+	}
+	for _, tt := range tests {
+		got := weaponlessAttackCount(tt.atkSpd, tt.defSpd, tt.mod)
+		if got < tt.wantMin || got > tt.wantMax {
+			t.Errorf("weaponlessAttackCount(%d, %d, %d) = %d; want [%d, %d]",
+				tt.atkSpd, tt.defSpd, tt.mod, got, tt.wantMin, tt.wantMax)
+		}
+	}
+}
+
+// TestCritChance verifies crit chance uses Smarts delta and config bounds.
+// Default config: min=5, max=30.
+func TestCritChance(t *testing.T) {
+	tests := []struct {
+		atkSmarts, defSmarts int
+		hasAccuracy          bool
+		targetHasBlink       bool
+		wantMin              int
+		wantMax              int
+	}{
+		{0, 0, false, false, 5, 5},     // equal -> min (5)
+		{100, 0, false, false, 30, 30}, // full delta -> max (30)
+		{50, 0, false, false, 15, 15},  // half delta -> floor(0.5*30)=15
+		{0, 100, false, false, 5, 5},   // no advantage -> min (5)
+		// accuracy doubles, capped at 100
+		{100, 0, true, false, 60, 60},
+		// blink halves
+		{100, 0, false, true, 15, 15},
+		// both: 30*2/2 = 30
+		{100, 0, true, true, 30, 30},
+		// min enforced after blink
+		{0, 0, false, true, 5, 5},
+	}
+	for _, tt := range tests {
+		got := critChance(tt.atkSmarts, tt.defSmarts, tt.hasAccuracy, tt.targetHasBlink)
+		if got < tt.wantMin || got > tt.wantMax {
+			t.Errorf("critChance(%d, %d, %v, %v) = %d; want [%d, %d]",
+				tt.atkSmarts, tt.defSmarts, tt.hasAccuracy, tt.targetHasBlink, got, tt.wantMin, tt.wantMax)
+		}
+	}
+}
+
+// TestCritMultiplier verifies crit multiplier uses Perception delta.
+// Default config: min=1.5, max=3.0.
+func TestCritMultiplier(t *testing.T) {
+	tests := []struct {
+		atkPerc, defPerc int
+		wantMin          float64
+		wantMax          float64
+	}{
+		{0, 0, 1.5, 1.5},   // equal -> min (1.5)
+		{100, 0, 3.0, 3.0}, // full delta -> max (3.0)
+		{50, 0, 1.5, 1.5},  // half delta -> 0.5*3=1.5 (equals min)
+		{0, 100, 1.5, 1.5}, // no advantage -> min (1.5)
+	}
+	for _, tt := range tests {
+		got := critMultiplier(tt.atkPerc, tt.defPerc)
+		if got < tt.wantMin-1e-9 || got > tt.wantMax+1e-9 {
+			t.Errorf("critMultiplier(%d, %d) = %g; want [%g, %g]",
+				tt.atkPerc, tt.defPerc, got, tt.wantMin, tt.wantMax)
+		}
+	}
+}
+
+// TestCritDamageBonus verifies the crit bonus scales with the multiplier.
+func TestCritDamageBonus(t *testing.T) {
+	tests := []struct {
+		dCount, dSides, dBonus int
+		atkPerc, defPerc       int
+		wantMin                int
+		wantMax                int
+	}{
+		// base=12, mult=1.5 -> bonus = floor(12*(1.5-1)) = floor(6) = 6
+		{2, 6, 0, 0, 0, 6, 6},
+		// base=12, mult=3.0 -> bonus = floor(12*(3.0-1)) = floor(24) = 24
+		{2, 6, 0, 100, 0, 24, 24},
+		// base=0, any -> 0
+		{0, 0, 0, 100, 0, 0, 0},
+		// negative base clamped to 0
+		{1, 4, -10, 0, 0, 0, 0},
+	}
+	for _, tt := range tests {
+		got := critDamageBonus(tt.dCount, tt.dSides, tt.dBonus, tt.atkPerc, tt.defPerc)
+		if got < tt.wantMin || got > tt.wantMax {
+			t.Errorf("critDamageBonus(%d,%d,%d,%d,%d) = %d; want [%d, %d]",
+				tt.dCount, tt.dSides, tt.dBonus, tt.atkPerc, tt.defPerc, got, tt.wantMin, tt.wantMax)
+		}
+	}
+}
+
+// TestDodgeChance verifies dodge chance uses Perception delta and config bounds.
+// Default config: min=5, max=30.
+func TestDodgeChance(t *testing.T) {
+	tests := []struct {
+		defPerc, atkPerc int
+		wantMin          int
+		wantMax          int
+	}{
+		{0, 0, 5, 5},     // equal -> min (5)
+		{100, 0, 30, 30}, // full advantage -> max (30)
+		{0, 100, 5, 5},   // no advantage -> min (5)
+		{50, 0, 15, 15},  // half delta -> floor(0.5*30)=15
+	}
+	for _, tt := range tests {
+		got := dodgeChance(tt.defPerc, tt.atkPerc)
+		if got < tt.wantMin || got > tt.wantMax {
+			t.Errorf("dodgeChance(%d, %d) = %d; want [%d, %d]", tt.defPerc, tt.atkPerc, got, tt.wantMin, tt.wantMax)
 		}
 	}
 }
@@ -176,7 +308,6 @@ func TestDualWieldActiveWeaponCount(t *testing.T) {
 	}
 
 	// Probabilistic case: dwLevel == 2, bothClaws == false should return 1 or 2
-	// Run enough iterations to verify both outcomes occur.
 	saw1, saw2 := false, false
 	for i := 0; i < 200; i++ {
 		v := dualWieldActiveWeaponCount(2, false)
@@ -193,24 +324,6 @@ func TestDualWieldActiveWeaponCount(t *testing.T) {
 	}
 	if !saw1 || !saw2 {
 		t.Errorf("dualWieldActiveWeaponCount(2, false) did not produce both 1 and 2 over 200 iterations")
-	}
-}
-
-func TestCritDamageBonus(t *testing.T) {
-	tests := []struct {
-		dCount, dSides, dBonus int
-		want                   int
-	}{
-		{2, 6, 3, 15},  // 2*6+3
-		{1, 8, 0, 8},   // 1*8+0
-		{3, 4, -2, 10}, // 3*4-2
-		{0, 0, 5, 5},   // 0*0+5
-	}
-	for _, tt := range tests {
-		got := critDamageBonus(tt.dCount, tt.dSides, tt.dBonus)
-		if got != tt.want {
-			t.Errorf("critDamageBonus(%d, %d, %d) = %d; want %d", tt.dCount, tt.dSides, tt.dBonus, got, tt.want)
-		}
 	}
 }
 
@@ -281,7 +394,7 @@ func TestTameHealthBonus(t *testing.T) {
 		{100, 100, 0},
 		{50, 100, 25},
 		{1, 100, 49},
-		{0, 100, 50}, // math.Ceil(0) = 0, so 50-0=50; but division by zero risk handled by caller
+		{0, 100, 50},
 	}
 	for _, tt := range correctTests {
 		got := tameHealthBonus(tt.currentHP, tt.maxHP)
@@ -302,23 +415,14 @@ func TestChanceToTame(t *testing.T) {
 		wantMin       int
 		wantMax       int
 	}{
-		// High proficiency, level advantage, full HP, medium size, not aggro
 		{100, 10, 100, 100, races.Medium, false, 100, 110},
-		// Low proficiency, level disadvantage, full HP, medium size, not aggro
 		{1, -25, 100, 100, races.Medium, false, -34, -33},
-		// Aggro halves the result (round up via Ceil)
 		{50, 0, 100, 100, races.Medium, true, 20, 21},
-		// Large size penalty
 		{50, 0, 100, 100, races.Large, false, 25, 25},
-		// Small size no penalty
 		{50, 0, 100, 100, races.Small, false, 50, 50},
-		// Proficiency clamped at min=1
 		{-10, 0, 100, 100, races.Medium, false, -9, -9},
-		// Proficiency clamped at max=100
 		{200, 0, 100, 100, races.Medium, false, 90, 90},
-		// levelDiff clamped at max=25
 		{50, 100, 100, 100, races.Medium, false, 65, 65},
-		// levelDiff clamped at min=-25
 		{50, -100, 100, 100, races.Medium, false, 15, 15},
 	}
 	for _, tt := range tests {
