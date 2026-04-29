@@ -131,7 +131,7 @@ func statWeight(statName string) float64 {
 		}
 		return dodgeRange
 	case string(statmods.Damage):
-		// flat damage per hit — weight 1:1 with HP
+		// flat damage per hit - weight 1:1 with HP
 		return 1.0
 	case string(statmods.Attacks):
 		// extra attack per round; proxy average weapon DPS contribution

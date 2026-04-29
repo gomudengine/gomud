@@ -117,7 +117,7 @@ func RankWeapons() (byDPS, byAdjDPS, byMaxDmg []WeaponRank) {
 
 		dps := expectedDPS(attacker, defender)
 
-		// DPR: raw average damage per round if every attack connects —
+		// DPR: raw average damage per round if every attack connects -
 		// no hit-chance, dodge, or defense reduction applied.
 		// Uses the same attack count the combat engine would use.
 		atkCount := combatAttackCount(attacker, defender)

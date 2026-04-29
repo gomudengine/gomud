@@ -17,7 +17,7 @@ func TestTryRoomCommand_NilRoom_DoesNotPanic(t *testing.T) {
 		UserId:   77777,
 		Username: "testplayer",
 		Character: &characters.Character{
-			RoomId: 999999, // This room does not exist — LoadRoom returns nil
+			RoomId: 999999, // This room does not exist - LoadRoom returns nil
 		},
 	}
 	users.SetTestUser(u)

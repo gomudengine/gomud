@@ -61,7 +61,7 @@ func (g *GMCPRoomModule) itemOwnershipHandler(e events.Event) events.ListenerRet
 		return events.Continue
 	}
 
-	// Only care about player ownership changes — look up their room
+	// Only care about player ownership changes - look up their room
 	if evt.UserId == 0 {
 		return events.Continue
 	}

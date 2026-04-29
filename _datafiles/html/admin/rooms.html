@@ -743,7 +743,7 @@
         renderIdleMsgs('idle-list', r.IdleMessages || []);
         renderNouns(r.Nouns || {});
 
-        // Script — ScriptEditor.init returns a plain sync function
+        // Script - ScriptEditor.init returns a plain sync function
         setVal('f-script', script);
         if (scriptSync) scriptSync();
         // Reset toggle state
@@ -1275,14 +1275,14 @@
     function buildSpawnHeaderSummary(s, type) {
         if (type === 'mob') {
             const name = s.Name || s._mobName || (s.MobId ? 'Mob #' + s.MobId : 'No mob selected');
-            return name + (s.RespawnRate ? '  —  ' + s.RespawnRate : '');
+            return name + (s.RespawnRate ? '  -  ' + s.RespawnRate : '');
         }
         const parts = [];
         if (s.ItemId) parts.push('Item #' + s.ItemId);
         if (s.Gold) parts.push(s.Gold + ' gold');
         if (!parts.length) parts.push('Empty spawn');
         if (s.RespawnRate) parts.push(s.RespawnRate);
-        return parts.join('  —  ');
+        return parts.join('  -  ');
     }
 
     function renderSpawnBuffChips(buffIds) {

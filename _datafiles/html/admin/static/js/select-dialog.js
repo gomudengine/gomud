@@ -1,4 +1,4 @@
-// SelectDialog — reusable search-and-select modal for admin pages.
+// SelectDialog - reusable search-and-select modal for admin pages.
 //
 // Usage (single select):
 //   SelectDialog.open({

@@ -92,7 +92,7 @@ func ChangeForm(rest string, user *users.UserRecord, room *rooms.Room, flags eve
 	events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: skills.ChangeForm})
 
 	user.SendText(
-		fmt.Sprintf(`Your body twists and reshapes — you are now a <ansi fg="race">%s</ansi>!`, raceInfo.Name),
+		fmt.Sprintf(`Your body twists and reshapes - you are now a <ansi fg="race">%s</ansi>!`, raceInfo.Name),
 	)
 	room.SendText(
 		fmt.Sprintf(`<ansi fg="username">%s</ansi> transforms before your eyes into a <ansi fg="race">%s</ansi>!`, user.Character.Name, raceInfo.Name),

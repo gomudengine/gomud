@@ -145,7 +145,7 @@
 <h1>Weapon Rankings</h1>
 <p class="subtitle">
     Combat-engine rankings for all loaded weapons against a neutral equal-stat opponent.
-    Scores reflect <em>expected</em> output — no randomness. See <a href="/admin/items-api">Items API Docs</a> for the raw endpoint.
+    Scores reflect <em>expected</em> output - no randomness.
 </p>
 
 <div id="statusBar" class="status-bar"></div>
@@ -267,7 +267,7 @@
         var labelMap = { dps: 'Raw DPS', adj: 'Adj DPS', maxdmg: 'Max Dmg' };
         document.getElementById('scoreLabel').textContent = labelMap[v];
         var tipMap = {
-            dps:    'Average damage per round against an equal-stat opponent. No stat bonuses, no randomness — pure weapon output.',
+            dps:    'Average damage per round against an equal-stat opponent. No stat bonuses, no randomness - pure weapon output.',
             adj:    'Raw DPS with opportunity-cost penalties applied: ×0.75 for two-handed weapons (lost offhand slot) and ÷(1+W) for wait rounds. Use this to compare weapons across hand categories.',
             maxdmg: 'Highest possible damage from a single hit: (attacks × diceCount × diceSides) + bonus. The average is shown in parentheses.'
         };
@@ -405,7 +405,7 @@
     (function() {
         var tip = document.getElementById('tooltip');
         var SCORE_TIPS = {
-            dps:    'Average damage per round against an equal-stat opponent. No stat bonuses, no randomness — pure weapon output.',
+            dps:    'Average damage per round against an equal-stat opponent. No stat bonuses, no randomness - pure weapon output.',
             adj:    'Raw DPS with opportunity-cost penalties applied: ×0.75 for two-handed weapons (lost offhand slot) and ÷(1+W) for wait rounds. Use this to compare weapons across hand categories.',
             maxdmg: 'Highest possible damage from a single hit: (attacks × diceCount × diceSides) + bonus. The average is shown in parentheses.'
         };
@@ -413,7 +413,7 @@
         // seed the score header tip for the initial view
         document.getElementById('scoreHeader').dataset.tip = SCORE_TIPS['dps'];
 
-        // header tooltips — static elements, attach directly
+        // header tooltips - static elements, attach directly
         document.querySelectorAll('.rank-table th[data-tip]').forEach(function(th) {
             th.addEventListener('mouseenter', function(e) {
                 var text = th.dataset.tip;
@@ -426,7 +426,7 @@
             th.addEventListener('mouseleave', hideTip);
         });
 
-        // row score-cell tooltips — tbody is rebuilt on every render,
+        // row score-cell tooltips - tbody is rebuilt on every render,
         // so use event delegation on the table instead
         var tbody = document.getElementById('rankBody');
         tbody.addEventListener('mouseover', function(e) {

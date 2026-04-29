@@ -68,10 +68,10 @@
         <div class="api-body">
             <p>Appends a new message to the specified subtype, intensity, proximity, and target. The message is saved to the YAML file immediately.</p>
             <p><strong>Path parameters:</strong></p>
-            <p><code>subtype</code> — weapon subtype (e.g. claws, slashing, generic).<br>
-               <code>intensity</code> — one of: prepare, wait, miss, weak, normal, heavy, critical.<br>
-               <code>proximity</code> — <code>together</code> (same room) or <code>separate</code> (different rooms).<br>
-               <code>target</code> — message audience. Together: toattacker, todefender, toroom. Separate: toattacker, todefender, toattackerroom, todefenderroom.</p>
+            <p><code>subtype</code> - weapon subtype (e.g. claws, slashing, generic).<br>
+               <code>intensity</code> - one of: prepare, wait, miss, weak, normal, heavy, critical.<br>
+               <code>proximity</code> - <code>together</code> (same room) or <code>separate</code> (different rooms).<br>
+               <code>target</code> - message audience. Together: toattacker, todefender, toroom. Separate: toattacker, todefender, toattackerroom, todefenderroom.</p>
             <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
      <span class="flag">-X</span> <span class="kw">PUT</span> \
      <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
@@ -98,7 +98,7 @@
         </summary>
         <div class="api-body">
             <p>Removes the message at the given zero-based index from the specified location. The change is saved to the YAML file immediately.</p>
-            <p><strong>Path parameters:</strong> Same as PUT, plus <code>index</code> — zero-based position of the message to delete.</p>
+            <p><strong>Path parameters:</strong> Same as PUT, plus <code>index</code> - zero-based position of the message to delete.</p>
             <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
      <span class="flag">-X</span> <span class="kw">DELETE</span> \
      <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/items/attack-messages/claws/normal/together/toattacker/2</span></div>
@@ -108,11 +108,11 @@
                     <div class="resp-body"><div class="curl-block">{"success":true}</div></div>
                 </details>
                 <details class="resp-entry">
-                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request — invalid index</span></summary>
+                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request - invalid index</span></summary>
                     <div class="resp-body"><div class="curl-block">{"success":false,"error":"index 99 out of range (length 3)"}</div></div>
                 </details>
                 <details class="resp-entry">
-                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request — unknown subtype</span></summary>
+                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request - unknown subtype</span></summary>
                     <div class="resp-body"><div class="curl-block">{"success":false,"error":"unknown subtype: invalid"}</div></div>
                 </details>
             </div>

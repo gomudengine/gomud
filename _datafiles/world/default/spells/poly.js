@@ -48,13 +48,13 @@ function onMagic(sourceActor, targetActor) {
 
         SendUserMessage(targetUserId,
             sourceName + ' hits you with a bolt of transmutation magic! ' +
-            'Your body twists and reshapes — you are now a <ansi fg="race">' + newRace + '</ansi>!');
+            'Your body twists and reshapes - you are now a <ansi fg="race">' + newRace + '</ansi>!');
 
     } else {
 
         SendUserMessage(sourceUserId,
             'You unleash the transmutation magic on yourself! ' +
-            'Your body twists and reshapes — you are now a <ansi fg="race">' + newRace + '</ansi>!');
+            'Your body twists and reshapes - you are now a <ansi fg="race">' + newRace + '</ansi>!');
 
         SendRoomMessage(roomId,
             sourceName + ' unleashes transmutation magic on themselves, transforming into a <ansi fg="race">' + newRace + '</ansi>!',

@@ -103,7 +103,7 @@
     "guard": ["guard", "master-at-arms"]
   Conversation: 
     - ["#1 say You hear about the captain's latest order? He's telling us to keep a closer eye on the eastern gate. Says there've been more sightings in the dark forest."]
-    - ["#2 say Yeah, I heard. Those woods are crawling with all sorts of nasties—ents, sentient mushrooms, imps. Can't say I'm eager to run into any of them."]
+    - ["#2 say Yeah, I heard. Those woods are crawling with all sorts of nasties-ents, sentient mushrooms, imps. Can't say I'm eager to run into any of them."]
     - ["#1 say No kidding. One of the Frostwarden rangers told me they spotted a spider the size of a horse out there last week. Damn thing just vanished into the trees like it was nothing."]
     - ["#2 say Spiders that big? That's the last thing we need. As if the cold wasn't bad enough, now we've got to worry about getting snatched up by some oversized arachnid."]
     - ["#1 say Exactly. The forest's always been dangerous, but it feels like things are getting worse. Maybe the cold's driving them closer to the city."]

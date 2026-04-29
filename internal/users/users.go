@@ -325,7 +325,7 @@ func LogOutUserByConnectionId(connectionId connections.ConnectionId) error {
 			delete(userManager.Connections, u.connectionId)
 			delete(userManager.UserConnections, u.UserId)
 		} else {
-			// Connection exists but user record is missing — clean up the connection entry
+			// Connection exists but user record is missing - clean up the connection entry
 			delete(userManager.Connections, connectionId)
 		}
 

@@ -126,7 +126,7 @@ func (g *GMCPWorldModule) buildWorldMap(user *users.UserRecord) []GMCPWorldMap_R
 				entry.Coordinates += `, ` + strconv.Itoa(x) + `, ` + strconv.Itoa(y) + `, ` + strconv.Itoa(z)
 			}
 
-			// Exits — only include exits to rooms the player has also visited,
+			// Exits - only include exits to rooms the player has also visited,
 			// and respect secret exits the player hasn't discovered.
 			for exitName, exitInfo := range room.Exits {
 

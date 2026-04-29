@@ -128,7 +128,7 @@ const clearMap = {
   'scrollback': 3,
 };
 
-// Mutable state — aliases and position map
+// Mutable state - aliases and position map
 let colorAliases = Object.assign({}, defaultColorAliases);
 let positionMap = Object.assign({}, defaultPositionMap);
 

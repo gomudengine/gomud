@@ -212,7 +212,7 @@ const AdminAPI = (() => {
 
     /**
      * Wait for all provided request promises to settle, then return their results
-     * in the same order. Never rejects — failed requests are represented as
+     * in the same order. Never rejects - failed requests are represented as
      * APIResult objects with ok=false.
      *
      * @param {Array<Promise<APIResult>>} promises

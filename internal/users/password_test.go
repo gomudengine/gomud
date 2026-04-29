@@ -48,7 +48,7 @@ func TestUserRecord_SetPassword_StoresBcryptHash(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// PasswordMatches — bcrypt path
+// PasswordMatches - bcrypt path
 // ---------------------------------------------------------------------------
 
 func TestUserRecord_PasswordMatches_CorrectPassword(t *testing.T) {
@@ -74,7 +74,7 @@ func TestUserRecord_PasswordMatches_WrongPassword(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// PasswordMatches — security: no hash-of-hash bypass
+// PasswordMatches - security: no hash-of-hash bypass
 // ---------------------------------------------------------------------------
 
 func TestUserRecord_PasswordMatches_DoesNotAcceptHashOfHash(t *testing.T) {
@@ -98,7 +98,7 @@ func TestUserRecord_PasswordMatches_DoesNotAcceptHashOfHash(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// PasswordMatches — SHA256 migration path
+// PasswordMatches - SHA256 migration path
 // ---------------------------------------------------------------------------
 
 func TestUserRecord_PasswordMatches_MigratesOldSHA256Hash(t *testing.T) {
@@ -154,7 +154,7 @@ func TestUserRecord_SetPassword_DifferentHashesForSamePassword(t *testing.T) {
 	}
 
 	if string(h1) == string(h2) {
-		t.Error("two bcrypt hashes of the same password are identical — salt is not being applied")
+		t.Error("two bcrypt hashes of the same password are identical - salt is not being applied")
 	}
 
 	// Both hashes must still verify against the original password.

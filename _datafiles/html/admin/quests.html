@@ -140,8 +140,8 @@
                 <div class="field">
                     <label>Secret</label>
                     <select id="f-secret" onchange="document.getElementById('secret-badge').style.display=this.value==='true'?'':'none'">
-                        <option value="false">No — visible to players</option>
-                        <option value="true">Yes — hidden from player quest list</option>
+                        <option value="false">No - visible to players</option>
+                        <option value="true">Yes - hidden from player quest list</option>
                     </select>
                 </div>
                 <div class="field span2">
@@ -446,7 +446,7 @@
         const actionCol = document.createElement('div');
         if (locked) {
             actionCol.className = 'step-lock-icon';
-            actionCol.title = 'Required step — cannot be removed';
+            actionCol.title = 'Required step - cannot be removed';
             actionCol.textContent = '\uD83D\uDD12';
         } else {
             const removeBtn = document.createElement('button');

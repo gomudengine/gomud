@@ -170,7 +170,7 @@ func (reg *moduleAdminRegistrarImpl) RegisterAdminPage(
 				return
 			}
 		}
-		// Parent not found yet — add as top-level with the sub-item.
+		// Parent not found yet - add as top-level with the sub-item.
 		reg.navItems = append(reg.navItems, WebNavItem{
 			Name:   navParent,
 			Target: "",
@@ -217,7 +217,7 @@ func (reg *moduleAdminRegistrarImpl) RegisterAdminPage(
 			return
 		}
 	}
-	// Sub-menu for navParent not found yet — create it.
+	// Sub-menu for navParent not found yet - create it.
 	reg.navItems[groupIdx].SubMenus = append(reg.navItems[groupIdx].SubMenus, WebNavItem{
 		Name: navParent,
 		SubItems: []WebNavSub{

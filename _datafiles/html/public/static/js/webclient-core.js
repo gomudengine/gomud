@@ -209,7 +209,7 @@ class DockSlot {
             this.el.insertBefore(panel, refEntry.panel);
             this._panels.splice(insertAt, 0, { panel, contentEl, resizeHandle });
         } else {
-            // Append at the end — only add a resize handle if there are existing panels.
+            // Append at the end - only add a resize handle if there are existing panels.
             if (this._panels.length > 0) {
                 resizeHandle = document.createElement('div');
                 resizeHandle.className = 'dock-panel-resize';
@@ -270,7 +270,7 @@ class DockSlot {
         requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
     }
 
-    // Slot-width drag handle — inserted as a sibling of the slot in
+    // Slot-width drag handle - inserted as a sibling of the slot in
     // #main-container so it is never clipped by the slot's overflow:hidden.
     // Hidden when the slot is empty, shown when it has panels.
     _initSlotResize() {
@@ -403,7 +403,7 @@ class DockSlot {
             ghost.textContent = titlebar.querySelector('.dock-panel-title').textContent;
             document.body.appendChild(ghost);
 
-            // Two drop indicators — one per slot
+            // Two drop indicators - one per slot
             const ownIndicator = document.createElement('div');
             ownIndicator.className = 'dock-drop-indicator';
             ownIndicator.style.display = 'none';
@@ -518,7 +518,7 @@ class DockSlot {
     _movePanel(fromIdx, toIdx) {
         if (fromIdx === toIdx) { return; }
 
-        // Remove all resize handles from the DOM — we'll rebuild them
+        // Remove all resize handles from the DOM - we'll rebuild them
         this._panels.forEach(p => {
             if (p.resizeHandle) {
                 p.resizeHandle.remove();
@@ -557,16 +557,16 @@ const DockSlots = {};
 //
 // Persists window layout to localStorage under the key 'windowLayout'.
 // Saved state per window:
-//   enabled       bool    — whether the window is open
-//   docked        bool    — whether it is in a dock slot
-//   dockSide      string  — 'left' | 'right' (only when docked)
-//   dockedHeight  number  — panel height in px (only when docked)
-//   floatX        number  — VWin x position (only when floating)
-//   floatY        number  — VWin y position (only when floating)
-//   floatWidth    number  — VWin width (only when floating)
-//   floatHeight   number  — VWin height (only when floating)
+//   enabled       bool    - whether the window is open
+//   docked        bool    - whether it is in a dock slot
+//   dockSide      string  - 'left' | 'right' (only when docked)
+//   dockedHeight  number  - panel height in px (only when docked)
+//   floatX        number  - VWin x position (only when floating)
+//   floatY        number  - VWin y position (only when floating)
+//   floatWidth    number  - VWin width (only when floating)
+//   floatHeight   number  - VWin height (only when floating)
 // Plus top-level keys:
-//   dockWidths    object  — { left: number, right: number }
+//   dockWidths    object  - { left: number, right: number }
 // ---------------------------------------------------------------------------
 const LayoutStore = (() => {
     const KEY = 'windowLayout';
@@ -584,7 +584,7 @@ const LayoutStore = (() => {
         try {
             localStorage.setItem(KEY, JSON.stringify(data));
         } catch (e) {
-            // localStorage unavailable — silently ignore
+            // localStorage unavailable - silently ignore
         }
     }
 
@@ -620,7 +620,7 @@ const LayoutStore = (() => {
                 entry.floatWidth  = Math.round(win._win.width);
                 entry.floatHeight = Math.round(win._win.height);
             } else {
-                // closed — preserve last known docked state
+                // closed - preserve last known docked state
                 if (entry.docked === undefined) {
                     entry.docked   = win._defaultDocked;
                     entry.dockSide = win._dockSide;
@@ -682,10 +682,10 @@ const LayoutStore = (() => {
 // Constructor options (passed as the second argument to VirtualWindow):
 //   factory()         required  Returns VWin opts object. Must append
 //                               the content element to document.body.
-//   dock              optional  'left' | 'right'  — which slot to use.
+//   dock              optional  'left' | 'right'  - which slot to use.
 //                               If omitted the window is float-only.
-//   defaultDocked     optional  boolean — start docked instead of floating.
-//   dockedHeight      optional  number (px) — preferred panel height when docked.
+//   defaultDocked     optional  boolean - start docked instead of floating.
+//   dockedHeight      optional  number (px) - preferred panel height when docked.
 //                               Defaults to the height from the factory opts.
 //
 // Usage:
@@ -869,7 +869,7 @@ class VirtualWindow {
         }
         opts.mount = this._contentEl;
 
-        // Inject close handler — sets state to false and removes the content
+        // Inject close handler - sets state to false and removes the content
         // element from the DOM so VWin's unmount() doesn't leave it visible
         // as a bare element on document.body.
         const userOnClose = opts.onclose;
@@ -937,7 +937,7 @@ class VirtualWindow {
             () => this.undock(),
             height,
             () => {
-                // User clicked X on the docked panel — same semantics as
+                // User clicked X on the docked panel - same semantics as
                 // closing a floating window: remove content and deregister.
                 if (this._contentEl && this._contentEl.parentNode) {
                     this._contentEl.parentNode.removeChild(this._contentEl);
@@ -973,11 +973,11 @@ class VirtualWindow {
 //       onGMCP(namespace, data) { ... }           // called when any listed namespace updates
 //   }
 //
-// Multiple modules may register for the same namespace — all handlers are called.
+// Multiple modules may register for the same namespace - all handlers are called.
 // handleGMCP(namespace, body) walks from the most-specific to least-specific
 // namespace segment and calls every handler registered at the first level that
 // has any handlers.
-// openAll() opens every registered window immediately — called by Client.init().
+// openAll() opens every registered window immediately - called by Client.init().
 // ---------------------------------------------------------------------------
 const VirtualWindows = (() => {
     // Map<gmcpNamespace, Array<handler function>>
@@ -1160,7 +1160,7 @@ const VirtualWindows = (() => {
 // Client namespace
 //
 // Shared state and services that window modules may read or call.
-// Nothing here is truly private — window modules are trusted collaborators.
+// Nothing here is truly private - window modules are trusted collaborators.
 // ---------------------------------------------------------------------------
 const Client = (() => {
 
@@ -1475,7 +1475,7 @@ const Client = (() => {
     let soundVolumeOverrides = {};
 
     // Sounds that have been played, grouped by category key.
-    // { [categoryKey]: string[] }  — ordered by first-play time, deduplicated.
+    // { [categoryKey]: string[] }  - ordered by first-play time, deduplicated.
     let soundHistory = {};
 
     // Which category rows are expanded in the slider UI.
@@ -1829,7 +1829,7 @@ const Client = (() => {
 
 
     // -----------------------------------------------------------------------
-    // Net stats — readable by the settings Stats tab
+    // Net stats - readable by the settings Stats tab
     // -----------------------------------------------------------------------
     function getNetStats() {
         return {
@@ -1922,7 +1922,7 @@ const Client = (() => {
     // init()
     // -----------------------------------------------------------------------
     function init() {
-        // Initialise dock slots first — VirtualWindows.openAll() depends on them.
+        // Initialise dock slots first - VirtualWindows.openAll() depends on them.
         DockSlots.left  = new DockSlot('left');
         DockSlots.right = new DockSlot('right');
 

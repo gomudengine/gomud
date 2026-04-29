@@ -1,4 +1,4 @@
-// AnsiColors — global utility for converting ANSI 256-color codes to CSS hex
+// AnsiColors - global utility for converting ANSI 256-color codes to CSS hex
 // and rendering color-swatch HTML. Loaded by _header.html and available on all
 // admin pages.
 

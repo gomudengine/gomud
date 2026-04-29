@@ -33,7 +33,7 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 		doBasicAuth(apiV1GetStatMods),
 	))
 
-	// Items — static sub-routes must be registered before the wildcard {itemId}
+	// Items - static sub-routes must be registered before the wildcard {itemId}
 	// pattern so the Go 1.22 ServeMux prefers the more specific match.
 	mux.HandleFunc("GET /admin/api/v1/items/types", RunWithMUDLocked(
 		doBasicAuth(apiV1GetItemTypes),
@@ -106,7 +106,7 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 		doBasicAuth(apiV1DeleteQuest),
 	))
 
-	// Users — static sub-routes must be registered before any future wildcard
+	// Users - static sub-routes must be registered before any future wildcard
 	// {userId} pattern.
 	mux.HandleFunc("GET /admin/api/v1/users/search", RunWithMUDLocked(
 		doBasicAuth(apiV1SearchUsers),
@@ -146,7 +146,7 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 		doBasicAuth(apiV1DeleteColorPattern),
 	))
 
-	// Mobs — script sub-route before wildcard {mobId}
+	// Mobs - script sub-route before wildcard {mobId}
 	mux.HandleFunc("GET /admin/api/v1/mobs", RunWithMUDLocked(
 		doBasicAuth(apiV1GetMobs),
 	))
@@ -186,7 +186,7 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 		doBasicAuth(apiV1DeleteZone),
 	))
 
-	// Rooms — static sub-routes before wildcard {roomId}
+	// Rooms - static sub-routes before wildcard {roomId}
 	mux.HandleFunc("GET /admin/api/v1/rooms/biomes", RunWithMUDLocked(
 		doBasicAuth(apiV1GetBiomes),
 	))
@@ -259,7 +259,7 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 		doBasicAuth(apiV1DeleteRace),
 	))
 
-	// Spells — script sub-route before wildcard {spellId}
+	// Spells - script sub-route before wildcard {spellId}
 	mux.HandleFunc("GET /admin/api/v2/spells", RunWithMUDLocked(
 		doBasicAuth(apiV2GetSpells),
 	))

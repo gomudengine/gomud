@@ -5,9 +5,9 @@
  *
  * Public API (global):
  *   GameModal.open({ title, body, format })
- *     title  — string shown in the header bar
- *     body   — content string
- *     format — "terminal" (default) renders ANSI/MUD output via xterm.js
+ *     title  - string shown in the header bar
+ *     body   - content string
+ *     format - "terminal" (default) renders ANSI/MUD output via xterm.js
  *              "html"     renders raw HTML inside a styled container
  *
  *   GameModal.close()
@@ -141,7 +141,7 @@
     `);
 
     // -----------------------------------------------------------------------
-    // DOM — built once on DOMContentLoaded, hidden until opened
+    // DOM - built once on DOMContentLoaded, hidden until opened
     // -----------------------------------------------------------------------
     let backdrop, panel, titleEl, closeBtn, termContainer, htmlContainer;
     let modalTerm     = null;
@@ -278,12 +278,12 @@
     }
 
     // -----------------------------------------------------------------------
-    // Public API — exposed before DOMContentLoaded so callers can queue calls
+    // Public API - exposed before DOMContentLoaded so callers can queue calls
     // -----------------------------------------------------------------------
     window.GameModal = { open: open, close: close };
 
     // -----------------------------------------------------------------------
-    // Init on DOMContentLoaded — document.body is guaranteed to exist here
+    // Init on DOMContentLoaded - document.body is guaranteed to exist here
     // -----------------------------------------------------------------------
     document.addEventListener('DOMContentLoaded', function() {
         _buildDOM();
