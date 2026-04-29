@@ -170,3 +170,11 @@ func adminBiomes(w http.ResponseWriter, r *http.Request) {
 func adminBiomesAPI(w http.ResponseWriter, r *http.Request) {
 	serveAdminTemplate(w, r, "biomes-api.html", nil)
 }
+
+func adminConversations(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "conversations.html", nil)
+}
+
+func adminConversationsAPI(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "conversations-api.html", nil)
+}

@@ -64,16 +64,23 @@ const PickerConfigs = {
 
     mobs: {
         title:   'Select Mob',
-        source:  '/admin/api/v1/mobs',
         idKey:   'MobId',
         columns: [
             { key: 'MobId', label: '#',    width: '4rem', mono: true },
-            { key: 'Name',  label: 'Name', flex: true,
-              render: (_, item) => (item.Character && item.Character.Name) || '(unnamed)' },
+            { key: '_name', label: 'Name', flex: true },
             { key: 'Zone',  label: 'Zone', width: '10rem' },
         ],
-        searchKeys: ['MobId', 'Zone'],
+        searchKeys: ['MobId', '_name', 'Zone'],
         sort: (a, b) => a.MobId - b.MobId,
+        source: async () => {
+            const res = await AdminAPI.get('/admin/api/v1/mobs');
+            if (!res.ok) throw new Error(res.error || 'Failed to load mobs');
+            const items = (res.data && res.data.data) || [];
+            return items.map(m => ({
+                ...m,
+                _name: (m.Character && m.Character.Name) || '(unnamed)',
+            }));
+        },
     },
 
     spells: {

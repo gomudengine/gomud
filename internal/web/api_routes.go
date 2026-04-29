@@ -287,6 +287,20 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 		doBasicAuth(apiV1DeletePet),
 	))
 
+	// Conversations
+	mux.HandleFunc("GET /admin/api/v1/conversations", RunWithMUDLocked(
+		doBasicAuth(apiV1GetConversations),
+	))
+	mux.HandleFunc("GET /admin/api/v1/conversations/{zone}/{mobId}", RunWithMUDLocked(
+		doBasicAuth(apiV1GetConversation),
+	))
+	mux.HandleFunc("PUT /admin/api/v1/conversations/{zone}/{mobId}", RunWithMUDLocked(
+		doBasicAuth(apiV1PutConversation),
+	))
+	mux.HandleFunc("DELETE /admin/api/v1/conversations/{zone}/{mobId}", RunWithMUDLocked(
+		doBasicAuth(apiV1DeleteConversation),
+	))
+
 	// Spells - script sub-route before wildcard {spellId}
 	mux.HandleFunc("GET /admin/api/v2/spells", RunWithMUDLocked(
 		doBasicAuth(apiV2GetSpells),

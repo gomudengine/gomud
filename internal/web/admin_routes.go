@@ -130,6 +130,13 @@ func registerAdminRoutes(mux *http.ServeMux) {
 		doBasicAuth(adminBiomesAPI),
 	))
 
+	mux.HandleFunc("GET /admin/conversations", RunWithMUDLocked(
+		doBasicAuth(adminConversations),
+	))
+	mux.HandleFunc("GET /admin/conversations-api", RunWithMUDLocked(
+		doBasicAuth(adminConversationsAPI),
+	))
+
 	mux.HandleFunc("GET /admin/stats", RunWithMUDLocked(
 		doBasicAuth(adminStats),
 	))

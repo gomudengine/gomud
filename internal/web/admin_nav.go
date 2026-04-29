@@ -29,6 +29,14 @@ func buildAdminNav() []WebNavItem {
 					},
 				},
 				{
+					Name:   "Conversations",
+					Target: "/admin/conversations",
+					SubItems: []WebNavSub{
+						{Label: "View / Edit", Target: "/admin/conversations"},
+						{Label: "API Docs", Target: "/admin/conversations-api"},
+					},
+				},
+				{
 					Name:   "Pets",
 					Target: "/admin/pets",
 					SubItems: []WebNavSub{
