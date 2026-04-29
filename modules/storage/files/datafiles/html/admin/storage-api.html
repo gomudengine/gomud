@@ -53,7 +53,7 @@
             <p>Returns all items currently in the specified user's storage. The <code>user_id</code> query parameter is required. Works for both online and offline players.</p>
             <p>Query parameters:</p>
             <ul>
-                <li><code>user_id</code> <strong>(required)</strong> &mdash; the user's ID</li>
+                <li><code>user_id</code> <strong>(required)</strong> - the user's ID</li>
             </ul>
             <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
      <span class="str">"http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/storage?user_id=42"</span></div>
@@ -63,10 +63,10 @@
                     <div class="resp-body">
                         <p>Returns <code>user_id</code>, <code>username</code>, and an <code>items</code> array. Each item contains:</p>
                         <ul>
-                            <li><code>index</code> &mdash; 1-based position (matches in-game storage numbering)</li>
-                            <li><code>item_id</code> &mdash; the item spec ID</li>
-                            <li><code>name</code> &mdash; display name</li>
-                            <li><code>short_id</code> &mdash; unique instance identifier (used for deletion)</li>
+                            <li><code>index</code> - 1-based position (matches in-game storage numbering)</li>
+                            <li><code>item_id</code> - the item spec ID</li>
+                            <li><code>name</code> - display name</li>
+                            <li><code>short_id</code> - unique instance identifier (used for deletion)</li>
                         </ul>
                         <div class="curl-block">{&#10;  "success": true,&#10;  "data": {&#10;    "user_id": 42,&#10;    "username": "alice",&#10;    "items": [&#10;      {&#10;        "index": 1,&#10;        "item_id": 10001,&#10;        "name": "steel sword",&#10;        "short_id": "abc123"&#10;      }&#10;    ]&#10;  }&#10;}</div>
                     </div>
@@ -105,8 +105,8 @@
             <p>Permanently removes the item with the matching <code>short_id</code> from the user's storage. The item is destroyed and cannot be recovered. Works for both online and offline players.</p>
             <p>Query parameters:</p>
             <ul>
-                <li><code>user_id</code> <strong>(required)</strong> &mdash; the user's ID</li>
-                <li><code>short_id</code> <strong>(required)</strong> &mdash; the item's unique instance identifier (from the <code>short_id</code> field in the GET response)</li>
+                <li><code>user_id</code> <strong>(required)</strong> - the user's ID</li>
+                <li><code>short_id</code> <strong>(required)</strong> - the item's unique instance identifier (from the <code>short_id</code> field in the GET response)</li>
             </ul>
             <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
      <span class="flag">-X</span> DELETE \

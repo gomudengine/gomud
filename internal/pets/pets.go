@@ -3,7 +3,6 @@ package pets
 import (
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/colorpatterns"
@@ -135,14 +134,12 @@ func (p *Pet) Filepath() string {
 }
 
 func (p *Pet) Save() error {
-	fileName := strings.ToLower(p.Name)
-
 	bytes, err := yaml.Marshal(p)
 	if err != nil {
 		return err
 	}
 
-	saveFilePath := util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), `/`, `pets`, `/`, fmt.Sprintf("%s.yaml", fileName))
+	saveFilePath := util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), `/`, `pets`, `/`, p.Filename())
 
 	err = os.WriteFile(saveFilePath, bytes, 0644)
 	if err != nil {

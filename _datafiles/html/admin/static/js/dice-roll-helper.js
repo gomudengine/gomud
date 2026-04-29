@@ -328,7 +328,7 @@ var DiceRollHelper = (function() {
             ? ' | crit buffs: #' + escHtml(vals.critBuffIds.join(', #'))
             : '';
         el.innerHTML = '<code>' + escHtml(format(vals)) + '</code>' +
-            ' &mdash; <strong>' + stats.min + '&ndash;' + stats.max + ' dmg</strong>' +
+            ' - <strong>' + stats.min + '&ndash;' + stats.max + ' dmg</strong>' +
             ' (avg ' + stats.total + ')' +
             atkLabel + critLabel;
     }

@@ -29,6 +29,14 @@ func buildAdminNav() []WebNavItem {
 					},
 				},
 				{
+					Name:   "Pets",
+					Target: "/admin/pets",
+					SubItems: []WebNavSub{
+						{Label: "View / Edit", Target: "/admin/pets"},
+						{Label: "API Docs", Target: "/admin/pets-api"},
+					},
+				},
+				{
 					Name:   "Races",
 					Target: "/admin/races",
 					SubItems: []WebNavSub{
@@ -85,6 +93,14 @@ func buildAdminNav() []WebNavItem {
 					SubItems: []WebNavSub{
 						{Label: "View / Edit", Target: "/admin/mutators"},
 						{Label: "API Docs", Target: "/admin/mutators-api"},
+					},
+				},
+				{
+					Name:   "Biomes",
+					Target: "/admin/biomes",
+					SubItems: []WebNavSub{
+						{Label: "View / Edit", Target: "/admin/biomes"},
+						{Label: "API Docs", Target: "/admin/biomes-api"},
 					},
 				},
 			},

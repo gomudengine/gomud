@@ -1,0 +1,441 @@
+{{template "header" .}}
+
+<style>
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #555; margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+    .page-layout { display: grid; grid-template-columns: 260px 1fr; gap: 1.25rem; align-items: start; }
+    @media (max-width: 800px) { .page-layout { grid-template-columns: 1fr; } }
+
+    /* sidebar */
+    .sidebar { background: #fff; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; }
+    .sidebar-header { padding: 0.75rem 0.9rem; border-bottom: 1px solid #eee; }
+    .sidebar-header input[type="search"] { width: 100%; padding: 0.35rem 0.6rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; }
+    .biome-list { overflow-y: auto; max-height: 72vh; }
+    .biome-row {
+        padding: 0.5rem 0.9rem; cursor: pointer; border-bottom: 1px solid #f0f0f0;
+        display: flex; align-items: center; gap: 0.6rem; font-size: 0.875rem;
+    }
+    .biome-row:last-child { border-bottom: none; }
+    .biome-row:hover { background: #f5f7ff; }
+    .biome-row.active { background: #1a1a2e; color: #fff; }
+    .biome-symbol {
+        font-size: 1rem; width: 1.4rem; text-align: center; flex-shrink: 0;
+        font-family: monospace; line-height: 1;
+    }
+    .biome-id-badge { font-size: 0.72rem; color: #999; font-family: monospace; flex-shrink: 0; }
+    .biome-row.active .biome-id-badge { color: #8899cc; }
+    .biome-flag-badges { margin-left: auto; display: flex; gap: 0.25rem; flex-shrink: 0; }
+    .flag-badge {
+        font-size: 0.65rem; padding: 0.1rem 0.35rem; border-radius: 3px;
+        font-weight: 600; text-transform: uppercase;
+    }
+    .flag-dark   { background: #2a2a3a; color: #aaa; }
+    .flag-lit    { background: #fffde7; color: #8a6d00; }
+    .flag-burns  { background: #fde8e8; color: #8a0000; }
+    .flag-req    { background: #e8eaf6; color: #3949ab; }
+    .biome-row.active .flag-lit   { background: #6d5a00; color: #ffe; }
+    .biome-row.active .flag-dark  { background: #111; color: #ccc; }
+    .biome-row.active .flag-burns { background: #6a0000; color: #fdd; }
+    .biome-row.active .flag-req   { background: #3949ab; color: #fff; }
+    .no-biomes { padding: 1.5rem; text-align: center; color: #888; font-size: 0.85rem; }
+    .btn-new { margin: 0.6rem 0.9rem; padding: 0.4rem 0.9rem; border: none; border-radius: 4px; background: #1e6e34; color: #fff; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: block; text-align: center; }
+    .btn-new:hover { background: #145728; }
+
+    /* editor */
+    .editor-panel { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 1.25rem; }
+    .editor-placeholder { color: #aaa; text-align: center; padding: 4rem 1rem; font-size: 0.9rem; }
+
+    .status-bar { display: none; padding: 0.55rem 0.9rem; border-radius: 4px; font-size: 0.85rem; margin-bottom: 1rem; }
+    .status-bar.success { background: #e6f4ea; color: #1e6e34; display: block; }
+    .status-bar.error   { background: #fde8e8; color: #8a0000; display: block; }
+
+    /* form */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem 1.25rem; }
+    .form-grid .span2 { grid-column: 1 / -1; }
+    .field label { display: block; font-size: 0.78rem; font-weight: 600; color: #555; margin-bottom: 0.25rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .field input[type="text"], .field input[type="number"], .field textarea {
+        width: 100%; padding: 0.4rem 0.6rem; border: 1px solid #ccc; border-radius: 4px;
+        font-size: 0.875rem; font-family: inherit; background: #fff;
+    }
+    .field input[readonly] { background: #f5f5f5; color: #666; cursor: default; }
+    .field input:focus, .field textarea:focus { outline: 2px solid #1a1a2e; outline-offset: 1px; border-color: transparent; }
+    .field textarea { resize: vertical; min-height: 70px; }
+    .field-hint { font-size: 0.75rem; color: #888; margin-top: 0.2rem; }
+
+    /* symbol preview */
+    .symbol-wrap { display: flex; gap: 0.6rem; align-items: center; }
+    .symbol-wrap input { flex: 1; }
+    .symbol-preview {
+        font-size: 1.6rem; width: 2.4rem; height: 2.4rem;
+        display: flex; align-items: center; justify-content: center;
+        border: 1px solid #ccc; border-radius: 4px; background: #1a1a2e;
+        color: #c9d1d9; font-family: monospace; flex-shrink: 0;
+    }
+
+    /* flags grid */
+    .flags-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; grid-column: 1 / -1; }
+    .flag-toggle {
+        display: flex; align-items: center; gap: 0.6rem;
+        padding: 0.5rem 0.75rem; border: 1px solid #e0e0e0; border-radius: 5px;
+        cursor: pointer; user-select: none; font-size: 0.875rem; color: #444;
+        background: #fafafa; transition: background 0.12s, border-color 0.12s;
+    }
+    .flag-toggle input[type="checkbox"] { display: none; }
+    .flag-toggle .flag-dot {
+        width: 0.8rem; height: 0.8rem; border-radius: 50%;
+        border: 2px solid #ccc; flex-shrink: 0; transition: background 0.12s, border-color 0.12s;
+    }
+    .flag-toggle.checked { background: #e8eaf6; border-color: #9fa8da; color: #1a1a2e; }
+    .flag-toggle.checked .flag-dot { background: #1a1a2e; border-color: #1a1a2e; }
+    .flag-toggle:hover { border-color: #aaa; }
+
+    /* conflict warning */
+    .conflict-warn { font-size: 0.75rem; color: #8a0000; margin-top: 0.3rem; display: none; grid-column: 1 / -1; }
+    .conflict-warn.visible { display: block; }
+
+    .section-title { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #666; padding: 0.75rem 0 0.4rem; border-bottom: 1px solid #eee; margin-bottom: 0.5rem; grid-column: 1 / -1; }
+
+    .btn-row { display: flex; gap: 0.6rem; margin-top: 1.25rem; grid-column: 1 / -1; }
+    .btn-save { padding: 0.45rem 1.2rem; background: #1a1a2e; color: #fff; border: none; border-radius: 4px; font-size: 0.875rem; font-weight: 600; cursor: pointer; }
+    .btn-save:hover { background: #2d2d4e; }
+    .btn-save:disabled { background: #999; cursor: default; }
+    .btn-delete { padding: 0.45rem 1rem; background: #fff; color: #8a0000; border: 1px solid #e0a0a0; border-radius: 4px; font-size: 0.875rem; font-weight: 600; cursor: pointer; }
+    .btn-delete:hover { background: #fde8e8; }
+    .btn-delete:disabled { opacity: 0.4; cursor: default; }
+</style>
+
+<h1>Biomes</h1>
+<p class="subtitle">Browse, create, edit, and delete biome definitions. <a href="/admin/biomes-api">API Docs</a></p>
+
+<div class="page-layout">
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <input type="search" id="biomeSearch" placeholder="Search biomes&hellip;" oninput="filterBiomes()" />
+        </div>
+        <div id="biomeList" class="biome-list">
+            <div class="no-biomes">Loading&hellip;</div>
+        </div>
+        <button class="btn-new" onclick="newBiome()">+ New Biome</button>
+    </div>
+
+    <div class="editor-panel">
+        <div id="statusBar" class="status-bar"></div>
+        <div id="editorPlaceholder" class="editor-placeholder">Select a biome to edit, or click <strong>+ New Biome</strong>.</div>
+        <div id="editorForm" style="display:none">
+            <div class="form-grid">
+                <p class="section-title" id="editorTitle">Edit Biome</p>
+
+                <div class="field">
+                    <label>Biome ID</label>
+                    <input type="text" id="fBiomeId" placeholder="e.g. forest" />
+                    <div class="field-hint">Lowercase identifier. Cannot be changed after creation.</div>
+                </div>
+                <div class="field">
+                    <label>Name</label>
+                    <input type="text" id="fName" placeholder="e.g. Forest" />
+                </div>
+
+                <div class="field">
+                    <label>Symbol</label>
+                    <div class="symbol-wrap">
+                        <input type="text" id="fSymbol" placeholder="e.g. &amp;" maxlength="4"
+                               oninput="updateSymbolPreview()" />
+                        <div class="symbol-preview" id="symbolPreview">&nbsp;</div>
+                    </div>
+                    <div class="field-hint">Single character shown on the map for rooms with this biome.</div>
+                </div>
+                <div class="field">
+                    <label>Required Item ID</label>
+                    <input type="number" id="fRequiredItemId" min="0" placeholder="0 = none" />
+                    <div class="field-hint">Item the player must carry to safely traverse this biome. 0 = no requirement.</div>
+                </div>
+
+                <div class="field span2">
+                    <label>Description</label>
+                    <textarea id="fDescription" rows="3" placeholder="Atmospheric description shown to players in rooms with this biome."></textarea>
+                </div>
+
+                <div class="section-title">Lighting &amp; Behaviour Flags</div>
+
+                <div class="flags-grid">
+                    <label class="flag-toggle" id="toggle-litarea" onclick="toggleFlag('fLitArea', 'fDarkArea')">
+                        <input type="checkbox" id="fLitArea" />
+                        <span class="flag-dot"></span>
+                        <span>Lit Area - always bright</span>
+                    </label>
+                    <label class="flag-toggle" id="toggle-darkarea" onclick="toggleFlag('fDarkArea', 'fLitArea')">
+                        <input type="checkbox" id="fDarkArea" />
+                        <span class="flag-dot"></span>
+                        <span>Dark Area - always pitch black</span>
+                    </label>
+                    <label class="flag-toggle" id="toggle-burns" onclick="toggleFlag('fBurns')">
+                        <input type="checkbox" id="fBurns" />
+                        <span class="flag-dot"></span>
+                        <span>Burns - can catch fire</span>
+                    </label>
+                    <label class="flag-toggle" id="toggle-usesitem" onclick="toggleFlag('fUsesItem')">
+                        <input type="checkbox" id="fUsesItem" />
+                        <span class="flag-dot"></span>
+                        <span>Uses Item - required item is consumed each time the player enters</span>
+                    </label>
+                </div>
+                <div class="conflict-warn" id="lightConflict">Lit Area and Dark Area cannot both be active at the same time.</div>
+
+                <div class="btn-row">
+                    <button class="btn-save" id="btnSave" onclick="saveBiome()">Save</button>
+                    <button class="btn-delete" id="btnDelete" onclick="deleteBiome()" style="display:none">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    let biomesData = []; // sorted array of BiomeInfo
+    let activeId   = null;
+    let isNew      = false;
+
+    async function init() {
+        const res = await AdminAPI.get('/admin/api/v1/biomes');
+        if (!res.ok) { showStatus('error', 'Failed to load biomes: ' + res.error); return; }
+        biomesData = (res.data && res.data.data) || [];
+        renderList();
+        const hashId = decodeURIComponent(location.hash.slice(1));
+        if (hashId && biomesData.find(b => b.BiomeId === hashId)) selectBiome(hashId);
+    }
+
+    // -------------------------------------------------------------------------
+    // Sidebar
+    // -------------------------------------------------------------------------
+    window.filterBiomes = function () {
+        const q = document.getElementById('biomeSearch').value.toLowerCase();
+        document.querySelectorAll('.biome-row').forEach(row => {
+            const id   = (row.dataset.id   || '').toLowerCase();
+            const name = (row.dataset.name || '').toLowerCase();
+            row.style.display = (!q || id.includes(q) || name.includes(q)) ? '' : 'none';
+        });
+    };
+
+    function renderList() {
+        const list = document.getElementById('biomeList');
+        if (!biomesData.length) {
+            list.innerHTML = '<div class="no-biomes">No biomes found.</div>';
+            return;
+        }
+        list.innerHTML = biomesData.map(b => {
+            const flags = [];
+            if (b.LitArea)  flags.push('<span class="flag-badge flag-lit">lit</span>');
+            if (b.DarkArea) flags.push('<span class="flag-badge flag-dark">dark</span>');
+            if (b.Burns)    flags.push('<span class="flag-badge flag-burns">burns</span>');
+            if (b.RequiredItemId > 0) flags.push('<span class="flag-badge flag-req">item</span>');
+            return `<div class="biome-row${b.BiomeId === activeId ? ' active' : ''}"
+                data-id="${escAttr(b.BiomeId)}" data-name="${escAttr(b.Name || '')}"
+                onclick="selectBiome('${escAttr(b.BiomeId)}')">
+                <span class="biome-symbol">${escHtml(b.Symbol || '?')}</span>
+                <span class="biome-id-badge">${escHtml(b.BiomeId)}</span>
+                <span>${escHtml(b.Name || '(unnamed)')}</span>
+                <span class="biome-flag-badges">${flags.join('')}</span>
+            </div>`;
+        }).join('');
+    }
+
+    function highlightRow(id) {
+        document.querySelectorAll('.biome-row').forEach(r =>
+            r.classList.toggle('active', r.dataset.id === id)
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // Select / New
+    // -------------------------------------------------------------------------
+    window.selectBiome = function (id) {
+        activeId = id;
+        isNew    = false;
+        location.hash = encodeURIComponent(id);
+        highlightRow(id);
+        const biome = biomesData.find(b => b.BiomeId === id);
+        populateForm(biome);
+    };
+
+    window.newBiome = function () {
+        activeId = null;
+        isNew    = true;
+        document.querySelectorAll('.biome-row').forEach(r => r.classList.remove('active'));
+        populateForm(null);
+    };
+
+    function populateForm(biome) {
+        document.getElementById('editorPlaceholder').style.display = 'none';
+        document.getElementById('editorForm').style.display        = '';
+        document.getElementById('statusBar').className             = 'status-bar';
+        document.getElementById('statusBar').textContent           = '';
+
+        const isDefault = biome && biome.BiomeId === 'default';
+        document.getElementById('btnDelete').style.display = (isNew || isDefault) ? 'none' : '';
+        document.getElementById('btnDelete').disabled      = isDefault;
+        document.getElementById('editorTitle').textContent = isNew ? 'New Biome' : 'Edit: ' + (biome ? biome.Name || biome.BiomeId : '');
+
+        const b = biome || {};
+        document.getElementById('fBiomeId').value         = b.BiomeId        || '';
+        document.getElementById('fBiomeId').readOnly      = !isNew;
+        document.getElementById('fBiomeId').style.background = isNew ? '' : '#f5f5f5';
+        document.getElementById('fName').value            = b.Name           || '';
+        document.getElementById('fSymbol').value          = b.Symbol         || '';
+        document.getElementById('fDescription').value     = b.Description    || '';
+        document.getElementById('fRequiredItemId').value  = b.RequiredItemId || 0;
+
+        setFlag('fLitArea',   !!b.LitArea);
+        setFlag('fDarkArea',  !!b.DarkArea);
+        setFlag('fBurns',     !!b.Burns);
+        setFlag('fUsesItem',  !!b.UsesItem);
+
+        updateSymbolPreview();
+        updateLightConflict();
+    }
+
+    // -------------------------------------------------------------------------
+    // Symbol preview
+    // -------------------------------------------------------------------------
+    window.updateSymbolPreview = function () {
+        const val = document.getElementById('fSymbol').value;
+        document.getElementById('symbolPreview').textContent = val ? val.charAt(0) : '\u00a0';
+    };
+
+    // -------------------------------------------------------------------------
+    // Flag toggles
+    // -------------------------------------------------------------------------
+    function setFlag(id, checked) {
+        const cb = document.getElementById(id);
+        if (!cb) return;
+        cb.checked = checked;
+        const toggleId = 'toggle-' + id.replace('f', '').toLowerCase();
+        const label = document.getElementById(toggleId) ||
+                      cb.closest('.flag-toggle');
+        if (label) label.classList.toggle('checked', checked);
+    }
+
+    window.toggleFlag = function (cbId, mutuallyExclusiveId) {
+        const cb = document.getElementById(cbId);
+        cb.checked = !cb.checked;
+        const label = cb.closest('.flag-toggle');
+        if (label) label.classList.toggle('checked', cb.checked);
+
+        if (mutuallyExclusiveId && cb.checked) {
+            setFlag(mutuallyExclusiveId, false);
+        }
+        updateLightConflict();
+    };
+
+    function updateLightConflict() {
+        const lit  = document.getElementById('fLitArea').checked;
+        const dark = document.getElementById('fDarkArea').checked;
+        document.getElementById('lightConflict').classList.toggle('visible', lit && dark);
+    }
+
+    // -------------------------------------------------------------------------
+    // Save / Delete
+    // -------------------------------------------------------------------------
+    function buildPayload() {
+        return {
+            BiomeId:        document.getElementById('fBiomeId').value.trim().toLowerCase(),
+            Name:           document.getElementById('fName').value.trim(),
+            Symbol:         document.getElementById('fSymbol').value.trim().charAt(0) || '',
+            Description:    document.getElementById('fDescription').value.trim(),
+            RequiredItemId: parseInt(document.getElementById('fRequiredItemId').value, 10) || 0,
+            LitArea:        document.getElementById('fLitArea').checked,
+            DarkArea:       document.getElementById('fDarkArea').checked,
+            Burns:          document.getElementById('fBurns').checked,
+            UsesItem:       document.getElementById('fUsesItem').checked,
+        };
+    }
+
+    window.saveBiome = async function () {
+        const payload = buildPayload();
+        if (!payload.BiomeId) { showStatus('error', 'Biome ID is required.'); return; }
+        if (!payload.Name)    { showStatus('error', 'Name is required.');     return; }
+        if (!payload.Symbol)  { showStatus('error', 'Symbol is required.');   return; }
+        if (payload.LitArea && payload.DarkArea) {
+            showStatus('error', 'Lit Area and Dark Area cannot both be active.');
+            return;
+        }
+
+        const btn = document.getElementById('btnSave');
+        btn.disabled = true; btn.textContent = 'Saving\u2026';
+
+        let res;
+        if (isNew) {
+            res = await AdminAPI.post('/admin/api/v1/biomes', payload);
+        } else {
+            res = await AdminAPI.patch('/admin/api/v1/biomes/' + encodeURIComponent(activeId), payload);
+        }
+
+        btn.disabled = false; btn.textContent = 'Save';
+
+        if (!res.ok) { showStatus('error', res.error || 'Save failed.'); return; }
+
+        const saved   = (res.data && res.data.data) || payload;
+        const savedId = saved.BiomeId || payload.BiomeId;
+
+        if (isNew) {
+            biomesData.push(saved);
+            biomesData.sort((a, b) => a.BiomeId.localeCompare(b.BiomeId));
+            activeId = savedId;
+            isNew    = false;
+            document.getElementById('fBiomeId').readOnly      = true;
+            document.getElementById('fBiomeId').style.background = '#f5f5f5';
+            document.getElementById('btnDelete').style.display = savedId === 'default' ? 'none' : '';
+            document.getElementById('editorTitle').textContent = 'Edit: ' + (saved.Name || savedId);
+            location.hash = encodeURIComponent(savedId);
+        } else {
+            const idx = biomesData.findIndex(b => b.BiomeId === savedId);
+            if (idx !== -1) biomesData[idx] = saved;
+            else biomesData.push(saved);
+            biomesData.sort((a, b) => a.BiomeId.localeCompare(b.BiomeId));
+            document.getElementById('editorTitle').textContent = 'Edit: ' + (saved.Name || savedId);
+        }
+
+        renderList();
+        highlightRow(savedId);
+        showStatus('success', 'Biome "' + savedId + '" saved.');
+    };
+
+    window.deleteBiome = async function () {
+        if (!activeId || activeId === 'default') return;
+        const biome = biomesData.find(b => b.BiomeId === activeId);
+        const label = biome ? '"' + biome.Name + '" (' + activeId + ')' : activeId;
+        if (!confirm('Delete biome ' + label + '? This cannot be undone.')) return;
+
+        const res = await AdminAPI.delete('/admin/api/v1/biomes/' + encodeURIComponent(activeId));
+        if (!res.ok) { showStatus('error', res.error || 'Delete failed.'); return; }
+
+        biomesData = biomesData.filter(b => b.BiomeId !== activeId);
+        activeId   = null;
+        history.replaceState(null, '', location.pathname + location.search);
+        renderList();
+        document.getElementById('editorForm').style.display        = 'none';
+        document.getElementById('editorPlaceholder').style.display = '';
+        showStatus('success', 'Biome deleted.');
+    };
+
+    // -------------------------------------------------------------------------
+    // Utilities
+    // -------------------------------------------------------------------------
+    function showStatus(type, msg) {
+        const bar = document.getElementById('statusBar');
+        bar.className   = 'status-bar ' + type;
+        bar.textContent = msg;
+        if (type === 'success') setTimeout(() => { bar.className = 'status-bar'; }, 3000);
+    }
+
+    function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function escAttr(s) { return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+    init();
+})();
+</script>
+
+{{template "footer" .}}
