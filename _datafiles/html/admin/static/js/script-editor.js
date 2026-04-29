@@ -1,4 +1,4 @@
-// ScriptEditor — wraps a <textarea> with a highlight.js overlay for live
+// ScriptEditor - wraps a <textarea> with a highlight.js overlay for live
 // syntax highlighting. Requires highlight.js to be loaded globally (window.hljs).
 //
 // Usage:

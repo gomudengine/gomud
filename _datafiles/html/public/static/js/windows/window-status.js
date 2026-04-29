@@ -1,13 +1,13 @@
 /**
  * window-status.js
  *
- * Virtual window: Worth — left dock.
+ * Virtual window: Worth - left dock.
  *
  * Displays XP progress bar, gold (carried + bank).
  *
  * Responds to GMCP namespaces:
- *   Char.Worth  — XP, gold
- *   Char        — full character update
+ *   Char.Worth  - XP, gold
+ *   Char        - full character update
  *
  * Reads:
  *   Client.GMCPStructs.Char.Worth

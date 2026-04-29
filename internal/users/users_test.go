@@ -21,7 +21,7 @@ func TestLogOutUserByConnectionId_NilUser_DoesNotPanic(t *testing.T) {
 	userManager.Connections[connId] = userId
 	// userManager.Users[userId] is intentionally absent
 
-	// This must not panic — the current code dereferences u without nil check
+	// This must not panic - the current code dereferences u without nil check
 	require.NotPanics(t, func() {
 		err := LogOutUserByConnectionId(connId)
 		// Should handle gracefully, not crash

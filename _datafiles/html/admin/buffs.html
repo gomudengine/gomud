@@ -170,8 +170,8 @@
                 <div class="field">
                     <label>Secret</label>
                     <select id="f-secret">
-                        <option value="false">No — visible to player</option>
-                        <option value="true">Yes — hidden from player</option>
+                        <option value="false">No - visible to player</option>
+                        <option value="true">Yes - hidden from player</option>
                     </select>
                 </div>
                 <div class="field span2">
@@ -195,7 +195,7 @@
                     <label>Trigger Now</label>
                     <select id="f-triggernow">
                         <option value="false">No</option>
-                        <option value="true">Yes — fires immediately on application</option>
+                        <option value="true">Yes - fires immediately on application</option>
                     </select>
                 </div>
 
@@ -264,7 +264,7 @@
         },
     ];
 
-    // Keys that are prefixes rather than exact names — handled in the custom section.
+    // Keys that are prefixes rather than exact names - handled in the custom section.
     const PREFIX_KEYS = new Set(['racial-bonus-', 'casting-']);
 
     // All exact known keys (non-prefix).
@@ -273,7 +273,7 @@
     );
 
     // -------------------------------------------------------------------------
-    // Init — load buffs, flags, and statmod definitions in parallel
+    // Init - load buffs, flags, and statmod definitions in parallel
     // -------------------------------------------------------------------------
     async function init() {
         const [buffsRes, statmodsRes] = await AdminAPI.all([
@@ -523,14 +523,14 @@
     function collectStatMods() {
         const mods = {};
 
-        // Known grid — only include non-zero values
+        // Known grid - only include non-zero values
         document.querySelectorAll('.statmod-known-item input[type="number"]').forEach(inp => {
             const k = inp.dataset.statkey;
             const v = parseInt(inp.value, 10);
             if (k && !isNaN(v) && v !== 0) mods[k] = v;
         });
 
-        // Custom rows — include any with a non-empty key
+        // Custom rows - include any with a non-empty key
         document.querySelectorAll('#statmods-custom-list .statmod-custom-row').forEach(row => {
             const inputs = row.querySelectorAll('input');
             const k = inputs[0].value.trim();

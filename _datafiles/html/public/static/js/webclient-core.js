@@ -5,7 +5,7 @@
  *
  * Core infrastructure for the GoMud web client. Provides:
  *   - Client namespace (shared state accessible by window modules)
- *   - VirtualWindow class (lifecycle management for WinBox panels)
+ *   - VirtualWindow class (lifecycle management for VWin panels)
  *   - VirtualWindows registry (GMCP handler dispatch)
  *   - WebSocket connection management
  *   - Terminal (xterm.js) setup
@@ -209,7 +209,7 @@ class DockSlot {
             this.el.insertBefore(panel, refEntry.panel);
             this._panels.splice(insertAt, 0, { panel, contentEl, resizeHandle });
         } else {
-            // Append at the end — only add a resize handle if there are existing panels.
+            // Append at the end - only add a resize handle if there are existing panels.
             if (this._panels.length > 0) {
                 resizeHandle = document.createElement('div');
                 resizeHandle.className = 'dock-panel-resize';
@@ -270,7 +270,7 @@ class DockSlot {
         requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
     }
 
-    // Slot-width drag handle — inserted as a sibling of the slot in
+    // Slot-width drag handle - inserted as a sibling of the slot in
     // #main-container so it is never clipped by the slot's overflow:hidden.
     // Hidden when the slot is empty, shown when it has panels.
     _initSlotResize() {
@@ -403,7 +403,7 @@ class DockSlot {
             ghost.textContent = titlebar.querySelector('.dock-panel-title').textContent;
             document.body.appendChild(ghost);
 
-            // Two drop indicators — one per slot
+            // Two drop indicators - one per slot
             const ownIndicator = document.createElement('div');
             ownIndicator.className = 'dock-drop-indicator';
             ownIndicator.style.display = 'none';
@@ -518,7 +518,7 @@ class DockSlot {
     _movePanel(fromIdx, toIdx) {
         if (fromIdx === toIdx) { return; }
 
-        // Remove all resize handles from the DOM — we'll rebuild them
+        // Remove all resize handles from the DOM - we'll rebuild them
         this._panels.forEach(p => {
             if (p.resizeHandle) {
                 p.resizeHandle.remove();
@@ -557,16 +557,16 @@ const DockSlots = {};
 //
 // Persists window layout to localStorage under the key 'windowLayout'.
 // Saved state per window:
-//   enabled       bool    — whether the window is open
-//   docked        bool    — whether it is in a dock slot
-//   dockSide      string  — 'left' | 'right' (only when docked)
-//   dockedHeight  number  — panel height in px (only when docked)
-//   floatX        number  — WinBox x position (only when floating)
-//   floatY        number  — WinBox y position (only when floating)
-//   floatWidth    number  — WinBox width (only when floating)
-//   floatHeight   number  — WinBox height (only when floating)
+//   enabled       bool    - whether the window is open
+//   docked        bool    - whether it is in a dock slot
+//   dockSide      string  - 'left' | 'right' (only when docked)
+//   dockedHeight  number  - panel height in px (only when docked)
+//   floatX        number  - VWin x position (only when floating)
+//   floatY        number  - VWin y position (only when floating)
+//   floatWidth    number  - VWin width (only when floating)
+//   floatHeight   number  - VWin height (only when floating)
 // Plus top-level keys:
-//   dockWidths    object  — { left: number, right: number }
+//   dockWidths    object  - { left: number, right: number }
 // ---------------------------------------------------------------------------
 const LayoutStore = (() => {
     const KEY = 'windowLayout';
@@ -584,7 +584,7 @@ const LayoutStore = (() => {
         try {
             localStorage.setItem(KEY, JSON.stringify(data));
         } catch (e) {
-            // localStorage unavailable — silently ignore
+            // localStorage unavailable - silently ignore
         }
     }
 
@@ -620,7 +620,7 @@ const LayoutStore = (() => {
                 entry.floatWidth  = Math.round(win._win.width);
                 entry.floatHeight = Math.round(win._win.height);
             } else {
-                // closed — preserve last known docked state
+                // closed - preserve last known docked state
                 if (entry.docked === undefined) {
                     entry.docked   = win._defaultDocked;
                     entry.dockSide = win._dockSide;
@@ -671,21 +671,21 @@ const LayoutStore = (() => {
 // ---------------------------------------------------------------------------
 // VirtualWindow
 //
-// Wraps a WinBox instance with a well-defined lifecycle and optional docking.
+// Wraps a VWin instance with a well-defined lifecycle and optional docking.
 //
 // States:
 //   undefined  -> never opened
-//   'docked'   -> content is in a dock slot panel; no WinBox exists
-//   WinBox obj -> floating
+//   'docked'   -> content is in a dock slot panel; no VWin exists
+//   VWin obj   -> floating
 //   false      -> user closed it from floating state; will not reopen
 //
 // Constructor options (passed as the second argument to VirtualWindow):
-//   factory()         required  Returns WinBox opts object. Must append
+//   factory()         required  Returns VWin opts object. Must append
 //                               the content element to document.body.
-//   dock              optional  'left' | 'right'  — which slot to use.
+//   dock              optional  'left' | 'right'  - which slot to use.
 //                               If omitted the window is float-only.
-//   defaultDocked     optional  boolean — start docked instead of floating.
-//   dockedHeight      optional  number (px) — preferred panel height when docked.
+//   defaultDocked     optional  boolean - start docked instead of floating.
+//   dockedHeight      optional  number (px) - preferred panel height when docked.
 //                               Defaults to the height from the factory opts.
 //
 // Usage:
@@ -696,7 +696,7 @@ const LayoutStore = (() => {
 //   });
 //   win.open();       creates on first call, no-op if closed by user
 //   win.isOpen()      true when floating or docked
-//   win.get()         returns WinBox instance, or null when docked/closed
+//   win.get()         returns VWin instance, or null when docked/closed
 //   win.dock()        move from floating -> docked
 //   win.undock()      move from docked   -> floating
 // ---------------------------------------------------------------------------
@@ -711,7 +711,7 @@ class VirtualWindow {
         this._origDockedHeight = options.dockedHeight || null;
         this._win             = options.offOnLoad ? false : undefined;
         this._contentEl       = null;
-        this._winboxOpts      = null;
+        this._vwinOpts        = null;
     }
 
     // Open the window. On first call, honours defaultDocked and saved layout.
@@ -739,15 +739,15 @@ class VirtualWindow {
         // First open: run the factory to get opts + content element
         const opts = this._factory();
         if (!opts) { return; }
-        this._winboxOpts = opts;
+        this._vwinOpts   = opts;
         this._contentEl  = opts.mount;
 
         // Apply saved float geometry if present
         if (saved && saved.docked === false && saved.floatWidth) {
-            this._winboxOpts.x      = saved.floatX;
-            this._winboxOpts.y      = saved.floatY;
-            this._winboxOpts.width  = saved.floatWidth;
-            this._winboxOpts.height = saved.floatHeight;
+            this._vwinOpts.x      = saved.floatX;
+            this._vwinOpts.y      = saved.floatY;
+            this._vwinOpts.width  = saved.floatWidth;
+            this._vwinOpts.height = saved.floatHeight;
         }
 
         // Apply saved docked height
@@ -783,14 +783,14 @@ class VirtualWindow {
         this._win = undefined;
         // Reset content so factory runs again on open()
         this._contentEl  = null;
-        this._winboxOpts = null;
+        this._vwinOpts   = null;
         // Clear any saved enabled:false so open() does not immediately re-close.
         LayoutStore.clearWindow(this._id);
         this.open();
         LayoutStore.saveWindow(this);
     }
 
-    // Returns the WinBox instance when floating, null when docked or closed.
+    // Returns the VWin instance when floating, null when docked or closed.
     get() {
         return (this._win && this._win !== false && this._win !== 'docked')
             ? this._win : null;
@@ -802,7 +802,7 @@ class VirtualWindow {
         if (this._win === 'docked')   { return; }
         if (!this._win || this._win === false) { return; }
 
-        // Destroy the WinBox without triggering the user-close state
+        // Destroy the VWin without triggering the user-close state
         const wb = this._win;
         wb.onclose = null;
         wb.close();
@@ -821,7 +821,7 @@ class VirtualWindow {
         // Measure the panel's current rendered dimensions before removing it,
         // so the floating window matches what the user saw while docked.
         // The titlebar height (~24px) is subtracted from the panel height to
-        // get the content-only height that WinBox will use for its body.
+        // get the content-only height that VWin will use for its body.
         let spawnY    = null;
         let spawnSize = null;
         const panelEntry = slot._panels.find(p => p.contentEl === this._contentEl);
@@ -848,7 +848,7 @@ class VirtualWindow {
     // -----------------------------------------------------------------------
 
     _floatNow(spawnY, spawnSize) {
-        const opts = Object.assign({}, this._winboxOpts);
+        const opts = Object.assign({}, this._vwinOpts);
 
         // If spawning from a docked position, use the panel's measured dimensions
         // and place the window inset from the dock edge.
@@ -869,8 +869,8 @@ class VirtualWindow {
         }
         opts.mount = this._contentEl;
 
-        // Inject close handler — sets state to false and removes the content
-        // element from the DOM so WinBox's unmount() doesn't leave it visible
+        // Inject close handler - sets state to false and removes the content
+        // element from the DOM so VWin's unmount() doesn't leave it visible
         // as a bare element on document.body.
         const userOnClose = opts.onclose;
         opts.onclose = (force) => {
@@ -904,11 +904,11 @@ class VirtualWindow {
         };
 
         // Wrap oncreate to add the dock button.
-        // IMPORTANT: this._win must be set before oncreate fires because WinBox
+        // IMPORTANT: this._win must be set before oncreate fires because VWin
         // calls oncreate synchronously inside its constructor, before the
-        // assignment `this._win = new WinBox(opts)` completes. We use a
+        // assignment `this._win = new VWin(opts)` completes. We use a
         // placeholder object so addControl can be called safely, then replace
-        // it with the real WinBox instance immediately after construction.
+        // it with the real VWin instance immediately after construction.
         const existingOncreate = opts.oncreate;
         if (this._dockSide) {
             const self = this;
@@ -916,7 +916,7 @@ class VirtualWindow {
                 if (existingOncreate) { existingOncreate.call(this, o); }
                 this.addControl({
                     index: 0,
-                    class: 'wb-dock-btn',
+                    class: 'vw-dock-btn',
                     click: () => self.dock(),
                 });
             };
@@ -924,20 +924,20 @@ class VirtualWindow {
             opts.oncreate = existingOncreate;
         }
 
-        this._win = new WinBox(opts);
+        this._win = new VWin(opts);
     }
 
     _dockNow() {
         const slot      = DockSlots[this._dockSide];
-        const height    = this._dockedHeight || (this._winboxOpts && this._winboxOpts.height) || null;
+        const height    = this._dockedHeight || (this._vwinOpts && this._vwinOpts.height) || null;
         const insertAt  = VirtualWindows.getDockInsertIndex(this);
         slot.addPanel(
             this._contentEl,
-            this._winboxOpts.title,
+            this._vwinOpts.title,
             () => this.undock(),
             height,
             () => {
-                // User clicked X on the docked panel — same semantics as
+                // User clicked X on the docked panel - same semantics as
                 // closing a floating window: remove content and deregister.
                 if (this._contentEl && this._contentEl.parentNode) {
                     this._contentEl.parentNode.removeChild(this._contentEl);
@@ -973,11 +973,11 @@ class VirtualWindow {
 //       onGMCP(namespace, data) { ... }           // called when any listed namespace updates
 //   }
 //
-// Multiple modules may register for the same namespace — all handlers are called.
+// Multiple modules may register for the same namespace - all handlers are called.
 // handleGMCP(namespace, body) walks from the most-specific to least-specific
 // namespace segment and calls every handler registered at the first level that
 // has any handlers.
-// openAll() opens every registered window immediately — called by Client.init().
+// openAll() opens every registered window immediately - called by Client.init().
 // ---------------------------------------------------------------------------
 const VirtualWindows = (() => {
     // Map<gmcpNamespace, Array<handler function>>
@@ -1160,7 +1160,7 @@ const VirtualWindows = (() => {
 // Client namespace
 //
 // Shared state and services that window modules may read or call.
-// Nothing here is truly private — window modules are trusted collaborators.
+// Nothing here is truly private - window modules are trusted collaborators.
 // ---------------------------------------------------------------------------
 const Client = (() => {
 
@@ -1475,7 +1475,7 @@ const Client = (() => {
     let soundVolumeOverrides = {};
 
     // Sounds that have been played, grouped by category key.
-    // { [categoryKey]: string[] }  — ordered by first-play time, deduplicated.
+    // { [categoryKey]: string[] }  - ordered by first-play time, deduplicated.
     let soundHistory = {};
 
     // Which category rows are expanded in the slider UI.
@@ -1810,7 +1810,7 @@ const Client = (() => {
             // Reset all window state back to construction defaults
             win._win         = undefined;
             win._contentEl   = null;
-            win._winboxOpts  = null;
+            win._vwinOpts    = null;
             win._dockSide    = win._origDockSide;
             win._dockedHeight = win._origDockedHeight;
         });
@@ -1829,7 +1829,7 @@ const Client = (() => {
 
 
     // -----------------------------------------------------------------------
-    // Net stats — readable by the settings Stats tab
+    // Net stats - readable by the settings Stats tab
     // -----------------------------------------------------------------------
     function getNetStats() {
         return {
@@ -1922,7 +1922,7 @@ const Client = (() => {
     // init()
     // -----------------------------------------------------------------------
     function init() {
-        // Initialise dock slots first — VirtualWindows.openAll() depends on them.
+        // Initialise dock slots first - VirtualWindows.openAll() depends on them.
         DockSlots.left  = new DockSlot('left');
         DockSlots.right = new DockSlot('right');
 

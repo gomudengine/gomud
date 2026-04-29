@@ -1,12 +1,12 @@
 /*
  * theme-duran.css
  *
- * Dark crimson theme — rich reds, warm peach text, dark maroon surfaces.
+ * Dark crimson theme - rich reds, warm peach text, dark maroon surfaces.
  * Aged leather and firelight.
  */
 
 /* ════════════════════════════════════════════════════════════
-   PALETTE — edit only these to retheme.
+   PALETTE - edit only these to retheme.
    ════════════════════════════════════════════════════════════ */
 :root {
     --p-bg:          #1e1a1a;  /* window/panel body background; dock slots, row fills, party HP track | Theme Swatch 1 */
@@ -21,7 +21,7 @@
 }
 
 /* ════════════════════════════════════════════════════════════
-   SEMANTIC TOKENS — derived from palette + theme-specific values.
+   SEMANTIC TOKENS - derived from palette + theme-specific values.
    ════════════════════════════════════════════════════════════ */
 :root {
     /* ── Surfaces ────────────────────────────────────────────── */

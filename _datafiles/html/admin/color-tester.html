@@ -267,7 +267,7 @@
 
             <!-- 256-color palette -->
             <div class="ct-palette-section">
-                <div class="ct-palette-title">256-Color Palette &mdash; click to apply to active channel</div>
+                <div class="ct-palette-title">256-Color Palette - click to apply to active channel</div>
                 <div class="ct-palette" id="ctPalette"></div>
             </div>
 
@@ -337,7 +337,7 @@ function openColorizeModal() {
 
     // Selection preview
     document.getElementById('ctSelectionPreview').innerHTML =
-        selText ? ansitags.parse(selText) : '<span style="color:#555;font-style:italic">No text selected — tag will wrap the entire input</span>';
+        selText ? ansitags.parse(selText) : '<span style="color:#555;font-style:italic">No text selected - tag will wrap the entire input</span>';
 
     // Reset inputs
     document.getElementById('fgInput').value = '';
@@ -477,7 +477,7 @@ function aliasClick(event, row) {
     const name = row.dataset.name;
     if (activeTarget === 'bg') {
         pendingBg = (pendingBg === name) ? null : name;
-        // Clear the numeric input — alias takes precedence
+        // Clear the numeric input - alias takes precedence
         document.getElementById('bgInput').value = '';
         updateBgSwatch();
     } else {

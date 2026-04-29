@@ -1,0 +1,438 @@
+{{template "header" .}}
+
+<style>
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #555; margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+    .page-layout { display: grid; grid-template-columns: 260px 1fr; gap: 1.25rem; align-items: start; }
+    @media (max-width: 800px) { .page-layout { grid-template-columns: 1fr; } }
+
+    .sidebar { background: #fff; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; }
+    .sidebar-header { padding: 0.75rem 0.9rem; border-bottom: 1px solid #eee; }
+    .sidebar-header input[type="search"] { width: 100%; padding: 0.35rem 0.6rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; }
+    .pet-list { overflow-y: auto; max-height: 72vh; }
+    .pet-row {
+        padding: 0.5rem 0.9rem; cursor: pointer; border-bottom: 1px solid #f0f0f0;
+        display: flex; align-items: baseline; gap: 0.5rem; font-size: 0.875rem;
+    }
+    .pet-row:last-child { border-bottom: none; }
+    .pet-row:hover { background: #f5f7ff; }
+    .pet-row.active { background: #1a1a2e; color: #fff; }
+    .pet-type-id { font-size: 0.75rem; color: #999; font-family: monospace; flex-shrink: 0; }
+    .pet-row.active .pet-type-id { color: #8899cc; }
+    .no-pets { padding: 1.5rem; text-align: center; color: #888; font-size: 0.85rem; }
+    .btn-new { margin: 0.6rem 0.9rem; padding: 0.4rem 0.9rem; border: none; border-radius: 4px; background: #1e6e34; color: #fff; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: block; text-align: center; }
+    .btn-new:hover { background: #145728; }
+
+    .editor-panel { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 1.25rem; }
+    .editor-placeholder { color: #aaa; text-align: center; padding: 4rem 1rem; font-size: 0.9rem; }
+
+    .status-bar { display: none; padding: 0.55rem 0.9rem; border-radius: 4px; font-size: 0.85rem; margin-bottom: 1rem; }
+    .status-bar.success { background: #e6f4ea; color: #1e6e34; display: block; }
+    .status-bar.error   { background: #fde8e8; color: #8a0000; display: block; }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem 1.25rem; }
+    .form-grid .span2 { grid-column: 1 / -1; }
+    .field label { display: block; font-size: 0.78rem; font-weight: 600; color: #555; margin-bottom: 0.25rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .field input[type="text"], .field input[type="number"], .field select, .field textarea {
+        width: 100%; padding: 0.4rem 0.6rem; border: 1px solid #ccc; border-radius: 4px;
+        font-size: 0.875rem; font-family: inherit; background: #fff;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid #1a1a2e; outline-offset: 1px; border-color: transparent; }
+    .field textarea { resize: vertical; min-height: 70px; }
+    .field-hint { font-size: 0.75rem; color: #888; margin-top: 0.2rem; }
+
+    .section-title { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #666; padding: 0.75rem 0 0.4rem; border-bottom: 1px solid #eee; margin-bottom: 0.75rem; grid-column: 1 / -1; }
+
+    /* stat mods */
+    .statmods-list { display: flex; flex-direction: column; gap: 0.4rem; }
+    .statmod-row { display: flex; gap: 0.5rem; align-items: center; }
+    .statmod-row select { flex: 2; padding: 0.35rem 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.82rem; background: #fff; }
+    .statmod-row input[type="number"] { flex: 1; padding: 0.35rem 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.82rem; width: auto; }
+    .statmod-row .btn-icon { background: none; border: none; cursor: pointer; font-size: 1rem; color: #aaa; padding: 0 0.15rem; line-height: 1; }
+    .statmod-row .btn-icon:hover { color: #c00; }
+
+    /* buff chips */
+    .buff-ids-wrap { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+    .buff-chip { display: inline-flex; align-items: center; gap: 0.3rem; background: #e8eaf6; color: #3949ab; border-radius: 12px; padding: 0.2rem 0.6rem; font-size: 0.8rem; }
+    .buff-chip button { background: none; border: none; cursor: pointer; color: #3949ab; font-size: 0.85rem; line-height: 1; padding: 0; }
+    .buff-chip button:hover { color: #c00; }
+
+    .btn-add-sm { font-size: 0.8rem; padding: 0.3rem 0.7rem; border: 1px dashed #aaa; background: none; border-radius: 4px; cursor: pointer; color: #555; }
+    .btn-add-sm:hover { border-color: #1a1a2e; color: #1a1a2e; }
+
+    .btn-row { display: flex; gap: 0.6rem; margin-top: 1.25rem; grid-column: 1 / -1; }
+    .btn-save { padding: 0.45rem 1.2rem; background: #1a1a2e; color: #fff; border: none; border-radius: 4px; font-size: 0.875rem; font-weight: 600; cursor: pointer; }
+    .btn-save:hover { background: #2d2d4e; }
+    .btn-save:disabled { background: #999; cursor: default; }
+    .btn-delete { padding: 0.45rem 1rem; background: #fff; color: #8a0000; border: 1px solid #e0a0a0; border-radius: 4px; font-size: 0.875rem; font-weight: 600; cursor: pointer; }
+    .btn-delete:hover { background: #fde8e8; }
+</style>
+
+<h1>Pets</h1>
+<p class="subtitle">Browse, create, edit, and delete pet type definitions.</p>
+
+<div class="page-layout">
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <input type="search" id="petSearch" placeholder="Search pets&hellip;" oninput="filterPets()" />
+        </div>
+        <div id="petList" class="pet-list">
+            <div class="no-pets">Loading&hellip;</div>
+        </div>
+        <button class="btn-new" onclick="newPet()">+ New Pet</button>
+    </div>
+
+    <div class="editor-panel">
+        <div id="statusBar" class="status-bar"></div>
+        <div id="editorPlaceholder" class="editor-placeholder">Select a pet type to edit, or click <strong>+ New Pet</strong>.</div>
+        <div id="editorForm" style="display:none">
+            <div class="form-grid">
+                <p class="section-title" id="editorTitle">Edit Pet</p>
+
+                <div class="field">
+                    <label>Type ID</label>
+                    <input type="text" id="fType" placeholder="e.g. wolf, cat, mule" />
+                    <div class="field-hint">Lowercase identifier used in scripts and data. Cannot be changed after creation.</div>
+                </div>
+                <div class="field">
+                    <label>Default Name</label>
+                    <input type="text" id="fName" placeholder="e.g. Wolf" />
+                    <div class="field-hint">Display name shown when the player has not named their pet.</div>
+                </div>
+
+                <div class="field">
+                    <label>Name Style</label>
+                    <input type="text" id="fNameStyle" placeholder="e.g. :rainbow" />
+                    <div class="field-hint">Optional color pattern applied to the pet name (prefix with <code>:</code>).</div>
+                </div>
+                <div class="field">
+                    <label>Carry Capacity</label>
+                    <input type="number" id="fCapacity" min="0" placeholder="0" />
+                    <div class="field-hint">Number of items this pet can carry for the player. 0 = cannot carry items.</div>
+                </div>
+
+                <div class="section-title">Combat</div>
+
+                <div class="field">
+                    <label>Damage Dice Roll</label>
+                    <input type="text" id="fDiceRoll" placeholder="e.g. 1d6, 2d4+1" />
+                    <div class="field-hint">Dice expression for the pet&rsquo;s attack damage.</div>
+                </div>
+                <div class="field">
+                    <label>Attacks per Round</label>
+                    <input type="number" id="fAttacks" min="1" placeholder="1" value="1" />
+                </div>
+
+                <div class="section-title">Stat Modifiers</div>
+
+                <div class="field span2">
+                    <div class="statmods-list" id="statmodsList"></div>
+                    <button type="button" class="btn-add-sm" style="margin-top:0.5rem" onclick="addStatMod()">+ Add Stat Mod</button>
+                    <div class="field-hint">Bonuses this pet grants to its owner. Stat names: strength, speed, smarts, vitality, mysticism, perception, healthmax, manamax, etc.</div>
+                </div>
+
+                <div class="section-title">Permanent Buffs</div>
+
+                <div class="field span2">
+                    <div class="buff-ids-wrap" id="fBuffIds"></div>
+                    <button type="button" class="btn-add-sm" style="margin-top:0.4rem" onclick="pickPetBuffId()">+ Add Buff</button>
+                    <div class="field-hint">Buffs permanently applied to the owner while they have this pet.</div>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn-save" id="btnSave" onclick="savePet()">Save</button>
+                    <button class="btn-delete" id="btnDelete" onclick="deletePet()" style="display:none">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    let petsData = {}; // type -> Pet
+    let activeType = null;
+    let isNew = false;
+
+    const KNOWN_STATMODS = [
+        'strength', 'speed', 'smarts', 'vitality', 'mysticism', 'perception',
+        'healthmax', 'manamax', 'healthrecovery', 'manarecovery',
+        'attacks', 'damage', 'casting', 'xpscale', 'picklock', 'tame',
+    ];
+
+    async function init() {
+        const res = await AdminAPI.get('/admin/api/v1/pets');
+        if (!res.ok) { showStatus('error', 'Failed to load pets: ' + res.error); return; }
+        petsData = (res.data && res.data.data) || {};
+        renderList();
+        DiceRollHelper.attach(document.getElementById('fDiceRoll'));
+        const hashType = decodeURIComponent(location.hash.slice(1));
+        if (hashType && petsData[hashType]) selectPet(hashType);
+    }
+
+    window.filterPets = function () {
+        const q = document.getElementById('petSearch').value.toLowerCase();
+        document.querySelectorAll('.pet-row').forEach(row => {
+            const name = (row.dataset.name || '').toLowerCase();
+            const type = (row.dataset.type || '').toLowerCase();
+            row.style.display = (name.includes(q) || type.includes(q)) ? '' : 'none';
+        });
+    };
+
+    function renderList() {
+        const list = document.getElementById('petList');
+        const types = Object.keys(petsData).sort();
+        if (types.length === 0) {
+            list.innerHTML = '<div class="no-pets">No pet types found.</div>';
+            return;
+        }
+        list.innerHTML = types.map(t => {
+            const p = petsData[t];
+            const displayName = p.name || p.Name || t;
+            return `<div class="pet-row" data-type="${escAttr(t)}" data-name="${escAttr(displayName)}"
+                onclick="selectPet('${escAttr(t)}')">
+                <span class="pet-type-id">${escHtml(t)}</span>
+                <span>${escHtml(displayName)}</span>
+            </div>`;
+        }).join('');
+        if (activeType) highlightRow(activeType);
+    }
+
+    function highlightRow(type) {
+        document.querySelectorAll('.pet-row').forEach(r => r.classList.remove('active'));
+        const row = document.querySelector(`.pet-row[data-type="${escAttr(type)}"]`);
+        if (row) row.classList.add('active');
+    }
+
+    window.selectPet = function (type) {
+        activeType = type;
+        isNew = false;
+        location.hash = encodeURIComponent(type);
+        highlightRow(type);
+        populateForm(petsData[type]);
+    };
+
+    window.newPet = function () {
+        activeType = null;
+        isNew = true;
+        document.querySelectorAll('.pet-row').forEach(r => r.classList.remove('active'));
+        populateForm(null);
+    };
+
+    function populateForm(pet) {
+        document.getElementById('editorPlaceholder').style.display = 'none';
+        document.getElementById('editorForm').style.display = '';
+        document.getElementById('btnDelete').style.display = isNew ? 'none' : '';
+        document.getElementById('fType').readOnly = !isNew;
+        document.getElementById('fType').style.background = isNew ? '' : '#f5f5f5';
+        document.getElementById('editorTitle').textContent = isNew ? 'New Pet Type' : 'Edit: ' + (activeType || '');
+
+        const p = pet || {};
+        document.getElementById('fType').value      = p.type || p.Type || '';
+        document.getElementById('fName').value      = p.name || p.Name || '';
+        document.getElementById('fNameStyle').value = p.namestyle || p.NameStyle || '';
+        document.getElementById('fCapacity').value  = (p.capacity != null ? p.capacity : (p.Capacity != null ? p.Capacity : 0));
+
+        const dmg = p.damage || p.Damage || {};
+        const fDiceRoll = document.getElementById('fDiceRoll');
+        fDiceRoll.value = dmg.diceroll || dmg.DiceRoll || '';
+        fDiceRoll.dispatchEvent(new Event('change'));
+        document.getElementById('fAttacks').value = dmg.attacks || dmg.Attacks || 1;
+
+        // Stat mods
+        const statmodsList = document.getElementById('statmodsList');
+        statmodsList.innerHTML = '';
+        const sm = p.statmods || p.StatMods || {};
+        for (const [key, val] of Object.entries(sm)) {
+            appendStatModRow(key, val);
+        }
+
+        // Buff IDs
+        document.getElementById('fBuffIds').innerHTML = '';
+        const buffIds = p.buffids || p.BuffIds || [];
+        for (const id of buffIds) appendBuffChip(id, null);
+    }
+
+    // -------------------------------------------------------------------------
+    // Stat mods
+    // -------------------------------------------------------------------------
+    function appendStatModRow(statName, value) {
+        const list = document.getElementById('statmodsList');
+        const row = document.createElement('div');
+        row.className = 'statmod-row';
+
+        const sel = document.createElement('select');
+        sel.className = 'statmod-name';
+        const knownSet = new Set(KNOWN_STATMODS);
+        if (statName && !knownSet.has(statName)) {
+            const o = document.createElement('option');
+            o.value = statName; o.textContent = statName; o.selected = true;
+            sel.appendChild(o);
+        }
+        for (const sn of KNOWN_STATMODS) {
+            const o = document.createElement('option');
+            o.value = sn; o.textContent = sn;
+            if (sn === statName) o.selected = true;
+            sel.appendChild(o);
+        }
+
+        const inp = document.createElement('input');
+        inp.type = 'number';
+        inp.className = 'statmod-value';
+        inp.value = value || 0;
+        inp.placeholder = '0';
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'btn-icon';
+        removeBtn.title = 'Remove';
+        removeBtn.textContent = '\u00d7';
+        removeBtn.onclick = () => row.remove();
+
+        row.appendChild(sel);
+        row.appendChild(inp);
+        row.appendChild(removeBtn);
+        list.appendChild(row);
+    }
+
+    window.addStatMod = function () {
+        appendStatModRow('strength', 0);
+    };
+
+    function collectStatMods() {
+        const mods = {};
+        document.querySelectorAll('#statmodsList .statmod-row').forEach(row => {
+            const name = row.querySelector('.statmod-name').value.trim();
+            const val  = parseInt(row.querySelector('.statmod-value').value, 10) || 0;
+            if (name) mods[name] = val;
+        });
+        return mods;
+    }
+
+    // -------------------------------------------------------------------------
+    // Buff chips
+    // -------------------------------------------------------------------------
+    function appendBuffChip(id, name) {
+        const list = document.getElementById('fBuffIds');
+        const chip = document.createElement('span');
+        chip.className = 'buff-chip';
+        chip.dataset.id = id;
+        const label = name != null ? '#' + id + ' ' + escHtml(name) : escHtml(PickerConfigs.buffName(id));
+        chip.innerHTML = label + ' <button title="Remove" onclick="this.closest(\'[data-id]\').remove()">&times;</button>';
+        list.appendChild(chip);
+    }
+
+    function collectBuffIds() {
+        return Array.from(document.querySelectorAll('#fBuffIds .buff-chip'))
+            .map(c => parseInt(c.dataset.id, 10)).filter(n => !isNaN(n) && n > 0);
+    }
+
+    window.pickPetBuffId = function () {
+        const existing = collectBuffIds();
+        Picker.open({
+            ...PickerConfigs.buffs,
+            multi:    true,
+            selected: existing,
+            onSelect: (buffs) => {
+                document.getElementById('fBuffIds').innerHTML = '';
+                for (const buff of buffs) appendBuffChip(buff.BuffId, buff.Name);
+            },
+        });
+    };
+
+    // -------------------------------------------------------------------------
+    // Save / Delete
+    // -------------------------------------------------------------------------
+    function buildPayload() {
+        const diceRoll = document.getElementById('fDiceRoll').value.trim();
+        const attacks  = parseInt(document.getElementById('fAttacks').value, 10) || 1;
+        const mods     = collectStatMods();
+        const buffIds  = collectBuffIds();
+
+        return {
+            type:      document.getElementById('fType').value.trim().toLowerCase(),
+            name:      document.getElementById('fName').value.trim(),
+            namestyle: document.getElementById('fNameStyle').value.trim(),
+            capacity:  parseInt(document.getElementById('fCapacity').value, 10) || 0,
+            damage:    diceRoll ? { diceroll: diceRoll, attacks: attacks } : null,
+            statmods:  Object.keys(mods).length ? mods : null,
+            buffids:   buffIds.length ? buffIds : null,
+        };
+    }
+
+    window.savePet = async function () {
+        const payload = buildPayload();
+        if (!payload.type) { showStatus('error', 'Type ID is required.'); return; }
+
+        const btn = document.getElementById('btnSave');
+        btn.disabled = true; btn.textContent = 'Saving\u2026';
+
+        let res;
+        if (isNew) {
+            res = await AdminAPI.post('/admin/api/v1/pets', payload);
+        } else {
+            res = await AdminAPI.patch('/admin/api/v1/pets/' + encodeURIComponent(activeType), payload);
+        }
+
+        btn.disabled = false; btn.textContent = 'Save';
+
+        if (!res.ok) {
+            showStatus('error', res.error || 'Save failed.');
+            return;
+        }
+
+        const saved = (res.data && res.data.data) || payload;
+        const savedType = saved.type || saved.Type || payload.type;
+
+        petsData[savedType] = saved;
+        if (isNew) {
+            activeType = savedType;
+            isNew = false;
+            renderList();
+            highlightRow(savedType);
+            document.getElementById('btnDelete').style.display = '';
+            document.getElementById('fType').readOnly = true;
+            document.getElementById('fType').style.background = '#f5f5f5';
+            document.getElementById('editorTitle').textContent = 'Edit: ' + savedType;
+            location.hash = encodeURIComponent(savedType);
+        } else {
+            renderList();
+            highlightRow(activeType);
+        }
+        showStatus('success', 'Pet type "' + savedType + '" saved.');
+    };
+
+    window.deletePet = async function () {
+        if (!activeType) return;
+        if (!confirm('Delete pet type "' + activeType + '"? This cannot be undone.')) return;
+
+        const res = await AdminAPI.delete('/admin/api/v1/pets/' + encodeURIComponent(activeType));
+        if (!res.ok) { showStatus('error', res.error || 'Delete failed.'); return; }
+
+        delete petsData[activeType];
+        activeType = null;
+        history.replaceState(null, '', location.pathname + location.search);
+        renderList();
+        document.getElementById('editorForm').style.display = 'none';
+        document.getElementById('editorPlaceholder').style.display = '';
+        showStatus('success', 'Pet type deleted.');
+    };
+
+    function showStatus(type, msg) {
+        const bar = document.getElementById('statusBar');
+        bar.className = 'status-bar ' + type;
+        bar.textContent = msg;
+        if (type === 'success') setTimeout(() => { bar.className = 'status-bar'; }, 3000);
+    }
+
+    function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function escAttr(s) { return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+    init();
+})();
+</script>
+
+{{template "footer" .}}

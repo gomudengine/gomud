@@ -40,7 +40,7 @@
 </style>
 
 <h1>Items API Reference</h1>
-<p class="subtitle">REST endpoints for browsing, creating, editing, and deleting item definitions. For attack message endpoints see <a href="/admin/items-attack-messages-api">Attack Messages API Docs</a>.</p>
+<p class="subtitle">REST endpoints for browsing, creating, editing, and deleting item definitions. For attack message endpoints see <a href="/admin/items-attack-messages-api">Attack Messages API Docs</a>. To view rankings interactively see <a href="/admin/items-rank-weapons">Weapon Rankings</a> or <a href="/admin/items-rank-armor">Armor Rankings</a>.</p>
 
 <div class="api-list">
 
@@ -58,6 +58,56 @@
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
                     <div class="resp-body"><div class="curl-block">{"success":true,"data":{"subtypes":[...],"types":[{"Type":"weapon","Description":"...","Count":0,"MinItemId":10000,"MaxItemId":19999},...]}}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-get">GET</span>
+            <span class="api-path">/admin/api/v1/items/ranks/weapons</span>
+            <span class="api-desc">Weapon balance rankings</span>
+        </summary>
+        <div class="api-body">
+            <p>Runs the combat engine's <code>RankWeapons()</code> function against a neutral equal-stat baseline and returns three sorted views of every loaded weapon:</p>
+            <ul style="margin:0.4rem 0 0.6rem 1.2rem;font-size:0.85rem;color:#444;line-height:1.7">
+                <li><strong>by_dps</strong> - raw expected damage per round</li>
+                <li><strong>by_adj_dps</strong> - DPS adjusted for two-handed (&times;0.75) and wait-round (&divide;(1+W)) opportunity cost</li>
+                <li><strong>by_max_dmg</strong> - theoretical maximum single-hit damage ceiling</li>
+            </ul>
+            <p>Each entry contains <code>ItemId</code>, <code>Name</code>, <code>Subtype</code>, <code>Hands</code>, <code>WaitRounds</code>, <code>DiceRoll</code>, <code>AvgDmg</code>, <code>MaxDmg</code>, <code>DPS</code>, <code>AdjDPS</code>, <code>DPR</code>, and <code>AdjDPR</code>. This endpoint is read-only and has no side effects.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/items/ranks/weapons</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"by_dps":[{"ItemId":10009,"Name":"ancient royal scepter","Subtype":"bludgeoning","Hands":1,"DiceRoll":"2d8+2#10","AvgDmg":11,"MaxDmg":18,"DPR":9.0,"AdjDPR":9.0,"DPS":2.719,"AdjDPS":2.719,"WaitRounds":0},...],"by_adj_dps":[...],"by_max_dmg":[...]}}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-get">GET</span>
+            <span class="api-path">/admin/api/v1/items/ranks/armor</span>
+            <span class="api-desc">Armor balance rankings</span>
+        </summary>
+        <div class="api-body">
+            <p>Runs the combat engine's <code>RankArmor()</code> function and returns three sorted views of every loaded armor and wearable item:</p>
+            <ul style="margin:0.4rem 0 0.6rem 1.2rem;font-size:0.85rem;color:#444;line-height:1.7">
+                <li><strong>by_defense</strong> - raw <code>DamageReduction</code> value from the item spec</li>
+                <li><strong>by_adj_defense</strong> - defense adjusted for slot multiplier (offhand shields receive &times;1.5 inside <code>Character.GetDefense()</code>)</li>
+                <li><strong>by_score</strong> - unified eHP-equivalent score: <code>(AdjDefense/200)&times;100 + statValue + BuffValue/10</code>, where stat weights are derived from the combat engine's configured range constants</li>
+            </ul>
+            <p>Each entry contains <code>ItemId</code>, <code>Name</code>, <code>Slot</code>, <code>Cursed</code>, <code>Defense</code>, <code>AdjDefense</code>, <code>StatBonus</code>, <code>BuffCount</code>, <code>BuffValue</code>, and <code>Score</code>. This endpoint is read-only and has no side effects.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/items/ranks/armor</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"by_defense":[{"ItemId":20012,"Name":"shadowsteel breastplate","Slot":"body","Cursed":false,"Defense":20,"AdjDefense":20,"StatBonus":0,"BuffCount":0,"BuffValue":0,"Score":10.0},...],"by_adj_defense":[...],"by_score":[...]}}</div></div>
                 </details>
             </div>
         </div>
@@ -140,7 +190,7 @@
             <span class="api-desc">Update item properties</span>
         </summary>
         <div class="api-body">
-            <p>Merges the supplied fields into the existing spec. The <code>ItemId</code> in the body is ignored — the path parameter is authoritative.</p>
+            <p>Merges the supplied fields into the existing spec. The <code>ItemId</code> in the body is ignored - the path parameter is authoritative.</p>
             <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
      <span class="flag">-X</span> PATCH \
      <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \

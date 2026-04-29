@@ -1,13 +1,13 @@
 /**
  * window-room.js
  *
- * Virtual window: Room Info — right dock.
+ * Virtual window: Room Info - right dock.
  *
  * Displays the current room's name, area, environment, detail badges,
  * exit badges, and contents (NPCs, players, items, containers).
  *
  * Responds to GMCP namespace:
- *   Room.Info — full room update (also handles sub-namespace updates)
+ *   Room.Info - full room update (also handles sub-namespace updates)
  *
  * Reads: Client.GMCPStructs.Room.Info
  */
@@ -473,7 +473,7 @@
             });
         }
 
-        // Exits — flat wrapping badges
+        // Exits - flat wrapping badges
         const exitsList = document.getElementById('rw-exits-list');
         if (exitsList) {
             exitsList.innerHTML = '';
@@ -502,7 +502,7 @@
             });
         }
 
-        // NPCs — look + attack (use id for targeting)
+        // NPCs - look + attack (use id for targeting)
         const npcs = (room.Contents && room.Contents.Npcs) || [];
         setSection('npcs', npcs.map(function(c) {
             const menuItems = [
@@ -520,7 +520,7 @@
             });
         }));
 
-        // Players — look + attack (use id for targeting)
+        // Players - look + attack (use id for targeting)
         const players = (room.Contents && room.Contents.Players) || [];
         setSection('players', players.map(function(c) {
             const menuItems = [
@@ -537,7 +537,7 @@
             });
         }));
 
-        // Items — get only (use id for targeting)
+        // Items - get only (use id for targeting)
         const items = (room.Contents && room.Contents.Items) || [];
         setSection('items', items.map(function(itm) {
             return makeRow(itm.name, {
@@ -546,7 +546,7 @@
             });
         }));
 
-        // Containers — look only
+        // Containers - look only
         const containers = (room.Contents && room.Contents.Containers) || [];
         setSection('containers', containers.map(function(c) {
             return makeRow(c.name, {

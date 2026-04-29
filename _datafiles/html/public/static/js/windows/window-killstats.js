@@ -1,17 +1,17 @@
 /**
  * window-killstats.js
  *
- * Virtual window: Kill Stats — right dock, tabbed, off by default.
+ * Virtual window: Kill Stats - right dock, tabbed, off by default.
  *
  * Tabs:
- *   Mobs   — kill counts by mob name with totals and K/D ratio
- *   Races  — kill counts grouped by race
- *   Areas  — kill counts grouped by zone/area
- *   PvP    — player kill counts with K/D ratio
+ *   Mobs   - kill counts by mob name with totals and K/D ratio
+ *   Races  - kill counts grouped by race
+ *   Areas  - kill counts grouped by zone/area
+ *   PvP    - player kill counts with K/D ratio
  *
  * Responds to GMCP namespace:
- *   Char.Kills  — kill/death stats
- *   Char        — full character update
+ *   Char.Kills  - kill/death stats
+ *   Char        - full character update
  *
  * Reads: Client.GMCPStructs.Char.Kills
  *
@@ -267,9 +267,9 @@
             /* Mobs tab */
             '<div class="ks-tab-panel active" id="ks-mobs">' +
                 '<div class="ks-summary" id="ks-mob-summary">' +
-                    '<div class="ks-summary-cell"><span class="ks-summary-label">Kills</span><span class="ks-summary-value" id="ks-mob-total">—</span></div>' +
-                    '<div class="ks-summary-cell"><span class="ks-summary-label">Deaths</span><span class="ks-summary-value" id="ks-mob-deaths">—</span></div>' +
-                    '<div class="ks-summary-cell"><span class="ks-summary-label">K/D</span><span class="ks-summary-value" id="ks-mob-kd">—</span></div>' +
+                    '<div class="ks-summary-cell"><span class="ks-summary-label">Kills</span><span class="ks-summary-value" id="ks-mob-total">-</span></div>' +
+                    '<div class="ks-summary-cell"><span class="ks-summary-label">Deaths</span><span class="ks-summary-value" id="ks-mob-deaths">-</span></div>' +
+                    '<div class="ks-summary-cell"><span class="ks-summary-label">K/D</span><span class="ks-summary-value" id="ks-mob-kd">-</span></div>' +
                 '</div>' +
                 '<div class="ks-col-header">' +
                     '<span class="ks-col-header-name">Mob</span>' +
@@ -305,9 +305,9 @@
             /* PvP tab */
             '<div class="ks-tab-panel" id="ks-pvp">' +
                 '<div class="ks-summary">' +
-                    '<div class="ks-summary-cell"><span class="ks-summary-label">Kills</span><span class="ks-summary-value" id="ks-pvp-total">—</span></div>' +
-                    '<div class="ks-summary-cell"><span class="ks-summary-label">Deaths</span><span class="ks-summary-value" id="ks-pvp-deaths">—</span></div>' +
-                    '<div class="ks-summary-cell"><span class="ks-summary-label">K/D</span><span class="ks-summary-value" id="ks-pvp-kd">—</span></div>' +
+                    '<div class="ks-summary-cell"><span class="ks-summary-label">Kills</span><span class="ks-summary-value" id="ks-pvp-total">-</span></div>' +
+                    '<div class="ks-summary-cell"><span class="ks-summary-label">Deaths</span><span class="ks-summary-value" id="ks-pvp-deaths">-</span></div>' +
+                    '<div class="ks-summary-cell"><span class="ks-summary-label">K/D</span><span class="ks-summary-value" id="ks-pvp-kd">-</span></div>' +
                 '</div>' +
                 '<div class="ks-col-header">' +
                     '<span class="ks-col-header-name">Player</span>' +
@@ -360,7 +360,7 @@
     }
 
     function fmtKD(ratio) {
-        if (ratio === undefined || ratio === null) { return '—'; }
+        if (ratio === undefined || ratio === null) { return '-'; }
         return ratio.toFixed(2) + ':1';
     }
 

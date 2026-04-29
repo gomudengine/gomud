@@ -4,7 +4,7 @@ const Triggers = (() => {
     const STORAGE_KEY = 'triggers';
 
     // -----------------------------------------------------------------------
-    // FX catalogue — drives both execution and the editor UI.
+    // FX catalogue - drives both execution and the editor UI.
     // params: array of { key, label, type, default }
     //   type: 'number' | 'color'
     // -----------------------------------------------------------------------
@@ -198,7 +198,7 @@ const Triggers = (() => {
     }
 
     // Fire all enabled FX for a trigger.
-    // fx: { [name]: { [key]: value } } — only keys present in the object are fired.
+    // fx: { [name]: { [key]: value } } - only keys present in the object are fired.
     function _fireFX(fx) {
         if (!fx || typeof window.FX !== 'object') { return; }
         FX_DEFS.forEach(def => {

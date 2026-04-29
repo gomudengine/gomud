@@ -1,16 +1,16 @@
 /**
  * window-gear.js
  *
- * Virtual window: Gear — left dock, tabbed.
+ * Virtual window: Gear - left dock, tabbed.
  *
  * Tabs:
- *   Worn     — equipped items by slot, hover tooltips, click menu
- *   Backpack — carried items with carry capacity, hover tooltips, click menu
+ *   Worn     - equipped items by slot, hover tooltips, click menu
+ *   Backpack - carried items with carry capacity, hover tooltips, click menu
  *
  * Responds to GMCP namespaces:
- *   Char.Inventory          — worn equipment + backpack
- *   Char.Inventory.Backpack — backpack items only
- *   Char                    — full character update
+ *   Char.Inventory          - worn equipment + backpack
+ *   Char.Inventory.Backpack - backpack items only
+ *   Char                    - full character update
  *
  * Reads:
  *   Client.GMCPStructs.Char.Inventory.Worn

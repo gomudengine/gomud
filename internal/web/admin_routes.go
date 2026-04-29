@@ -26,6 +26,12 @@ func registerAdminRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /admin/items", RunWithMUDLocked(
 		doBasicAuth(adminItems),
 	))
+	mux.HandleFunc("GET /admin/items-rank-weapons", RunWithMUDLocked(
+		doBasicAuth(adminItemsRankWeapons),
+	))
+	mux.HandleFunc("GET /admin/items-rank-armor", RunWithMUDLocked(
+		doBasicAuth(adminItemsRankArmor),
+	))
 	mux.HandleFunc("GET /admin/items-api", RunWithMUDLocked(
 		doBasicAuth(adminItemsAPI),
 	))
@@ -96,6 +102,13 @@ func registerAdminRoutes(mux *http.ServeMux) {
 		doBasicAuth(adminMobsAPI),
 	))
 
+	mux.HandleFunc("GET /admin/pets", RunWithMUDLocked(
+		doBasicAuth(adminPets),
+	))
+	mux.HandleFunc("GET /admin/pets-api", RunWithMUDLocked(
+		doBasicAuth(adminPetsAPI),
+	))
+
 	mux.HandleFunc("GET /admin/mutators", RunWithMUDLocked(
 		doBasicAuth(adminMutators),
 	))
@@ -108,6 +121,20 @@ func registerAdminRoutes(mux *http.ServeMux) {
 	))
 	mux.HandleFunc("GET /admin/rooms-api", RunWithMUDLocked(
 		doBasicAuth(adminRoomsAPI),
+	))
+
+	mux.HandleFunc("GET /admin/biomes", RunWithMUDLocked(
+		doBasicAuth(adminBiomes),
+	))
+	mux.HandleFunc("GET /admin/biomes-api", RunWithMUDLocked(
+		doBasicAuth(adminBiomesAPI),
+	))
+
+	mux.HandleFunc("GET /admin/conversations", RunWithMUDLocked(
+		doBasicAuth(adminConversations),
+	))
+	mux.HandleFunc("GET /admin/conversations-api", RunWithMUDLocked(
+		doBasicAuth(adminConversationsAPI),
 	))
 
 	mux.HandleFunc("GET /admin/stats", RunWithMUDLocked(

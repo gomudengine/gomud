@@ -311,7 +311,7 @@ func (g *GMCPModule) HandleWebGMCP(connectionId uint64, webGMCP []byte) bool {
 		if identifier == `Suggestion` {
 			for _, user := range users.GetAllActiveUsers() {
 				if user.ConnectionId() == connectionId {
-					// Use the raw payload after the first space — do not TrimSpace,
+					// Use the raw payload after the first space - do not TrimSpace,
 					// because a trailing space is meaningful (e.g. "look " requests
 					// argument completions, not command completions).
 					partialText := ``

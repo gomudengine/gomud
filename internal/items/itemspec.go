@@ -333,6 +333,23 @@ func CanBackstab(iSubType ItemSubType) bool {
 	return false
 }
 
+// GetBuffSummary returns the count and aggregate GetValue() of all WornBuffIds
+// on the item spec. It is used by the admin API to surface passive buff info
+// in the item list without requiring callers to load each buff separately.
+func GetBuffSummary(itemId int) (count int, value int) {
+	spec, ok := items[itemId]
+	if !ok || spec == nil {
+		return 0, 0
+	}
+	for _, bId := range spec.WornBuffIds {
+		if bs := buffs.GetBuffSpec(bId); bs != nil {
+			count++
+			value += bs.GetValue()
+		}
+	}
+	return count, value
+}
+
 func (i *ItemSpec) AutoCalculateValue() {
 
 	val := 5 // base value of 5

@@ -140,8 +140,8 @@
                 <div class="field">
                     <label>Secret</label>
                     <select id="f-secret" onchange="document.getElementById('secret-badge').style.display=this.value==='true'?'':'none'">
-                        <option value="false">No — visible to players</option>
-                        <option value="true">Yes — hidden from player quest list</option>
+                        <option value="false">No - visible to players</option>
+                        <option value="true">Yes - hidden from player quest list</option>
                     </select>
                 </div>
                 <div class="field span2">
@@ -153,7 +153,7 @@
 
                 <div class="field span2">
                     <div style="font-size:0.75rem;color:#888;margin-bottom:0.5rem;">
-                        Every quest requires a <strong>start</strong> step (first) and an <strong>end</strong> step (last) &mdash; these are locked and cannot be removed.
+                        Every quest requires a <strong>start</strong> step (first) and an <strong>end</strong> step (last) - these are locked and cannot be removed.
                         Add optional intermediate steps between them. Progress tokens are formed as <code>questId-stepId</code>.
                     </div>
                     <div class="steps-list" id="steps-list"></div>
@@ -446,7 +446,7 @@
         const actionCol = document.createElement('div');
         if (locked) {
             actionCol.className = 'step-lock-icon';
-            actionCol.title = 'Required step — cannot be removed';
+            actionCol.title = 'Required step - cannot be removed';
             actionCol.textContent = '\uD83D\uDD12';
         } else {
             const removeBtn = document.createElement('button');
