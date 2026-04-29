@@ -58,41 +58,34 @@
     .rank-table td { padding: 0.5rem 0.85rem; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
     .rank-table tr:last-child td { border-bottom: none; }
     .rank-table tr:hover td { background: #f5f7ff; }
+    .rank-table tr.row-cursed:hover td { background: #fff5f5; }
 
-    /* weapon name + link */
-    .weapon-name { font-weight: 600; color: #1a1a2e; }
-    .weapon-name a { color: inherit; text-decoration: none; }
-    .weapon-name a:hover { text-decoration: underline; }
+    /* item name + link */
+    .item-name { font-weight: 600; color: #1a1a2e; }
+    .item-name a { color: inherit; text-decoration: none; }
+    .item-name a:hover { text-decoration: underline; }
+    .row-cursed .item-name, .row-cursed .item-name a { color: #b71c1c; }
 
-    /* subtype pill */
-    .subtype-pill {
+    /* slot pill */
+    .slot-pill {
         display: inline-block; padding: 0.15rem 0.5rem; border-radius: 10px;
         font-size: 0.72rem; font-weight: 600; white-space: nowrap;
     }
-    .st-cleaving    { background: #fce4ec; color: #880e4f; }
-    .st-slashing    { background: #e8f5e9; color: #1b5e20; }
-    .st-stabbing    { background: #e3f2fd; color: #0d47a1; }
-    .st-bludgeoning { background: #fff3e0; color: #e65100; }
-    .st-shooting    { background: #f3e5f5; color: #4a148c; }
-    .st-claws       { background: #e0f7fa; color: #006064; }
-    .st-whipping    { background: #f9fbe7; color: #558b2f; }
-    .st-generic     { background: #f5f5f5; color: #616161; }
+    .slot-offhand { background: #e3f2fd; color: #0d47a1; }
+    .slot-head    { background: #f3e5f5; color: #4a148c; }
+    .slot-neck    { background: #e8f5e9; color: #1b5e20; }
+    .slot-body    { background: #fff3e0; color: #e65100; }
+    .slot-belt    { background: #fce4ec; color: #880e4f; }
+    .slot-gloves  { background: #e0f7fa; color: #006064; }
+    .slot-ring    { background: #fff9c4; color: #f57f17; }
+    .slot-legs    { background: #f9fbe7; color: #558b2f; }
+    .slot-feet    { background: #fbe9e7; color: #bf360c; }
 
-    /* hands badge */
-    .hands-badge {
+    /* cursed badge */
+    .cursed-badge {
         display: inline-block; padding: 0.1rem 0.4rem; border-radius: 3px;
-        font-size: 0.7rem; font-weight: 700;
+        font-size: 0.7rem; font-weight: 700; background: #fde8e8; color: #8a0000;
     }
-    .hands-1 { background: #e8f5e9; color: #2e7d32; }
-    .hands-2 { background: #fff3e0; color: #e65100; }
-
-    /* wait badge */
-    .wait-badge {
-        display: inline-block; padding: 0.1rem 0.4rem; border-radius: 3px;
-        font-size: 0.7rem; font-weight: 700;
-    }
-    .wait-0 { background: #e8f5e9; color: #2e7d32; }
-    .wait-n { background: #fde8e8; color: #8a0000; }
 
     /* score bar */
     .score-cell { white-space: nowrap; display: flex; align-items: center; gap: 0.5rem; }
@@ -102,11 +95,14 @@
     .score-bar-fill  { display: block; height: 8px; border-radius: 3px; background: #4a6fa5; transition: width 0.3s ease; }
     .score-bar-fill.top { background: #c0392b; }
 
-    /* dice cell */
-    .dice-roll { font-family: monospace; font-size: 0.82rem; color: #555; }
-
     /* id cell */
     .item-id { font-family: monospace; font-size: 0.78rem; color: #aaa; }
+
+    /* stat / buff cells */
+    .stat-bonus { font-family: monospace; font-size: 0.85rem; }
+    .stat-positive { color: #1b5e20; }
+    .stat-negative { color: #b71c1c; }
+    .stat-zero     { color: #aaa; }
 
     /* loading skeleton */
     .skeleton-row td { padding: 0.55rem 0.85rem; }
@@ -142,10 +138,11 @@
     }
 </style>
 
-<h1>Weapon Rankings</h1>
+<h1>Armor Rankings</h1>
 <p class="subtitle">
-    Combat-engine rankings for all loaded weapons against a neutral equal-stat opponent.
-    Scores reflect <em>expected</em> output — no randomness. See <a href="/admin/items-api">Items API Docs</a> for the raw endpoint.
+    Rankings for all loaded armor and wearable items.
+    Scores are computed from defense rating, stat bonuses, and worn buff values.
+    See <a href="/admin/items-api">Items API Docs</a> for the raw endpoint.
 </p>
 
 <div id="statusBar" class="status-bar"></div>
@@ -156,65 +153,66 @@
 </div>
 
 <div class="view-tabs">
-    <button class="view-tab active" id="tab-dps"     onclick="switchView('dps')">
-        <span class="tab-title">Raw DPS</span>
-        <span class="tab-hint">Pure damage output</span>
+    <button class="view-tab active" id="tab-defense"    onclick="switchView('defense')">
+        <span class="tab-title">Defense</span>
+        <span class="tab-hint">Raw damage reduction %</span>
     </button>
-    <button class="view-tab" id="tab-adj"     onclick="switchView('adj')">
-        <span class="tab-title">Adjusted DPS</span>
-        <span class="tab-hint">2H &amp; wait-round penalty</span>
+    <button class="view-tab" id="tab-adjdefense" onclick="switchView('adjdefense')">
+        <span class="tab-title">Adj. Defense</span>
+        <span class="tab-hint">Shield ×1.5 multiplier</span>
     </button>
-    <button class="view-tab" id="tab-maxdmg"  onclick="switchView('maxdmg')">
-        <span class="tab-title">Max Hit</span>
-        <span class="tab-hint">Burst ceiling</span>
+    <button class="view-tab" id="tab-value"      onclick="switchView('value')">
+        <span class="tab-title">Score</span>
+        <span class="tab-hint">eHP-equivalent</span>
     </button>
 </div>
 
 <div class="filter-bar">
-    <label for="filterSubtype">Subtype:</label>
-    <select id="filterSubtype" onchange="renderTable()">
+    <label for="filterSlot">Slot:</label>
+    <select id="filterSlot" onchange="renderTable()">
         <option value="">All</option>
-        <option value="cleaving">Cleaving</option>
-        <option value="slashing">Slashing</option>
-        <option value="stabbing">Stabbing</option>
-        <option value="bludgeoning">Bludgeoning</option>
-        <option value="shooting">Shooting</option>
-        <option value="claws">Claws</option>
-        <option value="whipping">Whipping</option>
-        <option value="generic">Generic</option>
+        <option value="offhand">Offhand</option>
+        <option value="head">Head</option>
+        <option value="neck">Neck</option>
+        <option value="body">Body</option>
+        <option value="belt">Belt</option>
+        <option value="gloves">Gloves</option>
+        <option value="ring">Ring</option>
+        <option value="legs">Legs</option>
+        <option value="feet">Feet</option>
     </select>
-    <label for="filterHands">Hands:</label>
-    <select id="filterHands" onchange="renderTable()">
+    <label for="filterCursed">Cursed:</label>
+    <select id="filterCursed" onchange="renderTable()">
         <option value="">All</option>
-        <option value="1">1-Handed</option>
-        <option value="2">2-Handed</option>
+        <option value="no">Not cursed</option>
+        <option value="yes">Cursed only</option>
     </select>
     <label for="filterSearch">Search:</label>
-    <input type="text" id="filterSearch" placeholder="weapon name…" oninput="renderTable()">
+    <input type="text" id="filterSearch" placeholder="item name…" oninput="renderTable()">
 </div>
 
 <div class="legend">
-    <span class="legend-item"><span class="hands-badge hands-2">2H</span> Two-handed (loses offhand slot)</span>
-    <span class="legend-item"><span class="wait-badge wait-n">+W</span> Extra wait rounds between attacks</span>
+    <span class="legend-item"><span class="cursed-badge">cursed</span> Cannot be removed once equipped</span>
+    <span class="legend-item"><span class="slot-pill slot-offhand">offhand</span> Shields receive ×1.5 defense bonus</span>
 </div>
 
 <div class="rank-table-wrap">
     <table class="rank-table" id="rankTable">
         <thead>
             <tr>
-                <th style="width:4rem" class="sortable" data-key="ItemId" onclick="sortBy('ItemId')" data-tip="Numeric item ID. Weapons use the 10000–19999 range.">ID<span class="sort-arrow"></span><span class="th-tip-icon">?</span></th>
-                <th class="sortable" data-key="Name" onclick="sortBy('Name')" data-tip="The weapon's display name. Click to open it in the item editor.">Name<span class="sort-arrow"></span><span class="th-tip-icon">?</span></th>
-                <th class="sortable" data-key="DiceRoll" onclick="sortBy('DiceRoll')" data-tip="Damage dice expression: [attacks@]NdS[+bonus][#critBuff]. For example, 2d6+1 means roll 2 six-sided dice and add 1.">Dice<span class="sort-arrow"></span><span class="th-tip-icon">?</span></th>
-                <th class="sortable" data-key="Subtype" onclick="sortBy('Subtype')" data-tip="Weapon category. Determines which attack messages are used and which skills apply (e.g. backstab requires cleaving, stabbing, slashing, or claws).">Subtype<span class="sort-arrow"></span><span class="th-tip-icon">?</span></th>
-                <th class="sortable" data-key="Hands" onclick="sortBy('Hands')" data-tip="1H weapons leave the offhand slot free for a second weapon or shield. 2H weapons occupy both slots.">Hands<span class="sort-arrow"></span><span class="th-tip-icon">?</span></th>
-                <th class="sortable" data-key="WaitRounds" onclick="sortBy('WaitRounds')" data-tip="Extra rounds the wielder must wait between attacks. A value of 1 means the weapon attacks every other round, halving its effective DPS.">Wait<span class="sort-arrow"></span><span class="th-tip-icon">?</span></th>
-                <th class="sortable" id="scoreHeader" data-key="DPS" onclick="sortBy('DPS')" data-tip=""><span id="scoreLabel">Score</span><span class="sort-arrow"></span><span class="th-tip-icon">?</span></th>
+                <th style="width:4rem" class="sortable" data-key="ItemId" onclick="sortBy('ItemId')" data-tip="Numeric item ID. Armor items use the 20000–29999 range.">ID<span class="sort-arrow"></span></th>
+                <th class="sortable" data-key="Name" onclick="sortBy('Name')" data-tip="The item's display name. Click to open it in the item editor.">Name<span class="sort-arrow"></span></th>
+                <th class="sortable" data-key="Slot" onclick="sortBy('Slot')" data-tip="Equipment slot this item occupies.">Slot<span class="sort-arrow"></span></th>
+                <th class="sortable" data-key="Defense" onclick="sortBy('Defense')" data-tip="Raw DamageReduction value. A random fraction of this is subtracted from each incoming hit.">Defense<span class="sort-arrow"></span></th>
+                <th class="sortable" data-key="StatBonus" onclick="sortBy('StatBonus')" data-tip="Sum of all stat mod values on the item. Positive means net stat gains; negative means net penalties.">Stats<span class="sort-arrow"></span></th>
+                <th class="sortable" data-key="BuffCount" onclick="sortBy('BuffCount')" data-tip="Number of passive buffs active while this item is equipped (WornBuffIds).">Buffs<span class="sort-arrow"></span></th>
+                <th class="sortable" id="scoreHeader" data-key="Defense" onclick="sortBy('Defense')" data-tip=""><span id="scoreLabel">Score</span><span class="sort-arrow"></span></th>
             </tr>
         </thead>
         <tbody id="rankBody">
-            <tr class="skeleton-row"><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:140px"></div></td><td><div class="skel" style="width:60px"></div></td><td><div class="skel" style="width:80px"></div></td><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:100px"></div></td></tr>
-            <tr class="skeleton-row"><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:110px"></div></td><td><div class="skel" style="width:60px"></div></td><td><div class="skel" style="width:80px"></div></td><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:100px"></div></td></tr>
-            <tr class="skeleton-row"><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:160px"></div></td><td><div class="skel" style="width:60px"></div></td><td><div class="skel" style="width:80px"></div></td><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:100px"></div></td></tr>
+            <tr class="skeleton-row"><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:140px"></div></td><td><div class="skel" style="width:70px"></div></td><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:100px"></div></td></tr>
+            <tr class="skeleton-row"><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:110px"></div></td><td><div class="skel" style="width:70px"></div></td><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:100px"></div></td></tr>
+            <tr class="skeleton-row"><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:160px"></div></td><td><div class="skel" style="width:70px"></div></td><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:100px"></div></td></tr>
         </tbody>
     </table>
 </div>
@@ -224,9 +222,9 @@
 <script>
 (function() {
     // --- state ---
-    var allData   = { by_dps: [], by_adj_dps: [], by_max_dmg: [] };
-    var view      = 'dps';   // 'dps' | 'adj' | 'maxdmg'
-    var sortKey   = null;    // null = use natural ranking order
+    var allData   = { by_defense: [], by_adj_defense: [], by_score: [] };
+    var view      = 'defense';
+    var sortKey   = null;
     var sortAsc   = true;
 
     // --- bootstrap ---
@@ -239,7 +237,7 @@
 
     // --- data loading ---
     async function loadRankings() {
-        const result = await AdminAPI.get('/admin/api/v1/items/ranks', true);
+        const result = await AdminAPI.get('/admin/api/v1/items/ranks/armor', true);
         if (!result.ok || !result.data || !result.data.success) {
             showError((result.data && result.data.error) || result.error || 'Unknown error');
             return;
@@ -256,19 +254,19 @@
     function switchView(v) {
         view = v;
         sortKey = null;
-        ['dps','adj','maxdmg'].forEach(function(id) {
+        ['defense','adjdefense','value'].forEach(function(id) {
             document.getElementById('tab-' + id).classList.toggle('active', id === v);
         });
         var header = document.getElementById('scoreHeader');
-        var keyMap = { dps: 'DPS', adj: 'AdjDPS', maxdmg: 'MaxDmg' };
+        var keyMap = { defense: 'Defense', adjdefense: 'AdjDefense', value: 'Score' };
         header.dataset.key = keyMap[v];
         header.onclick = function() { sortBy(keyMap[v]); };
-        var labelMap = { dps: 'Raw DPS', adj: 'Adj DPS', maxdmg: 'Max Dmg' };
+        var labelMap = { defense: 'Defense', adjdefense: 'Adj Defense', value: 'Score' };
         document.getElementById('scoreLabel').textContent = labelMap[v];
         var tipMap = {
-            dps:    'Average damage per round against an equal-stat opponent. No stat bonuses, no randomness — pure weapon output.',
-            adj:    'Raw DPS with opportunity-cost penalties applied: ×0.75 for two-handed weapons (lost offhand slot) and ÷(1+W) for wait rounds. Use this to compare weapons across hand categories.',
-            maxdmg: 'Highest possible damage from a single hit: (attacks × diceCount × diceSides) + bonus. The average is shown in parentheses.'
+            defense:    'Raw DamageReduction value. A random fraction of this is subtracted from each incoming hit.',
+            adjdefense: 'Defense adjusted for slot multiplier. Offhand shields receive ×1.5 inside the defense calculation.',
+            value:      'Unified eHP-equivalent score: (AdjDefense/200)×100 + per-stat weighted sum + BuffValue/10. Stat weights are derived from the combat engine range constants.'
         };
         header.dataset.tip = tipMap[v];
         renderTable();
@@ -280,7 +278,7 @@
             sortAsc = !sortAsc;
         } else {
             sortKey = key;
-            sortAsc = (key === 'Name' || key === 'DiceRoll' || key === 'Subtype');
+            sortAsc = (key === 'Name' || key === 'Slot');
         }
         renderTable();
     }
@@ -293,37 +291,51 @@
 
         updateSortHeaders();
 
-        var scoreKey = { dps: 'DPS', adj: 'AdjDPS', maxdmg: 'MaxDmg' }[view];
+        var scoreKey = { defense: 'Defense', adjdefense: 'AdjDefense', value: 'Score' }[view];
         var maxScore = 0;
-        rows.forEach(function(r) { if (r[scoreKey] > maxScore) maxScore = r[scoreKey]; });
+        rows.forEach(function(r) { var s = r[scoreKey]; if (s > maxScore) maxScore = s; });
 
         var tbody = document.getElementById('rankBody');
         if (rows.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No weapons match the current filters.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No items match the current filters.</td></tr>';
             return;
         }
 
-        tbody.innerHTML = rows.map(function(r, i) {
-            var score   = r[scoreKey];
+        tbody.innerHTML = rows.map(function(r) {
+            var score = r[scoreKey];
             if (score === undefined || score === null) return '';
-            var scoreFmt = (scoreKey === 'MaxDmg')
-                ? score + ' <small style="color:#aaa;font-weight:400">(avg ' + (r.AvgDmg || 0).toFixed(1) + ')</small>'
-                : score.toFixed(3);
-            var pct     = maxScore > 0 ? (score / maxScore * 100).toFixed(1) : 0;
-            var isTop   = pct > 85;
 
-            var dprTip = '';
-            if (scoreKey === 'DPS'    && r.DPR    != null) dprTip = 'DPR (no miss/dodge/defense): ' + r.DPR.toFixed(2);
-            if (scoreKey === 'AdjDPS' && r.AdjDPR != null) dprTip = 'Adj DPR (no miss/dodge/defense): ' + r.AdjDPR.toFixed(2);
+            var scoreFmt;
+            if (scoreKey === 'Defense') {
+                scoreFmt = score + '%';
+            } else if (scoreKey === 'AdjDefense') {
+                scoreFmt = score.toFixed(1) + '%';
+            } else {
+                scoreFmt = score.toFixed(2);
+            }
 
-            return '<tr>' +
+            var pct   = maxScore > 0 ? Math.max(0, score / maxScore * 100).toFixed(1) : 0;
+            var isTop = pct > 85;
+
+            var rowTip = '';
+            if (scoreKey === 'Score') {
+                rowTip = 'Defense: ' + r.Defense + '%, AdjDefense: ' + (r.AdjDefense || 0).toFixed(1) + '%, StatBonus: ' + r.StatBonus + ', BuffValue: ' + (r.BuffValue || 0);
+            }
+
+            var statCls = r.StatBonus > 0 ? 'stat-positive' : (r.StatBonus < 0 ? 'stat-negative' : 'stat-zero');
+            var statFmt = r.StatBonus > 0 ? '+' + r.StatBonus : String(r.StatBonus);
+
+            return '<tr class="' + (r.Cursed ? 'row-cursed' : '') + '">' +
                 '<td class="item-id">' + r.ItemId + '</td>' +
-                '<td class="weapon-name"><a href="/admin/items?search=' + encodeURIComponent(r.Name) + '">' + escHtml(r.Name) + '</a></td>' +
-                '<td class="dice-roll">' + escHtml(r.DiceRoll) + '</td>' +
-                '<td>' + subtypePill(r.Subtype) + '</td>' +
-                '<td>' + handsBadge(r.Hands) + '</td>' +
-                '<td>' + waitBadge(r.WaitRounds) + '</td>' +
-                '<td class="score-cell"' + (dprTip ? ' data-row-tip="' + escHtml(dprTip) + '"' : '') + '>' +
+                '<td class="item-name">' +
+                    '<a href="/admin/items#' + r.ItemId + '">' + escHtml(r.Name) + '</a>' +
+                    (r.Cursed ? ' <span class="cursed-badge">cursed</span>' : '') +
+                '</td>' +
+                '<td>' + slotPill(r.Slot) + '</td>' +
+                '<td>' + r.Defense + '%</td>' +
+                '<td class="stat-bonus ' + statCls + '">' + statFmt + '</td>' +
+                '<td>' + (r.BuffCount || 0) + '</td>' +
+                '<td class="score-cell"' + (rowTip ? ' data-row-tip="' + escHtml(rowTip) + '"' : '') + '>' +
                     '<span class="score-val">' + scoreFmt + '</span>' +
                     '<span class="score-bar-track"><span class="score-bar-fill' + (isTop ? ' top' : '') + '" style="width:' + pct + '%"></span></span>' +
                 '</td>' +
@@ -332,18 +344,19 @@
     }
 
     function currentRows() {
-        var map = { dps: 'by_dps', adj: 'by_adj_dps', maxdmg: 'by_max_dmg' };
+        var map = { defense: 'by_defense', adjdefense: 'by_adj_defense', value: 'by_score' };
         return (allData[map[view]] || []).slice();
     }
 
     function applyFilters(rows) {
-        var subtype = document.getElementById('filterSubtype').value;
-        var hands   = document.getElementById('filterHands').value;
-        var search  = document.getElementById('filterSearch').value.toLowerCase().trim();
+        var slot   = document.getElementById('filterSlot').value;
+        var cursed = document.getElementById('filterCursed').value;
+        var search = document.getElementById('filterSearch').value.toLowerCase().trim();
         return rows.filter(function(r) {
-            if (subtype && r.Subtype !== subtype) return false;
-            if (hands   && String(r.Hands) !== hands) return false;
-            if (search  && r.Name.toLowerCase().indexOf(search) === -1) return false;
+            if (slot   && r.Slot !== slot) return false;
+            if (cursed === 'yes' && !r.Cursed) return false;
+            if (cursed === 'no'  &&  r.Cursed) return false;
+            if (search && r.Name.toLowerCase().indexOf(search) === -1) return false;
             return true;
         });
     }
@@ -368,18 +381,9 @@
     }
 
     // --- badge helpers ---
-    function subtypePill(st) {
-        var cls = 'st-' + (st || 'generic').toLowerCase();
-        return '<span class="subtype-pill ' + cls + '">' + escHtml(st || 'generic') + '</span>';
-    }
-
-    function handsBadge(h) {
-        return '<span class="hands-badge hands-' + h + '">' + h + 'H</span>';
-    }
-
-    function waitBadge(w) {
-        if (!w) return '<span class="wait-badge wait-0">0</span>';
-        return '<span class="wait-badge wait-n">+' + w + '</span>';
+    function slotPill(slot) {
+        var cls = 'slot-' + (slot || 'body').toLowerCase();
+        return '<span class="slot-pill ' + cls + '">' + escHtml(slot || '') + '</span>';
     }
 
     // --- status helpers ---
@@ -389,8 +393,7 @@
         bar.className = 'status-bar error';
     }
     function hideError() {
-        var bar = document.getElementById('statusBar');
-        bar.className = 'status-bar';
+        document.getElementById('statusBar').className = 'status-bar';
     }
 
     function escHtml(s) {
@@ -403,15 +406,13 @@
     (function() {
         var tip = document.getElementById('tooltip');
         var SCORE_TIPS = {
-            dps:    'Average damage per round against an equal-stat opponent. No stat bonuses, no randomness — pure weapon output.',
-            adj:    'Raw DPS with opportunity-cost penalties applied: ×0.75 for two-handed weapons (lost offhand slot) and ÷(1+W) for wait rounds. Use this to compare weapons across hand categories.',
-            maxdmg: 'Highest possible damage from a single hit: (attacks × diceCount × diceSides) + bonus. The average is shown in parentheses.'
+            defense:    'Raw DamageReduction value. A random fraction of this is subtracted from each incoming hit.',
+            adjdefense: 'Defense adjusted for slot multiplier. Offhand shields receive ×1.5 inside the defense calculation.',
+            value:      'Unified eHP-equivalent score: (AdjDefense/200)×100 + per-stat weighted sum + BuffValue/10. Stat weights are derived from the combat engine range constants.'
         };
 
-        // seed the score header tip for the initial view
-        document.getElementById('scoreHeader').dataset.tip = SCORE_TIPS['dps'];
+        document.getElementById('scoreHeader').dataset.tip = SCORE_TIPS['defense'];
 
-        // header tooltips — static elements, attach directly
         document.querySelectorAll('.rank-table th[data-tip]').forEach(function(th) {
             th.addEventListener('mouseenter', function(e) {
                 var text = th.dataset.tip;
@@ -424,8 +425,6 @@
             th.addEventListener('mouseleave', hideTip);
         });
 
-        // row score-cell tooltips — tbody is rebuilt on every render,
-        // so use event delegation on the table instead
         var tbody = document.getElementById('rankBody');
         tbody.addEventListener('mouseover', function(e) {
             var td = e.target.closest('td[data-row-tip]');
