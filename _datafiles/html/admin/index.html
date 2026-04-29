@@ -95,15 +95,15 @@
         var card;
 
         card = document.getElementById('card-telnet');
-        card.querySelector('.value').textContent = (data.telnet_ports || []).join(' ') || '—';
+        card.querySelector('.value').textContent = (data.telnet_ports || []).join(' ') || '-';
         card.querySelector('.detail').textContent = data.telnet_connections + ' connected';
 
         card = document.getElementById('card-websocket');
-        card.querySelector('.value').textContent = data.websocket_port || '—';
+        card.querySelector('.value').textContent = data.websocket_port || '-';
         card.querySelector('.detail').textContent = data.websocket_connections + ' connected';
 
         card = document.getElementById('card-ssh');
-        card.querySelector('.value').textContent = data.ssh_port || '—';
+        card.querySelector('.value').textContent = data.ssh_port || '-';
         card.querySelector('.detail').textContent = data.ssh_connections + ' connected';
     }
 

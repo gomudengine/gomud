@@ -33,14 +33,14 @@ All methods ultimately call `triggerCopyover()` in `copyover.go` (package
 
 `Execute` (in `internal/copyover/copyover.go`) performs the following steps:
 
-1. Opens an `os.Pipe()` — a `(readFd, writeFd)` pair.
+1. Opens an `os.Pipe()` - a `(readFd, writeFd)` pair.
 2. Calls `copyover.Save(writeFd)`, which iterates every registered
    `Contributor` and calls `CopyoverSave` on each one. Each contributor writes
    a named section into the pipe using `Encoder.WriteSection`.
 3. Closes `writeFd` (signals EOF to the reader).
 4. Launches the same binary again via `exec.Command`, passing the read end of
-   the pipe as `ExtraFiles[0]` — the OS assigns it file descriptor 3 in the
-   child — and appends `--copyover-fd=3` to the argument list.
+   the pipe as `ExtraFiles[0]` - the OS assigns it file descriptor 3 in the
+   child - and appends `--copyover-fd=3` to the argument list.
 5. Calls `os.Exit(0)`, terminating the parent.
 
 #### Wire format
@@ -150,8 +150,8 @@ read.
 If your contributor relies on OS-specific mechanisms (e.g., raw file
 descriptors), provide separate `copyover.go` build-tagged files:
 
-- `//go:build !windows` — full implementation
-- `//go:build windows` — stub that writes/reads an empty or minimal state
+- `//go:build !windows` - full implementation
+- `//go:build windows` - stub that writes/reads an empty or minimal state
 
 See `internal/connections/fd_unix.go` and `internal/connections/fd_windows.go`
 for a concrete example.

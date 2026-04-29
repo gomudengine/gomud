@@ -6,26 +6,26 @@
  * Public API (mirrors Winbox subset):
  *
  *   new VWin(opts)
- *     opts.title      string    — title bar text
- *     opts.mount      Element   — content element to place in the body area
- *     opts.x          number|'right'|'center'  — initial left position
- *     opts.y          number|'center'           — initial top position
- *     opts.width      number    — initial width in px
- *     opts.height     number    — initial height in px
- *     opts.header     number    — header bar height in px (default 35)
- *     opts.bottom     number    — reserved space at the bottom of the viewport
- *     opts.background string    — CSS background for the title bar
- *     opts.border     number    — body margin in px
- *     opts.class      string    — extra class(es) added to the root element
- *     opts.onclose    function  — called when the X button is clicked;
+ *     opts.title      string    - title bar text
+ *     opts.mount      Element   - content element to place in the body area
+ *     opts.x          number|'right'|'center'  - initial left position
+ *     opts.y          number|'center'           - initial top position
+ *     opts.width      number    - initial width in px
+ *     opts.height     number    - initial height in px
+ *     opts.header     number    - header bar height in px (default 35)
+ *     opts.bottom     number    - reserved space at the bottom of the viewport
+ *     opts.background string    - CSS background for the title bar
+ *     opts.border     number    - body margin in px
+ *     opts.class      string    - extra class(es) added to the root element
+ *     opts.onclose    function  - called when the X button is clicked;
  *                                 return true to cancel the close
- *     opts.onmove     function(x, y)    — called after every drag
- *     opts.onresize   function(w, h)    — called after every resize
- *     opts.oncreate   function(opts)    — called synchronously at end of constructor
+ *     opts.onmove     function(x, y)    - called after every drag
+ *     opts.onresize   function(w, h)    - called after every resize
+ *     opts.oncreate   function(opts)    - called synchronously at end of constructor
  *
  *   Instance properties:
- *     .window   Element  — the root VWin element (used by window-comm.js)
- *     .body     Element  — the scrollable content area
+ *     .window   Element  - the root VWin element (used by window-comm.js)
+ *     .body     Element  - the scrollable content area
  *     .id       string
  *     .title    string
  *     .x, .y, .width, .height   numbers (current geometry)
@@ -48,7 +48,7 @@
     'use strict';
 
     // -------------------------------------------------------------------------
-    // Stylesheet — injected once
+    // Stylesheet - injected once
     // -------------------------------------------------------------------------
     var _styleInjected = false;
     function _injectStyle() {
@@ -109,7 +109,7 @@
             '  cursor: pointer; background-repeat: no-repeat; background-position: center;',
             '}',
 
-            /* Close button — simple × drawn with CSS */
+            /* Close button - simple × drawn with CSS */
             '.vw-close::before {',  
             '  content: "\\00d7";',
             '  font-size: 18px; line-height: 1;',
@@ -243,7 +243,7 @@
             hdr.style.lineHeight = headerH + 'px';
         }
 
-        // Control strip (right side of header — holds close button, custom controls)
+        // Control strip (right side of header - holds close button, custom controls)
         var ctrl = document.createElement('div');
         ctrl.className = 'vw-control';
 

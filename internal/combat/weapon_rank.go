@@ -44,6 +44,12 @@ type WeaponRank struct {
 	AdjDPS float64
 
 	WaitRounds int
+
+	// BuffCount is the number of WornBuffIds on the weapon (passive while equipped).
+	BuffCount int
+
+	// BuffValue is the aggregate GetValue() of all WornBuffIds.
+	BuffValue int
 }
 
 // baselineCharacter returns a neutral character with equal stats in all
@@ -111,7 +117,7 @@ func RankWeapons() (byDPS, byAdjDPS, byMaxDmg []WeaponRank) {
 
 		dps := expectedDPS(attacker, defender)
 
-		// DPR: raw average damage per round if every attack connects —
+		// DPR: raw average damage per round if every attack connects -
 		// no hit-chance, dodge, or defense reduction applied.
 		// Uses the same attack count the combat engine would use.
 		atkCount := combatAttackCount(attacker, defender)
@@ -153,6 +159,8 @@ func RankWeapons() (byDPS, byAdjDPS, byMaxDmg []WeaponRank) {
 			DPS:        dps,
 			AdjDPS:     adjDPS,
 			WaitRounds: spec.WaitRounds,
+			BuffCount:  wornBuffCount(spec),
+			BuffValue:  wornBuffValue(spec),
 		})
 	}
 

@@ -8,7 +8,7 @@ blows and is harder to pin down.
 * Increases your chance to hit. The faster you are compared to your opponent,
   the more reliably your attacks connect (up to {{ config "GamePlay.Combat.ToHitMax" }}% hit chance).
 * When fighting unarmed or with claws, speed lets you strike multiple times per
-  round — up to {{ config "GamePlay.Combat.ExtraAttacksMax" }} extra attacks beyond your base attack.
+  round - up to {{ config "GamePlay.Combat.ExtraAttacksMax" }} extra attacks beyond your base attack.
 * Increases the number of your unarmed damage dice when fighting without a weapon.
 
 <ansi fg="yellow">Movement</ansi>

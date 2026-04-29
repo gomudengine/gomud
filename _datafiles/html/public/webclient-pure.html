@@ -2200,7 +2200,7 @@
         }
 
         function _fmtRate(b, sec) {
-            return sec > 0 ? _fmtBytes(b / sec) + '/s' : '—';
+            return sec > 0 ? _fmtBytes(b / sec) + '/s' : '-';
         }
 
         function _fmtUptime(ms) {
@@ -2265,7 +2265,7 @@
             var nsList  = Object.keys(st.gmcpInBytes).sort();
             var total   = nsList.reduce(function(s, k) { return s + st.gmcpInBytes[k]; }, 0);
 
-            // Build the whole section as a plain string — no grid, no display:contents.
+            // Build the whole section as a plain string - no grid, no display:contents.
             // Each row is a simple flex div. Namespace rows get onclick attributes so
             // there is zero ambiguity about what receives the click.
             var h = '';

@@ -30,7 +30,7 @@ func statDelta(atkStat, defStat int) float64 {
 
 // resolveAttackWeapons returns the candidate weapon list for a character,
 // applying the same selection logic used by calculateCombat.
-// It does not trim for dual-wield skill — callers handle that themselves.
+// It does not trim for dual-wield skill - callers handle that themselves.
 func resolveAttackWeapons(char characters.Character) []items.Item {
 	attackWeapons := []items.Item{}
 	if char.Equipment.Weapon.ItemId > 0 {

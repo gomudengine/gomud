@@ -1,12 +1,12 @@
 /*
  * theme-ember-glow.css
  *
- * Warm dark theme — deep charcoal surfaces, amber/orange accents.
+ * Warm dark theme - deep charcoal surfaces, amber/orange accents.
  * Glowing coals in a blacksmith's forge.
  */
 
 /* ════════════════════════════════════════════════════════════
-   PALETTE — edit only these to retheme.
+   PALETTE - edit only these to retheme.
    ════════════════════════════════════════════════════════════ */
 :root {
     --p-bg:          #1c1814;  /* window/panel body background; dock slots, row fills, party HP track | Theme Swatch 1 */
@@ -21,7 +21,7 @@
 }
 
 /* ════════════════════════════════════════════════════════════
-   SEMANTIC TOKENS — derived from palette + theme-specific values.
+   SEMANTIC TOKENS - derived from palette + theme-specific values.
    ════════════════════════════════════════════════════════════ */
 :root {
     /* ── Surfaces ────────────────────────────────────────────── */

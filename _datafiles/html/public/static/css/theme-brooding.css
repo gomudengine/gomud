@@ -1,11 +1,11 @@
 /*
  * theme-brooding.css
  *
- * Dark, teal-accented theme — the original GoMud look.
+ * Dark, teal-accented theme - the original GoMud look.
  */
 
 /* ════════════════════════════════════════════════════════════
-   PALETTE — edit only these to retheme.
+   PALETTE - edit only these to retheme.
    ════════════════════════════════════════════════════════════ */
 :root {
     --p-bg:          #1e1e1e;  /* window/panel body background; dock slots, row fills, party HP track | Theme Swatch 1 */
@@ -20,7 +20,7 @@
 }
 
 /* ════════════════════════════════════════════════════════════
-   SEMANTIC TOKENS — derived from palette + theme-specific values.
+   SEMANTIC TOKENS - derived from palette + theme-specific values.
    ════════════════════════════════════════════════════════════ */
 :root {
     /* ── Surfaces ────────────────────────────────────────────── */

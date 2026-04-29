@@ -10,7 +10,7 @@
     overflow: hidden;
 }
 
-/* Hide maximize, fullscreen, minimize, and close controls — windows are managed via settings */
+/* Hide maximize, fullscreen, minimize, and close controls - windows are managed via settings */
 .vw-max  { display: none; }
 .vw-full { display: none; }
 .vw-min  { display: none; }
@@ -165,7 +165,7 @@
     opacity: 0.8;
 }
 .vw-dock-btn::after {
-    content: '\25A3';  /* white square containing black square — embed into panel */
+    content: '\25A3';  /* white square containing black square - embed into panel */
 }
 .vw-dock-btn:hover { opacity: 1; }
 
@@ -188,7 +188,7 @@
     filter: grayscale(0.6);
 }
 
-/* Slot-width drag handle — flex sibling of the dock slot inside #main-container.
+/* Slot-width drag handle - flex sibling of the dock slot inside #main-container.
  * Never clipped, always grabbable. Shown only when the slot has panels. */
 .dock-slot-resize {
     flex-shrink: 0;

@@ -1,4 +1,4 @@
-// Picker — reusable search-and-select modal for admin pages.
+// Picker - reusable search-and-select modal for admin pages.
 //
 // Supersedes SelectDialog for new work. SelectDialog remains for backward
 // compatibility with existing color-pattern selection.
@@ -33,11 +33,11 @@
 //   render(value, item) returns a string (HTML-escaped) or a DOM node.
 //
 // Optional options:
-//   idKey      — property used as the unique ID (default: 'id')
-//   searchKeys — array of property names to search (default: all string/number columns)
-//   filter     — predicate applied to items before display: item => bool
-//   sort       — comparator applied after loading: (a, b) => number
-//   selected   — array of ID values to pre-check (multi only)
+//   idKey      - property used as the unique ID (default: 'id')
+//   searchKeys - array of property names to search (default: all string/number columns)
+//   filter     - predicate applied to items before display: item => bool
+//   sort       - comparator applied after loading: (a, b) => number
+//   selected   - array of ID values to pre-check (multi only)
 
 const Picker = (() => {
     'use strict';
@@ -137,7 +137,7 @@ const Picker = (() => {
         if (col.render) {
             const result = col.render(raw, item);
             if (result instanceof Node) return result;
-            // render returned a string — treat as plain text (escape it)
+            // render returned a string - treat as plain text (escape it)
             const span = document.createElement('span');
             span.textContent = String(result);
             return span;

@@ -19,14 +19,14 @@ func TestRoomBitset_SetAndHas(t *testing.T) {
 	assert.False(t, rb.Has(64))
 	assert.False(t, rb.Has(512))
 
-	rb.Set(0)  // sentinel — must be ignored (no-op)
-	rb.Set(-1) // sentinel — must be ignored (no-op)
+	rb.Set(0)  // sentinel - must be ignored (no-op)
+	rb.Set(-1) // sentinel - must be ignored (no-op)
 	rb.Set(63)
 	rb.Set(64)
 	rb.Set(512)
 
-	assert.True(t, rb.Has(0))  // true — sentinel
-	assert.True(t, rb.Has(-1)) // true — sentinel
+	assert.True(t, rb.Has(0))  // true - sentinel
+	assert.True(t, rb.Has(-1)) // true - sentinel
 	assert.True(t, rb.Has(63))
 	assert.True(t, rb.Has(64))
 	assert.True(t, rb.Has(512))
@@ -92,7 +92,7 @@ func TestRoomBitset_Prune(t *testing.T) {
 	rb := make(RoomBitset)
 	rb.Set(10)
 	rb.Set(11)
-	rb.Set(500) // will be pruned — not in valid set
+	rb.Set(500) // will be pruned - not in valid set
 
 	valid := map[int]struct{}{
 		10: {},

@@ -39,8 +39,8 @@ func serveAdminTemplate(w http.ResponseWriter, r *http.Request, filename string,
 	}
 }
 
-func adminItemsRank(w http.ResponseWriter, r *http.Request) {
-	serveAdminTemplate(w, r, "items-rank.html", nil)
+func adminItemsRankWeapons(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "items-rank-weapons.html", nil)
 }
 
 func adminItems(w http.ResponseWriter, r *http.Request) {
@@ -57,6 +57,10 @@ func adminItemsAttackMessages(w http.ResponseWriter, r *http.Request) {
 
 func adminItemsAttackMessagesAPI(w http.ResponseWriter, r *http.Request) {
 	serveAdminTemplate(w, r, "items-attack-messages-api.html", nil)
+}
+
+func adminItemsRankArmor(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "items-rank-armor.html", nil)
 }
 
 func adminBuffs(w http.ResponseWriter, r *http.Request) {

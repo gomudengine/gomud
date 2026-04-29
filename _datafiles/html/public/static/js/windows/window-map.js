@@ -1,7 +1,7 @@
 /**
  * window-map.js
  *
- * Virtual window: Map with two tabs — "2D" (flat grid) and "3D" (isometric).
+ * Virtual window: Map with two tabs - "2D" (flat grid) and "3D" (isometric).
  *
  * Both views share a single data pipeline:
  *   - One roomInfoStore, one roomCache, one World.Map request per session.
@@ -114,7 +114,7 @@
     // Shared data pipeline
     // =========================================================================
 
-    /** Full GMCP info objects keyed by roomId — used by both views for tooltips. */
+    /** Full GMCP info objects keyed by roomId - used by both views for tooltips. */
     var roomInfoStore = new Map();
 
     /**
@@ -1397,7 +1397,7 @@
     }());
 
     // =========================================================================
-    // Window DOM — tab bar + two panels
+    // Window DOM - tab bar + two panels
     // =========================================================================
 
     var activeTab   = localStorage.getItem('map.activeTab') === '3d' ? '3d' : '2d';

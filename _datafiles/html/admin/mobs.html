@@ -563,13 +563,13 @@
         for (const r of sorted) {
             const o = document.createElement('option');
             o.value = r.RaceId;
-            o.textContent = '#' + r.RaceId + ' — ' + r.Name;
+            o.textContent = '#' + r.RaceId + ' - ' + r.Name;
             sel.appendChild(o);
         }
     }
 
     function populateEquipSelects(_items) {
-        // Equipment slots now use the Picker — no pre-population needed.
+        // Equipment slots now use the Picker - no pre-population needed.
     }
 
     const EQ_SLOTS = ['weapon','offhand','head','neck','body','belt','gloves','ring','legs','feet'];
@@ -1171,7 +1171,7 @@
             restockOpts += `<option value="${esc(restockVal)}" selected>${esc(restockVal)}</option>`;
         }
 
-        // Static HTML skeleton (no id/trade fields yet — appended below)
+        // Static HTML skeleton (no id/trade fields yet - appended below)
         card.innerHTML = `
             <button class="shop-card-remove" title="Remove entry" onclick="this.closest('.shop-card').remove()">&times;</button>
             <div class="shop-card-header">

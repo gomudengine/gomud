@@ -200,7 +200,7 @@
     // -------------------------------------------------------------------------
     const DESCRIPTIONS = {
         'Server.MudName': 'Display name of the MUD, used in web pages and other places.',
-        'Server.Seed': 'Seed for certain content generation. Only set before first run — changing it later can break saved data like user KeyRings.',
+        'Server.Seed': 'Seed for certain content generation. Only set before first run - changing it later can break saved data like user KeyRings.',
         'Server.MaxCPUCores': 'Maximum CPU cores to use. 0 means all available cores.',
         'Server.OnLoginCommands': 'Commands run automatically when a user logs in.',
         'Server.Motd': 'Message of the day, displayed when the motd command is run.',
@@ -216,7 +216,7 @@
         'LootGoblin.MinimumGold': 'Minimum gold on the floor to attract the loot goblin.',
         'LootGoblin.IncludeRecentRooms': 'If true, the loot goblin also cleans recently player-visited rooms.',
         'Timing.TurnMs': 'Milliseconds per turn. Lower is more responsive but increases server overhead. 50 is a good balance.',
-        'Timing.RoundSeconds': 'Seconds per round. Controls the pace of the game — combat, buffs, and mob actions are all gated by rounds.',
+        'Timing.RoundSeconds': 'Seconds per round. Controls the pace of the game - combat, buffs, and mob actions are all gated by rounds.',
         'Timing.RoundsPerAutoSave': 'How often the server auto-saves game state (in rounds).',
         'Timing.RoundsPerDay': 'Rounds in one in-game day. Controls the day/night cycle speed.',
         'Timing.NightHours': 'Hours of each 24-hour in-game day that are nighttime.',
@@ -309,7 +309,7 @@
             showStatus('Failed to load configuration: ' + res.error, false);
             return;
         }
-        // Filter out Modules.* — those are managed by module-specific config pages
+        // Filter out Modules.* - those are managed by module-specific config pages
         const raw = res.data.data || {};
         configData = {};
         for (const [k, v] of Object.entries(raw)) {
@@ -501,7 +501,7 @@
 
         if (newVal === currentVal && pending[key] === undefined) return;
         if (newVal === currentVal) {
-            // reverting to original — remove from pending
+            // reverting to original - remove from pending
             delete pending[key];
         } else {
             pending[key] = newVal;

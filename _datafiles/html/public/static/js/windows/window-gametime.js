@@ -299,7 +299,7 @@
             ctx.fill();
             ctx.restore();
         } else {
-            // Sun — soft glow then disc
+            // Sun - soft glow then disc
             const glow = ctx.createRadialGradient(bodyX, bodyY, bodyRadius * 0.5, bodyX, bodyY, bodyRadius * 2.2);
             glow.addColorStop(0, 'rgba(255,240,100,0.35)');
             glow.addColorStop(1, 'rgba(255,240,100,0)');

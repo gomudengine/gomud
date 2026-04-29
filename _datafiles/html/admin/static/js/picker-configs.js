@@ -28,7 +28,7 @@ const PickerConfigs = {
         ],
         searchKeys: ['BuffId', 'Name'],
         sort: (a, b) => a.BuffId - b.BuffId,
-        // buffs API returns { data: { specs: { ... } } } — unwrap via source fn
+        // buffs API returns { data: { specs: { ... } } } - unwrap via source fn
         source: async () => {
             const res = await AdminAPI.get('/admin/api/v1/buffs');
             if (!res.ok) throw new Error(res.error || 'Failed to load buffs');
@@ -105,7 +105,7 @@ const PickerConfigs = {
 
 };
 
-// buffName(id) — synchronously resolves a buff name from the AdminAPI cache.
+// buffName(id) - synchronously resolves a buff name from the AdminAPI cache.
 // Returns '#ID Name' if the cache is warm (i.e. the buffs API has already been
 // fetched this session), or '#ID' if it hasn't been fetched yet.
 PickerConfigs.buffName = function (id) {
@@ -133,7 +133,7 @@ AdminAPI.get('/admin/api/v1/buffs').then(res => {
 // Usage:
 //   QuestTokenPicker.pick((token, label) => {
 //     // token: e.g. "1001-start"
-//     // label: e.g. "#1001 The Lost Artifact — start"
+//     // label: e.g. "#1001 The Lost Artifact - start"
 //   });
 //
 // Optional: pass excludeQuestId to filter out the quest currently being edited
@@ -151,14 +151,14 @@ const QuestTokenPicker = (() => {
             onSelect: (quest) => {
                 const steps = (quest.Steps || []);
 
-                // Build step items — always include start/end even if Steps is sparse
+                // Build step items - always include start/end even if Steps is sparse
                 const stepItems = steps.map(s => ({
                     Id:          s.Id,
                     Description: s.Description || '',
                 }));
 
                 Picker.open({
-                    title:   'Select Step — #' + quest.QuestId + ' ' + quest.Name,
+                    title:   'Select Step - #' + quest.QuestId + ' ' + quest.Name,
                     source:  async () => stepItems,
                     idKey:   'Id',
                     columns: [
@@ -179,7 +179,7 @@ const QuestTokenPicker = (() => {
     return { pick };
 })();
 
-// UserPicker — search-driven user picker backed by /admin/api/v1/users/search.
+// UserPicker - search-driven user picker backed by /admin/api/v1/users/search.
 //
 // Unlike Picker, this modal does not pre-load all users. Instead it fires a
 // debounced search request as the user types and renders live results.
@@ -311,7 +311,7 @@ const UserPicker = (() => {
         searchInput.setAttribute('aria-label', 'Search users');
         const hint = document.createElement('div');
         hint.className = 'up-hint';
-        hint.textContent = 'Type at least 2 characters. Returns exact and prefix matches.';
+        hint.textContent = 'Type a username (min 2 chars) or a numeric user ID to search.';
         searchWrap.appendChild(searchInput);
         searchWrap.appendChild(hint);
 
@@ -383,7 +383,9 @@ const UserPicker = (() => {
         }
 
         async function doSearch(q) {
-            if (q.trim().length < 2) {
+            const trimmed = q.trim();
+            const isNumeric = /^\d+$/.test(trimmed);
+            if (trimmed.length < 2 && !isNumeric) {
                 tableWrap.innerHTML = '<div class="up-empty">Start typing to search for a user.</div>';
                 visibleUsers = [];
                 return;

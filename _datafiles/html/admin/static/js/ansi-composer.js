@@ -1,4 +1,4 @@
-// AnsiComposerPicker — modal composer for building <ansi fg="..." bg="..."> tags.
+// AnsiComposerPicker - modal composer for building <ansi fg="..." bg="..."> tags.
 //
 // The composer has two levels:
 //   1. A main editor with a textarea (supports <ansi> tags directly) and a

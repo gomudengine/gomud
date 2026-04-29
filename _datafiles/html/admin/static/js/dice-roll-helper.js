@@ -1,4 +1,4 @@
-// DiceRollHelper — inline form builder for dice roll shorthand strings.
+// DiceRollHelper - inline form builder for dice roll shorthand strings.
 //
 // Usage:
 //   DiceRollHelper.attach(textInputElement)

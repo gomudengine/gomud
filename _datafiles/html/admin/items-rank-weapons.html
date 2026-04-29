@@ -145,7 +145,7 @@
 <h1>Weapon Rankings</h1>
 <p class="subtitle">
     Combat-engine rankings for all loaded weapons against a neutral equal-stat opponent.
-    Scores reflect <em>expected</em> output — no randomness. See <a href="/admin/items-api">Items API Docs</a> for the raw endpoint.
+    Scores reflect <em>expected</em> output - no randomness.
 </p>
 
 <div id="statusBar" class="status-bar"></div>
@@ -202,19 +202,20 @@
     <table class="rank-table" id="rankTable">
         <thead>
             <tr>
-                <th style="width:4rem" class="sortable" data-key="ItemId" onclick="sortBy('ItemId')" data-tip="Numeric item ID. Weapons use the 10000–19999 range.">ID<span class="sort-arrow"></span><span class="th-tip-icon">?</span></th>
-                <th class="sortable" data-key="Name" onclick="sortBy('Name')" data-tip="The weapon's display name. Click to open it in the item editor.">Name<span class="sort-arrow"></span><span class="th-tip-icon">?</span></th>
-                <th class="sortable" data-key="DiceRoll" onclick="sortBy('DiceRoll')" data-tip="Damage dice expression: [attacks@]NdS[+bonus][#critBuff]. For example, 2d6+1 means roll 2 six-sided dice and add 1.">Dice<span class="sort-arrow"></span><span class="th-tip-icon">?</span></th>
-                <th class="sortable" data-key="Subtype" onclick="sortBy('Subtype')" data-tip="Weapon category. Determines which attack messages are used and which skills apply (e.g. backstab requires cleaving, stabbing, slashing, or claws).">Subtype<span class="sort-arrow"></span><span class="th-tip-icon">?</span></th>
-                <th class="sortable" data-key="Hands" onclick="sortBy('Hands')" data-tip="1H weapons leave the offhand slot free for a second weapon or shield. 2H weapons occupy both slots.">Hands<span class="sort-arrow"></span><span class="th-tip-icon">?</span></th>
-                <th class="sortable" data-key="WaitRounds" onclick="sortBy('WaitRounds')" data-tip="Extra rounds the wielder must wait between attacks. A value of 1 means the weapon attacks every other round, halving its effective DPS.">Wait<span class="sort-arrow"></span><span class="th-tip-icon">?</span></th>
-                <th class="sortable" id="scoreHeader" data-key="DPS" onclick="sortBy('DPS')" data-tip=""><span id="scoreLabel">Score</span><span class="sort-arrow"></span><span class="th-tip-icon">?</span></th>
+                <th style="width:4rem" class="sortable" data-key="ItemId" onclick="sortBy('ItemId')" data-tip="Numeric item ID. Weapons use the 10000–19999 range.">ID<span class="sort-arrow"></span></th>
+                <th class="sortable" data-key="Name" onclick="sortBy('Name')" data-tip="The weapon's display name. Click to open it in the item editor.">Name<span class="sort-arrow"></span></th>
+                <th class="sortable" data-key="DiceRoll" onclick="sortBy('DiceRoll')" data-tip="Damage dice expression: [attacks@]NdS[+bonus][#critBuff]. For example, 2d6+1 means roll 2 six-sided dice and add 1.">Dice<span class="sort-arrow"></span></th>
+                <th class="sortable" data-key="Subtype" onclick="sortBy('Subtype')" data-tip="Weapon category. Determines which attack messages are used and which skills apply (e.g. backstab requires cleaving, stabbing, slashing, or claws).">Subtype<span class="sort-arrow"></span></th>
+                <th class="sortable" data-key="Hands" onclick="sortBy('Hands')" data-tip="1H weapons leave the offhand slot free for a second weapon or shield. 2H weapons occupy both slots.">Hands<span class="sort-arrow"></span></th>
+                <th class="sortable" data-key="WaitRounds" onclick="sortBy('WaitRounds')" data-tip="Extra rounds the wielder must wait between attacks. A value of 1 means the weapon attacks every other round, halving its effective DPS.">Wait<span class="sort-arrow"></span></th>
+                <th class="sortable" data-key="BuffCount" onclick="sortBy('BuffCount')" data-tip="Number of passive buffs active while this weapon is equipped (WornBuffIds).">Buffs<span class="sort-arrow"></span></th>
+                <th class="sortable" id="scoreHeader" data-key="DPS" onclick="sortBy('DPS')" data-tip=""><span id="scoreLabel">Score</span><span class="sort-arrow"></span></th>
             </tr>
         </thead>
         <tbody id="rankBody">
-            <tr class="skeleton-row"><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:140px"></div></td><td><div class="skel" style="width:60px"></div></td><td><div class="skel" style="width:80px"></div></td><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:100px"></div></td></tr>
-            <tr class="skeleton-row"><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:110px"></div></td><td><div class="skel" style="width:60px"></div></td><td><div class="skel" style="width:80px"></div></td><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:100px"></div></td></tr>
-            <tr class="skeleton-row"><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:160px"></div></td><td><div class="skel" style="width:60px"></div></td><td><div class="skel" style="width:80px"></div></td><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:100px"></div></td></tr>
+            <tr class="skeleton-row"><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:140px"></div></td><td><div class="skel" style="width:60px"></div></td><td><div class="skel" style="width:80px"></div></td><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:30px"></div></td><td><div class="skel" style="width:100px"></div></td></tr>
+            <tr class="skeleton-row"><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:110px"></div></td><td><div class="skel" style="width:60px"></div></td><td><div class="skel" style="width:80px"></div></td><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:30px"></div></td><td><div class="skel" style="width:100px"></div></td></tr>
+            <tr class="skeleton-row"><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:160px"></div></td><td><div class="skel" style="width:60px"></div></td><td><div class="skel" style="width:80px"></div></td><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:30px"></div></td><td><div class="skel" style="width:100px"></div></td></tr>
         </tbody>
     </table>
 </div>
@@ -239,7 +240,7 @@
 
     // --- data loading ---
     async function loadRankings() {
-        const result = await AdminAPI.get('/admin/api/v1/items/ranks', true);
+        const result = await AdminAPI.get('/admin/api/v1/items/ranks/weapons', true);
         if (!result.ok || !result.data || !result.data.success) {
             showError((result.data && result.data.error) || result.error || 'Unknown error');
             return;
@@ -266,7 +267,7 @@
         var labelMap = { dps: 'Raw DPS', adj: 'Adj DPS', maxdmg: 'Max Dmg' };
         document.getElementById('scoreLabel').textContent = labelMap[v];
         var tipMap = {
-            dps:    'Average damage per round against an equal-stat opponent. No stat bonuses, no randomness — pure weapon output.',
+            dps:    'Average damage per round against an equal-stat opponent. No stat bonuses, no randomness - pure weapon output.',
             adj:    'Raw DPS with opportunity-cost penalties applied: ×0.75 for two-handed weapons (lost offhand slot) and ÷(1+W) for wait rounds. Use this to compare weapons across hand categories.',
             maxdmg: 'Highest possible damage from a single hit: (attacks × diceCount × diceSides) + bonus. The average is shown in parentheses.'
         };
@@ -299,7 +300,7 @@
 
         var tbody = document.getElementById('rankBody');
         if (rows.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No weapons match the current filters.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No weapons match the current filters.</td></tr>';
             return;
         }
 
@@ -309,7 +310,7 @@
             var scoreFmt = (scoreKey === 'MaxDmg')
                 ? score + ' <small style="color:#aaa;font-weight:400">(avg ' + (r.AvgDmg || 0).toFixed(1) + ')</small>'
                 : score.toFixed(3);
-            var pct     = maxScore > 0 ? (score / maxScore * 100).toFixed(1) : 0;
+            var pct     = maxScore > 0 ? Math.max(0, score / maxScore * 100).toFixed(1) : 0;
             var isTop   = pct > 85;
 
             var dprTip = '';
@@ -318,11 +319,12 @@
 
             return '<tr>' +
                 '<td class="item-id">' + r.ItemId + '</td>' +
-                '<td class="weapon-name"><a href="/admin/items?search=' + encodeURIComponent(r.Name) + '">' + escHtml(r.Name) + '</a></td>' +
+                '<td class="weapon-name"><a href="/admin/items#' + r.ItemId + '">' + escHtml(r.Name) + '</a></td>' +
                 '<td class="dice-roll">' + escHtml(r.DiceRoll) + '</td>' +
                 '<td>' + subtypePill(r.Subtype) + '</td>' +
                 '<td>' + handsBadge(r.Hands) + '</td>' +
                 '<td>' + waitBadge(r.WaitRounds) + '</td>' +
+                '<td>' + (r.BuffCount || 0) + '</td>' +
                 '<td class="score-cell"' + (dprTip ? ' data-row-tip="' + escHtml(dprTip) + '"' : '') + '>' +
                     '<span class="score-val">' + scoreFmt + '</span>' +
                     '<span class="score-bar-track"><span class="score-bar-fill' + (isTop ? ' top' : '') + '" style="width:' + pct + '%"></span></span>' +
@@ -403,7 +405,7 @@
     (function() {
         var tip = document.getElementById('tooltip');
         var SCORE_TIPS = {
-            dps:    'Average damage per round against an equal-stat opponent. No stat bonuses, no randomness — pure weapon output.',
+            dps:    'Average damage per round against an equal-stat opponent. No stat bonuses, no randomness - pure weapon output.',
             adj:    'Raw DPS with opportunity-cost penalties applied: ×0.75 for two-handed weapons (lost offhand slot) and ÷(1+W) for wait rounds. Use this to compare weapons across hand categories.',
             maxdmg: 'Highest possible damage from a single hit: (attacks × diceCount × diceSides) + bonus. The average is shown in parentheses.'
         };
@@ -411,7 +413,7 @@
         // seed the score header tip for the initial view
         document.getElementById('scoreHeader').dataset.tip = SCORE_TIPS['dps'];
 
-        // header tooltips — static elements, attach directly
+        // header tooltips - static elements, attach directly
         document.querySelectorAll('.rank-table th[data-tip]').forEach(function(th) {
             th.addEventListener('mouseenter', function(e) {
                 var text = th.dataset.tip;
@@ -424,7 +426,7 @@
             th.addEventListener('mouseleave', hideTip);
         });
 
-        // row score-cell tooltips — tbody is rebuilt on every render,
+        // row score-cell tooltips - tbody is rebuilt on every render,
         // so use event delegation on the table instead
         var tbody = document.getElementById('rankBody');
         tbody.addEventListener('mouseover', function(e) {
