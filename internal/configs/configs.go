@@ -62,13 +62,25 @@ func AddOverlayOverrides(dotMap map[string]any) error {
 	configDataLock.Lock()
 	defer configDataLock.Unlock()
 
+	// Only register type/key lookups for every key in the overlay, but only
+	// write values for keys that have not already been set by a user override
+	// (e.g. config-overrides.yaml). This ensures module defaults never clobber
+	// operator-supplied values.
+	newKeys := map[string]any{}
+	flatOverrides := Flatten(overrides)
 	for k, v := range dotMap {
 		addKeyLookups(keyLookups, k)
 		typeLookups[k] = reflect.TypeOf(v).String()
-		overrides[k] = v
+		if _, alreadySet := flatOverrides[k]; !alreadySet {
+			overrides[k] = v
+			newKeys[k] = v
+		}
 	}
 
-	return configData.OverlayOverrides(dotMap)
+	if len(newKeys) == 0 {
+		return nil
+	}
+	return configData.OverlayOverrides(newKeys)
 }
 
 // OverlayDotMap overlays values from a dot-syntax map onto the Config.

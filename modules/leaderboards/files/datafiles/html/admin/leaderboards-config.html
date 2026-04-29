@@ -81,11 +81,10 @@
     const MODULE = 'leaderboards';
     const PREFIX = 'Modules.' + MODULE + '.';
     const DESCRIPTIONS = {
-        'Size': 'Maximum entries shown on each leaderboard. 0 disables the leaderboard.',
-        'ExperienceEnabled': 'Enable the leaderboard for the character with the most experience points.',
-        'GoldEnabled': 'Enable the leaderboard for the character with the most gold (bank + on-hand).',
-        'KillsEnabled': 'Enable the leaderboard for the character with the most total kills.',
-        'ExplorationEnabled': 'Enable the leaderboard for the character with the most rooms explored.',
+        'ExperienceLBSize': 'Maximum entries on the Experience leaderboard (most experience points). Set to 0 to disable.',
+        'GoldLBSize': 'Maximum entries on the Gold leaderboard (most gold bank + on-hand). Set to 0 to disable.',
+        'KillsLBSize': 'Maximum entries on the Kills leaderboard (most total kills). Set to 0 to disable.',
+        'ExplorationLBSize': 'Maximum entries on the Exploration leaderboard (most rooms explored). Set to 0 to disable.',
     };
     const pending = {};
     let configData = {};

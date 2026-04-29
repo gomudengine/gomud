@@ -81,8 +81,7 @@
     const MODULE = 'cleanup';
     const PREFIX = 'Modules.' + MODULE + '.';
     const DESCRIPTIONS = {
-        'TrashExperienceEnabled': 'If true, players gain experience for picking up and discarding trash items.',
-        'ExperienceValue': 'Amount of experience awarded per trash item cleaned up.',
+        'ExperienceValue': 'Minimum experience awarded when a player trashes an item. The actual grant is the higher of this value and 1/10th of the item gold value. Set to 0 to disable experience rewards entirely.',
     };
     const pending = {};
     let configData = {};
