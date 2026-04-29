@@ -2,6 +2,7 @@ package users
 
 import (
 	"bytes"
+	"strconv"
 	"strings"
 )
 
@@ -13,18 +14,61 @@ type UserSearchResult struct {
 	Email    string `json:"email"`
 }
 
-// SearchUsers searches for users whose username matches or is prefixed by
-// searchName. If an exact match is found it is the sole result. Otherwise all
-// prefix matches are returned. The search is case-insensitive.
+// SearchUsers searches for users matching searchName.
 //
-// Online users are checked first via the in-memory index. Offline users are
-// found by scanning the binary index file directly, which avoids loading full
-// user records for every candidate.
+// If searchName is a valid integer, the search matches by userId (exact match
+// only). Otherwise it searches by username: an exact match returns a single
+// result; all prefix matches are returned when there is no exact match. The
+// username search is case-insensitive.
 func SearchUsers(searchName string) []UserSearchResult {
 	if searchName == "" {
 		return nil
 	}
 
+	// Numeric input: match by userId.
+	if uid, err := strconv.Atoi(searchName); err == nil && uid > 0 {
+		return searchByUserId(uid)
+	}
+
+	return searchByUsername(searchName)
+}
+
+func searchByUserId(uid int) []UserSearchResult {
+	type candidate struct {
+		userId   int
+		username string
+	}
+
+	var found *candidate
+
+	GetUserIndex().ForEachRecord(func(rec IndexUserRecord) bool {
+		if int(rec.UserID) == uid {
+			c := candidate{userId: int(rec.UserID), username: string(bytes.TrimRight(rec.Username[:], "\x00"))}
+			found = &c
+			return false
+		}
+		return true
+	})
+
+	if found == nil {
+		return nil
+	}
+
+	result := UserSearchResult{
+		UserId:   found.userId,
+		Username: found.username,
+	}
+	if u := GetByUserId(found.userId); u != nil {
+		result.Role = u.Role
+		result.Email = u.EmailAddress
+	} else if loaded, err := LoadUser(found.username, true); err == nil {
+		result.Role = loaded.Role
+		result.Email = loaded.EmailAddress
+	}
+	return []UserSearchResult{result}
+}
+
+func searchByUsername(searchName string) []UserSearchResult {
 	needle := strings.ToLower(searchName)
 
 	type candidate struct {
@@ -67,19 +111,14 @@ func SearchUsers(searchName string) []UserSearchResult {
 			UserId:   c.userId,
 			Username: c.username,
 		}
-
 		if u := GetByUserId(c.userId); u != nil {
 			result.Role = u.Role
 			result.Email = u.EmailAddress
-		} else {
-			if loaded, err := LoadUser(c.username, true); err == nil {
-				result.Role = loaded.Role
-				result.Email = loaded.EmailAddress
-			}
+		} else if loaded, err := LoadUser(c.username, true); err == nil {
+			result.Role = loaded.Role
+			result.Email = loaded.EmailAddress
 		}
-
 		results = append(results, result)
 	}
-
 	return results
 }

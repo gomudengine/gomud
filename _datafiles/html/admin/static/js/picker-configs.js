@@ -311,7 +311,7 @@ const UserPicker = (() => {
         searchInput.setAttribute('aria-label', 'Search users');
         const hint = document.createElement('div');
         hint.className = 'up-hint';
-        hint.textContent = 'Type at least 2 characters. Returns exact and prefix matches.';
+        hint.textContent = 'Type a username (min 2 chars) or a numeric user ID to search.';
         searchWrap.appendChild(searchInput);
         searchWrap.appendChild(hint);
 
@@ -383,7 +383,9 @@ const UserPicker = (() => {
         }
 
         async function doSearch(q) {
-            if (q.trim().length < 2) {
+            const trimmed = q.trim();
+            const isNumeric = /^\d+$/.test(trimmed);
+            if (trimmed.length < 2 && !isNumeric) {
                 tableWrap.innerHTML = '<div class="up-empty">Start typing to search for a user.</div>';
                 visibleUsers = [];
                 return;
