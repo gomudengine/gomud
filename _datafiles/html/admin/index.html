@@ -60,12 +60,12 @@
     </div>
     <div class="card" id="card-websocket">
         <h2>WebSocket Port</h2>
-        <div class="value">{{if .STATS.WebSocketPort}}{{.STATS.WebSocketPort}}{{else}}&mdash;{{end}}</div>
+        <div class="value">{{if .STATS.WebSocketPort}}{{.STATS.WebSocketPort}}{{else}}-{{end}}</div>
         <div class="detail">{{.STATS.WebSocketConnections}} connected</div>
     </div>
     <div class="card" id="card-ssh">
         <h2>SSH Port</h2>
-        <div class="value">{{if .STATS.SSHPort}}{{.STATS.SSHPort}}{{else}}&mdash;{{end}}</div>
+        <div class="value">{{if .STATS.SSHPort}}{{.STATS.SSHPort}}{{else}}-{{end}}</div>
         <div class="detail">{{.STATS.SSHConnections}} connected</div>
     </div>
 </div>

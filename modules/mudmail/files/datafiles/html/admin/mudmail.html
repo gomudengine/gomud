@@ -267,7 +267,7 @@
             tr.innerHTML = `
                 <td>${escHtml(msg.from_name || '')}</td>
                 <td>${statusBadge}</td>
-                <td>${attachBadges || '&mdash;'}</td>
+                <td>${attachBadges || '-'}</td>
                 <td style="white-space:nowrap;">${escHtml(dateLabel)}</td>
                 <td style="white-space:nowrap;">
                     <button class="btn-link" onclick="toggleDetail(${msg.date_sent_us})">View</button>

@@ -131,6 +131,14 @@ func adminMobsAPI(w http.ResponseWriter, r *http.Request) {
 	serveAdminTemplate(w, r, "mobs-api.html", nil)
 }
 
+func adminPets(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "pets.html", nil)
+}
+
+func adminPetsAPI(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "pets-api.html", nil)
+}
+
 func adminSpells(w http.ResponseWriter, r *http.Request) {
 	serveAdminTemplate(w, r, "spells.html", nil)
 }
@@ -153,4 +161,12 @@ func adminRooms(w http.ResponseWriter, r *http.Request) {
 
 func adminRoomsAPI(w http.ResponseWriter, r *http.Request) {
 	serveAdminTemplate(w, r, "rooms-api.html", nil)
+}
+
+func adminBiomes(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "biomes.html", nil)
+}
+
+func adminBiomesAPI(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "biomes-api.html", nil)
 }

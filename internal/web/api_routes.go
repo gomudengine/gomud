@@ -186,6 +186,20 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 		doBasicAuth(apiV1DeleteZone),
 	))
 
+	// Biomes
+	mux.HandleFunc("GET /admin/api/v1/biomes", RunWithMUDLocked(
+		doBasicAuth(apiV1GetBiomesV2),
+	))
+	mux.HandleFunc("POST /admin/api/v1/biomes", RunWithMUDLocked(
+		doBasicAuth(apiV1CreateBiome),
+	))
+	mux.HandleFunc("PATCH /admin/api/v1/biomes/{biomeId}", RunWithMUDLocked(
+		doBasicAuth(apiV1PatchBiome),
+	))
+	mux.HandleFunc("DELETE /admin/api/v1/biomes/{biomeId}", RunWithMUDLocked(
+		doBasicAuth(apiV1DeleteBiome),
+	))
+
 	// Rooms - static sub-routes before wildcard {roomId}
 	mux.HandleFunc("GET /admin/api/v1/rooms/biomes", RunWithMUDLocked(
 		doBasicAuth(apiV1GetBiomes),
@@ -257,6 +271,20 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 	))
 	mux.HandleFunc("DELETE /admin/api/v1/races/{raceId}", RunWithMUDLocked(
 		doBasicAuth(apiV1DeleteRace),
+	))
+
+	// Pets
+	mux.HandleFunc("GET /admin/api/v1/pets", RunWithMUDLocked(
+		doBasicAuth(apiV1GetPets),
+	))
+	mux.HandleFunc("POST /admin/api/v1/pets", RunWithMUDLocked(
+		doBasicAuth(apiV1CreatePet),
+	))
+	mux.HandleFunc("PATCH /admin/api/v1/pets/{petname}", RunWithMUDLocked(
+		doBasicAuth(apiV1PatchPet),
+	))
+	mux.HandleFunc("DELETE /admin/api/v1/pets/{petname}", RunWithMUDLocked(
+		doBasicAuth(apiV1DeletePet),
 	))
 
 	// Spells - script sub-route before wildcard {spellId}

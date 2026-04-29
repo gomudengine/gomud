@@ -51,8 +51,8 @@
         <div class="api-body">
             <p>Returns two sections:</p>
             <ul>
-                <li><code>sounds</code> &mdash; map of identifier &rarr; audio config loaded from <code>audio.yaml</code>. Each entry has an optional <code>description</code>, a <code>filepath</code> (relative to <code>WebCDNLocation</code>, or host root if blank), and an optional <code>volume</code> (0&ndash;100).</li>
-                <li><code>music</code> &mdash; sorted list of filenames found in <code>PublicHtml/static/audio/music/</code>. Files whose names begin with <code>_</code> are excluded. This list is read-only.</li>
+                <li><code>sounds</code> - map of identifier &rarr; audio config loaded from <code>audio.yaml</code>. Each entry has an optional <code>description</code>, a <code>filepath</code> (relative to <code>WebCDNLocation</code>, or host root if blank), and an optional <code>volume</code> (0&ndash;100).</li>
+                <li><code>music</code> - sorted list of filenames found in <code>PublicHtml/static/audio/music/</code>. Files whose names begin with <code>_</code> are excluded. This list is read-only.</li>
             </ul>
             <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
      <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/audio</span></div>

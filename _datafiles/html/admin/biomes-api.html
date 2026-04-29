@@ -1,0 +1,228 @@
+{{template "header" .}}
+
+<style>
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #555; margin-bottom: 2rem; font-size: 0.9rem; }
+    .api-list { display: flex; flex-direction: column; gap: 0.5rem; }
+    .api-entry { background: #fff; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; }
+    .api-entry summary { display: flex; align-items: baseline; gap: 0.75rem; padding: 0.65rem 1rem; cursor: pointer; user-select: none; list-style: none; }
+    .api-entry summary::-webkit-details-marker { display: none; }
+    .api-entry summary::before { content: "\25B6"; font-size: 0.65rem; color: #888; transition: transform 0.15s; flex-shrink: 0; }
+    .api-entry[open] summary::before { transform: rotate(90deg); }
+    .api-entry summary:hover { background: #fafafa; }
+    .method { font-family: monospace; font-size: 0.8rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 3px; flex-shrink: 0; }
+    .method-get    { background: #e6f4ea; color: #1e6e34; }
+    .method-post   { background: #e3f2fd; color: #0d47a1; }
+    .method-patch  { background: #fff3e0; color: #8a4a00; }
+    .method-delete { background: #fde8e8; color: #8a0000; }
+    .api-path { font-family: monospace; font-size: 0.9rem; color: #1a1a2e; }
+    .api-desc { font-size: 0.85rem; color: #555; margin-left: auto; text-align: right; }
+    .api-body { padding: 0.75rem 1rem 1rem; border-top: 1px solid #eee; background: #fafafa; }
+    .api-body p { font-size: 0.85rem; color: #444; margin-bottom: 0.5rem; }
+    .curl-block { background: #1a1a2e; color: #c9d1d9; font-family: monospace; font-size: 0.82rem; padding: 0.85rem 1rem; border-radius: 5px; white-space: pre; overflow-x: auto; line-height: 1.6; margin-bottom: 0.5rem; }
+    .curl-block .kw   { color: #79c0ff; }
+    .curl-block .str  { color: #a5d6ff; }
+    .curl-block .flag { color: #d2a8ff; }
+    .response-examples { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
+    .resp-entry { border: 1px solid #ddd; border-radius: 4px; overflow: hidden; }
+    .resp-entry summary { display: flex; align-items: baseline; gap: 0.6rem; padding: 0.45rem 0.75rem; cursor: pointer; user-select: none; list-style: none; background: #f5f5f5; font-size: 0.82rem; }
+    .resp-entry summary::-webkit-details-marker { display: none; }
+    .resp-entry summary::before { content: "\25B6"; font-size: 0.6rem; color: #888; transition: transform 0.15s; flex-shrink: 0; }
+    .resp-entry[open] summary::before { transform: rotate(90deg); }
+    .resp-entry summary:hover { background: #efefef; }
+    .resp-body { padding: 0.6rem 0.75rem 0.75rem; border-top: 1px solid #eee; background: #fafafa; }
+    .resp-body p { font-size: 0.82rem; color: #444; margin-bottom: 0.4rem; }
+    .status-ok  { background: #e6f4ea; color: #1e6e34; }
+    .status-err { background: #fde8e8; color: #8a0000; }
+    .resp-label { font-size: 0.8rem; color: #444; }
+    code { background: #f0f0f0; padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.85em; }
+    .params-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-bottom: 0.75rem; }
+    .params-table th { background: #f0f0f0; padding: 0.4rem 0.6rem; text-align: left; font-weight: 600; border: 1px solid #ddd; }
+    .params-table td { padding: 0.4rem 0.6rem; border: 1px solid #ddd; vertical-align: top; }
+    .params-table td:first-child { font-family: monospace; color: #1a1a2e; }
+    .required { color: #8a0000; font-size: 0.75rem; font-weight: 600; }
+</style>
+
+<h1>Biomes API Reference</h1>
+<p class="subtitle">REST endpoints for listing, creating, updating, and deleting biome definitions. <a href="/admin/biomes">View / Edit</a></p>
+
+<div class="api-list">
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-get">GET</span>
+            <span class="api-path">/admin/api/v1/biomes</span>
+            <span class="api-desc">Return all biome definitions</span>
+        </summary>
+        <div class="api-body">
+            <p>Returns an array of all loaded biome definitions, sorted by <code>BiomeId</code>.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/biomes</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{
+  "success": true,
+  "data": [
+    {
+      "biomeid": "default",
+      "name": "Default",
+      "symbol": "•",
+      "description": "A default biome.",
+      "darkarea": false,
+      "litarea": true,
+      "requireditemid": 0,
+      "usesitem": false,
+      "burns": false
+    },
+    {
+      "biomeid": "lava",
+      "name": "Lava Fields",
+      "symbol": "~",
+      "description": "Rivers of molten rock flow here.",
+      "darkarea": false,
+      "litarea": true,
+      "requireditemid": 0,
+      "usesitem": false,
+      "burns": true
+    }
+  ]
+}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-post">POST</span>
+            <span class="api-path">/admin/api/v1/biomes</span>
+            <span class="api-desc">Create a new biome</span>
+        </summary>
+        <div class="api-body">
+            <p>Creates a new biome definition. The <code>BiomeId</code> is lowercased automatically. Returns <code>400</code> if the ID already exists or validation fails.</p>
+
+            <table class="params-table">
+                <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td>BiomeId <span class="required">required</span></td><td>string</td><td>Unique identifier (e.g. <code>forest</code>). Lowercased on save.</td></tr>
+                    <tr><td>Name <span class="required">required</span></td><td>string</td><td>Display name shown in the room editor and to players.</td></tr>
+                    <tr><td>Symbol <span class="required">required</span></td><td>string</td><td>Single character used on the map (e.g. <code>T</code>).</td></tr>
+                    <tr><td>Description</td><td>string</td><td>Atmospheric description shown to players.</td></tr>
+                    <tr><td>LitArea</td><td>bool</td><td>Always bright.</td></tr>
+                    <tr><td>DarkArea</td><td>bool</td><td>Always pitch black; Mutually exclusive with <code>LitArea</code>.</td></tr>
+                    <tr><td>Burns</td><td>bool</td><td>Deals fire damage to players present in this biome.</td></tr>
+                    <tr><td>RequiredItemId</td><td>int</td><td>Item the player must carry to safely traverse this biome. 0 = none.</td></tr>
+                    <tr><td>UsesItem</td><td>bool</td><td>When true, the required item is consumed on each entry.</td></tr>
+                </tbody>
+            </table>
+
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> <span class="flag">-X</span> POST \
+     <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
+     <span class="flag">-d</span> <span class="str">'{
+  "BiomeId": "swamp",
+  "Name": "Swamp",
+  "Symbol": "s",
+  "Description": "Murky water and twisted trees surround you.",
+  "LitArea": false,
+  "DarkArea": false,
+  "Burns": false,
+  "RequiredItemId": 0,
+  "UsesItem": false
+}'</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/biomes</span></div>
+
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">201</span> <span class="resp-label">Created</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"biomeid":"swamp","name":"Swamp","symbol":"s",...}}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Validation error or duplicate ID</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"biome \"swamp\" already exists"}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-patch">PATCH</span>
+            <span class="api-path">/admin/api/v1/biomes/{biomeId}</span>
+            <span class="api-desc">Update a biome</span>
+        </summary>
+        <div class="api-body">
+            <p><code>{biomeId}</code> is the biome identifier (e.g. <code>forest</code>). Fields in the request body overwrite the existing definition. The <code>BiomeId</code> is always preserved from the URL.</p>
+
+            <table class="params-table">
+                <thead><tr><th>Parameter</th><th>In</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td>biomeId <span class="required">required</span></td><td>path</td><td>Biome identifier.</td></tr>
+                </tbody>
+            </table>
+
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> <span class="flag">-X</span> PATCH \
+     <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
+     <span class="flag">-d</span> <span class="str">'{
+  "Name": "Dense Swamp",
+  "Description": "The air is thick with humidity and the smell of decay.",
+  "Burns": false
+}'</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/biomes/swamp</span></div>
+
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"biomeid":"swamp","name":"Dense Swamp",...}}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">404</span> <span class="resp-label">Not Found</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"biome not found: swamp"}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Validation error</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"biome 'swamp' cannot be both dark and lit"}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-delete">DELETE</span>
+            <span class="api-path">/admin/api/v1/biomes/{biomeId}</span>
+            <span class="api-desc">Delete a biome</span>
+        </summary>
+        <div class="api-body">
+            <p><code>{biomeId}</code> is the biome identifier. Removes the YAML file from disk and unregisters the biome from memory. The <code>default</code> biome cannot be deleted.</p>
+
+            <table class="params-table">
+                <thead><tr><th>Parameter</th><th>In</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td>biomeId <span class="required">required</span></td><td>path</td><td>Biome identifier. Cannot be <code>default</code>.</td></tr>
+                </tbody>
+            </table>
+
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> <span class="flag">-X</span> DELETE \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/biomes/swamp</span></div>
+
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Cannot delete default</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"the default biome cannot be deleted"}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Not Found</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"biome \"swamp\" not found"}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+</div>
+
+{{template "footer" .}}

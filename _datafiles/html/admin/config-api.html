@@ -83,7 +83,7 @@
             <p>Accepts a JSON object of dot-path config keys to new string values. Locked keys are rejected and returned in the <code>rejected</code> list. Unknown keys return 400.</p>
             <div class="test-mode-row">
                 <input type="checkbox" id="tm-patch-config" checked onchange="toggleTestMode('curl-patch-config', this.checked)" />
-                <label for="tm-patch-config">Test Mode &mdash; adds <code>X-Test-Mode: true</code> header, changes are reverted after</label>
+                <label for="tm-patch-config">Test Mode - adds <code>X-Test-Mode: true</code> header, changes are reverted after</label>
             </div>
             <div class="curl-block" id="curl-patch-config"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
      <span class="flag">-X</span> PATCH <span class="test-mode-flag">\<br>     <span class="flag">-H</span> <span class="str">"X-Test-Mode: true"</span></span> \

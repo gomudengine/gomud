@@ -72,9 +72,9 @@
         <div class="api-body">
             <p>Runs the combat engine's <code>RankWeapons()</code> function against a neutral equal-stat baseline and returns three sorted views of every loaded weapon:</p>
             <ul style="margin:0.4rem 0 0.6rem 1.2rem;font-size:0.85rem;color:#444;line-height:1.7">
-                <li><strong>by_dps</strong> &mdash; raw expected damage per round</li>
-                <li><strong>by_adj_dps</strong> &mdash; DPS adjusted for two-handed (&times;0.75) and wait-round (&divide;(1+W)) opportunity cost</li>
-                <li><strong>by_max_dmg</strong> &mdash; theoretical maximum single-hit damage ceiling</li>
+                <li><strong>by_dps</strong> - raw expected damage per round</li>
+                <li><strong>by_adj_dps</strong> - DPS adjusted for two-handed (&times;0.75) and wait-round (&divide;(1+W)) opportunity cost</li>
+                <li><strong>by_max_dmg</strong> - theoretical maximum single-hit damage ceiling</li>
             </ul>
             <p>Each entry contains <code>ItemId</code>, <code>Name</code>, <code>Subtype</code>, <code>Hands</code>, <code>WaitRounds</code>, <code>DiceRoll</code>, <code>AvgDmg</code>, <code>MaxDmg</code>, <code>DPS</code>, <code>AdjDPS</code>, <code>DPR</code>, and <code>AdjDPR</code>. This endpoint is read-only and has no side effects.</p>
             <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
@@ -97,9 +97,9 @@
         <div class="api-body">
             <p>Runs the combat engine's <code>RankArmor()</code> function and returns three sorted views of every loaded armor and wearable item:</p>
             <ul style="margin:0.4rem 0 0.6rem 1.2rem;font-size:0.85rem;color:#444;line-height:1.7">
-                <li><strong>by_defense</strong> &mdash; raw <code>DamageReduction</code> value from the item spec</li>
-                <li><strong>by_adj_defense</strong> &mdash; defense adjusted for slot multiplier (offhand shields receive &times;1.5 inside <code>Character.GetDefense()</code>)</li>
-                <li><strong>by_score</strong> &mdash; unified eHP-equivalent score: <code>(AdjDefense/200)&times;100 + statValue + BuffValue/10</code>, where stat weights are derived from the combat engine's configured range constants</li>
+                <li><strong>by_defense</strong> - raw <code>DamageReduction</code> value from the item spec</li>
+                <li><strong>by_adj_defense</strong> - defense adjusted for slot multiplier (offhand shields receive &times;1.5 inside <code>Character.GetDefense()</code>)</li>
+                <li><strong>by_score</strong> - unified eHP-equivalent score: <code>(AdjDefense/200)&times;100 + statValue + BuffValue/10</code>, where stat weights are derived from the combat engine's configured range constants</li>
             </ul>
             <p>Each entry contains <code>ItemId</code>, <code>Name</code>, <code>Slot</code>, <code>Cursed</code>, <code>Defense</code>, <code>AdjDefense</code>, <code>StatBonus</code>, <code>BuffCount</code>, <code>BuffValue</code>, and <code>Score</code>. This endpoint is read-only and has no side effects.</p>
             <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
@@ -190,7 +190,7 @@
             <span class="api-desc">Update item properties</span>
         </summary>
         <div class="api-body">
-            <p>Merges the supplied fields into the existing spec. The <code>ItemId</code> in the body is ignored &mdash; the path parameter is authoritative.</p>
+            <p>Merges the supplied fields into the existing spec. The <code>ItemId</code> in the body is ignored - the path parameter is authoritative.</p>
             <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
      <span class="flag">-X</span> PATCH \
      <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
