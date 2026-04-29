@@ -266,8 +266,13 @@ func serveTemplate(w http.ResponseWriter, r *http.Request) {
 	// Build the full file path.
 	fullPath := filepath.Join(httpRoot, reqPath)
 
-	if filepath.Base(fullPath) == "_all.js" {
-		if serveConcatenatedJS(w, r, filepath.Dir(fullPath)) {
+	if strings.HasPrefix(filepath.Base(fullPath), "_all.") {
+		concatSuffix := strings.TrimPrefix(filepath.Base(fullPath), "_all")
+		// Limit files for now
+		if concatSuffix != ".css" && concatSuffix != ".js" {
+			return
+		}
+		if serveConcatenated(w, r, filepath.Dir(fullPath), concatSuffix) {
 			return
 		}
 	}
