@@ -291,5 +291,17 @@ const AdminAPI = (() => {
         return q;
     }
 
-    return { get, post, put, patch, delete: del, all, queue, request };
+    /**
+     * Removes all cached API responses from sessionStorage.
+     * @returns {number} the number of entries cleared
+     */
+    function clearCache() {
+        const keys = _cacheKeys();
+        for (const key of keys) {
+            _cacheDelete(key);
+        }
+        return keys.length;
+    }
+
+    return { get, post, put, patch, delete: del, all, queue, request, clearCache };
 })();

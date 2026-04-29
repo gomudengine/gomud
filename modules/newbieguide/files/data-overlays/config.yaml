@@ -8,3 +8,6 @@
 ################################################################################
 # The mob ID to use as the newbie guide companion.
 GuideMobId: 38
+# - MaximumPlayerLevel -
+#   The player level at which the guide departs and will no longer spawn.
+MaximumPlayerLevel: 5

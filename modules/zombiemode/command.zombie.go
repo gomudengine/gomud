@@ -197,6 +197,10 @@ func (m *ZombieModule) handleSet(field string, valueArgs []string, user *users.U
 			user.SendText(`Roam radius must be a non-negative integer.`)
 			return true, nil
 		}
+		if maxRoam, ok := m.plug.Config.Get(`MaximumRoam`).(int); ok && maxRoam > 0 && radius > maxRoam {
+			user.SendText(fmt.Sprintf(`Roam radius cannot exceed <ansi fg="yellow">%d</ansi> on this server.`, maxRoam))
+			return true, nil
+		}
 		cfg.RoamRadius = radius
 		m.configs[user.UserId] = cfg
 		user.SendText(fmt.Sprintf(`Roam radius set to <ansi fg="yellow">%d</ansi>.`, radius))

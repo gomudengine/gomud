@@ -4,9 +4,10 @@
 #
 # Modules:
 #   cleanup:
-#     TrashExperienceEnabled: true
 #     ExperienceValue: 5
 ################################################################################
-# Experience values, set enabled with a value of 1 to ensure a non-breaking change
-TrashExperienceEnabled: true
-ExperienceValue: 1
+# - ExperienceValue -
+#   Minimum experience awarded when a player trashes an item.
+#   The actual grant is the higher of this value and 1/10th of the item's gold value.
+#   Set to 0 to disable experience rewards entirely.
+ExperienceValue: 5

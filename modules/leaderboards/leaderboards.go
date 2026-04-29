@@ -82,11 +82,10 @@ type LeaderboardModule struct {
 
 	lastCalculated time.Time // When the LB's were last generated
 
-	LBSize             int
-	GoldEnabled        bool
-	ExperienceEnabled  bool
-	KillsEnabled       bool
-	ExplorationEnabled bool
+	GoldLBSize        int
+	ExperienceLBSize  int
+	KillsLBSize       int
+	ExplorationLBSize int
 
 	LB_Gold        leaderboardData `yaml:"LB_Gold,omitempty"`
 	LB_Experience  leaderboardData `yaml:"LB_Experience,omitempty"`
@@ -108,16 +107,9 @@ func (l *LeaderboardModule) loadLBs() {
 
 	l.plug.ReadIntoStruct(`latest-leaderboards`, &l)
 
-	l.GoldEnabled = true
 	l.LB_Gold = leaderboardData{Name: `Gold`, ValueColor: `experience`}
-
-	l.ExperienceEnabled = true
 	l.LB_Experience = leaderboardData{Name: `Experience`, ValueColor: `gold`}
-
-	l.KillsEnabled = true
 	l.LB_Kills = leaderboardData{Name: `Kills`, ValueColor: `red-bold`}
-
-	l.ExplorationEnabled = true
 	l.LB_Exploration = leaderboardData{Name: `Exploration`, ValueColor: `cyan-bold`}
 }
 
@@ -168,34 +160,33 @@ func (l *LeaderboardModule) leaderboardCommand(rest string, user *users.UserReco
 	return true, nil
 }
 
-func (l *LeaderboardModule) Reset(maxSize int) {
-	l.LB_Gold.Reset(maxSize)
-	l.LB_Experience.Reset(maxSize)
-	l.LB_Kills.Reset(maxSize)
-	l.LB_Exploration.Reset(maxSize)
+func (l *LeaderboardModule) Reset() {
+	l.LB_Gold.Reset(l.GoldLBSize)
+	l.LB_Experience.Reset(l.ExperienceLBSize)
+	l.LB_Kills.Reset(l.KillsLBSize)
+	l.LB_Exploration.Reset(l.ExplorationLBSize)
 }
 
 func (l *LeaderboardModule) RefreshConfig() {
 
-	l.LBSize = 10
-	if size, ok := l.plug.Config.Get(`Size`).(int); ok {
-		l.LBSize = size
+	l.GoldLBSize = 10
+	if size, ok := l.plug.Config.Get(`GoldLBSize`).(int); ok {
+		l.GoldLBSize = size
 	}
 
-	if goldEnabled, ok := l.plug.Config.Get(`GoldEnabled`).(bool); ok {
-		l.GoldEnabled = goldEnabled
+	l.ExperienceLBSize = 10
+	if size, ok := l.plug.Config.Get(`ExperienceLBSize`).(int); ok {
+		l.ExperienceLBSize = size
 	}
 
-	if xpEnabled, ok := l.plug.Config.Get(`ExperienceEnabled`).(bool); ok {
-		l.ExperienceEnabled = xpEnabled
+	l.KillsLBSize = 10
+	if size, ok := l.plug.Config.Get(`KillsLBSize`).(int); ok {
+		l.KillsLBSize = size
 	}
 
-	if killsEnabled, ok := l.plug.Config.Get(`KillsEnabled`).(bool); ok {
-		l.KillsEnabled = killsEnabled
-	}
-
-	if explorationEnabled, ok := l.plug.Config.Get(`ExplorationEnabled`).(bool); ok {
-		l.ExplorationEnabled = explorationEnabled
+	l.ExplorationLBSize = 10
+	if size, ok := l.plug.Config.Get(`ExplorationLBSize`).(int); ok {
+		l.ExplorationLBSize = size
 	}
 }
 
@@ -210,7 +201,7 @@ func explorationScore(char characters.Character) int {
 func (l *LeaderboardModule) Update() {
 	start := time.Now()
 
-	l.Reset(l.LBSize)
+	l.Reset()
 
 	userCount := 0
 	characterCount := 0
@@ -220,19 +211,19 @@ func (l *LeaderboardModule) Update() {
 		userCount++
 		characterCount++
 
-		if l.GoldEnabled {
+		if l.GoldLBSize > 0 {
 			l.LB_Gold.Consider(u.UserId, *u.Character, u.Character.Gold+u.Character.Bank)
 		}
 
-		if l.ExperienceEnabled {
+		if l.ExperienceLBSize > 0 {
 			l.LB_Experience.Consider(u.UserId, *u.Character, u.Character.Experience)
 		}
 
-		if l.KillsEnabled {
+		if l.KillsLBSize > 0 {
 			l.LB_Kills.Consider(u.UserId, *u.Character, u.Character.KD.TotalKills)
 		}
 
-		if l.ExplorationEnabled {
+		if l.ExplorationLBSize > 0 {
 			l.LB_Exploration.Consider(u.UserId, *u.Character, explorationScore(*u.Character))
 		}
 
@@ -246,19 +237,19 @@ func (l *LeaderboardModule) Update() {
 
 			characterCount++
 
-			if l.GoldEnabled {
+			if l.GoldLBSize > 0 {
 				l.LB_Gold.Consider(u.UserId, char, char.Gold+char.Bank)
 			}
 
-			if l.ExperienceEnabled {
+			if l.ExperienceLBSize > 0 {
 				l.LB_Experience.Consider(u.UserId, char, char.Experience)
 			}
 
-			if l.KillsEnabled {
+			if l.KillsLBSize > 0 {
 				l.LB_Kills.Consider(u.UserId, char, char.KD.TotalKills)
 			}
 
-			if l.ExplorationEnabled {
+			if l.ExplorationLBSize > 0 {
 				l.LB_Exploration.Consider(u.UserId, char, explorationScore(char))
 			}
 
@@ -272,19 +263,19 @@ func (l *LeaderboardModule) Update() {
 		userCount++
 		characterCount++
 
-		if l.GoldEnabled {
+		if l.GoldLBSize > 0 {
 			l.LB_Gold.Consider(u.UserId, *u.Character, u.Character.Gold+u.Character.Bank)
 		}
 
-		if l.ExperienceEnabled {
+		if l.ExperienceLBSize > 0 {
 			l.LB_Experience.Consider(u.UserId, *u.Character, u.Character.Experience)
 		}
 
-		if l.KillsEnabled {
+		if l.KillsLBSize > 0 {
 			l.LB_Kills.Consider(u.UserId, *u.Character, u.Character.KD.TotalKills)
 		}
 
-		if l.ExplorationEnabled {
+		if l.ExplorationLBSize > 0 {
 			l.LB_Exploration.Consider(u.UserId, *u.Character, explorationScore(*u.Character))
 		}
 
@@ -298,19 +289,19 @@ func (l *LeaderboardModule) Update() {
 
 			characterCount++
 
-			if l.GoldEnabled {
+			if l.GoldLBSize > 0 {
 				l.LB_Gold.Consider(u.UserId, char, char.Gold+char.Bank)
 			}
 
-			if l.ExperienceEnabled {
+			if l.ExperienceLBSize > 0 {
 				l.LB_Experience.Consider(u.UserId, char, char.Experience)
 			}
 
-			if l.KillsEnabled {
+			if l.KillsLBSize > 0 {
 				l.LB_Kills.Consider(u.UserId, char, char.KD.TotalKills)
 			}
 
-			if l.ExplorationEnabled {
+			if l.ExplorationLBSize > 0 {
 				l.LB_Exploration.Consider(u.UserId, char, explorationScore(char))
 			}
 
@@ -325,15 +316,7 @@ func (l *LeaderboardModule) Update() {
 }
 
 func (l *LeaderboardModule) newRoundHandler(e events.Event) events.ListenerReturn {
-	/*
-		// Don't really care about the event data for this
-
-		evt, typeOk := e.(events.NewRound)
-		if !typeOk {
-			return false // Return false to stop halt the event chain for this event
-		}
-	*/
-	if time.Since(l.lastCalculated).Minutes() >= 15 {
+	if time.Since(l.lastCalculated).Minutes() >= 1 {
 		l.Update()
 	}
 
@@ -350,19 +333,19 @@ func (l *LeaderboardModule) getCurrentLeaderboards() []leaderboardData {
 
 	ret := []leaderboardData{}
 
-	if l.GoldEnabled {
+	if l.GoldLBSize > 0 {
 		ret = append(ret, l.LB_Gold)
 	}
 
-	if l.ExperienceEnabled {
+	if l.ExperienceLBSize > 0 {
 		ret = append(ret, l.LB_Experience)
 	}
 
-	if l.KillsEnabled {
+	if l.KillsLBSize > 0 {
 		ret = append(ret, l.LB_Kills)
 	}
 
-	if l.ExplorationEnabled {
+	if l.ExplorationLBSize > 0 {
 		ret = append(ret, l.LB_Exploration)
 	}
 
@@ -387,7 +370,11 @@ type leaderboardData struct {
 
 func (l *leaderboardData) Reset(size int) {
 	l.MaxSize = size
-	l.Top = make([]leaderboardEntry, l.MaxSize)
+	if size > 0 {
+		l.Top = make([]leaderboardEntry, l.MaxSize)
+	} else {
+		l.Top = nil
+	}
 	l.LowestValue = 0
 }
 

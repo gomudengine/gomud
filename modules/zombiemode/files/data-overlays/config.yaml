@@ -9,3 +9,6 @@
 # - Enabled -
 #   Set to false to disable zombie mode server-wide.
 Enabled: true
+# - MaximumRoam -
+#   Maximum roam radius a player may set. 0 means no limit.
+MaximumRoam: 0
