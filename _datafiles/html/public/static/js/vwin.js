@@ -501,7 +501,7 @@
     };
 
     P.focus = function () {
-        _all.forEach(function(wb) { wb.window && wb.window.classList.remove('focus'); });
+        _all.forEach(function(wb) { if (wb.window) { wb.window.classList.remove('focus'); } });
         if (this.window) {
             _css(this.window, 'z-index', ++_zTop);
             this.index = _zTop;
