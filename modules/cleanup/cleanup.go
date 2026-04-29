@@ -65,20 +65,12 @@ type CleanupModule struct {
 	// Keep a reference to the plugin when we create it so that we can call ReadBytes() and WriteBytes() on it.
 	plug *plugins.Plugin
 
-	TrashExperienceEnabled      bool
 	DefaultTrashExperienceValue int
 }
 
 func (c *CleanupModule) loadConfig() {
 
-	if trashExperienceEnabled, ok := c.plug.Config.Get("TrashExperienceEnabled").(bool); ok {
-		c.TrashExperienceEnabled = trashExperienceEnabled
-	}
-
 	if experienceValue, ok := c.plug.Config.Get("ExperienceValue").(int); ok {
-		if experienceValue < 1 {
-			experienceValue = 1
-		}
 		c.DefaultTrashExperienceValue = experienceValue
 	}
 
@@ -114,7 +106,7 @@ func (c *CleanupModule) userTrashCommand(rest string, user *users.UserRecord, ro
 				user.UserId)
 		}
 
-		if c.TrashExperienceEnabled {
+		if c.DefaultTrashExperienceValue > 0 {
 
 			// Grant experience equal to a tenth of the item value
 			iSpec := matchItem.GetSpec()
