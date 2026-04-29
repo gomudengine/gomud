@@ -760,7 +760,7 @@ func Shutdown() {
 	}
 }
 
-func serveConcatenatedJS(w http.ResponseWriter, r *http.Request, dir string) bool {
+func serveConcatenated(w http.ResponseWriter, r *http.Request, dir string, suffix string) bool {
 	var names []string
 
 	if raw := r.URL.RawQuery; raw != "" {
@@ -769,7 +769,8 @@ func serveConcatenatedJS(w http.ResponseWriter, r *http.Request, dir string) boo
 			if strings.ContainsAny(name, `/\`) || name != filepath.Base(name) {
 				continue
 			}
-			if name == "" || name == "." || name == "_all.js" || !strings.HasSuffix(name, ".js") {
+
+			if name == "" || name == "." || !strings.HasPrefix(name, "_all.") || !strings.HasSuffix(name, suffix) {
 				continue
 			}
 			if seen[name] {
@@ -787,7 +788,7 @@ func serveConcatenatedJS(w http.ResponseWriter, r *http.Request, dir string) boo
 			return false
 		}
 		for _, e := range entries {
-			if !e.IsDir() && strings.HasSuffix(e.Name(), ".js") && e.Name() != "_all.js" {
+			if !e.IsDir() && strings.HasSuffix(e.Name(), suffix) && !strings.HasPrefix(e.Name(), "_all.") {
 				names = append(names, e.Name())
 			}
 		}
@@ -808,7 +809,12 @@ func serveConcatenatedJS(w http.ResponseWriter, r *http.Request, dir string) boo
 		buf.WriteByte('\n')
 	}
 
-	w.Header().Set("Content-Type", "application/javascript")
+	if suffix == ".js" {
+		w.Header().Set("Content-Type", "application/javascript")
+	} else if suffix == ".css" {
+		w.Header().Set("Content-Type", "text/css")
+	}
+
 	w.Write(buf.Bytes())
 	return true
 }
@@ -819,8 +825,14 @@ func serveAdminStaticFile(w http.ResponseWriter, r *http.Request) {
 	adminRoot := filepath.Clean(configs.GetFilePathsConfig().AdminHtml.String())
 	rel := strings.TrimPrefix(r.URL.Path, "/admin")
 	fullPath := filepath.Join(adminRoot, filepath.Clean(rel))
-	if filepath.Base(fullPath) == "_all.js" {
-		if serveConcatenatedJS(w, r, filepath.Dir(fullPath)) {
+
+	if strings.HasPrefix(filepath.Base(fullPath), "_all.") {
+		concatSuffix := strings.TrimPrefix(filepath.Base(fullPath), "_all")
+		// Limit files for now
+		if concatSuffix != ".css" && concatSuffix != ".js" {
+			return
+		}
+		if serveConcatenated(w, r, filepath.Dir(fullPath), concatSuffix) {
 			return
 		}
 	}
