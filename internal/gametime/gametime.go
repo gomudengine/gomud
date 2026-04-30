@@ -11,10 +11,13 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
 
+const roundDateCacheMax = 20
+
 var (
 	dayResetOffset int = 0
 
-	roundDateCache = map[uint64]GameDate{}
+	roundDateCache    = map[uint64]GameDate{}
+	roundDateCacheSeq []uint64
 )
 
 type RoundTimer struct {
@@ -60,8 +63,7 @@ func (gd GameDate) String(symbolOnly ...bool) string {
 	if gd.Night {
 		dayNight = `night`
 	} else {
-		hoursLeft := int(math.Abs(float64(gd.Hour24) - float64(gd.NightStart)))
-		if hoursLeft < 3 {
+		if gd.NightStart-gd.Hour24 < 3 {
 			dayNight = `day-dusk`
 		}
 	}
@@ -133,6 +135,7 @@ func SetTime(setToHour int, setToMinutes ...int) {
 
 	// Reset the cache
 	clear(roundDateCache)
+	roundDateCacheSeq = roundDateCacheSeq[:0]
 }
 
 func IsNight() bool {
@@ -154,12 +157,13 @@ func GetDate(forceRound ...uint64) GameDate {
 		return d
 	}
 
-	// Do a reset when it fills up too much
-	if len(roundDateCache) > 20 {
-		clear(roundDateCache)
+	if len(roundDateCache) >= roundDateCacheMax {
+		delete(roundDateCache, roundDateCacheSeq[0])
+		roundDateCacheSeq = roundDateCacheSeq[1:]
 	}
 
 	roundDateCache[currentRound] = getDate(currentRound)
+	roundDateCacheSeq = append(roundDateCacheSeq, currentRound)
 
 	return roundDateCache[currentRound]
 }
@@ -218,6 +222,9 @@ func (g *GameDate) ReCalculate() {
 	week := math.Floor(float64(day) / 7)
 
 	month := 1 + math.Floor((day*24)/730) // 730 hours in a "month" (24 hours * 365 days / 12 months)
+	if month > 12 {
+		month = 12
+	}
 
 	g.Day = int(day)
 	g.Year = int(year)
@@ -499,8 +506,15 @@ func GetLastPeriod(periodName string, roundNumber uint64) uint64 {
 
 	} else if periodName == `noon` { // Last time 12pm was hit
 
+		noonRound := uint64(math.Floor(float64(roundsPerDay) / 2))
 		roundNumber -= roundOfDay
-		roundNumber -= uint64(math.Floor(float64(roundsPerDay) / 2))
+		if roundOfDay < noonRound {
+			// We haven't reached noon today yet; last noon was yesterday.
+			roundNumber -= roundsPerDay - noonRound
+		} else {
+			// Noon has already passed today.
+			roundNumber += noonRound
+		}
 
 	} else if periodName == `sunrise` { // last sunrise
 
