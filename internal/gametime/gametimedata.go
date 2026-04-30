@@ -137,8 +137,13 @@ func applyCalendarConfig(name string, c CalendarConfig) {
 // and the activeCalendar initializer. It does not touch the cache.
 func applyCalendarConfigInto(m map[string]calendarDerived, name string, c CalendarConfig) {
 
-	if c.RoundsPerDay < 1 {
+	if c.RoundsPerDay < 24 {
 		c.RoundsPerDay = failoverConfig.RoundsPerDay
+	}
+	if c.NightHours < 0 {
+		c.NightHours = 0
+	} else if c.NightHours >= 24 {
+		c.NightHours = 23
 	}
 	if c.DaysPerYear < 1 {
 		c.DaysPerYear = failoverConfig.DaysPerYear

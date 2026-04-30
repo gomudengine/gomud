@@ -1,6 +1,7 @@
 package gmcp
 
 import (
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/gametime"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
@@ -40,7 +41,7 @@ func (g *GMCPGametimeModule) newRoundHandler(e events.Event) events.ListenerRetu
 	gd := gametime.GetDate()
 
 	payload := GMCPGametimeModule_Payload{
-		Calendar:   gd.Calendar,
+		Calendar:   gd.Calendar + "/" + configs.GetServerConfig().MudName.String(),
 		Hour:       gd.Hour,
 		Hour24:     gd.Hour24,
 		Minute:     gd.Minute,

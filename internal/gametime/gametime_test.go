@@ -361,6 +361,46 @@ func Test_AddPeriod_Noon(t *testing.T) {
 	}
 }
 
+// --- applyCalendarConfigInto clamp tests ---
+
+func Test_ApplyCalendarConfig_ClampsLowRoundsPerDay(t *testing.T) {
+	// rounds_per_day values below 24 must be replaced with the failover value
+	// so that roundsPerHour >= 1 and GetLastPeriod never divides by zero.
+	for _, rpd := range []int{0, 1, 10, 23} {
+		applyCalendarConfig(`default`, CalendarConfig{
+			RoundsPerDay: rpd,
+			NightHours:   8,
+			DuskHours:    3,
+			DaysPerYear:  365,
+			DaysPerWeek:  7,
+			Months:       failoverConfig.Months,
+			Zodiac:       failoverConfig.Zodiac,
+		})
+		ac := activeCalendar[`default`]
+		if ac.roundsPerDay < 24 {
+			t.Errorf("rounds_per_day=%d: derived roundsPerDay=%d, want >= 24", rpd, ac.roundsPerDay)
+		}
+		// Must not panic.
+		GetLastPeriod(`hour`, 1000)
+	}
+}
+
+func Test_ApplyCalendarConfig_ClampsNightHours(t *testing.T) {
+	// NightHours >= 24 must be clamped to 23 to keep nightStart >= 1.
+	applyCalendarConfig(`default`, CalendarConfig{
+		RoundsPerDay: 240,
+		NightHours:   24,
+		DaysPerYear:  365,
+		DaysPerWeek:  7,
+		Months:       failoverConfig.Months,
+		Zodiac:       failoverConfig.Zodiac,
+	})
+	ac := activeCalendar[`default`]
+	if ac.nightHours >= 24 {
+		t.Errorf("nightHours=%d, want < 24", ac.nightHours)
+	}
+}
+
 // --- Benchmarks (preserved from original) ---
 
 func Benchmark_GetDate_Uncached(b *testing.B) {

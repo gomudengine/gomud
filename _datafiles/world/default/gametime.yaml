@@ -19,9 +19,9 @@ calendars:
     # Number of days in a week.
     days_per_week: 7
     # Number of suns in the sky. Valid range: 1-2.
-    sun_count: 1
+    sun_count: 2
     # Number of moons in the sky. Valid range: 0-3.
-    moon_count: 1
+    moon_count: 3
     # Month definitions, in order. The number of months is derived from this list.
     # Each month spans an equal share of the year.
     months:

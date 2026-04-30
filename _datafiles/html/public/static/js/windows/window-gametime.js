@@ -3,7 +3,7 @@
  *
  * Virtual window: Time and Date.
  * Displays the current in-game time and date, with an animated sky showing
- * a sun or moon moving across the horizon based on the time of day.
+ * suns or moons moving across the sky based on the time of day.
  *
  * Responds to GMCP namespaces:
  *   Gametime  - full gametime update
@@ -77,6 +77,94 @@
             white-space: nowrap;
         }
     `);
+
+    // -----------------------------------------------------------------------
+    // Celestial body appearance configuration
+    // -----------------------------------------------------------------------
+
+    // Size variation: base radius is computed from canvas height, then scaled
+    // by a per-body multiplier drawn from this range.
+    const BODY_SIZE_MIN = 0.75;
+    const BODY_SIZE_MAX = 1.40;
+
+    // Tint palettes defined as hex colour strings for easy editing.
+    // Converted to [r, g, b] arrays once at load time by hexTintsToRgb().
+    const SUN_TINT_HEX = [
+        '#fff5a0',   
+        '#ffdc64',   
+        '#ffc850',   
+        '#fff0c8',   
+        '#ffb43c',   
+        '#f0ffb4', 
+        '#f56816', 
+    ];
+
+    const MOON_TINT_HEX = [
+        '#d8dde8',   
+        '#c8d7c8',   
+        '#e6d2c8',   
+        '#b4beDC',   
+        '#dcc8e6',   
+        '#d2e6d2',   
+        '#ffdbcb',   
+    ];
+
+    // Convert a hex string (#rrggbb) to an [r, g, b] array.
+    function hexToRgb(hex) {
+        const v = parseInt(hex.replace('#', ''), 16);
+        return [(v >>> 16) & 0xff, (v >>> 8) & 0xff, v & 0xff];
+    }
+
+    // Convert an array of hex strings to an array of [r, g, b] arrays.
+    function hexTintsToRgb(hexArr) {
+        return hexArr.map(hexToRgb);
+    }
+
+    const SUN_TINTS  = hexTintsToRgb(SUN_TINT_HEX);
+    const MOON_TINTS = hexTintsToRgb(MOON_TINT_HEX);
+
+    // -----------------------------------------------------------------------
+    // Deterministic seeded PRNG (mulberry32)
+    // Returns a function that produces floats in [0, 1).
+    // -----------------------------------------------------------------------
+    function seededRNG(seed) {
+        let s = seed >>> 0;
+        return function() {
+            s += 0x6D2B79F5;
+            let t = s;
+            t = Math.imul(t ^ (t >>> 15), t | 1);
+            t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+    }
+
+    // Hash a string to a uint32.
+    function hashString(str) {
+        let h = 0x811C9DC5;
+        for (let i = 0; i < str.length; i++) {
+            h ^= str.charCodeAt(i);
+            h = (Math.imul(h, 0x01000193)) >>> 0;
+        }
+        return h;
+    }
+
+    // Build per-calendar appearance data for `count` bodies using the given
+    // tint palette. Returns an array of { scale, tint, rawOffset } objects.
+    // `rawOffset` is a seeded-random value in [-0.5, +0.5] used as a placement
+    // hint; the final pixel positions are resolved in spreadPositions() where
+    // the minimum-gap constraint can be applied.
+    function buildBodyAppearances(calendar, count, tintPalette) {
+        const seed = hashString(calendar + (tintPalette === SUN_TINTS ? ':sun' : ':moon'));
+        const rng  = seededRNG(seed);
+        const appearances = [];
+        for (let i = 0; i < count; i++) {
+            const scale     = BODY_SIZE_MIN + rng() * (BODY_SIZE_MAX - BODY_SIZE_MIN);
+            const tint      = tintPalette[Math.floor(rng() * tintPalette.length)];
+            const rawOffset = rng() - 0.5;
+            appearances.push({ scale, tint, rawOffset });
+        }
+        return appearances;
+    }
 
     // -----------------------------------------------------------------------
     // DOM factory
@@ -178,6 +266,74 @@
     }
 
     // -----------------------------------------------------------------------
+    // Debug: fast day/night cycle preview.
+    // Set window.gametimeDebugCycle = true in the browser console to enable.
+    // One full 24-hour day completes every 10 real seconds.
+    // Uses seeded appearance data from the live GMCP payload; ignores game time.
+    // -----------------------------------------------------------------------
+    let _debugRafId       = null;
+    let _debugStartTime   = null;
+    let _debugWasRunning  = false;
+
+    function _debugTick(now) {
+        if (!window.gametimeDebugCycle) {
+            _debugRafId      = null;
+            _debugStartTime  = null;
+            _debugWasRunning = false;
+            update();
+            return;
+        }
+
+        if (_debugStartTime === null) { _debugStartTime = now; }
+        const elapsed   = (now - _debugStartTime) / 1000; // seconds
+        const dayFrac   = (elapsed / 10) % 1;             // 0..1 over 10s
+        const hour24    = dayFrac * 24;
+        const minute    = (hour24 % 1) * 60;
+
+        const base = Client.GMCPStructs.Gametime;
+        if (base && win.isOpen()) {
+            const dayStart   = base.day_start   || 6;
+            const nightStart = base.night_start || 22;
+            const isNight    = hour24 >= nightStart || hour24 < dayStart;
+
+            const fakeData = Object.assign({}, base, {
+                hour24:  Math.floor(hour24),
+                minute:  Math.floor(minute),
+                hour:    Math.floor(hour24) % 12 || 12,
+                ampm:    hour24 < 12 ? 'AM' : 'PM',
+                night:   isNight,
+            });
+
+            const timeEl = document.getElementById('gametime-time');
+            const dateEl = document.getElementById('gametime-date');
+            if (timeEl) {
+                const min = String(fakeData.minute).padStart(2, '0');
+                timeEl.textContent = fakeData.hour + ':' + min + ' ' + fakeData.ampm;
+            }
+            if (dateEl) {
+                const monthName = fakeData.month_name || ('Month ' + fakeData.month);
+                const zodiac    = fakeData.zodiac     || '';
+                dateEl.textContent = 'Day ' + fakeData.day + ' of ' + monthName +
+                    ', year ' + fakeData.year + ' (the ' + zodiac + ').';
+            }
+
+            drawSky(fakeData, true);
+        }
+
+        _debugRafId = requestAnimationFrame(_debugTick);
+    }
+
+    function _debugMaybeStart() {
+        if (window.gametimeDebugCycle && !_debugRafId) {
+            _debugStartTime = null;
+            _debugRafId = requestAnimationFrame(_debugTick);
+        }
+    }
+
+    // Poll for the flag being toggled on from the console.
+    setInterval(_debugMaybeStart, 500);
+
+    // -----------------------------------------------------------------------
     // VirtualWindow instance
     // -----------------------------------------------------------------------
     const win = new VirtualWindow('Time & Date', {
@@ -206,8 +362,11 @@
     // Sky rendering
     // -----------------------------------------------------------------------
 
-    // Returns the 0..1 arc position of the celestial body.
-    // Sun travels dayStart → nightStart; moon travels nightStart → dayStart.
+    // Returns a value in [0, 1] representing how far through the current
+    // period (day or night) the time is.
+    //   0 = just started (risen from left horizon)
+    //   0.5 = midpoint (highest point, centered horizontally)
+    //   1 = just ended (set at right horizon)
     function celestialPosition(hour24, minute, dayStart, nightStart) {
         const timeNow = hour24 + minute / 60;
 
@@ -229,7 +388,85 @@
         }
     }
 
-    function drawSky(data) {
+    // Given a rawPos in [0, 1] and a body radius r, return the pixel X
+    // coordinate so that:
+    //   rawPos=0   -> bodyX = -(r*3)     (fully off left edge including glow)
+    //   rawPos=0.5 -> bodyX = w/2        (centered)
+    //   rawPos=1   -> bodyX = w+(r*3)    (fully off right edge including glow)
+    function rawPosToX(rawPos, r, w) {
+        const offscreen = r * 3;
+        return rawPos * (w + 2 * offscreen) - offscreen;
+    }
+
+    // Given a rawPos in [0, 1], return the pixel Y coordinate on the parabolic
+    // arc. Peaks (highest point) at rawPos=0.5.
+    function rawPosToY(rawPos, yBottom, yTop) {
+        return yBottom - (yBottom - yTop) * 4 * rawPos * (1 - rawPos);
+    }
+
+    // Spread bodies as pixel offsets from the group centre.
+    // Returns an array of pixel offsets, one per body, relative to the group
+    // centre X. The group centre follows the rawPos arc; each body is drawn at
+    // groupCenterX + pixelOffset[i].
+    function spreadPixelOffsets(appearances, baseRadius) {
+        if (appearances.length <= 1) {
+            return [0];
+        }
+
+        const maxR   = Math.max.apply(null, appearances.map(function(a) { return baseRadius * a.scale; }));
+        const spread = maxR * 8;
+
+        const offsets = appearances.map(function(a) {
+            const x         = a.rawOffset;           // [-0.5, +0.5]
+            const sign      = x < 0 ? -1 : 1;
+            const stretched = sign * Math.sqrt(Math.abs(x) * 2); // [-1, +1]
+            return stretched * spread;
+        });
+
+        // Enforce minimum separation in pixels.
+        const radii = appearances.map(function(a) { return baseRadius * a.scale; });
+        const MAX_PASSES = 20;
+        for (let pass = 0; pass < MAX_PASSES; pass++) {
+            let moved = false;
+            for (let i = 0; i < offsets.length - 1; i++) {
+                for (let j = i + 1; j < offsets.length; j++) {
+                    const minDist = (radii[i] + radii[j]) * 0.5;
+                    const delta   = offsets[j] - offsets[i];
+                    const dist    = Math.abs(delta);
+                    if (dist < minDist) {
+                        const push = (minDist - dist) / 2;
+                        const dir  = delta >= 0 ? 1 : -1;
+                        offsets[i] -= push * dir;
+                        offsets[j] += push * dir;
+                        moved = true;
+                    }
+                }
+            }
+            if (!moved) { break; }
+        }
+
+        return offsets;
+    }
+
+    // Compute the bounding radius of a group: the furthest any body's outer edge
+    // (including glow for suns) extends from the group centre.
+    function groupBoundingRadius(appearances, baseRadius, isSun) {
+        let maxEdge = 0;
+        const offsets = spreadPixelOffsets(appearances, baseRadius);
+        for (let i = 0; i < appearances.length; i++) {
+            const r    = baseRadius * appearances[i].scale;
+            const edge = Math.abs(offsets[i]) + (isSun ? r * 2.2 : r);
+            if (edge > maxEdge) { maxEdge = edge; }
+        }
+        return maxEdge;
+    }
+
+    // Convert [r,g,b] to a CSS rgba string.
+    function rgbToCss(rgb, alpha) {
+        return 'rgba(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ',' + alpha + ')';
+    }
+
+    function drawSky(data, debug) {
         const canvas = document.getElementById('gametime-canvas');
         if (!canvas) { return; }
 
@@ -248,6 +485,9 @@
         const minute     = data.minute;
         const dayStart   = data.day_start   || 6;
         const nightStart = data.night_start || 22;
+        const calendar   = data.calendar    || 'default';
+        const sunCount   = Math.max(1, data.sun_count  || 1);
+        const moonCount  = Math.max(0, data.moon_count || 1);
 
         // --- background ---
         const grad = ctx.createLinearGradient(0, 0, 0, h);
@@ -279,42 +519,119 @@
             });
         }
 
-        // --- celestial body ---
-        const bodyRadius = Math.max(8, Math.min(14, h * 0.28));
-        const pos    = celestialPosition(hour24, minute, dayStart, nightStart);
-        const margin = bodyRadius * 1.5;
-        const bodyX  = margin + pos * (w - margin * 2);
-        const yBottom = h * 0.92;
-        const yTop    = h * 0.18;
-        const bodyY   = yBottom - (yBottom - yTop) * 4 * pos * (1 - pos);
+        // --- celestial bodies ---
+        // The group of bodies moves as a unit. The group centre follows a single
+        // rawPos arc; each body is offset from that centre in pixels. The pad is
+        // the group's bounding radius so the entire group is off-screen at
+        // rawPos=0 (left) and rawPos=1 (right).
+        const baseRadius  = Math.max(8, Math.min(14, h * 0.28));
+        const rawPos      = celestialPosition(hour24, minute, dayStart, nightStart);
 
-        if (night) {
-            // Full moon
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(bodyX, bodyY, bodyRadius, 0, Math.PI * 2);
-            ctx.fillStyle  = '#d8dde8';
-            ctx.shadowColor = '#c0ccdd';
-            ctx.shadowBlur  = 10;
-            ctx.fill();
-            ctx.restore();
-        } else {
-            // Sun - soft glow then disc
-            const glow = ctx.createRadialGradient(bodyX, bodyY, bodyRadius * 0.5, bodyX, bodyY, bodyRadius * 2.2);
-            glow.addColorStop(0, 'rgba(255,240,100,0.35)');
-            glow.addColorStop(1, 'rgba(255,240,100,0)');
-            ctx.beginPath();
-            ctx.arc(bodyX, bodyY, bodyRadius * 2.2, 0, Math.PI * 2);
-            ctx.fillStyle = glow;
-            ctx.fill();
+        const isSun       = !night;
+        const count       = night ? moonCount : sunCount;
+        const tintPalette = night ? MOON_TINTS : SUN_TINTS;
+        const appearances = buildBodyAppearances(calendar, count, tintPalette);
+        const pixOffsets  = spreadPixelOffsets(appearances, baseRadius);
+        const pad         = Math.ceil(groupBoundingRadius(appearances, baseRadius, isSun));
+        const wWide       = w + 2 * pad;
 
+        const yTop     = h * 0.18;
+        // Compute yBottom so the arc touches y=h exactly at the visible corners.
+        // The visible corners correspond to rawPos = pad/wWide (left) and
+        // (pad+w)/wWide (right) on the wide canvas. Solving
+        //   rawPosToY(pad/wWide, yBottom, yTop) = h  for yBottom:
+        const cornerRawPos  = pad / wWide;
+        const cornerFactor  = 4 * cornerRawPos * (1 - cornerRawPos);
+        const yBottom       = cornerFactor > 0
+            ? (h - yTop * cornerFactor) / (1 - cornerFactor)
+            : h;
+
+        // Group centre in wide-canvas coordinates.
+        // rawPos=0 -> centre at 0 (left edge of wide canvas, pad pixels left of visible)
+        // rawPos=0.5 -> centre at wWide/2 (visible centre)
+        // rawPos=1 -> centre at wWide (right edge of wide canvas, pad pixels right of visible)
+        function groupCentreX(rp) {
+            return rp * wWide;
+        }
+
+        const offscreen = document.createElement('canvas');
+        offscreen.width  = wWide;
+        offscreen.height = h;
+        const octx = offscreen.getContext('2d');
+
+        const cx = groupCentreX(rawPos);
+
+        for (let i = 0; i < count; i++) {
+            const app    = appearances[i];
+            const r      = baseRadius * app.scale;
+            const bodyX  = cx + pixOffsets[i];
+            // Each body follows the arc at its own X position. Invert groupCentreX
+            // to get the effective rawPos for this body's wide-canvas X, then use
+            // that for Y so each body sits on the arc.
+            const bodyRawPos   = bodyX / wWide;
+            const bodyY  = rawPosToY(bodyRawPos, yBottom, yTop);
+            const tint   = app.tint;
+
+            if (night) {
+                octx.save();
+                octx.beginPath();
+                octx.arc(bodyX, bodyY, r, 0, Math.PI * 2);
+                octx.fillStyle   = rgbToCss(tint, 1.0);
+                octx.shadowColor = rgbToCss(tint, 0.7);
+                octx.shadowBlur  = 10;
+                octx.fill();
+                octx.restore();
+            } else {
+                // Soft glow
+                const glow = octx.createRadialGradient(bodyX, bodyY, r * 0.5, bodyX, bodyY, r * 2.2);
+                glow.addColorStop(0, rgbToCss(tint, 0.35));
+                glow.addColorStop(1, rgbToCss(tint, 0.0));
+                octx.beginPath();
+                octx.arc(bodyX, bodyY, r * 2.2, 0, Math.PI * 2);
+                octx.fillStyle = glow;
+                octx.fill();
+
+                // Disc
+                octx.save();
+                octx.beginPath();
+                octx.arc(bodyX, bodyY, r, 0, Math.PI * 2);
+                octx.fillStyle   = rgbToCss(tint, 1.0);
+                octx.shadowColor = rgbToCss(tint, 1.0);
+                octx.shadowBlur  = 12;
+                octx.fill();
+                octx.restore();
+            }
+        }
+
+        // Blit the centre slice of the wide canvas onto the visible canvas.
+        ctx.drawImage(offscreen, pad, 0, w, h, 0, 0, w, h);
+
+        // --- debug overlays ---
+        if (debug) {
+            // Arc path: trace the group centre across rawPos 0..1, mapped to
+            // visible canvas coordinates (subtract pad).
             ctx.save();
+            ctx.strokeStyle = 'rgba(255,255,0,0.7)';
+            ctx.lineWidth   = 1.5;
+            ctx.setLineDash([4, 3]);
             ctx.beginPath();
-            ctx.arc(bodyX, bodyY, bodyRadius, 0, Math.PI * 2);
-            ctx.fillStyle   = '#fff5a0';
-            ctx.shadowColor = '#fff5a0';
-            ctx.shadowBlur  = 12;
-            ctx.fill();
+            const steps = 120;
+            for (let s = 0; s <= steps; s++) {
+                const t  = s / steps;
+                const ax = groupCentreX(t) - pad;
+                const ay = rawPosToY(t, yBottom, yTop);
+                if (s === 0) { ctx.moveTo(ax, ay); } else { ctx.lineTo(ax, ay); }
+            }
+            ctx.stroke();
+
+            // Center vertical line at w/2.
+            ctx.strokeStyle = 'rgba(255,80,80,0.8)';
+            ctx.lineWidth   = 1;
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath();
+            ctx.moveTo(w / 2, 0);
+            ctx.lineTo(w / 2, h);
+            ctx.stroke();
             ctx.restore();
         }
     }
@@ -323,6 +640,8 @@
     // Update logic
     // -----------------------------------------------------------------------
     function update() {
+        // Suppress normal updates while the debug cycle is running.
+        if (window.gametimeDebugCycle) { return; }
         const data = Client.GMCPStructs.Gametime;
         if (!data) { return; }
 
