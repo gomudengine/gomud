@@ -535,6 +535,7 @@
                         <button class="btn btn-secondary" style="font-size:0.78rem;padding:0.25rem 0.7rem;" onclick="openScriptWizard()">+ Add Function</button>
                     </div>
                     <textarea id="f-script" spellcheck="false" placeholder="// JavaScript for this room's events (onEnter, onExit, onCommand, etc.)&#10;// Leave blank to delete the script file."></textarea>
+                    <div id="script-error" class="script-error"></div>
                     <div class="script-hint">Saved as a .js file alongside the room's YAML. Clear the field and save to delete the script.</div>
                 </div>
             </div>
@@ -1825,6 +1826,14 @@
             IdleMessages:  collectIdleMsgs('idle-list'),
             Nouns:         collectNouns(),
         };
+
+        if (script.trim().length > 0) {
+            var check = await ScriptWizard.validateScript(script);
+            if (!check.valid) {
+                btn.disabled = false; btn.textContent = 'Save Room';
+                return;
+            }
+        }
 
         const [patchRes, scriptRes] = await AdminAPI.all([
             AdminAPI.patch('/admin/api/v1/rooms/' + currentRoomId, payload),

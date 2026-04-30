@@ -14,6 +14,19 @@ const ScriptWizard = (() => {
     let overlay = null;
     let schemaCache = null;
 
+    (function injectBaseStyles() {
+        const s = document.createElement('style');
+        s.textContent = `
+            .script-error {
+                display: none; margin-top: 0.4rem; padding: 0.5rem 0.75rem;
+                background: var(--color-btn-danger-bg); color: var(--color-surface-white);
+                border-radius: 4px; font-family: monospace; font-size: 0.82rem;
+                line-height: 1.5; white-space: pre-wrap;
+            }
+        `;
+        document.head.appendChild(s);
+    })();
+
     function injectStyles() {
         if (document.getElementById('script-wizard-styles')) return;
         const s = document.createElement('style');
@@ -391,5 +404,23 @@ const ScriptWizard = (() => {
         return d.innerHTML;
     }
 
-    return { open, close };
+    function showScriptError(msg) {
+        var el = document.getElementById('script-error');
+        if (!el) return;
+        el.textContent = msg;
+        el.style.display = msg ? 'block' : 'none';
+    }
+
+    async function validateScript(scriptText) {
+        showScriptError('');
+        var res = await AdminAPI.post('/admin/api/v1/scripting/validate', { script: scriptText });
+        if (res.ok) return { valid: true };
+        var d = (res.data && res.data.data) || {};
+        var msg = d.error || res.error || 'Unknown validation error';
+        if (d.line) msg = 'Line ' + d.line + (d.column ? ':' + d.column : '') + ' - ' + msg;
+        showScriptError(msg);
+        return { valid: false, error: msg, line: d.line || 0, column: d.column || 0 };
+    }
+
+    return { open, close, validateScript };
 })();

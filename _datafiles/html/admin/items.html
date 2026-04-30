@@ -348,6 +348,7 @@
                         <button class="btn btn-secondary" style="font-size:0.78rem;padding:0.25rem 0.7rem;" onclick="openScriptWizard()">+ Add Function</button>
                     </div>
                     <textarea id="f-script" spellcheck="false" placeholder="// JavaScript for this item's events (onFound, onLost, onUse, onPurchase)&#10;// Leave blank to delete the script file."></textarea>
+                    <div id="script-error" class="script-error"></div>
                     <div class="script-hint">Saved as a .js file alongside the item's YAML. Clear the field and save to delete the script.</div>
                 </div>
             </div>
@@ -703,6 +704,14 @@
         };
 
         const scriptContent = document.getElementById('f-script').value;
+
+        if (scriptContent.trim().length > 0) {
+            var check = await ScriptWizard.validateScript(scriptContent);
+            if (!check.valid) {
+                btn.disabled = false; btn.textContent = 'Save Item';
+                return;
+            }
+        }
 
         let itemRes;
         if (isNew) {
