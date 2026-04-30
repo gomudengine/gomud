@@ -19,8 +19,6 @@ func seedConfig() Config {
 	c.Timing.TurnMs = 100
 	c.Timing.RoundSeconds = 4
 	c.Timing.RoundsPerAutoSave = 900
-	c.Timing.RoundsPerDay = 20
-	c.Timing.NightHours = 8
 	c.FilePaths.DataFiles = "_datafiles/world/default"
 	c.FilePaths.HttpsCacheDir = "_datafiles/tls"
 	c.GamePlay.PVP.Enabled = PVPEnabled

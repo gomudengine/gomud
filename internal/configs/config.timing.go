@@ -6,8 +6,6 @@ type Timing struct {
 	TurnMs            ConfigInt `yaml:"TurnMs"`
 	RoundSeconds      ConfigInt `yaml:"RoundSeconds"`
 	RoundsPerAutoSave ConfigInt `yaml:"RoundsPerAutoSave"`
-	RoundsPerDay      ConfigInt `yaml:"RoundsPerDay"` // How many rounds are in a day
-	NightHours        ConfigInt `yaml:"NightHours"`   // How many hours of night
 
 	// Protected values
 	turnsPerRound   int     // calculated and cached when data is validated.
@@ -28,16 +26,6 @@ func (e *Timing) Validate() {
 
 	if e.RoundsPerAutoSave < 1 {
 		e.RoundsPerAutoSave = 900 // default of 15 minutes worth of rounds
-	}
-
-	if e.RoundsPerDay < 10 {
-		e.RoundsPerDay = 20 // default of 24 hours worth of rounds
-	}
-
-	if e.NightHours < 0 {
-		e.NightHours = 0
-	} else if e.NightHours > 24 {
-		e.NightHours = 24
 	}
 
 	// Pre-calculate and cache useful values
