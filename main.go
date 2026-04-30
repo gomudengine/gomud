@@ -8,7 +8,6 @@ import (
 	"path"
 	"runtime"
 	"runtime/debug"
-	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -164,19 +163,21 @@ func main() {
 	//
 	mudlog.Info(`========================`)
 	//
-	cfgData := c.AllConfigData()
-	cfgKeys := make([]string, 0, len(cfgData))
-	for k := range cfgData {
-		cfgKeys = append(cfgKeys, k)
-	}
+	/*
+		cfgData := c.AllConfigData()
+		cfgKeys := make([]string, 0, len(cfgData))
+		for k := range cfgData {
+			cfgKeys = append(cfgKeys, k)
+		}
 
-	// sort the keys
-	slices.Sort(cfgKeys)
-	for _, k := range cfgKeys {
-		mudlog.Info("Config", "name", k, "value", cfgData[k])
-	}
-	//
-	mudlog.Info(`========================`)
+		// sort the keys
+		slices.Sort(cfgKeys)
+		for _, k := range cfgKeys {
+			mudlog.Info("Config", "name", k, "value", cfgData[k])
+		}
+		//
+		mudlog.Info(`========================`)
+	*/
 
 	// Older versions of GoMud may not have this folder present.
 	// Also deleting the folder is a quick way to reset instance state, so this corrects that if it happens.
@@ -1549,6 +1550,7 @@ func loadAllDataFiles(isReload bool) {
 	// Force clear all cached VM's
 	scripting.PruneVMs(true)
 
+	gametime.LoadGameTimeConfigs()
 	// Load biomes before rooms since rooms reference biomes
 	rooms.LoadBiomeDataFiles()
 	spells.LoadSpellFiles()

@@ -3,30 +3,46 @@ package gametime
 import (
 	"testing"
 
-	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
 
-// seedTimingConfig overlays known timing values into the global config and
-// returns a cleanup function that removes them.
-func seedTimingConfig(t *testing.T, roundsPerDay, nightHours, roundSeconds int) {
+// seedCalendarConfig applies a CalendarConfig under "default" for the duration
+// of the test, restoring the previous activeCalendar map on cleanup.
+func seedCalendarConfig(t *testing.T, c CalendarConfig) {
 	t.Helper()
-	err := configs.AddOverlayOverrides(map[string]any{
-		"Timing.RoundsPerDay": configs.ConfigInt(roundsPerDay),
-		"Timing.NightHours":   configs.ConfigInt(nightHours),
-		"Timing.RoundSeconds": configs.ConfigInt(roundSeconds),
+	prev := activeCalendar
+	applyCalendarConfig(`default`, c)
+	t.Cleanup(func() {
+		activeCalendar = prev
+		clear(roundDateCache)
+		roundDateCacheSeq = roundDateCacheSeq[:0]
 	})
-	if err != nil {
-		t.Fatalf("seedTimingConfig: %v", err)
+}
+
+// defaultTestCalendar returns a CalendarConfig suitable for most tests:
+// 240 rounds/day, 8 night hours, 3 dusk hours, 365 days/year, 7 days/week, 12 months.
+func defaultTestCalendar(roundsPerDay, nightHours int) CalendarConfig {
+	return CalendarConfig{
+		RoundsPerDay: roundsPerDay,
+		NightHours:   nightHours,
+		DuskHours:    3,
+		DaysPerYear:  365,
+		DaysPerWeek:  7,
+		Months:       []string{"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"},
+		Zodiac:       []string{"Rat"},
 	}
 }
 
 // newGD constructs a GameDate with the given fields and calls ReCalculate.
+// It seeds activeCalendar["default"] to match so that ReCalculate uses the right derived constants.
 func newGD(roundNumber uint64, roundsPerDay, nightHoursPerDay int) GameDate {
+	applyCalendarConfig(`default`, defaultTestCalendar(roundsPerDay, nightHoursPerDay))
 	gd := GameDate{
+		Calendar:         `default`,
 		RoundNumber:      roundNumber,
 		RoundsPerDay:     roundsPerDay,
 		NightHoursPerDay: nightHoursPerDay,
+		DuskHours:        3,
 	}
 	gd.ReCalculate()
 	return gd
@@ -94,14 +110,14 @@ func Test_ReCalculate_NightFlag(t *testing.T) {
 	}
 }
 
-func Test_ReCalculate_MonthNeverExceeds12(t *testing.T) {
-	// Walk every day of a year and confirm Month stays in [1,12].
+func Test_ReCalculate_MonthNeverExceedsNumMonths(t *testing.T) {
+	// Walk every day of a year and confirm Month stays in [1, numMonths].
 	rpd := 240
 	for dayOfYear := 1; dayOfYear <= 366; dayOfYear++ {
 		round := uint64((dayOfYear - 1) * rpd)
 		gd := newGD(round, rpd, 0)
-		if gd.Month < 1 || gd.Month > 12 {
-			t.Errorf("day %d: Month = %d, want 1-12", dayOfYear, gd.Month)
+		if gd.Month < 1 || gd.Month > activeCalendar[`default`].numMonths {
+			t.Errorf("day %d: Month = %d, want 1-%d", dayOfYear, gd.Month, activeCalendar[`default`].numMonths)
 		}
 	}
 }
@@ -134,7 +150,7 @@ func Test_ReCalculate_YearAndDayRollover(t *testing.T) {
 func Test_String_DuskOnlyApproachingNight(t *testing.T) {
 	// 240 rounds/day, 0 night hours => nightStart=24 (no real night).
 	// With nightStart=24, NightStart-Hour24 is always >= 0 for hour24 in [0,23].
-	// Dusk fires when NightStart-Hour24 < 3, i.e. hour24 >= 22.
+	// Dusk fires when NightStart-Hour24 < DuskHours (3), i.e. hour24 >= 22.
 	rpd := 240
 
 	cases := []struct {
@@ -172,6 +188,8 @@ func containsSubstr(s, sub string) bool {
 // --- GetDate cache ---
 
 func Test_GetDate_CacheEviction(t *testing.T) {
+	seedCalendarConfig(t, defaultTestCalendar(240, 0))
+
 	// Reset global cache state.
 	clear(roundDateCache)
 	roundDateCacheSeq = roundDateCacheSeq[:0]
@@ -198,6 +216,8 @@ func Test_GetDate_CacheEviction(t *testing.T) {
 }
 
 func Test_GetDate_CacheHit(t *testing.T) {
+	seedCalendarConfig(t, defaultTestCalendar(240, 0))
+
 	clear(roundDateCache)
 	roundDateCacheSeq = roundDateCacheSeq[:0]
 
@@ -215,7 +235,7 @@ func Test_GetDate_CacheHit(t *testing.T) {
 // --- GetLastPeriod ---
 
 func Test_GetLastPeriod_Day(t *testing.T) {
-	seedTimingConfig(t, 240, 0, 4)
+	seedCalendarConfig(t, defaultTestCalendar(240, 0))
 
 	// Round 250 = day 2, round 10 into the day.
 	// Last midnight = round 240.
@@ -226,7 +246,7 @@ func Test_GetLastPeriod_Day(t *testing.T) {
 }
 
 func Test_GetLastPeriod_Hour(t *testing.T) {
-	seedTimingConfig(t, 240, 0, 4)
+	seedCalendarConfig(t, defaultTestCalendar(240, 0))
 
 	// 240 rounds/day => 10 rounds/hour.
 	// Round 255 = 15 rounds into hour 1 of day 2 => last hour start = 250.
@@ -237,7 +257,7 @@ func Test_GetLastPeriod_Hour(t *testing.T) {
 }
 
 func Test_GetLastPeriod_Noon_AfterNoon(t *testing.T) {
-	seedTimingConfig(t, 240, 0, 4)
+	seedCalendarConfig(t, defaultTestCalendar(240, 0))
 
 	// 240 rounds/day => noon at round 120 of each day.
 	// Round 130 = 10 rounds past noon on day 1 => last noon = 120.
@@ -248,7 +268,7 @@ func Test_GetLastPeriod_Noon_AfterNoon(t *testing.T) {
 }
 
 func Test_GetLastPeriod_Noon_BeforeNoon(t *testing.T) {
-	seedTimingConfig(t, 240, 0, 4)
+	seedCalendarConfig(t, defaultTestCalendar(240, 0))
 
 	// Round 50 = before noon on day 1 => last noon was yesterday (day 0, round -120).
 	// Day 0 doesn't exist (round 0 is midnight day 1), so last noon = round 0 + 120 - 240 = -120.
@@ -268,7 +288,7 @@ func Test_GetLastPeriod_Noon_BeforeNoon(t *testing.T) {
 }
 
 func Test_GetLastPeriod_Noon_ExactlyAtNoon(t *testing.T) {
-	seedTimingConfig(t, 240, 0, 4)
+	seedCalendarConfig(t, defaultTestCalendar(240, 0))
 
 	// Round 120 is exactly noon on day 1.
 	// roundOfDay = 120, noonRound = 120; roundOfDay >= noonRound => today's noon branch.
@@ -280,7 +300,7 @@ func Test_GetLastPeriod_Noon_ExactlyAtNoon(t *testing.T) {
 }
 
 func Test_GetLastPeriod_Week(t *testing.T) {
-	seedTimingConfig(t, 240, 0, 4)
+	seedCalendarConfig(t, defaultTestCalendar(240, 0))
 
 	// 7 days = 1680 rounds. Round 1700 = 20 rounds into week 2.
 	// Last week start = 1700 - (1700 % 1680) = 1700 - 20 = 1680.
@@ -329,7 +349,7 @@ func Test_AddPeriod_Empty(t *testing.T) {
 }
 
 func Test_AddPeriod_Noon(t *testing.T) {
-	seedTimingConfig(t, 240, 0, 4)
+	seedCalendarConfig(t, defaultTestCalendar(240, 0))
 
 	// Start at round 130 (10 rounds past noon). Last noon = 120.
 	// "1 noon" = last noon + 1 day = 120 + 240 = 360.

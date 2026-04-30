@@ -40,6 +40,7 @@ func (g *GMCPGametimeModule) newRoundHandler(e events.Event) events.ListenerRetu
 	gd := gametime.GetDate()
 
 	payload := GMCPGametimeModule_Payload{
+		Calendar:   gd.Calendar,
 		Hour:       gd.Hour,
 		Hour24:     gd.Hour24,
 		Minute:     gd.Minute,
@@ -52,6 +53,8 @@ func (g *GMCPGametimeModule) newRoundHandler(e events.Event) events.ListenerRetu
 		Night:      gd.Night,
 		DayStart:   gd.DayStart,
 		NightStart: gd.NightStart,
+		SunCount:   gd.SunCount,
+		MoonCount:  gd.MoonCount,
 	}
 
 	for _, user := range users.GetAllActiveUsers() {
@@ -72,6 +75,7 @@ func (g *GMCPGametimeModule) newRoundHandler(e events.Event) events.ListenerRetu
 // Gametime payload
 // /////////////////
 type GMCPGametimeModule_Payload struct {
+	Calendar   string `json:"calendar"`
 	Hour       int    `json:"hour"`
 	Hour24     int    `json:"hour24"`
 	Minute     int    `json:"minute"`
@@ -84,4 +88,6 @@ type GMCPGametimeModule_Payload struct {
 	Night      bool   `json:"night"`
 	DayStart   int    `json:"day_start"`
 	NightStart int    `json:"night_start"`
+	SunCount   int    `json:"sun_count"`  // expected to be 1 or 2
+	MoonCount  int    `json:"moon_count"` // expected to be 0 - 3
 }
