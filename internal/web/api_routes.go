@@ -5,6 +5,11 @@ import (
 )
 
 func registerAdminAPIRoutes(mux *http.ServeMux) {
+	// Scripting
+	mux.HandleFunc("GET /admin/api/v1/scripting/functions", RunWithMUDLocked(
+		doBasicAuth(apiV1GetScriptFunctions),
+	))
+
 	// Tags
 	mux.HandleFunc("GET /admin/api/v1/tags", RunWithMUDLocked(
 		doBasicAuth(apiV1GetTags),

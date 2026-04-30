@@ -498,6 +498,9 @@
             <div style="margin-top:1.25rem; border-top: 1px solid var(--color-border-light); padding-top: 1rem;">
                 <div class="script-toggle" id="script-toggle" onclick="toggleScript()">Script</div>
                 <div class="script-area" id="script-area">
+                    <div style="display:flex;justify-content:flex-end;margin-bottom:0.4rem;">
+                        <button class="btn btn-secondary" style="font-size:0.78rem;padding:0.25rem 0.7rem;" onclick="openScriptWizard()">+ Add Function</button>
+                    </div>
                     <textarea id="f-script" spellcheck="false" placeholder="// JavaScript for this mob's events (onAsk, onGive, onIdle, onShow)&#10;// Leave blank to delete the script file."></textarea>
                     <div class="script-hint">Saved as a .js file alongside the mob's YAML. Clear the field and save to delete the script.</div>
                 </div>
@@ -1425,6 +1428,10 @@
         const area = document.getElementById('script-area');
         toggle.classList.toggle('open');
         area.classList.toggle('open');
+    };
+
+    window.openScriptWizard = function () {
+        ScriptWizard.open({ scriptType: 'mob', textareaId: 'f-script', syncFn: scriptSync });
     };
 
     // -------------------------------------------------------------------------
