@@ -158,9 +158,11 @@
         const rng  = seededRNG(seed);
         const appearances = [];
         for (let i = 0; i < count; i++) {
-            const scale     = BODY_SIZE_MIN + rng() * (BODY_SIZE_MAX - BODY_SIZE_MIN);
+            // The first body always uses BODY_SIZE_MAX so there is always one
+            // prominent body; additional bodies use seeded random sizes.
+            const scale     = i === 0 ? BODY_SIZE_MAX : BODY_SIZE_MIN + rng() * (BODY_SIZE_MAX - BODY_SIZE_MIN);
             const tint      = tintPalette[Math.floor(rng() * tintPalette.length)];
-            const rawOffset = rng() - 0.5;
+            const rawOffset = i === 0 ? 0 : rng() - 0.5;
             appearances.push({ scale, tint, rawOffset });
         }
         return appearances;
@@ -490,13 +492,52 @@
         const moonCount  = Math.max(0, data.moon_count || 1);
 
         // --- background ---
+        // During the last 2 game-hours of day, blend from day sky toward dusk/night.
+        const dayDuration   = (nightStart > dayStart)
+            ? nightStart - dayStart
+            : (24 - dayStart) + nightStart;
+        const duskHours     = Math.min(2, dayDuration * 0.25); // dusk window, max 2h
+        const duskRawStart  = (dayDuration - duskHours) / dayDuration; // rawPos where dusk begins
+
+        // duskT: 0 = full day, 1 = full dusk (at nightStart)
+        let duskT = 0;
+        if (!night) {
+            const rawPos0 = celestialPosition(hour24, minute, dayStart, nightStart);
+            duskT = Math.max(0, Math.min(1, (rawPos0 - duskRawStart) / (1 - duskRawStart)));
+        }
+
+        // Interpolate between day colours and dusk/night colours.
+        function lerpHex(a, b, t) {
+            const ar = (a >> 16) & 0xff, ag = (a >> 8) & 0xff, ab = a & 0xff;
+            const br = (b >> 16) & 0xff, bg = (b >> 8) & 0xff, bb = b & 0xff;
+            const r = Math.round(ar + (br - ar) * t);
+            const g = Math.round(ag + (bg - ag) * t);
+            const bl2 = Math.round(ab + (bb - ab) * t);
+            return 'rgb(' + r + ',' + g + ',' + bl2 + ')';
+        }
+
+        const skyTop    = lerpHex(0x1a6fbf, 0x020510, duskT);
+        // The dark-sky colour that creeps down from the top during dusk.
+        const skyMid    = lerpHex(0x1a6fbf, 0x020510, duskT);
+        // The warm horizon glow: starts blended into the full gradient and
+        // compresses toward the bottom as duskT increases.
+        // glowStop is the gradient position where the dark sky ends and the
+        // warm glow begins: 0 at duskT=0 (glow fills everything), 1 at duskT=1
+        // (glow is just a sliver at the very bottom).
+        const glowStop  = duskT;
+        const glowColor = lerpHex(0x87ceeb, 0xd4703a, duskT);
+
         const grad = ctx.createLinearGradient(0, 0, 0, h);
         if (night) {
             grad.addColorStop(0, '#020510');
             grad.addColorStop(1, '#0a0e20');
-        } else {
+        } else if (duskT <= 0) {
             grad.addColorStop(0, '#1a6fbf');
             grad.addColorStop(1, '#87ceeb');
+        } else {
+            grad.addColorStop(0, skyTop);
+            grad.addColorStop(Math.min(glowStop, 0.999), skyMid);
+            grad.addColorStop(1, glowColor);
         }
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, w, h);
@@ -637,6 +678,75 @@
     }
 
     // -----------------------------------------------------------------------
+    // Continuous animation: interpolates game time between GMCP updates.
+    // -----------------------------------------------------------------------
+
+    // State updated on each GMCP packet.
+    let _animData        = null;   // last received data object
+    let _animRealMs      = null;   // real timestamp (ms) when last packet arrived
+    let _animGameMinutes = null;   // game time in fractional minutes at last packet
+    let _animRateMinPerMs = null;  // game minutes per real ms, learned from two packets
+    let _animPrevRealMs  = null;   // real timestamp of the packet before last
+    let _animPrevGameMin = null;   // game minutes of the packet before last
+    let _animRafId       = null;
+
+    // Convert a data object's hour24+minute into a single fractional-minute value
+    // that increases monotonically within a day (0..1440).
+    function _gameMinutes(data) {
+        return (data.hour24 || 0) * 60 + (data.minute || 0);
+    }
+
+    // Build a synthetic data object with overridden hour24/minute/hour/ampm/night.
+    function _syntheticData(base, fracMinutes) {
+        const dayStart   = base.day_start   || 6;
+        const nightStart = base.night_start || 22;
+        const totalMins  = ((fracMinutes % 1440) + 1440) % 1440;
+        const hour24     = Math.floor(totalMins / 60);
+        const minute     = Math.floor(totalMins % 60);
+        const isNight    = hour24 >= nightStart || hour24 < dayStart;
+        return Object.assign({}, base, {
+            hour24,
+            minute,
+            hour:  hour24 % 12 || 12,
+            ampm:  hour24 < 12 ? 'AM' : 'PM',
+            night: isNight,
+        });
+    }
+
+    function _animTick(now) {
+        if (window.gametimeDebugCycle) {
+            _animRafId = null;
+            return;
+        }
+        if (!_animData || !win.isOpen()) {
+            _animRafId = requestAnimationFrame(_animTick);
+            return;
+        }
+
+        // Extrapolate game time from last known position.
+        let currentGameMin = _animGameMinutes;
+        if (_animRateMinPerMs !== null && _animRealMs !== null) {
+            const elapsed = now - _animRealMs;
+            currentGameMin = _animGameMinutes + elapsed * _animRateMinPerMs;
+        }
+
+        const synth = _syntheticData(_animData, currentGameMin);
+        drawSky(synth);
+
+        if (tooltipAnchor && tooltip && tooltip.style.display === 'block') {
+            showTooltip(tooltipAnchor);
+        }
+
+        _animRafId = requestAnimationFrame(_animTick);
+    }
+
+    function _animStart() {
+        if (!_animRafId) {
+            _animRafId = requestAnimationFrame(_animTick);
+        }
+    }
+
+    // -----------------------------------------------------------------------
     // Update logic
     // -----------------------------------------------------------------------
     function update() {
@@ -648,7 +758,27 @@
         win.open();
         if (!win.isOpen()) { return; }
 
-        // Labels
+        const nowMs      = performance.now();
+        const gameMins   = _gameMinutes(data);
+
+        // Learn the rate from consecutive packets.
+        if (_animRealMs !== null && _animGameMinutes !== null) {
+            const realDelta = nowMs - _animRealMs;
+            let   gameDelta = gameMins - _animGameMinutes;
+            // Handle midnight wrap (game minutes reset from ~1439 back to 0).
+            if (gameDelta < -720) { gameDelta += 1440; }
+            if (realDelta > 0 && gameDelta > 0) {
+                _animRateMinPerMs = gameDelta / realDelta;
+            }
+        }
+
+        _animPrevRealMs  = _animRealMs;
+        _animPrevGameMin = _animGameMinutes;
+        _animRealMs      = nowMs;
+        _animGameMinutes = gameMins;
+        _animData        = data;
+
+        // Update labels on real GMCP ticks only.
         const timeEl = document.getElementById('gametime-time');
         const dateEl = document.getElementById('gametime-date');
         if (timeEl) {
@@ -662,11 +792,7 @@
                 ', year ' + data.year + ' (the ' + zodiac + ').';
         }
 
-        drawSky(data);
-
-        if (tooltipAnchor && tooltip && tooltip.style.display === 'block') {
-            showTooltip(tooltipAnchor);
-        }
+        _animStart();
     }
 
     // -----------------------------------------------------------------------
