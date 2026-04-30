@@ -23,7 +23,7 @@ type RoundTimer struct {
 	gd         GameDate
 }
 
-func (r RoundTimer) Expired() bool {
+func (r *RoundTimer) Expired() bool {
 	if r.Period == `` || r.RoundStart == 0 {
 		return true
 	}
@@ -334,7 +334,7 @@ func (g GameDate) AddPeriod(periodStr string) uint64 {
 
 	}
 
-	if len(timeStr) >= 2 {
+	if len(timeStr) >= 3 {
 
 		strShort := timeStr[0:3]
 
