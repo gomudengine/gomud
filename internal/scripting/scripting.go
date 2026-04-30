@@ -103,6 +103,36 @@ func setAllScriptingFunctions(vm *goja.Runtime) {
 	setModuleFunctions(vm)
 }
 
+type ValidationResult struct {
+	Valid  bool   `json:"valid"`
+	Error  string `json:"error,omitempty"`
+	Line   int    `json:"line,omitempty"`
+	Column int    `json:"column,omitempty"`
+}
+
+func ValidateScript(source string, script string) ValidationResult {
+	_, err := goja.Compile(source, script, false)
+	if err != nil {
+		if synErr, ok := err.(*goja.CompilerSyntaxError); ok {
+			result := ValidationResult{
+				Valid: false,
+				Error: synErr.Message,
+			}
+			if synErr.File != nil {
+				pos := synErr.File.Position(synErr.Offset)
+				result.Line = pos.Line
+				result.Column = pos.Column
+			}
+			return result
+		}
+		return ValidationResult{
+			Valid: false,
+			Error: err.Error(),
+		}
+	}
+	return ValidationResult{Valid: true}
+}
+
 func PruneVMs(forceClear ...bool) {
 
 	if len(forceClear) > 0 && forceClear[0] {

@@ -34,8 +34,12 @@ const ScriptEditor = (() => {
             .script-editor textarea {
                 -webkit-text-fill-color: transparent;
                 color: transparent !important;
-                caret-color: var(--color-text);
+                caret-color: var(--color-code-text);
                 white-space: pre; overflow-x: auto;
+            }
+            .script-editor textarea::selection {
+                -webkit-text-fill-color: var(--color-code-text);
+                background: rgba(128, 180, 255, 0.35);
             }
             .script-editor textarea::placeholder {
                 -webkit-text-fill-color: var(--color-text-subtle);
