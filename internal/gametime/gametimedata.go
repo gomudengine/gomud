@@ -68,15 +68,15 @@ type calendarDerived struct {
 
 // CalendarConfig holds the configuration for a single named calendar system.
 type CalendarConfig struct {
-	RoundsPerDay int      `yaml:"rounds_per_day"`
-	NightHours   int      `yaml:"night_hours"`
-	DuskHours    int      `yaml:"dusk_hours"`
-	DaysPerYear  int      `yaml:"days_per_year"`
-	DaysPerWeek  int      `yaml:"days_per_week"`
-	SunCount     int      `yaml:"sun_count"`  // 1-2
-	MoonCount    int      `yaml:"moon_count"` // 0-3
-	Months       []string `yaml:"months"`
-	Zodiac       []string `yaml:"zodiac"`
+	RoundsPerDay int      `yaml:"rounds_per_day" json:"rounds_per_day"`
+	NightHours   int      `yaml:"night_hours"    json:"night_hours"`
+	DuskHours    int      `yaml:"dusk_hours"     json:"dusk_hours"`
+	DaysPerYear  int      `yaml:"days_per_year"  json:"days_per_year"`
+	DaysPerWeek  int      `yaml:"days_per_week"  json:"days_per_week"`
+	SunCount     int      `yaml:"sun_count"      json:"sun_count"`  // 1-2
+	MoonCount    int      `yaml:"moon_count"     json:"moon_count"` // 0-3
+	Months       []string `yaml:"months"         json:"months"`
+	Zodiac       []string `yaml:"zodiac"         json:"zodiac"`
 }
 
 // CalendarOptions is the top-level structure for gametime.yaml.

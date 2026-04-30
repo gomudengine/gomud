@@ -1,0 +1,479 @@
+{{template "header" .}}
+
+<style>
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--color-text-muted); margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+    .page-layout { display: grid; grid-template-columns: 220px 1fr; gap: 1.25rem; align-items: start; }
+    @media (max-width: 800px) { .page-layout { grid-template-columns: 1fr; } }
+
+    /* sidebar */
+    .sidebar { background: var(--color-surface-white); border: 1px solid var(--color-border); border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; }
+    .calendar-list { overflow-y: auto; max-height: 72vh; }
+    .calendar-row {
+        padding: 0.5rem 0.9rem; cursor: pointer; border-bottom: 1px solid var(--color-border-faint);
+        display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem;
+    }
+    .calendar-row:last-child { border-bottom: none; }
+    .calendar-row:hover { background: var(--color-row-hover); }
+    .calendar-row.active { background: var(--color-primary); color: var(--color-surface-white); }
+    .default-badge {
+        font-size: 0.65rem; padding: 0.1rem 0.35rem; border-radius: 3px;
+        font-weight: 600; text-transform: uppercase; background: var(--color-chip-bg); color: var(--color-chip-text);
+        flex-shrink: 0; margin-left: auto;
+    }
+    .calendar-row.active .default-badge { background: rgba(255,255,255,0.25); color: var(--color-surface-white); }
+    .no-calendars { padding: 1.5rem; text-align: center; color: var(--color-text-faint); font-size: 0.85rem; }
+    .btn-new { margin: 0.6rem 0.9rem; padding: 0.4rem 0.9rem; border: none; border-radius: 4px; background: var(--color-success-text); color: var(--color-surface-white); font-size: 0.85rem; font-weight: 600; cursor: pointer; display: block; text-align: center; }
+    .btn-new:hover { background: var(--color-btn-new-hover); }
+
+    /* editor */
+    .editor-panel { background: var(--color-surface-white); border: 1px solid var(--color-border); border-radius: 6px; padding: 1.25rem; }
+    .editor-placeholder { color: var(--color-text-placeholder); text-align: center; padding: 4rem 1rem; font-size: 0.9rem; }
+
+    .status-bar { display: none; padding: 0.55rem 0.9rem; border-radius: 4px; font-size: 0.85rem; margin-bottom: 1rem; }
+    .status-bar.success { background: var(--color-success-bg); color: var(--color-success-text); display: block; }
+    .status-bar.error   { background: var(--color-error-bg); color: var(--color-error-text); display: block; }
+
+    /* form grid */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem 1.25rem; }
+    .form-grid .span2 { grid-column: 1 / -1; }
+    .field label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--color-text-muted); margin-bottom: 0.25rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .field input[type="text"], .field input[type="number"] {
+        width: 100%; padding: 0.4rem 0.6rem; border: 1px solid var(--color-border-medium); border-radius: 4px;
+        font-size: 0.875rem; font-family: inherit; background: var(--color-surface-white); box-sizing: border-box;
+    }
+    .field input[readonly] { background: var(--color-page-bg); color: var(--color-text-subtle); cursor: default; }
+    .field input:focus { outline: 2px solid var(--color-primary); outline-offset: 1px; border-color: transparent; }
+    .field-hint { font-size: 0.75rem; color: var(--color-text-faint); margin-top: 0.2rem; }
+
+    .section-title { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-subtle); padding: 0.75rem 0 0.4rem; border-bottom: 1px solid var(--color-border-light); margin-bottom: 0.5rem; grid-column: 1 / -1; }
+
+    /* chip list editor */
+    .chip-field { grid-column: 1 / -1; }
+    .chip-field label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--color-text-muted); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .chip-box {
+        border: 1px solid var(--color-border-medium); border-radius: 4px; padding: 0.4rem 0.5rem;
+        display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; min-height: 2.4rem;
+        background: var(--color-surface-white); cursor: text;
+    }
+    .chip-box:focus-within { outline: 2px solid var(--color-primary); outline-offset: 1px; border-color: transparent; }
+    .chip {
+        display: inline-flex; align-items: center; gap: 0.3rem;
+        background: var(--color-chip-bg); color: var(--color-chip-text);
+        border-radius: 3px; padding: 0.2rem 0.4rem 0.2rem 0.55rem;
+        font-size: 0.82rem; font-weight: 500; white-space: nowrap;
+        border: 1px solid var(--color-border-light);
+    }
+    .chip-del {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 1.1rem; height: 1.1rem; border-radius: 50%;
+        background: transparent; border: none; cursor: pointer;
+        color: var(--color-chip-text); font-size: 0.75rem; line-height: 1; padding: 0;
+        opacity: 0.6;
+    }
+    .chip-del:hover { background: var(--color-error-bg); color: var(--color-error-text); opacity: 1; }
+    .chip-input {
+        border: none; outline: none; background: transparent;
+        font-size: 0.875rem; font-family: inherit; min-width: 8rem; flex: 1;
+        padding: 0.15rem 0.25rem; color: inherit;
+    }
+    .chip-hint { font-size: 0.75rem; color: var(--color-text-faint); margin-top: 0.3rem; }
+
+    /* orderable chip list (months) */
+    .chip.dragging { opacity: 0.4; }
+    .chip.drag-over { outline: 2px solid var(--color-primary); }
+
+    .btn-row { display: flex; gap: 0.6rem; margin-top: 1.25rem; grid-column: 1 / -1; }
+    .btn-save { padding: 0.45rem 1.2rem; background: var(--color-primary); color: var(--color-surface-white); border: none; border-radius: 4px; font-size: 0.875rem; font-weight: 600; cursor: pointer; }
+    .btn-save:hover { background: var(--color-primary-hover); }
+    .btn-save:disabled { background: var(--color-text-secondary); cursor: default; }
+    .btn-delete { padding: 0.45rem 1rem; background: var(--color-surface-white); color: var(--color-error-text); border: 1px solid var(--color-btn-delete-border); border-radius: 4px; font-size: 0.875rem; font-weight: 600; cursor: pointer; }
+    .btn-delete:hover { background: var(--color-error-bg); }
+    .btn-delete:disabled { opacity: 0.4; cursor: default; }
+</style>
+
+<h1>GameTime Calendars</h1>
+<p class="subtitle">Browse, create, edit, and delete calendar configurations.</p>
+
+<div class="page-layout">
+    <div class="sidebar">
+        <div id="calendarList" class="calendar-list">
+            <div class="no-calendars">Loading&hellip;</div>
+        </div>
+        <button class="btn-new" onclick="newCalendar()">+ New Calendar</button>
+    </div>
+
+    <div class="editor-panel">
+        <div id="statusBar" class="status-bar"></div>
+        <div id="editorPlaceholder" class="editor-placeholder">Select a calendar to edit, or click <strong>+ New Calendar</strong>.</div>
+        <div id="editorForm" style="display:none">
+            <div class="form-grid">
+                <p class="section-title" id="editorTitle">Edit Calendar</p>
+
+                <div class="field">
+                    <label>Calendar Name</label>
+                    <input type="text" id="fName" placeholder="e.g. default" />
+                    <div class="field-hint">Unique identifier. Cannot be changed after creation.</div>
+                </div>
+                <div class="field">
+                    <label>Rounds Per Day</label>
+                    <input type="number" id="fRoundsPerDay" min="24" placeholder="900" />
+                    <div class="field-hint">Game rounds in one full in-game day. Minimum 24.</div>
+                </div>
+
+                <div class="field">
+                    <label>Night Hours</label>
+                    <input type="number" id="fNightHours" min="0" max="23" placeholder="8" />
+                    <div class="field-hint">Hours of darkness per day (0&ndash;23). Split evenly around midnight.</div>
+                </div>
+                <div class="field">
+                    <label>Dusk Hours</label>
+                    <input type="number" id="fDuskHours" min="0" placeholder="3" />
+                    <div class="field-hint">Hours before night start when the dusk colour begins.</div>
+                </div>
+
+                <div class="field">
+                    <label>Days Per Year</label>
+                    <input type="number" id="fDaysPerYear" min="1" placeholder="365" />
+                    <div class="field-hint">Total days in one year. Drives year and month calculations.</div>
+                </div>
+                <div class="field">
+                    <label>Days Per Week</label>
+                    <input type="number" id="fDaysPerWeek" min="1" placeholder="7" />
+                </div>
+
+                <div class="field">
+                    <label>Sun Count</label>
+                    <input type="number" id="fSunCount" min="1" max="2" placeholder="1" />
+                    <div class="field-hint">Number of suns (1&ndash;2).</div>
+                </div>
+                <div class="field">
+                    <label>Moon Count</label>
+                    <input type="number" id="fMoonCount" min="0" max="3" placeholder="1" />
+                    <div class="field-hint">Number of moons (0&ndash;3).</div>
+                </div>
+
+                <div class="section-title">Months &amp; Zodiac</div>
+
+                <!-- Months chip list (ordered, draggable) -->
+                <div class="chip-field">
+                    <label>Months <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--color-text-faint);font-size:0.72rem;">— in order, drag to reorder</span></label>
+                    <div class="chip-box" id="monthsBox" onclick="focusChipInput('monthsInput')">
+                        <!-- chips rendered here -->
+                        <input class="chip-input" id="monthsInput" placeholder="Type a month name and press Enter&hellip;"
+                               onkeydown="chipKeyDown(event,'monthsBox','monthsInput')"
+                               onpaste="chipPaste(event,'monthsBox','monthsInput')" />
+                    </div>
+                    <div class="chip-hint">Press <kbd>Enter</kbd> or <kbd>,</kbd> to add. Drag chips to reorder. Click &times; to remove.</div>
+                </div>
+
+                <!-- Zodiac chip list (unordered) -->
+                <div class="chip-field" style="margin-top:0.5rem;">
+                    <label>Zodiac <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--color-text-faint);font-size:0.72rem;">— shuffled at startup by the world seed</span></label>
+                    <div class="chip-box" id="zodiacBox" onclick="focusChipInput('zodiacInput')">
+                        <input class="chip-input" id="zodiacInput" placeholder="Type a zodiac animal and press Enter&hellip;"
+                               onkeydown="chipKeyDown(event,'zodiacBox','zodiacInput')"
+                               onpaste="chipPaste(event,'zodiacBox','zodiacInput')" />
+                    </div>
+                    <div class="chip-hint">Press <kbd>Enter</kbd> or <kbd>,</kbd> to add. Click &times; to remove.</div>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn-save" id="btnSave" onclick="saveCalendar()">Save</button>
+                    <button class="btn-delete" id="btnDelete" onclick="deleteCalendar()" style="display:none">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    let calendarsData = {};
+    let activeName    = null;
+    let isNew         = false;
+
+    // drag state for month ordering
+    let dragSrc = null;
+
+    async function init() {
+        const res = await AdminAPI.get('/admin/api/v1/gametime');
+        if (!res.ok) { showStatus('error', 'Failed to load calendars: ' + res.error); return; }
+        calendarsData = (res.data && res.data.data) || {};
+        renderList();
+        const hashName = decodeURIComponent(location.hash.slice(1));
+        if (hashName && calendarsData[hashName]) selectCalendar(hashName);
+    }
+
+    // -------------------------------------------------------------------------
+    // Sidebar
+    // -------------------------------------------------------------------------
+    function renderList() {
+        const list = document.getElementById('calendarList');
+        const names = Object.keys(calendarsData).sort();
+        if (!names.length) {
+            list.innerHTML = '<div class="no-calendars">No calendars found.</div>';
+            return;
+        }
+        list.innerHTML = names.map(name => {
+            const isDefault = name === 'default';
+            return `<div class="calendar-row${name === activeName ? ' active' : ''}"
+                data-name="${escAttr(name)}"
+                onclick="selectCalendar('${escAttr(name)}')">
+                <span>${escHtml(name)}</span>
+                ${isDefault ? '<span class="default-badge">default</span>' : ''}
+            </div>`;
+        }).join('');
+    }
+
+    function highlightRow(name) {
+        document.querySelectorAll('.calendar-row').forEach(r =>
+            r.classList.toggle('active', r.dataset.name === name)
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // Select / New
+    // -------------------------------------------------------------------------
+    window.selectCalendar = function (name) {
+        activeName = name;
+        isNew      = false;
+        location.hash = encodeURIComponent(name);
+        highlightRow(name);
+        populateForm(name, calendarsData[name]);
+    };
+
+    window.newCalendar = function () {
+        activeName = null;
+        isNew      = true;
+        document.querySelectorAll('.calendar-row').forEach(r => r.classList.remove('active'));
+        populateForm(null, null);
+    };
+
+    function populateForm(name, cfg) {
+        document.getElementById('editorPlaceholder').style.display = 'none';
+        document.getElementById('editorForm').style.display        = '';
+        document.getElementById('statusBar').className             = 'status-bar';
+        document.getElementById('statusBar').textContent           = '';
+
+        const isDefault = name === 'default';
+        document.getElementById('btnDelete').style.display = (isNew || isDefault) ? 'none' : '';
+        document.getElementById('editorTitle').textContent = isNew ? 'New Calendar' : 'Edit: ' + name;
+
+        const c = cfg || {};
+        document.getElementById('fName').value            = isNew ? '' : name;
+        document.getElementById('fName').readOnly         = !isNew;
+        document.getElementById('fName').style.background = isNew ? '' : 'var(--color-page-bg)';
+        document.getElementById('fRoundsPerDay').value    = c.rounds_per_day !== undefined ? c.rounds_per_day : 900;
+        document.getElementById('fNightHours').value      = c.night_hours    !== undefined ? c.night_hours    : 8;
+        document.getElementById('fDuskHours').value       = c.dusk_hours     !== undefined ? c.dusk_hours     : 3;
+        document.getElementById('fDaysPerYear').value     = c.days_per_year  !== undefined ? c.days_per_year  : 365;
+        document.getElementById('fDaysPerWeek').value     = c.days_per_week  !== undefined ? c.days_per_week  : 7;
+        document.getElementById('fSunCount').value        = c.sun_count      !== undefined ? c.sun_count      : 1;
+        document.getElementById('fMoonCount').value       = c.moon_count     !== undefined ? c.moon_count     : 1;
+
+        setChips('monthsBox', 'monthsInput', c.months || [], true);
+        setChips('zodiacBox', 'zodiacInput', c.zodiac || [], false);
+    }
+
+    // -------------------------------------------------------------------------
+    // Chip list helpers
+    // -------------------------------------------------------------------------
+
+    // Render the full chip list for a box, preserving the input at the end.
+    function setChips(boxId, inputId, items, draggable) {
+        const box   = document.getElementById(boxId);
+        const input = document.getElementById(inputId);
+        // Remove all chips (leave the input)
+        box.querySelectorAll('.chip').forEach(c => c.remove());
+        items.forEach(item => box.insertBefore(makeChip(item, boxId, inputId, draggable), input));
+    }
+
+    function makeChip(text, boxId, inputId, draggable) {
+        const chip = document.createElement('span');
+        chip.className   = 'chip';
+        chip.textContent = text;
+        chip.title       = draggable ? 'Drag to reorder' : '';
+
+        if (draggable) {
+            chip.draggable = true;
+            chip.addEventListener('dragstart', e => {
+                dragSrc = chip;
+                chip.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+            });
+            chip.addEventListener('dragend', () => {
+                dragSrc = null;
+                chip.classList.remove('dragging');
+                document.querySelectorAll('.chip.drag-over').forEach(c => c.classList.remove('drag-over'));
+            });
+            chip.addEventListener('dragover', e => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                if (dragSrc && dragSrc !== chip) chip.classList.add('drag-over');
+            });
+            chip.addEventListener('dragleave', () => chip.classList.remove('drag-over'));
+            chip.addEventListener('drop', e => {
+                e.preventDefault();
+                chip.classList.remove('drag-over');
+                if (!dragSrc || dragSrc === chip) return;
+                const box = chip.closest('.chip-box');
+                const chips = [...box.querySelectorAll('.chip')];
+                const srcIdx  = chips.indexOf(dragSrc);
+                const destIdx = chips.indexOf(chip);
+                if (srcIdx < destIdx) {
+                    chip.after(dragSrc);
+                } else {
+                    chip.before(dragSrc);
+                }
+            });
+        }
+
+        const del = document.createElement('button');
+        del.className   = 'chip-del';
+        del.type        = 'button';
+        del.textContent = '\u00d7';
+        del.title       = 'Remove';
+        del.addEventListener('click', e => { e.stopPropagation(); chip.remove(); });
+        chip.appendChild(del);
+        return chip;
+    }
+
+    function addChip(boxId, inputId, draggable) {
+        const input = document.getElementById(inputId);
+        const val   = input.value.trim();
+        if (!val) return;
+        const box = document.getElementById(boxId);
+        box.insertBefore(makeChip(val, boxId, inputId, draggable), input);
+        input.value = '';
+    }
+
+    function getChips(boxId) {
+        return [...document.getElementById(boxId).querySelectorAll('.chip')]
+            .map(c => c.childNodes[0].textContent.trim())
+            .filter(Boolean);
+    }
+
+    window.focusChipInput = function (inputId) {
+        document.getElementById(inputId).focus();
+    };
+
+    window.chipKeyDown = function (e, boxId, inputId) {
+        const draggable = boxId === 'monthsBox';
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            addChip(boxId, inputId, draggable);
+        } else if (e.key === 'Backspace' && document.getElementById(inputId).value === '') {
+            const box   = document.getElementById(boxId);
+            const chips = box.querySelectorAll('.chip');
+            if (chips.length) chips[chips.length - 1].remove();
+        }
+    };
+
+    window.chipPaste = function (e, boxId, inputId) {
+        e.preventDefault();
+        const draggable = boxId === 'monthsBox';
+        const text = (e.clipboardData || window.clipboardData).getData('text');
+        // Split on newlines or commas
+        text.split(/[\n,]+/).map(s => s.trim()).filter(Boolean).forEach(item => {
+            const box   = document.getElementById(boxId);
+            const input = document.getElementById(inputId);
+            box.insertBefore(makeChip(item, boxId, inputId, draggable), input);
+        });
+    };
+
+    // -------------------------------------------------------------------------
+    // Save / Delete
+    // -------------------------------------------------------------------------
+    function buildConfig() {
+        return {
+            rounds_per_day: parseInt(document.getElementById('fRoundsPerDay').value, 10) || 900,
+            night_hours:    parseInt(document.getElementById('fNightHours').value,   10) || 0,
+            dusk_hours:     parseInt(document.getElementById('fDuskHours').value,    10) || 0,
+            days_per_year:  parseInt(document.getElementById('fDaysPerYear').value,  10) || 365,
+            days_per_week:  parseInt(document.getElementById('fDaysPerWeek').value,  10) || 7,
+            sun_count:      parseInt(document.getElementById('fSunCount').value,     10) || 1,
+            moon_count:     parseInt(document.getElementById('fMoonCount').value,    10) || 0,
+            months: getChips('monthsBox'),
+            zodiac: getChips('zodiacBox'),
+        };
+    }
+
+    window.saveCalendar = async function () {
+        const name = document.getElementById('fName').value.trim();
+        if (!name) { showStatus('error', 'Calendar name is required.'); return; }
+        const config = buildConfig();
+        if (config.rounds_per_day < 24) { showStatus('error', 'Rounds per day must be at least 24.'); return; }
+        if (!config.months.length)      { showStatus('error', 'At least one month is required.'); return; }
+        if (!config.zodiac.length)      { showStatus('error', 'At least one zodiac entry is required.'); return; }
+
+        const btn = document.getElementById('btnSave');
+        btn.disabled = true; btn.textContent = 'Saving\u2026';
+
+        let res;
+        if (isNew) {
+            res = await AdminAPI.post('/admin/api/v1/gametime', { name, config });
+        } else {
+            res = await AdminAPI.patch('/admin/api/v1/gametime/' + encodeURIComponent(activeName), config);
+        }
+
+        btn.disabled = false; btn.textContent = 'Save';
+
+        if (!res.ok) { showStatus('error', res.error || 'Save failed.'); return; }
+
+        const savedCfg  = (res.data && res.data.data) || config;
+        const savedName = isNew ? name : activeName;
+        calendarsData[savedName] = savedCfg;
+
+        if (isNew) {
+            activeName = savedName;
+            isNew      = false;
+            document.getElementById('fName').readOnly         = true;
+            document.getElementById('fName').style.background = 'var(--color-page-bg)';
+            document.getElementById('btnDelete').style.display = savedName === 'default' ? 'none' : '';
+            document.getElementById('editorTitle').textContent = 'Edit: ' + savedName;
+            location.hash = encodeURIComponent(savedName);
+        }
+
+        renderList();
+        highlightRow(savedName);
+        showStatus('success', 'Calendar "' + savedName + '" saved.');
+    };
+
+    window.deleteCalendar = async function () {
+        if (!activeName || activeName === 'default') return;
+        if (!confirm('Delete calendar "' + activeName + '"? This cannot be undone.')) return;
+
+        const res = await AdminAPI.delete('/admin/api/v1/gametime/' + encodeURIComponent(activeName));
+        if (!res.ok) { showStatus('error', res.error || 'Delete failed.'); return; }
+
+        delete calendarsData[activeName];
+        activeName = null;
+        history.replaceState(null, '', location.pathname + location.search);
+        renderList();
+        document.getElementById('editorForm').style.display        = 'none';
+        document.getElementById('editorPlaceholder').style.display = '';
+        showStatus('success', 'Calendar deleted.');
+    };
+
+    // -------------------------------------------------------------------------
+    // Utilities
+    // -------------------------------------------------------------------------
+    function showStatus(type, msg) {
+        const bar = document.getElementById('statusBar');
+        bar.className   = 'status-bar ' + type;
+        bar.textContent = msg;
+        if (type === 'success') setTimeout(() => { bar.className = 'status-bar'; }, 3000);
+    }
+
+    function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function escAttr(s) { return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+    init();
+})();
+</script>
+
+{{template "footer" .}}

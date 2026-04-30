@@ -178,3 +178,11 @@ func adminConversations(w http.ResponseWriter, r *http.Request) {
 func adminConversationsAPI(w http.ResponseWriter, r *http.Request) {
 	serveAdminTemplate(w, r, "conversations-api.html", nil)
 }
+
+func adminGameTime(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "gametime.html", nil)
+}
+
+func adminGameTimeAPI(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "gametime-api.html", nil)
+}

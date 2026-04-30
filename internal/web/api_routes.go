@@ -309,6 +309,23 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 		doBasicAuth(apiV1DeleteConversation),
 	))
 
+	// GameTime Calendars - static list route before wildcard {calendar}
+	mux.HandleFunc("GET /admin/api/v1/gametime", RunWithMUDLocked(
+		doBasicAuth(apiV1GetGameTime),
+	))
+	mux.HandleFunc("POST /admin/api/v1/gametime", RunWithMUDLocked(
+		doBasicAuth(apiV1CreateGameTimeCalendar),
+	))
+	mux.HandleFunc("GET /admin/api/v1/gametime/{calendar}", RunWithMUDLocked(
+		doBasicAuth(apiV1GetGameTimeCalendar),
+	))
+	mux.HandleFunc("PATCH /admin/api/v1/gametime/{calendar}", RunWithMUDLocked(
+		doBasicAuth(apiV1PatchGameTimeCalendar),
+	))
+	mux.HandleFunc("DELETE /admin/api/v1/gametime/{calendar}", RunWithMUDLocked(
+		doBasicAuth(apiV1DeleteGameTimeCalendar),
+	))
+
 	// Spells - script sub-route before wildcard {spellId}
 	mux.HandleFunc("GET /admin/api/v2/spells", RunWithMUDLocked(
 		doBasicAuth(apiV2GetSpells),
