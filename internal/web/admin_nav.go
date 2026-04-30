@@ -182,6 +182,14 @@ func buildAdminNav() []WebNavItem {
 					},
 				},
 				{
+					Name:   "GameTime",
+					Target: "/admin/gametime",
+					SubItems: []WebNavSub{
+						{Label: "View / Edit", Target: "/admin/gametime"},
+						{Label: "API Docs", Target: "/admin/gametime-api"},
+					},
+				},
+				{
 					Name:   "Stats",
 					Target: "/admin/stats",
 					SubItems: []WebNavSub{

@@ -11,10 +11,13 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
 
+const roundDateCacheMax = 20
+
 var (
 	dayResetOffset int = 0
 
-	roundDateCache = map[uint64]GameDate{}
+	roundDateCache    = map[uint64]GameDate{}
+	roundDateCacheSeq []uint64
 )
 
 type RoundTimer struct {
@@ -23,7 +26,7 @@ type RoundTimer struct {
 	gd         GameDate
 }
 
-func (r RoundTimer) Expired() bool {
+func (r *RoundTimer) Expired() bool {
 	if r.Period == `` || r.RoundStart == 0 {
 		return true
 	}
@@ -34,6 +37,8 @@ func (r RoundTimer) Expired() bool {
 }
 
 type GameDate struct {
+	// which calendar this gamedate uses
+	Calendar string
 	// The round number this GameDate represents
 	RoundNumber      uint64
 	RoundsPerDay     int
@@ -52,6 +57,9 @@ type GameDate struct {
 
 	DayStart   int
 	NightStart int
+	DuskHours  int
+	SunCount   int
+	MoonCount  int
 }
 
 func (gd GameDate) String(symbolOnly ...bool) string {
@@ -60,8 +68,7 @@ func (gd GameDate) String(symbolOnly ...bool) string {
 	if gd.Night {
 		dayNight = `night`
 	} else {
-		hoursLeft := int(math.Abs(float64(gd.Hour24) - float64(gd.NightStart)))
-		if hoursLeft < 3 {
+		if gd.NightStart-gd.Hour24 < gd.DuskHours {
 			dayNight = `day-dusk`
 		}
 	}
@@ -119,20 +126,21 @@ func SetToDay(roundAdjustment ...int) {
 // Between 0 and 23
 func SetTime(setToHour int, setToMinutes ...int) {
 
-	c := configs.GetTimingConfig()
+	rpd := activeCalendar[`default`].roundsPerDay
+	rph := activeCalendar[`default`].roundsPerHour
 
 	setToHour = setToHour % 24
-	roundsPerHour := float64(c.RoundsPerDay) / 24
-	dayResetOffset = int(math.Floor(float64(setToHour) * roundsPerHour))
+	dayResetOffset = int(math.Floor(float64(setToHour) * rph))
 	if len(setToMinutes) > 0 {
-		dayResetOffset += int(math.Ceil((float64(setToMinutes[0]) / 60) * roundsPerHour))
+		dayResetOffset += int(math.Ceil((float64(setToMinutes[0]) / 60) * rph))
 	}
 
-	roundOfDay := int(util.GetRoundCount() % uint64(c.RoundsPerDay))
+	roundOfDay := int(util.GetRoundCount() % rpd)
 	dayResetOffset -= roundOfDay
 
 	// Reset the cache
 	clear(roundDateCache)
+	roundDateCacheSeq = roundDateCacheSeq[:0]
 }
 
 func IsNight() bool {
@@ -154,25 +162,31 @@ func GetDate(forceRound ...uint64) GameDate {
 		return d
 	}
 
-	// Do a reset when it fills up too much
-	if len(roundDateCache) > 20 {
-		clear(roundDateCache)
+	if len(roundDateCache) >= roundDateCacheMax {
+		delete(roundDateCache, roundDateCacheSeq[0])
+		roundDateCacheSeq = roundDateCacheSeq[1:]
 	}
 
 	roundDateCache[currentRound] = getDate(currentRound)
+	roundDateCacheSeq = append(roundDateCacheSeq, currentRound)
 
 	return roundDateCache[currentRound]
 }
 
 func getDate(currentRound uint64) GameDate {
 
-	c := configs.GetTimingConfig()
+	calendarToUse := "default"
 
-	gd := GameDate{
-		RoundNumber:      currentRound,
-		RoundsPerDay:     int(c.RoundsPerDay),
-		NightHoursPerDay: int(c.NightHours),
-	}
+	gd := GameDate{Calendar: calendarToUse}
+
+	ac := activeCalendar[calendarToUse]
+
+	gd.RoundNumber = currentRound
+	gd.RoundsPerDay = int(ac.roundsPerDay)
+	gd.NightHoursPerDay = ac.nightHours
+	gd.DuskHours = ac.duskHours
+	gd.SunCount = ac.sunCount
+	gd.MoonCount = ac.moonCount
 
 	gd.ReCalculate()
 
@@ -180,6 +194,8 @@ func getDate(currentRound uint64) GameDate {
 }
 
 func (g *GameDate) ReCalculate() {
+
+	ac := activeCalendar[g.Calendar]
 
 	currentRoundAdjusted := (g.RoundNumber + uint64(dayResetOffset))
 	roundOfDay := int(currentRoundAdjusted % uint64(g.RoundsPerDay))
@@ -209,15 +225,21 @@ func (g *GameDate) ReCalculate() {
 
 	minute := math.Floor(minutesFloat * 60)
 
+	daysPerYear := float64(ac.daysPerYear)
+	numMonths := ac.numMonths
+
 	day := math.Floor(float64(currentRoundAdjusted)/float64(g.RoundsPerDay)) + 1
-	year := math.Ceil(day / 365)
+	year := math.Ceil(day / daysPerYear)
 
 	if year > 1 {
-		day -= math.Floor((year - 1) * 365)
+		day -= math.Floor((year - 1) * daysPerYear)
 	}
-	week := math.Floor(float64(day) / 7)
+	week := math.Floor(float64(day) / float64(ac.daysPerWeek))
 
-	month := 1 + math.Floor((day*24)/730) // 730 hours in a "month" (24 hours * 365 days / 12 months)
+	month := 1 + math.Floor((day*24)/ac.hoursPerMonth)
+	if int(month) > numMonths {
+		month = float64(numMonths)
+	}
 
 	g.Day = int(day)
 	g.Year = int(year)
@@ -236,13 +258,15 @@ func (g *GameDate) ReCalculate() {
 
 func (g GameDate) Add(adjustHours int, adjustDays int, adjustYears int) GameDate {
 
+	ac := activeCalendar[g.Calendar]
 	rStart := g.RoundNumber
 
 	if adjustYears != 0 {
+		yearRounds := uint64(ac.daysPerYear) * uint64(g.RoundsPerDay)
 		if adjustYears < 1 {
-			g.RoundNumber -= uint64(-1 * adjustYears * g.RoundsPerDay * 365)
+			g.RoundNumber -= uint64(-1*adjustYears) * yearRounds
 		} else {
-			g.RoundNumber += uint64(adjustYears * g.RoundsPerDay * 365)
+			g.RoundNumber += uint64(adjustYears) * yearRounds
 		}
 	}
 
@@ -255,10 +279,11 @@ func (g GameDate) Add(adjustHours int, adjustDays int, adjustYears int) GameDate
 	}
 
 	if adjustHours != 0 {
+		rph := ac.roundsPerHour
 		if adjustHours < 1 {
-			g.RoundNumber -= uint64(math.Floor(-1 * float64(adjustHours) * (float64(g.RoundsPerDay) / 24)))
+			g.RoundNumber -= uint64(math.Floor(-1 * float64(adjustHours) * rph))
 		} else {
-			g.RoundNumber += uint64(math.Floor(float64(adjustHours) * (float64(g.RoundsPerDay) / 24)))
+			g.RoundNumber += uint64(math.Floor(float64(adjustHours) * rph))
 		}
 	}
 
@@ -310,6 +335,7 @@ func (g GameDate) AddPeriod(periodStr string) uint64 {
 			qty = 1
 		}
 
+		// RoundSeconds is a real-time value — still read from the timing config (not the calendar).
 		c := configs.GetTimingConfig()
 
 		if parts[1] == `real` || parts[1] == `irl` { // e.g. - 2 irl days
@@ -334,7 +360,7 @@ func (g GameDate) AddPeriod(periodStr string) uint64 {
 
 	}
 
-	if len(timeStr) >= 2 {
+	if len(timeStr) >= 3 {
 
 		strShort := timeStr[0:3]
 
@@ -356,7 +382,8 @@ func (g GameDate) AddPeriod(periodStr string) uint64 {
 				return g.RoundNumber + adjustment
 			}
 
-			gNext := g.Add(730*qty, 0, 0)
+			hoursPerMonth := activeCalendar[g.Calendar].hoursPerMonth
+			gNext := g.Add(int(math.Round(hoursPerMonth))*qty, 0, 0)
 
 			return gNext.RoundNumber
 
@@ -367,7 +394,7 @@ func (g GameDate) AddPeriod(periodStr string) uint64 {
 				return g.RoundNumber + adjustment
 			}
 
-			gNext := g.Add(0, 7*qty, 0)
+			gNext := g.Add(0, activeCalendar[g.Calendar].daysPerWeek*qty, 0)
 
 			return gNext.RoundNumber
 
@@ -400,7 +427,7 @@ func (g GameDate) AddPeriod(periodStr string) uint64 {
 				return g.RoundNumber + adjustment
 			}
 
-			return g.RoundNumber + uint64(math.Floor(float64(qty)*(float64(g.RoundsPerDay)/24/60)))
+			return g.RoundNumber + uint64(math.Floor(float64(qty)*activeCalendar[g.Calendar].roundsPerMinute))
 
 		} else if strShort == `noo` { // if timeStr == `noon` || timeStr == `noons` {
 
@@ -469,15 +496,15 @@ func (g GameDate) AddPeriod(periodStr string) uint64 {
 
 func GetLastPeriod(periodName string, roundNumber uint64) uint64 {
 
-	c := configs.GetTimingConfig()
+	ac := activeCalendar[`default`]
 
-	roundsPerDay := uint64(c.RoundsPerDay)
-	nightHoursPerDay := uint64(c.NightHours)
-
-	roundsPerHour := float64(roundsPerDay) / 24
+	roundsPerDay := ac.roundsPerDay
+	nightHoursPerDay := uint64(ac.nightHours)
+	roundsPerHour := ac.roundsPerHour
+	noonRound := ac.noonRound
 
 	// What round started this week?
-	roundOfWeek := roundNumber % (roundsPerDay * 7)
+	roundOfWeek := roundNumber % ac.roundsPerWeek
 
 	// What round started this day? (midnight)
 	roundOfDay := roundNumber % roundsPerDay
@@ -500,12 +527,18 @@ func GetLastPeriod(periodName string, roundNumber uint64) uint64 {
 	} else if periodName == `noon` { // Last time 12pm was hit
 
 		roundNumber -= roundOfDay
-		roundNumber -= uint64(math.Floor(float64(roundsPerDay) / 2))
+		if roundOfDay < noonRound {
+			// We haven't reached noon today yet; last noon was yesterday.
+			roundNumber -= roundsPerDay - noonRound
+		} else {
+			// Noon has already passed today.
+			roundNumber += noonRound
+		}
 
 	} else if periodName == `sunrise` { // last sunrise
 
 		roundNumber -= roundOfDay                                                       // Strip rounds of today off
-		roundNumber -= uint64(roundsPerDay)                                             // Subtract a day
+		roundNumber -= roundsPerDay                                                     // Subtract a day
 		roundNumber += uint64(math.Ceil(float64(nightHoursPerDay) / 2 * roundsPerHour)) // add half a night
 
 	} else if periodName == `sunset` { // 12am of next day, minus half of night
@@ -516,4 +549,21 @@ func GetLastPeriod(periodName string, roundNumber uint64) uint64 {
 	}
 
 	return roundNumber
+}
+
+func MonthName(month int) string {
+	names := activeCalendar[`default`].monthNames
+	if len(names) == 0 {
+		return ``
+	}
+	month--
+	return names[month%len(names)]
+}
+
+func GetZodiac(year int) string {
+	z := activeCalendar[`default`].zodiacList
+	if len(z) == 0 {
+		return ``
+	}
+	return z[year%len(z)]
 }

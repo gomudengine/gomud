@@ -5,8 +5,6 @@ import (
 	"sort"
 
 	"github.com/GoMudEngine/GoMud/internal/colorpatterns"
-	"github.com/GoMudEngine/GoMud/internal/mudlog"
-	"github.com/GoMudEngine/ansitags"
 )
 
 type adjectiveStyle struct {
@@ -116,7 +114,9 @@ func CompileAdjectiveSwaps() {
 		adjectiveSwaps[adjName+`-short`] = colorpatterns.ApplyColorPattern(styleDefinition.ShortForm, styleDefinition.ColorPattern)
 	}
 
-	for _, name := range GetFormattedAdjectives(true) {
-		mudlog.Info("Color Test (Adjectives)", "name", name, "short", ansitags.Parse(GetFormattedAdjective(name+`-short`)), "full", ansitags.Parse(GetFormattedAdjective(name)))
-	}
+	/*
+		for _, name := range GetFormattedAdjectives(true) {
+			mudlog.Info("Color Test (Adjectives)", "name", name, "short", ansitags.Parse(GetFormattedAdjective(name+`-short`)), "full", ansitags.Parse(GetFormattedAdjective(name)))
+		}
+	*/
 }
