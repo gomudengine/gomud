@@ -41,6 +41,7 @@ func buildAdminNav() []WebNavItem {
 					Target: "/admin/pets",
 					SubItems: []WebNavSub{
 						{Label: "View / Edit", Target: "/admin/pets"},
+						{Label: "Rankings", Target: "/admin/pets-ranks"},
 						{Label: "API Docs", Target: "/admin/pets-api"},
 					},
 				},

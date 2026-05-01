@@ -139,6 +139,10 @@ func adminPetsAPI(w http.ResponseWriter, r *http.Request) {
 	serveAdminTemplate(w, r, "pets-api.html", nil)
 }
 
+func adminPetsRanks(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "pets-ranks.html", nil)
+}
+
 func adminSpells(w http.ResponseWriter, r *http.Request) {
 	serveAdminTemplate(w, r, "spells.html", nil)
 }

@@ -251,7 +251,7 @@ func Give(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 			Gained: false,
 		})
 
-		if len(petUser.Character.Pet.Items) >= petUser.Character.Pet.Capacity || !petUser.Character.Pet.StoreItem(giveItem) {
+		if len(petUser.Character.Pet.Items) >= petUser.Character.Pet.GetEffectiveCapacity() || !petUser.Character.Pet.StoreItem(giveItem) {
 			room.SendText(fmt.Sprintf(`%s throws the <ansi fg="itemname">%s</ansi> onto the ground.`, petUser.Character.Pet.DisplayName(), giveItem.DisplayName()))
 			room.AddItem(giveItem, false)
 		}

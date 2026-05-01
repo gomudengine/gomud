@@ -206,55 +206,30 @@
         color: var(--color-text-placeholder); font-style: italic; font-size: 0.85rem;
         padding: 0.75rem 0;
     }
-    .pet-card {
-        background: var(--color-surface-alt);
-        border: 1px solid var(--color-border-strong);
-        border-radius: 8px;
-        overflow: hidden;
+    .pet-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem 1.25rem; }
+    .pet-form-grid .span2 { grid-column: 1 / -1; }
+    .pet-remove-btn {
+        padding: 0.35rem 0.9rem; background: var(--color-surface-white); color: var(--color-error-text);
+        border: 1px solid var(--color-btn-delete-border); border-radius: 4px;
+        font-size: 0.82rem; font-weight: 600; cursor: pointer;
     }
-    .pet-card-header {
-        display: flex; align-items: center; gap: 0.75rem;
-        padding: 0.75rem 1rem;
-        background: var(--color-warning-bg);
-        border-bottom: 1px solid var(--color-border-strong);
+    .pet-remove-btn:hover { background: var(--color-error-bg); }
+    .pet-assign-btn {
+        padding: 0.35rem 0.9rem; background: var(--color-success-text); color: var(--color-surface-white);
+        border: none; border-radius: 4px; font-size: 0.82rem; font-weight: 600; cursor: pointer;
     }
-    .pet-icon { font-size: 1.4rem; line-height: 1; flex-shrink: 0; }
-    .pet-name-block { flex: 1; min-width: 0; }
-    .pet-name {
-        font-size: 1rem; font-weight: 700;
-        color: var(--color-warning-text);
-        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    .pet-assign-btn:hover { opacity: 0.9; }
+    .pet-ability-card {
+        border: 1px solid var(--color-border-light); border-radius: 6px;
+        padding: 0.55rem 0.7rem; margin-bottom: 0.5rem;
+        background: var(--color-page-bg);
     }
-    .pet-type-line {
-        font-size: 0.75rem; color: var(--color-warning-text); opacity: 0.75;
-        font-family: monospace; margin-top: 0.1rem;
+    .pet-ability-card.active { background: var(--color-success-bg); }
+    .pet-ability-title {
+        font-weight: 600; font-size: 0.82rem; margin-bottom: 0.3rem;
     }
-    .pet-name-style {
-        font-size: 0.72rem; padding: 0.1rem 0.45rem; border-radius: 3px;
-        background: var(--color-chip-bg); color: var(--color-chip-text);
-        font-family: monospace; flex-shrink: 0;
-    }
-    .pet-body { padding: 0.85rem 1rem; display: flex; flex-direction: column; gap: 0.85rem; }
-    .pet-section-label {
-        font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
-        letter-spacing: 0.06em; color: var(--color-text-faint);
-        margin-bottom: 0.4rem;
-    }
-    .pet-row { display: flex; gap: 1.5rem; flex-wrap: wrap; }
-    .pet-stat {
-        display: flex; flex-direction: column; gap: 0.1rem; min-width: 80px;
-    }
-    .pet-stat-label {
-        font-size: 0.68rem; font-weight: 600; text-transform: uppercase;
-        letter-spacing: 0.04em; color: var(--color-text-faint);
-    }
-    .pet-stat-value {
-        font-size: 0.9rem; font-weight: 600;
-        color: var(--color-text); font-family: monospace;
-    }
-    .pet-mods-grid {
-        display: flex; flex-wrap: wrap; gap: 0.35rem;
-    }
+    .pet-ability-details { font-size: 0.8rem; margin-bottom: 0.2rem; }
+    .pet-mods-grid { display: flex; flex-wrap: wrap; gap: 0.35rem; }
     .pet-mod-chip {
         font-size: 0.78rem; padding: 0.2rem 0.55rem; border-radius: 4px;
         font-family: monospace; font-weight: 600;
@@ -268,15 +243,6 @@
     .pet-buff-chip {
         font-size: 0.78rem; padding: 0.2rem 0.55rem; border-radius: 12px;
         background: var(--color-chip-bg); color: var(--color-chip-text);
-    }
-    .pet-items-list { display: flex; flex-wrap: wrap; gap: 0.35rem; }
-    .pet-item-chip {
-        font-size: 0.78rem; padding: 0.2rem 0.55rem; border-radius: 4px;
-        background: var(--color-surface-raised); border: 1px solid var(--color-border);
-        color: var(--color-text); font-family: monospace;
-    }
-    .pet-divider {
-        border: none; border-top: 1px solid var(--color-border-light); margin: 0;
     }
 </style>
 
@@ -567,6 +533,7 @@
     let allRaces  = {};
     let buffSpecs = {};
     let allQuests = {}; // keyed by QuestId
+    let allPetTypes = {}; // keyed by type string
     let currentUserId = null;
 
     // All known skills with display labels
@@ -590,11 +557,12 @@
     ];
 
     async function init() {
-        const [racesRes, buffsRes, itemsRes, questsRes] = await AdminAPI.all([
+        const [racesRes, buffsRes, itemsRes, questsRes, petsRes] = await AdminAPI.all([
             AdminAPI.get('/admin/api/v1/races'),
             AdminAPI.get('/admin/api/v1/buffs'),
             AdminAPI.get('/admin/api/v1/items'),
             AdminAPI.get('/admin/api/v1/quests'),
+            AdminAPI.get('/admin/api/v1/pets'),
         ]);
 
         if (racesRes.ok) {
@@ -611,6 +579,9 @@
             for (const q of (questsRes.data.data || [])) {
                 allQuests[q.QuestId] = q;
             }
+        }
+        if (petsRes.ok) {
+            allPetTypes = petsRes.data.data || {};
         }
         buildSkillsGrid();
         const hashId = parseInt(location.hash.slice(1), 10);
@@ -1241,6 +1212,7 @@
                 Items:     collectItems(),
                 Shop:      collectShop(),
                 SpellBook: collectSpellBook(),
+                Pet:       collectPet(),
             },
         };
 
@@ -1431,156 +1403,237 @@
     }
 
     // -------------------------------------------------------------------------
-    // Pet (read-only)
+    // Pet (editable)
     // -------------------------------------------------------------------------
     function renderPet(pet) {
         const panel = document.getElementById('pet-panel');
         panel.innerHTML = '';
 
         if (!pet || !pet.Type) {
-            panel.innerHTML = '<div class="pet-empty">No pet.</div>';
+            const wrap = document.createElement('div');
+            wrap.innerHTML = '<div class="pet-empty">No pet assigned.</div>';
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'pet-assign-btn';
+            btn.textContent = '+ Assign Pet';
+            btn.style.marginTop = '0.5rem';
+            btn.addEventListener('click', function () {
+                renderPet({ Type: Object.keys(allPetTypes)[0] || '', Name: '', Level: 1, Food: 2, Items: [] });
+            });
+            wrap.appendChild(btn);
+            panel.appendChild(wrap);
             return;
         }
 
-        const card = document.createElement('div');
-        card.className = 'pet-card';
+        const form = document.createElement('div');
+        form.className = 'pet-form-grid';
 
-        // Header: icon, name, type, name style tag
-        const header = document.createElement('div');
-        header.className = 'pet-card-header';
-        const displayName = pet.Name ? esc(pet.Name) : esc(pet.Type);
-        const nameStyleHtml = pet.NameStyle
-            ? '<span class="pet-name-style">' + esc(pet.NameStyle) + '</span>'
+        const typeOpts = Object.keys(allPetTypes).sort().map(t =>
+            '<option value="' + esc(t) + '"' + (t === pet.Type ? ' selected' : '') + '>' + esc(t) + '</option>'
+        ).join('');
+        const fallbackOpt = (pet.Type && !allPetTypes[pet.Type])
+            ? '<option value="' + esc(pet.Type) + '" selected>' + esc(pet.Type) + ' (unknown)</option>'
             : '';
-        header.innerHTML =
-            '<span class="pet-icon">&#x1F43E;</span>' +
-            '<div class="pet-name-block">' +
-                '<div class="pet-name">' + displayName + '</div>' +
-                '<div class="pet-type-line">' + esc(pet.Type) + '</div>' +
+
+        const foodVal = pet.Food != null ? pet.Food : 2;
+
+        form.innerHTML =
+            '<div class="field">' +
+                '<label>Pet Type</label>' +
+                '<select id="f-pet-type" onchange="petTypeChanged()">' + fallbackOpt + typeOpts + '</select>' +
+                '<div class="field-hint">Changing type resets abilities to that type\'s definition on save.</div>' +
             '</div>' +
-            nameStyleHtml;
-        card.appendChild(header);
+            '<div class="field">' +
+                '<label>Pet Name</label>' +
+                '<input type="text" id="f-pet-name" value="' + esc(pet.Name || '') + '" placeholder="Player-given name" />' +
+            '</div>' +
+            '<div class="field">' +
+                '<label>Name Style</label>' +
+                '<input type="text" id="f-pet-namestyle" value="' + esc(pet.NameStyle || '') + '" placeholder="e.g. :rainbow" />' +
+                '<div class="field-hint">Color pattern applied to name (prefix with <code>:</code>).</div>' +
+            '</div>' +
+            '<div class="field">' +
+                '<label>Level</label>' +
+                '<input type="number" id="f-pet-level" min="1" max="10" value="' + (pet.Level || 1) + '" onchange="refreshPetAbilities()" />' +
+                '<div class="field-hint">1&ndash;10. Normally changes via daily hunger tick.</div>' +
+            '</div>' +
+            '<div class="field">' +
+                '<label>Hunger</label>' +
+                '<select id="f-pet-food">' +
+                    '<option value="0"' + (foodVal === 0 ? ' selected' : '') + '>0 &mdash; Starving</option>' +
+                    '<option value="1"' + (foodVal === 1 ? ' selected' : '') + '>1 &mdash; Hungry</option>' +
+                    '<option value="2"' + (foodVal === 2 ? ' selected' : '') + '>2 &mdash; Satisfied</option>' +
+                    '<option value="3"' + (foodVal === 3 ? ' selected' : '') + '>3 &mdash; Full</option>' +
+                '</select>' +
+                '<div class="field-hint">Full pets level up; starving pets level down.</div>' +
+            '</div>' +
+            '<div class="field">' +
+                '<label>&nbsp;</label>' +
+                '<button type="button" class="pet-remove-btn" onclick="removePet()">Remove Pet</button>' +
+            '</div>' +
+            '<div class="field span2">' +
+                '<label>Abilities <span style="font-weight:400;text-transform:none;font-size:0.72rem;color:var(--color-text-faint)">(from type definition &mdash; read-only)</span></label>' +
+                '<div id="pet-abilities-display"></div>' +
+            '</div>' +
+            '<div class="field span2">' +
+                '<label>Carried Items</label>' +
+                '<div class="buff-ids-wrap" id="pet-items-list"></div>' +
+                '<button class="btn-add-sm" style="margin-top:0.4rem;" onclick="pickPetItem()">+ Add Item</button>' +
+            '</div>';
 
-        const body = document.createElement('div');
-        body.className = 'pet-body';
+        panel.appendChild(form);
 
-        // Stats section (capacity + damage)
-        const hasCapacity = pet.Capacity > 0;
-        const hasDamage   = pet.Damage && (pet.Damage.DiceRoll || pet.Damage.Attacks > 0);
-        if (hasCapacity || hasDamage) {
-            const sec = document.createElement('div');
-            const lbl = document.createElement('div');
-            lbl.className = 'pet-section-label';
-            lbl.textContent = 'Stats';
-            sec.appendChild(lbl);
-            const row = document.createElement('div');
-            row.className = 'pet-row';
-            if (hasCapacity) {
-                row.appendChild(makePetStat('Carry Capacity',
-                    String(pet.Capacity) + ' item' + (pet.Capacity !== 1 ? 's' : '')));
-            }
-            if (hasDamage) {
-                const dmg = pet.Damage;
-                const dmgStr = (dmg.DiceRoll || '') +
-                    (dmg.Attacks > 1 ? ' \u00d7' + dmg.Attacks + ' attacks' : '');
-                row.appendChild(makePetStat('Damage', dmgStr || '\u2014'));
-            }
-            sec.appendChild(row);
-            body.appendChild(sec);
-        }
-
-        // Stat mods section
-        const hasMods = pet.StatMods && Object.keys(pet.StatMods).length > 0;
-        if (hasMods) {
-            if (body.children.length > 0) body.appendChild(makePetDivider());
-            const sec = document.createElement('div');
-            const lbl = document.createElement('div');
-            lbl.className = 'pet-section-label';
-            lbl.textContent = 'Stat Modifiers';
-            sec.appendChild(lbl);
-            const grid = document.createElement('div');
-            grid.className = 'pet-mods-grid';
-            for (const [stat, val] of Object.entries(pet.StatMods)) {
-                const n = parseInt(val, 10) || 0;
-                const chip = document.createElement('span');
-                chip.className = 'pet-mod-chip' + (n > 0 ? ' positive' : n < 0 ? ' negative' : '');
-                chip.textContent = stat + ' ' + (n > 0 ? '+' : '') + n;
-                grid.appendChild(chip);
-            }
-            sec.appendChild(grid);
-            body.appendChild(sec);
-        }
-
-        // Granted buffs section
-        if (pet.BuffIds && pet.BuffIds.length > 0) {
-            if (body.children.length > 0) body.appendChild(makePetDivider());
-            const sec = document.createElement('div');
-            const lbl = document.createElement('div');
-            lbl.className = 'pet-section-label';
-            lbl.textContent = 'Granted Buffs';
-            sec.appendChild(lbl);
-            const chips = document.createElement('div');
-            chips.className = 'pet-buff-chips';
-            for (const id of pet.BuffIds) {
-                const chip = document.createElement('span');
-                chip.className = 'pet-buff-chip';
-                chip.textContent = buffName(id);
-                chips.appendChild(chip);
-            }
-            sec.appendChild(chips);
-            body.appendChild(sec);
-        }
-
-        // Carried items section
-        if (pet.Items && pet.Items.length > 0) {
-            if (body.children.length > 0) body.appendChild(makePetDivider());
-            const sec = document.createElement('div');
-            const lbl = document.createElement('div');
-            lbl.className = 'pet-section-label';
-            lbl.textContent = 'Carried Items (' + pet.Items.length +
-                (pet.Capacity ? '/' + pet.Capacity : '') + ')';
-            sec.appendChild(lbl);
-            const list = document.createElement('div');
-            list.className = 'pet-items-list';
-            for (const it of pet.Items) {
-                const chip = document.createElement('span');
-                chip.className = 'pet-item-chip';
-                chip.textContent = '#' + it.ItemId + ' ' + itemName(it.ItemId);
-                list.appendChild(chip);
-            }
-            sec.appendChild(list);
-            body.appendChild(sec);
-        }
-
-        if (body.children.length === 0) {
-            const msg = document.createElement('div');
-            msg.style.cssText = 'font-size:0.82rem;color:var(--color-text-faint);font-style:italic;';
-            msg.textContent = 'No additional details.';
-            body.appendChild(msg);
-        }
-
-        card.appendChild(body);
-        panel.appendChild(card);
+        renderPetItems(pet.Items || []);
+        renderPetAbilities(pet.Type, pet.Level || 1);
     }
 
-    function makePetStat(label, value) {
-        const el = document.createElement('div');
-        el.className = 'pet-stat';
-        const l = document.createElement('span');
-        l.className = 'pet-stat-label';
-        l.textContent = label;
-        const v = document.createElement('span');
-        v.className = 'pet-stat-value';
-        v.textContent = value;
-        el.appendChild(l);
-        el.appendChild(v);
-        return el;
+    function renderPetItems(items) {
+        const list = document.getElementById('pet-items-list');
+        if (!list) return;
+        list.innerHTML = '';
+        for (const it of items) {
+            const chip = document.createElement('span');
+            chip.className = 'buff-chip';
+            chip.dataset.id = it.ItemId;
+            chip.innerHTML = '#' + it.ItemId + ' ' + esc(itemName(it.ItemId)) +
+                ' <button title="Remove" onclick="this.closest(\'.buff-chip\').remove()">&times;</button>';
+            list.appendChild(chip);
+        }
     }
 
-    function makePetDivider() {
-        const hr = document.createElement('hr');
-        hr.className = 'pet-divider';
-        return hr;
+    window.pickPetItem = function () {
+        const listEl = document.getElementById('pet-items-list');
+        const existing = collectPetItems().map(i => i.ItemId);
+        Picker.open({
+            ...PickerConfigs.items,
+            multi:    true,
+            selected: existing,
+            onSelect: (items) => {
+                listEl.innerHTML = '';
+                for (const item of items) {
+                    const chip = document.createElement('span');
+                    chip.className = 'buff-chip';
+                    chip.dataset.id = item.ItemId;
+                    chip.innerHTML = '#' + item.ItemId + ' ' + esc(item.Name) +
+                        ' <button title="Remove" onclick="this.closest(\'.buff-chip\').remove()">&times;</button>';
+                    listEl.appendChild(chip);
+                }
+            },
+        });
+    };
+
+    function collectPetItems() {
+        return Array.from(document.querySelectorAll('#pet-items-list .buff-chip'))
+            .map(c => ({ ItemId: parseInt(c.dataset.id, 10) }));
+    }
+
+    function renderPetAbilities(petType, petLevel) {
+        const container = document.getElementById('pet-abilities-display');
+        if (!container) return;
+        container.innerHTML = '';
+
+        const spec = allPetTypes[petType];
+        const abilities = (spec && (spec.abilities || spec.Abilities)) || [];
+        if (abilities.length === 0) {
+            container.innerHTML = '<div style="font-size:0.82rem;color:var(--color-text-faint);font-style:italic;">No abilities defined for this type.</div>';
+            return;
+        }
+
+        for (const ab of abilities) {
+            const lvl = ab.levelgranted || ab.LevelGranted || 1;
+            const active = lvl <= petLevel;
+            const card = document.createElement('div');
+            card.className = 'pet-ability-card' + (active ? ' active' : '');
+
+            let title = (active ? '\u2605' : '\u2606') + ' Level ' + lvl;
+            if (!active) title += ' (locked)';
+            const titleEl = document.createElement('div');
+            titleEl.className = 'pet-ability-title';
+            titleEl.textContent = title;
+            card.appendChild(titleEl);
+
+            const details = [];
+            const dmg = ab.damage || ab.Damage || {};
+            const diceRoll = dmg.diceroll || dmg.DiceRoll;
+            if (diceRoll) {
+                let dmgStr = diceRoll;
+                const attacks = dmg.attacks || dmg.Attacks || 1;
+                if (attacks > 1) dmgStr += ' \u00d7' + attacks;
+                details.push('Damage: ' + dmgStr);
+            }
+            const combatChance = ab.combatchance != null ? ab.combatchance : ab.CombatChance;
+            if (combatChance > 0) details.push('Combat: ' + combatChance + '%');
+            const capacity = ab.capacity != null ? ab.capacity : ab.Capacity;
+            if (capacity > 0) details.push('Carry: ' + capacity);
+            if (details.length) {
+                const dRow = document.createElement('div');
+                dRow.className = 'pet-ability-details';
+                dRow.textContent = details.join('  \u2022  ');
+                card.appendChild(dRow);
+            }
+
+            const sm = ab.statmods || ab.StatMods || {};
+            if (Object.keys(sm).length) {
+                const grid = document.createElement('div');
+                grid.className = 'pet-mods-grid';
+                for (const [stat, val] of Object.entries(sm)) {
+                    const n = parseInt(val, 10) || 0;
+                    const chip = document.createElement('span');
+                    chip.className = 'pet-mod-chip' + (n > 0 ? ' positive' : n < 0 ? ' negative' : '');
+                    chip.textContent = stat + ' ' + (n > 0 ? '+' : '') + n;
+                    grid.appendChild(chip);
+                }
+                card.appendChild(grid);
+            }
+
+            const buffIds = ab.buffids || ab.BuffIds || [];
+            if (buffIds.length) {
+                const chips = document.createElement('div');
+                chips.className = 'pet-buff-chips';
+                chips.style.marginTop = '0.25rem';
+                for (const id of buffIds) {
+                    const chip = document.createElement('span');
+                    chip.className = 'pet-buff-chip';
+                    chip.textContent = buffName(id);
+                    chips.appendChild(chip);
+                }
+                card.appendChild(chips);
+            }
+
+            container.appendChild(card);
+        }
+    }
+
+    window.petTypeChanged = function () {
+        const type = document.getElementById('f-pet-type').value;
+        const level = parseInt(document.getElementById('f-pet-level').value, 10) || 1;
+        renderPetAbilities(type, level);
+    };
+
+    window.refreshPetAbilities = function () {
+        const type = document.getElementById('f-pet-type').value;
+        const level = parseInt(document.getElementById('f-pet-level').value, 10) || 1;
+        renderPetAbilities(type, level);
+    };
+
+    window.removePet = function () {
+        if (!confirm('Remove this pet from the character? Items carried by the pet will be lost.')) return;
+        renderPet({});
+    };
+
+    function collectPet() {
+        const typeEl = document.getElementById('f-pet-type');
+        if (!typeEl) return { Type: '', Name: '', Level: 0, Food: 0, Items: [] };
+        const petType = typeEl.value;
+        if (!petType) return { Type: '', Name: '', Level: 0, Food: 0, Items: [] };
+        return {
+            Type:      petType,
+            Name:      (document.getElementById('f-pet-name').value || '').trim(),
+            NameStyle: (document.getElementById('f-pet-namestyle').value || '').trim(),
+            Level:     parseInt(document.getElementById('f-pet-level').value, 10) || 1,
+            Food:      parseInt(document.getElementById('f-pet-food').value, 10) || 0,
+            Items:     collectPetItems(),
+        };
     }
 
     init();

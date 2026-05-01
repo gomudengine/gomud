@@ -282,6 +282,9 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 	))
 
 	// Pets
+	mux.HandleFunc("GET /admin/api/v1/pets/ranks", RunWithMUDLocked(
+		doBasicAuth(apiV1GetPetRanks),
+	))
 	mux.HandleFunc("GET /admin/api/v1/pets", RunWithMUDLocked(
 		doBasicAuth(apiV1GetPets),
 	))

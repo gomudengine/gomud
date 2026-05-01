@@ -242,7 +242,9 @@ func (d *Damage) String() string {
 func (d *Damage) FormatDiceRoll() string {
 
 	d.DiceRoll = util.FormatDiceRoll(d.Attacks, d.DiceCount, d.SideCount, d.BonusDamage, d.CritBuffIds)
-
+	if d.DiceRoll == "0@0d0" {
+		d.DiceRoll = ""
+	}
 	return d.DiceRoll
 }
 
