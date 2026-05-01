@@ -405,15 +405,16 @@ func calculateCombat(sourceChar characters.Character, targetChar characters.Char
 		}
 
 		// Pet has a 20% chance per attack round to join the fight (once, regardless of weapon count)
-		if util.RollDice(1, 5) == 1 {
+		chance, petDmg := sourceChar.Pet.GetEffectiveDamage()
+		if chance > 0 && util.RollDice(1, chance) <= chance {
 			if sourceChar.RoomId == targetChar.RoomId {
-				if sourceChar.Pet.Exists() && sourceChar.Pet.Damage.DiceRoll != `` {
+				if sourceChar.Pet.Exists() && petDmg.DiceRoll != `` {
 
-					pAttacks, pDCount, pDSides, pDBonus, _ := sourceChar.Pet.GetDiceRoll()
+					pAttacks, pDCount, pDSides, pDBonus, critBuffs := sourceChar.Pet.GetDiceRoll()
 
 					for p := 0; p < pAttacks; p++ {
 
-						if !Hits(sourceChar.Stats.Speed.ValueAdj, targetChar.Stats.Speed.ValueAdj, 0) {
+						if !Hits(0, targetChar.Stats.Speed.ValueAdj, 0) {
 							toAttackerMsg := fmt.Sprintf(`%s lunges at <ansi fg="%sname">%s</ansi> but misses!`, sourceChar.Pet.DisplayName(), string(targetType), targetChar.Name)
 							attackResult.SendToSource(toAttackerMsg)
 							continue
@@ -434,6 +435,10 @@ func calculateCombat(sourceChar characters.Character, targetChar characters.Char
 						toAttackerRoomMsg := fmt.Sprintf(`%s jumps into the fray and deals <ansi fg="damage">%d damage</ansi> to <ansi fg="%sname">%s</ansi>!`, sourceChar.Pet.DisplayName(), attackTargetDamage, string(targetType), targetChar.Name)
 						attackResult.SendToTargetRoom(toAttackerRoomMsg)
 
+						// pets doing max damage are considered "crits" and will always apply any special critBuffs
+						if len(critBuffs) > 0 && (attackTargetDamage == (pDCount*pDSides)+pDBonus) {
+							attackResult.BuffTarget = critBuffs
+						}
 					}
 
 				}

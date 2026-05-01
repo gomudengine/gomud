@@ -552,7 +552,9 @@
                 [0.33,0.45],[0.75,0.10],[0.18,0.38],[0.90,0.75],[0.48,0.92],
             ];
             starData.forEach(function(s) {
-                const sx = s[0] * w;
+                // Shift the star left by _starOffset and wrap around using modulo
+                // so stars that drift off the left edge reappear on the right.
+                const sx = ((s[0] * w - _starOffset) % w + w) % w;
                 const sy = s[1] * h * 0.85;
                 ctx.beginPath();
                 ctx.arc(sx, sy, 0.8, 0, Math.PI * 2);
@@ -678,6 +680,12 @@
     }
 
     // -----------------------------------------------------------------------
+    // Star field scroll state.
+    // Incremented by 1 pixel each time drawSky is called during night.
+    // -----------------------------------------------------------------------
+    let _starOffset = 0;
+
+    // -----------------------------------------------------------------------
     // Continuous animation: interpolates game time between GMCP updates.
     // -----------------------------------------------------------------------
 
@@ -777,6 +785,13 @@
         _animRealMs      = nowMs;
         _animGameMinutes = gameMins;
         _animData        = data;
+
+        // Advance star scroll offset by one pixel on each nighttime tick.
+        if (data.night) {
+            const canvas = document.getElementById('gametime-canvas');
+            const w = canvas ? (canvas.parentElement.clientWidth || 300) : 300;
+            _starOffset = (_starOffset + 2) % w;
+        }
 
         // Update labels on real GMCP ticks only.
         const timeEl = document.getElementById('gametime-time');

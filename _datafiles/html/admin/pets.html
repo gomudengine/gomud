@@ -41,6 +41,14 @@
     .field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid var(--color-primary); outline-offset: 1px; border-color: transparent; }
     .field textarea { resize: vertical; min-height: 70px; }
     .field-hint { font-size: 0.75rem; color: var(--color-text-faint); margin-top: 0.2rem; }
+    .field-with-btn { display: flex; gap: 0.4rem; align-items: center; }
+    .field-with-btn input { flex: 1; }
+    .btn-search {
+        padding: 0.35rem 0.55rem; border: 1px solid var(--color-border-medium); border-radius: 4px;
+        background: var(--color-page-bg); cursor: pointer; font-size: 0.95rem; line-height: 1;
+        flex-shrink: 0;
+    }
+    .btn-search:hover { background: var(--color-hover-tint); border-color: var(--color-hover-tint-border); }
 
     .section-title { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-subtle); padding: 0.75rem 0 0.4rem; border-bottom: 1px solid var(--color-border-light); margin-bottom: 0.75rem; grid-column: 1 / -1; }
 
@@ -67,6 +75,22 @@
     .btn-save:disabled { background: var(--color-text-secondary); cursor: default; }
     .btn-delete { padding: 0.45rem 1rem; background: var(--color-surface-white); color: var(--color-error-text); border: 1px solid var(--color-btn-delete-border); border-radius: 4px; font-size: 0.875rem; font-weight: 600; cursor: pointer; }
     .btn-delete:hover { background: var(--color-error-bg); }
+
+    /* slider */
+    .slider-wrap { display: flex; align-items: center; gap: 0.5rem; }
+    .slider-wrap input[type="range"] { flex: 1; }
+    .slider-wrap .slider-val { min-width: 2.5em; text-align: right; font-size: 0.85rem; font-weight: 600; font-family: monospace; }
+
+    /* ability cards */
+    .ability-card { border: 1px solid var(--color-border-light); border-radius: 6px; padding: 0.75rem; margin-bottom: 0.75rem; background: var(--color-page-bg); }
+    .ability-card.level-conflict { border-color: var(--color-error-text); }
+    .ability-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem; }
+    .ability-card-header strong { font-size: 0.85rem; }
+    .ability-card .form-grid { gap: 0.5rem 0.75rem; }
+    .ability-remove { background: none; border: none; cursor: pointer; font-size: 1.1rem; color: var(--color-text-placeholder); padding: 0; line-height: 1; }
+    .ability-remove:hover { color: var(--color-danger); }
+    .level-conflict-hint { font-size: 0.75rem; color: var(--color-error-text); margin-top: 0.2rem; display: none; }
+    .ability-card.level-conflict .level-conflict-hint { display: block; }
 </style>
 
 <h1>Pets</h1>
@@ -101,43 +125,21 @@
                     <div class="field-hint">Display name shown when the player has not named their pet.</div>
                 </div>
 
-                <div class="field">
+                <div class="field span2">
                     <label>Name Style</label>
-                    <input type="text" id="fNameStyle" placeholder="e.g. :rainbow" />
-                    <div class="field-hint">Optional color pattern applied to the pet name (prefix with <code>:</code>).</div>
-                </div>
-                <div class="field">
-                    <label>Carry Capacity</label>
-                    <input type="number" id="fCapacity" min="0" placeholder="0" />
-                    <div class="field-hint">Number of items this pet can carry for the player. 0 = cannot carry items.</div>
-                </div>
-
-                <div class="section-title">Combat</div>
-
-                <div class="field">
-                    <label>Damage Dice Roll</label>
-                    <input type="text" id="fDiceRoll" placeholder="e.g. 1d6, 2d4+1" />
-                    <div class="field-hint">Dice expression for the pet&rsquo;s attack damage.</div>
-                </div>
-                <div class="field">
-                    <label>Attacks per Round</label>
-                    <input type="number" id="fAttacks" min="1" placeholder="1" value="1" />
+                    <div class="field-with-btn">
+                        <input type="text" id="fNameStyle" placeholder="e.g. :rainbow or &lt;ansi fg=&quot;red&quot;&gt;...&lt;/ansi&gt;" />
+                        <button class="btn-search" onclick="pickNameStylePattern()" title="Browse color patterns">&#x1F50D;</button>
+                        <button class="btn-search" onclick="openNameStyleAnsiComposer()" title="ANSI tag composer">&#x1F6E0;</button>
+                    </div>
+                    <div class="field-hint">Leave blank to use default. Prefix with <code>:</code> for a color pattern.</div>
                 </div>
 
-                <div class="section-title">Stat Modifiers</div>
+                <div class="section-title">Abilities <button type="button" class="btn-add-sm" style="float:right;margin-top:-0.1rem" onclick="addAbility()">+ Add Ability</button></div>
 
                 <div class="field span2">
-                    <div class="statmods-list" id="statmodsList"></div>
-                    <button type="button" class="btn-add-sm" style="margin-top:0.5rem" onclick="addStatMod()">+ Add Stat Mod</button>
-                    <div class="field-hint">Bonuses this pet grants to its owner. Stat names: strength, speed, smarts, vitality, mysticism, perception, healthmax, manamax, etc.</div>
-                </div>
-
-                <div class="section-title">Permanent Buffs</div>
-
-                <div class="field span2">
-                    <div class="buff-ids-wrap" id="fBuffIds"></div>
-                    <button type="button" class="btn-add-sm" style="margin-top:0.4rem" onclick="pickPetBuffId()">+ Add Buff</button>
-                    <div class="field-hint">Buffs permanently applied to the owner while they have this pet.</div>
+                    <div id="abilitiesList"></div>
+                    <div class="field-hint">Each ability unlocks at a given pet level. Pets level 1-10 based on hunger.</div>
                 </div>
 
                 <div class="btn-row">
@@ -168,7 +170,6 @@
         if (!res.ok) { showStatus('error', 'Failed to load pets: ' + res.error); return; }
         petsData = (res.data && res.data.data) || {};
         renderList();
-        DiceRollHelper.attach(document.getElementById('fDiceRoll'));
         const hashType = decodeURIComponent(location.hash.slice(1));
         if (hashType && petsData[hashType]) selectPet(hashType);
     }
@@ -234,33 +235,123 @@
         document.getElementById('fType').value      = p.type || p.Type || '';
         document.getElementById('fName').value      = p.name || p.Name || '';
         document.getElementById('fNameStyle').value = p.namestyle || p.NameStyle || '';
-        document.getElementById('fCapacity').value  = (p.capacity != null ? p.capacity : (p.Capacity != null ? p.Capacity : 0));
 
-        const dmg = p.damage || p.Damage || {};
-        const fDiceRoll = document.getElementById('fDiceRoll');
-        fDiceRoll.value = dmg.diceroll || dmg.DiceRoll || '';
-        fDiceRoll.dispatchEvent(new Event('change'));
-        document.getElementById('fAttacks').value = dmg.attacks || dmg.Attacks || 1;
-
-        // Stat mods
-        const statmodsList = document.getElementById('statmodsList');
-        statmodsList.innerHTML = '';
-        const sm = p.statmods || p.StatMods || {};
-        for (const [key, val] of Object.entries(sm)) {
-            appendStatModRow(key, val);
+        // Abilities
+        document.getElementById('abilitiesList').innerHTML = '';
+        const abilities = p.abilities || p.Abilities || [];
+        for (const ab of abilities) {
+            appendAbilityCard(ab);
         }
-
-        // Buff IDs
-        document.getElementById('fBuffIds').innerHTML = '';
-        const buffIds = p.buffids || p.BuffIds || [];
-        for (const id of buffIds) appendBuffChip(id, null);
+        checkLevelConflicts();
     }
 
     // -------------------------------------------------------------------------
-    // Stat mods
+    // Abilities
     // -------------------------------------------------------------------------
-    function appendStatModRow(statName, value) {
-        const list = document.getElementById('statmodsList');
+    let abilityCounter = 0;
+
+    function buildDiceRollStr(dmg) {
+        let roll = dmg.diceroll || dmg.DiceRoll || '';
+        if (!roll) return '';
+        const attacks = dmg.attacks || dmg.Attacks || 1;
+        if (attacks > 1 && roll.indexOf('@') === -1) roll = attacks + '@' + roll;
+        return roll;
+    }
+
+    function appendAbilityCard(ab) {
+        ab = ab || {};
+        const idx = abilityCounter++;
+        const list = document.getElementById('abilitiesList');
+        const card = document.createElement('div');
+        card.className = 'ability-card';
+        card.dataset.idx = idx;
+
+        const dmg = ab.damage || ab.Damage || {};
+        const sm = ab.statmods || ab.StatMods || {};
+        const buffIds = ab.buffids || ab.BuffIds || [];
+
+        card.innerHTML = `
+            <div class="ability-card-header">
+                <strong>Ability</strong>
+                <button type="button" class="ability-remove" title="Remove ability" onclick="this.closest('.ability-card').remove(); checkLevelConflicts()">&times;</button>
+            </div>
+            <div class="form-grid">
+                <div class="field">
+                    <label>Level Granted</label>
+                    <input type="number" class="ab-level" min="1" max="10" value="${ab.levelgranted || ab.LevelGranted || 1}" oninput="checkLevelConflicts()" />
+                    <div class="field-hint">Pet level at which this ability unlocks (1-10).</div>
+                    <div class="level-conflict-hint">Duplicate level — each ability must have a unique level.</div>
+                </div>
+                <div class="field">
+                    <label>Carry Capacity</label>
+                    <input type="number" class="ab-capacity" min="0" value="${ab.capacity != null ? ab.capacity : (ab.Capacity != null ? ab.Capacity : 0)}" />
+                </div>
+                <div class="field">
+                    <label>Combat Chance</label>
+                    <div class="slider-wrap">
+                        <input type="range" class="ab-combatchance" min="0" max="100" value="${ab.combatchance != null ? ab.combatchance : (ab.CombatChance != null ? ab.CombatChance : 0)}" oninput="this.nextElementSibling.textContent=this.value+'%'" />
+                        <span class="slider-val">${ab.combatchance != null ? ab.combatchance : (ab.CombatChance != null ? ab.CombatChance : 0)}%</span>
+                    </div>
+                    <div class="field-hint">Percent chance (0-100) the pet joins each combat round.</div>
+                </div>
+                <div class="field span2">
+                    <label>Damage Dice Roll</label>
+                    <input type="text" class="ab-diceroll" value="${escAttr(buildDiceRollStr(dmg))}" placeholder="e.g. 1d6+2" />
+                    <div class="field-hint">Format: [attacks@]NdS[+bonus][#critBuffId,...]</div>
+                </div>
+                <div class="field span2">
+                    <label>Stat Modifiers</label>
+                    <div class="statmods-list ab-statmods"></div>
+                    <button type="button" class="btn-add-sm" style="margin-top:0.3rem" onclick="addAbilityStatMod(this)">+ Add Stat Mod</button>
+                </div>
+                <div class="field span2">
+                    <label>Permanent Buffs</label>
+                    <div class="buff-ids-wrap ab-buffids"></div>
+                    <button type="button" class="btn-add-sm" style="margin-top:0.3rem" onclick="pickAbilityBuffId(this)">+ Add Buff</button>
+                </div>
+            </div>
+        `;
+
+        list.appendChild(card);
+
+        // attach dice roll helper
+        const diceInput = card.querySelector('.ab-diceroll');
+        if (typeof DiceRollHelper !== 'undefined') DiceRollHelper.attach(diceInput);
+
+        // populate stat mods
+        const smList = card.querySelector('.ab-statmods');
+        for (const [key, val] of Object.entries(sm)) {
+            appendStatModRow(smList, key, val);
+        }
+
+        // populate buff chips
+        const buffWrap = card.querySelector('.ab-buffids');
+        for (const id of buffIds) appendBuffChip(buffWrap, id, null);
+    }
+
+    window.addAbility = function () {
+        appendAbilityCard({});
+        checkLevelConflicts();
+    };
+
+    window.checkLevelConflicts = function () {
+        const cards = document.querySelectorAll('#abilitiesList .ability-card');
+        const levelMap = new Map();
+        cards.forEach(card => {
+            const lvl = parseInt(card.querySelector('.ab-level').value, 10) || 1;
+            if (!levelMap.has(lvl)) levelMap.set(lvl, []);
+            levelMap.get(lvl).push(card);
+        });
+        cards.forEach(card => card.classList.remove('level-conflict'));
+        for (const [, group] of levelMap) {
+            if (group.length > 1) group.forEach(c => c.classList.add('level-conflict'));
+        }
+    };
+
+    // -------------------------------------------------------------------------
+    // Stat mods (within ability cards)
+    // -------------------------------------------------------------------------
+    function appendStatModRow(container, statName, value) {
         const row = document.createElement('div');
         row.className = 'statmod-row';
 
@@ -295,16 +386,17 @@
         row.appendChild(sel);
         row.appendChild(inp);
         row.appendChild(removeBtn);
-        list.appendChild(row);
+        container.appendChild(row);
     }
 
-    window.addStatMod = function () {
-        appendStatModRow('strength', 0);
+    window.addAbilityStatMod = function (btn) {
+        const container = btn.closest('.field').querySelector('.ab-statmods');
+        appendStatModRow(container, 'strength', 0);
     };
 
-    function collectStatMods() {
+    function collectStatMods(container) {
         const mods = {};
-        document.querySelectorAll('#statmodsList .statmod-row').forEach(row => {
+        container.querySelectorAll('.statmod-row').forEach(row => {
             const name = row.querySelector('.statmod-name').value.trim();
             const val  = parseInt(row.querySelector('.statmod-value').value, 10) || 0;
             if (name) mods[name] = val;
@@ -313,32 +405,32 @@
     }
 
     // -------------------------------------------------------------------------
-    // Buff chips
+    // Buff chips (within ability cards)
     // -------------------------------------------------------------------------
-    function appendBuffChip(id, name) {
-        const list = document.getElementById('fBuffIds');
+    function appendBuffChip(container, id, name) {
         const chip = document.createElement('span');
         chip.className = 'buff-chip';
         chip.dataset.id = id;
         const label = name != null ? '#' + id + ' ' + escHtml(name) : escHtml(PickerConfigs.buffName(id));
         chip.innerHTML = label + ' <button title="Remove" onclick="this.closest(\'[data-id]\').remove()">&times;</button>';
-        list.appendChild(chip);
+        container.appendChild(chip);
     }
 
-    function collectBuffIds() {
-        return Array.from(document.querySelectorAll('#fBuffIds .buff-chip'))
+    function collectBuffIds(container) {
+        return Array.from(container.querySelectorAll('.buff-chip'))
             .map(c => parseInt(c.dataset.id, 10)).filter(n => !isNaN(n) && n > 0);
     }
 
-    window.pickPetBuffId = function () {
-        const existing = collectBuffIds();
+    window.pickAbilityBuffId = function (btn) {
+        const container = btn.closest('.field').querySelector('.ab-buffids');
+        const existing = collectBuffIds(container);
         Picker.open({
             ...PickerConfigs.buffs,
             multi:    true,
             selected: existing,
             onSelect: (buffs) => {
-                document.getElementById('fBuffIds').innerHTML = '';
-                for (const buff of buffs) appendBuffChip(buff.BuffId, buff.Name);
+                container.innerHTML = '';
+                for (const buff of buffs) appendBuffChip(container, buff.BuffId, buff.Name);
             },
         });
     };
@@ -347,25 +439,46 @@
     // Save / Delete
     // -------------------------------------------------------------------------
     function buildPayload() {
-        const diceRoll = document.getElementById('fDiceRoll').value.trim();
-        const attacks  = parseInt(document.getElementById('fAttacks').value, 10) || 1;
-        const mods     = collectStatMods();
-        const buffIds  = collectBuffIds();
+        const abilities = [];
+        document.querySelectorAll('#abilitiesList .ability-card').forEach(card => {
+            const diceRoll = card.querySelector('.ab-diceroll').value.trim();
+            const mods     = collectStatMods(card.querySelector('.ab-statmods'));
+            const buffIds  = collectBuffIds(card.querySelector('.ab-buffids'));
+
+            abilities.push({
+                levelgranted: parseInt(card.querySelector('.ab-level').value, 10) || 1,
+                combatchance: parseInt(card.querySelector('.ab-combatchance').value, 10) || 0,
+                damage:       diceRoll ? { diceroll: diceRoll } : undefined,
+                statmods:     Object.keys(mods).length ? mods : undefined,
+                buffids:      buffIds.length ? buffIds : undefined,
+                capacity:     parseInt(card.querySelector('.ab-capacity').value, 10) || 0,
+            });
+        });
 
         return {
             type:      document.getElementById('fType').value.trim().toLowerCase(),
             name:      document.getElementById('fName').value.trim(),
             namestyle: document.getElementById('fNameStyle').value.trim(),
-            capacity:  parseInt(document.getElementById('fCapacity').value, 10) || 0,
-            damage:    diceRoll ? { diceroll: diceRoll, attacks: attacks } : null,
-            statmods:  Object.keys(mods).length ? mods : null,
-            buffids:   buffIds.length ? buffIds : null,
+            abilities: abilities.length ? abilities : undefined,
         };
     }
 
     window.savePet = async function () {
         const payload = buildPayload();
         if (!payload.type) { showStatus('error', 'Type ID is required.'); return; }
+
+        if (payload.abilities && payload.abilities.length > 1) {
+            const levels = payload.abilities.map(a => a.levelgranted);
+            const seen = new Set();
+            for (const lvl of levels) {
+                if (seen.has(lvl)) {
+                    checkLevelConflicts();
+                    showStatus('error', 'Each ability must have a unique Level Granted. Found duplicate level ' + lvl + '.');
+                    return;
+                }
+                seen.add(lvl);
+            }
+        }
 
         const btn = document.getElementById('btnSave');
         btn.disabled = true; btn.textContent = 'Saving\u2026';
@@ -427,6 +540,31 @@
         bar.textContent = msg;
         if (type === 'success') setTimeout(() => { bar.className = 'status-bar'; }, 3000);
     }
+
+    window.pickNameStylePattern = function () {
+        SelectDialog.open({
+            title: 'Pick a Color Pattern',
+            apiPath: '/admin/api/v1/colorpatterns',
+            transform: data => Object.keys(data).sort().map(k => ({
+                label: k,
+                value: k,
+                html: AnsiColors.swatchHtml(data[k], 12),
+            })),
+            onSelect: value => {
+                document.getElementById('fNameStyle').value = ':' + value;
+            },
+        });
+    };
+
+    window.openNameStyleAnsiComposer = function () {
+        const input = document.getElementById('fNameStyle');
+        AnsiComposerPicker.open({
+            initial: input.value,
+            onApply: (result) => {
+                input.value = result;
+            },
+        });
+    };
 
     function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
     function escAttr(s) { return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }

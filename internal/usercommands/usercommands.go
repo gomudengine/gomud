@@ -84,6 +84,7 @@ var (
 		`enchant`:     {Enchant, false, false},
 		`experience`:  {Experience, true, false},
 		`equip`:       {Equip, false, false},
+		`feed`:        {Feed, false, false},
 		`flee`:        {Flee, false, false},
 		`formset`:     {FormSet, false, true}, // Admin only
 		`gearup`:      {Gearup, false, false},

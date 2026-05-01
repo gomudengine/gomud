@@ -531,6 +531,30 @@ func CharacterNameSearch(nameToFind string) (foundUserId int, foundUserName stri
 	return foundUserId, foundUserName
 }
 
+// UpdateOnlineUser applies updated exported fields to the in-memory user
+// record if the user is currently online. Connection state and other
+// runtime-only fields are preserved from the live record.
+func UpdateOnlineUser(updated UserRecord) {
+	u, ok := userManager.Users[updated.UserId]
+	if !ok {
+		return
+	}
+
+	updated.connectionId = u.connectionId
+	updated.unsentText = u.unsentText
+	updated.suggestText = u.suggestText
+	updated.connectionTime = u.connectionTime
+	updated.lastInputRound = u.lastInputRound
+	updated.tempDataStore = u.tempDataStore
+	updated.activePrompt = u.activePrompt
+	updated.isLinkDead = u.isLinkDead
+	updated.inputBlocked = u.inputBlocked
+	updated.EventLog = u.EventLog
+	updated.LastMusic = u.LastMusic
+
+	*u = updated
+}
+
 func SaveUser(u UserRecord, isAutoSave ...bool) error {
 
 	fileWritten := false

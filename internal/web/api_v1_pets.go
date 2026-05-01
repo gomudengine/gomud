@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/pets"
 )
 
@@ -67,6 +68,19 @@ func apiV1PatchPet(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, APIResponse[pets.Pet]{
 		Success: true,
 		Data:    updated,
+	})
+}
+
+// GET /admin/api/v1/pets/ranks
+func apiV1GetPetRanks(w http.ResponseWriter, r *http.Request) {
+	byCombat, byUtility, byOverall := combat.RankPets()
+	writeJSON(w, http.StatusOK, APIResponse[map[string]any]{
+		Success: true,
+		Data: map[string]any{
+			"by_combat":  byCombat,
+			"by_utility": byUtility,
+			"by_overall": byOverall,
+		},
 	})
 }
 

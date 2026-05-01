@@ -73,6 +73,7 @@ help:
       - drink
       - eat
       - equip
+      - feed
       - get
       - give
       - remove
@@ -180,6 +181,7 @@ help-aliases:
   killstats:        [kills, kd]
   trading:          [haggle]
   pets:             [pet]
+  feed:             [feed]
   macros:           [macro]
   history:          ['log']
   pvp:              ['pk']

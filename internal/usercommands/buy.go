@@ -547,9 +547,8 @@ func tryPurchase(request string, user *users.UserRecord, room *rooms.Room, shopM
 			room.SendText(fmt.Sprintf(`%s sadly slinks away into the shadows. Never to be seen again.`, user.Character.Pet.DisplayName()))
 		}
 
-		for i := 0; i < 5; i++ {
-			petInfo.Food.Add()
-		}
+		petInfo.Food = 3
+		petInfo.Level = 1
 
 		petInfo.Name = petInfo.Type
 		user.Character.Pet = petInfo
