@@ -51,6 +51,8 @@ func init() {
 
 	events.RegisterListener(events.Quest{}, g.questProgressHandler, events.Last)
 
+	events.RegisterListener(events.PetLevelChange{}, g.petLevelChangeHandler)
+
 	events.RegisterListener(events.MobDeath{}, g.killsChangedHandler)
 	events.RegisterListener(events.PlayerDeath{}, g.killsChangedHandler)
 
@@ -128,6 +130,25 @@ func (g *GMCPCharModule) buffTriggeredHandler(e events.Event) events.ListenerRet
 	events.AddToQueue(GMCPCharUpdate{
 		UserId:     evt.UserId,
 		Identifier: `Char.Affects`,
+	})
+
+	return events.Continue
+}
+
+func (g *GMCPCharModule) petLevelChangeHandler(e events.Event) events.ListenerReturn {
+
+	evt, typeOk := e.(events.PetLevelChange)
+	if !typeOk {
+		return events.Continue
+	}
+
+	if evt.UserId == 0 {
+		return events.Continue
+	}
+
+	events.AddToQueue(GMCPCharUpdate{
+		UserId:     evt.UserId,
+		Identifier: `Char.Pets`,
 	})
 
 	return events.Continue
@@ -397,9 +418,29 @@ func (g *GMCPCharModule) GetCharNode(user *users.UserRecord, gmcpModule string) 
 		if user.Character.Pet.Exists() {
 
 			p := GMCPCharModule_Payload_Pet{
-				Name:   user.Character.Pet.Name,
-				Type:   user.Character.Pet.Type,
-				Hunger: `full`,
+				Name:     user.Character.Pet.Name,
+				Type:     user.Character.Pet.Type,
+				Level:    user.Character.Pet.Level,
+				Hunger:   user.Character.Pet.Food.String(),
+				Capacity: user.Character.Pet.GetEffectiveCapacity(),
+				Buffs:    []string{},
+				Items:    []GMCPCharModule_Payload_Inventory_Item{},
+			}
+
+			if abDisplay := user.Character.Pet.GetCurrentAbilityDisplay(); abDisplay != nil {
+				p.Ability = &GMCPCharModule_Payload_Pet_Ability{
+					LevelGranted: abDisplay.LevelGranted,
+					CombatChance: abDisplay.CombatChance,
+					DiceRoll:     abDisplay.DiceRoll,
+					StatMods:     abDisplay.StatMods,
+				}
+				if len(abDisplay.BuffNames) > 0 {
+					p.Buffs = abDisplay.BuffNames
+				}
+			}
+
+			for _, itm := range user.Character.Pet.Items {
+				p.Items = append(p.Items, newInventory_Item(itm))
 			}
 
 			payload.Pets = append(payload.Pets, p)
@@ -945,9 +986,21 @@ type GMCPCharModule_Payload_Quest struct {
 // Char.Pets
 // /////////////////
 type GMCPCharModule_Payload_Pet struct {
-	Name   string `json:"name"`
-	Type   string `json:"type"`
-	Hunger string `json:"hunger"`
+	Name     string                                  `json:"name"`
+	Type     string                                  `json:"type"`
+	Level    int                                     `json:"level"`
+	Hunger   string                                  `json:"hunger"`
+	Ability  *GMCPCharModule_Payload_Pet_Ability     `json:"ability,omitempty"`
+	Buffs    []string                                `json:"buffs"`
+	Items    []GMCPCharModule_Payload_Inventory_Item `json:"items"`
+	Capacity int                                     `json:"capacity"`
+}
+
+type GMCPCharModule_Payload_Pet_Ability struct {
+	LevelGranted int            `json:"level_granted"`
+	CombatChance int            `json:"combat_chance"`
+	DiceRoll     string         `json:"dice_roll"`
+	StatMods     map[string]int `json:"stat_mods,omitempty"`
 }
 
 // /////////////////
