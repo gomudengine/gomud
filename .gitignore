@@ -16,5 +16,6 @@ ssh_host_key.pub
 tmp-gomud.exe
 __debug*
 .claude/
-
-
+cmd/app/dist/*
+cmd/app/node_modules/*
+cmd/app/build_cache/*
