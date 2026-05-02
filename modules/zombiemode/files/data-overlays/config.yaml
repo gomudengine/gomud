@@ -12,3 +12,6 @@ Enabled: true
 # - MaximumRoam -
 #   Maximum roam radius a player may set. 0 means no limit.
 MaximumRoam: 0
+# - MaxWaypoints -
+#   Maximum number of waypoints a player may define. 0 means no limit.
+MaxWaypoints: 10

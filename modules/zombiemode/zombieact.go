@@ -105,7 +105,16 @@ func (m *ZombieModule) zombieActCommand(rest string, user *users.UserRecord, roo
 		}
 	}
 
-	// 5. Roam: pick a random exit within radius of the home room.
+	// 5. Waypoint patrol: follow pre-computed path to next waypoint.
+	if len(cfg.Waypoints) > 0 && user.Character.Aggro == nil {
+		if exitName := m.followWaypointPath(user, &rt, cfg); exitName != `` {
+			m.active[user.UserId] = rt
+			zombieCommand(user, fmt.Sprintf(`go %s`, exitName))
+			return true, nil
+		}
+	}
+
+	// 5b. Roam fallback: pick a random exit within radius of the home room.
 	if cfg.RoamRadius > 0 && user.Character.Aggro == nil {
 		if exitName := m.pickRoamExit(user.Character.RoomId, rt.HomeRoom, cfg.RoamRadius); exitName != `` {
 			zombieCommand(user, fmt.Sprintf(`go %s`, exitName))
@@ -201,6 +210,58 @@ func (m *ZombieModule) exitTowardHome(currentRoomId, homeRoomId int) string {
 	}
 
 	return ``
+}
+
+func (m *ZombieModule) followWaypointPath(user *users.UserRecord, rt *zombieRuntime, cfg ZombieConfig) string {
+
+	if len(cfg.Waypoints) == 0 {
+		return ``
+	}
+
+	if rt.WaypointIndex >= len(cfg.Waypoints) {
+		rt.WaypointIndex = 0
+	}
+
+	targetRoomId := cfg.Waypoints[rt.WaypointIndex]
+
+	if user.Character.RoomId == targetRoomId {
+		rt.WaypointIndex = (rt.WaypointIndex + 1) % len(cfg.Waypoints)
+		rt.WaypointPath = nil
+		targetRoomId = cfg.Waypoints[rt.WaypointIndex]
+
+		if user.Character.RoomId == targetRoomId {
+			return ``
+		}
+	}
+
+	if len(rt.WaypointPath) == 0 {
+		path, err := mapper.GetPath(user.Character.RoomId, targetRoomId)
+		if err != nil || len(path) == 0 {
+			rt.WaypointPath = nil
+			return ``
+		}
+		rt.WaypointPath = make([]pathStepRecord, len(path))
+		for i, step := range path {
+			rt.WaypointPath[i] = pathStepRecord{
+				exitName: step.ExitName(),
+				roomId:   step.RoomId(),
+			}
+		}
+	}
+
+	step := rt.WaypointPath[0]
+	rt.WaypointPath = rt.WaypointPath[1:]
+
+	currentRoom := rooms.LoadRoom(user.Character.RoomId)
+	if currentRoom != nil {
+		exitInfo, hasExit := currentRoom.Exits[step.exitName]
+		if !hasExit || exitInfo.RoomId != step.roomId {
+			rt.WaypointPath = nil
+			return ``
+		}
+	}
+
+	return step.exitName
 }
 
 // matchesCombatTarget returns true if the mob name matches any combat target.
