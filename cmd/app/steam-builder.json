@@ -1,0 +1,22 @@
+{
+  "appId": "com.gomudclient.app",
+  "productName": "GoMudClient",
+  "mac": {
+    "target": [{ "target": "dir", "arch": ["x64", "arm64"] }],
+    "identity": null
+  },
+  "win": {
+    "target": [{ "target": "dir", "arch": ["x64"] }]
+  },
+  "linux": {
+    "target": [{ "target": "dir", "arch": ["x64"] }]
+  },
+  "files": [
+    "main.js",
+    "build_cache/webclient-pure.html",
+    "build_cache/static/**/*"
+  ],
+  "asarUnpack": [
+    "node_modules/steamworks.js/**"
+  ]
+}

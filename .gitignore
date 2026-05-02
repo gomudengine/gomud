@@ -19,3 +19,4 @@ __debug*
 cmd/app/dist/*
 cmd/app/node_modules/*
 cmd/app/build_cache/*
+cmd/app/steam/output/*

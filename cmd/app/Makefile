@@ -1,4 +1,4 @@
-.PHONY: install start build-mac build-win build-linux build clean vendor-gomud-files clean-gomud-vendored
+.PHONY: install start build-mac build-win build-linux build clean vendor-gomud-files clean-gomud-vendored build-steam-mac build-steam-win build-steam-linux build-steam steam-upload
 
 HOST ?= gomud.net
 WS_URL ?= wss://$(HOST)/ws
@@ -30,6 +30,23 @@ clean: clean-gomud-vendored
 clean-gomud-vendored:
 	@echo "Clearing build_cache..."
 	@rm -rf build_cache/*
+
+build-steam-mac: install
+	npm run build:steam-mac
+
+build-steam-win: install
+	npm run build:steam-win
+
+build-steam-linux: install
+	npm run build:steam-linux
+
+build-steam: install
+	npm run build:steam-win
+	npm run build:steam-mac
+	npm run build:steam-linux
+
+steam-upload:
+	steamcmd +login $(STEAM_USERNAME) +run_app_build $(CURDIR)/steam/app_build.vdf +quit
 
 vendor-gomud: clean-gomud-vendored
 	@echo "Vendoring files from GoMud html..."

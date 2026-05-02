@@ -1,0 +1,12 @@
+"AppBuild"
+{
+	"AppID" "YOUR_APP_ID"
+	"Desc" "GoMud Client build"
+	"BuildOutput" "./output/"
+	"Depots"
+	{
+		"YOUR_WIN_DEPOT_ID" "depot_win.vdf"
+		"YOUR_MAC_DEPOT_ID" "depot_mac.vdf"
+		"YOUR_LINUX_DEPOT_ID" "depot_linux.vdf"
+	}
+}
