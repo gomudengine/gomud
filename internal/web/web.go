@@ -350,7 +350,7 @@ func serveTemplate(w http.ResponseWriter, r *http.Request) {
 		"NAV": []WebNav{
 			{`Home`, `/`},
 			{`Who's Online`, `/online`},
-			{`Web Client`, `/webclient`},
+			{`Web Client`, `/webclient-pure`},
 			{`See Configuration`, `/viewconfig`},
 		},
 	}
