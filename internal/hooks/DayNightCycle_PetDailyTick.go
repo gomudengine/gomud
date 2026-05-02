@@ -29,19 +29,17 @@ func PetDailyTick(e events.Event) events.ListenerReturn {
 				continue
 			}
 
-			if levelChange != 0 {
-				user.Character.Validate(true)
-				newAbility := user.Character.Pet.GetCurrentAbilityDisplay()
-				oldLevel := user.Character.Pet.Level - levelChange
-				events.AddToQueue(events.PetLevelChange{
-					UserId:     uId,
-					PetName:    user.Character.Pet.DisplayName(),
-					OldLevel:   oldLevel,
-					NewLevel:   user.Character.Pet.Level,
-					OldAbility: oldAbility,
-					NewAbility: newAbility,
-				})
-			}
+			user.Character.Validate(true)
+			newAbility := user.Character.Pet.GetCurrentAbilityDisplay()
+			oldLevel := user.Character.Pet.Level - levelChange
+			events.AddToQueue(events.PetLevelChange{
+				UserId:     uId,
+				PetName:    user.Character.Pet.DisplayName(),
+				OldLevel:   oldLevel,
+				NewLevel:   user.Character.Pet.Level,
+				OldAbility: oldAbility,
+				NewAbility: newAbility,
+			})
 
 			if user.Character.Pet.Food <= 1 {
 				user.SendText(fmt.Sprintf(`%s is %s!`, user.Character.Pet.DisplayName(), user.Character.Pet.Food.String()))

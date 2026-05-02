@@ -29,6 +29,10 @@ func SendPetLevelNotifications(e events.Event) events.ListenerReturn {
 		return events.Continue
 	}
 
+	if evt.NewLevel == evt.OldLevel {
+		return events.Continue
+	}
+
 	levelUp := evt.NewLevel > evt.OldLevel
 
 	var oldAb, newAb *pets.AbilityDisplay
