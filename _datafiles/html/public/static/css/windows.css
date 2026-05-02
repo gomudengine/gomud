@@ -207,12 +207,13 @@
 /* -------------------------------------------------------------------------
  * Auto-hide docks
  *
- * When .dock-autohide is on #main-container, non-empty docks become
- * absolutely positioned overlays that slide mostly off-screen, leaving a
- * narrow peek strip. Hovering the strip slides the dock back into view.
+ * .dock-autohide-left / .dock-autohide-right on #main-container make the
+ * corresponding non-empty dock an absolutely positioned overlay that slides
+ * mostly off-screen, leaving a narrow peek strip. Hovering the strip slides
+ * the dock back into view.
  * ------------------------------------------------------------------------- */
-.dock-autohide #dock-left.has-panels,
-.dock-autohide #dock-right.has-panels {
+.dock-autohide-left #dock-left.has-panels,
+.dock-autohide-right #dock-right.has-panels {
     position: absolute;
     top: 0;
     bottom: 0;
@@ -220,21 +221,22 @@
     transition: transform 0.3s ease;
 }
 
-.dock-autohide #dock-left.has-panels {
+.dock-autohide-left #dock-left.has-panels {
     left: 0;
     transform: translateX(calc(-100% + 14px));
 }
 
-.dock-autohide #dock-right.has-panels {
+.dock-autohide-right #dock-right.has-panels {
     right: 0;
     transform: translateX(calc(100% - 14px));
 }
 
-.dock-autohide #dock-left.has-panels:hover,
-.dock-autohide #dock-right.has-panels:hover {
+.dock-autohide-left #dock-left.has-panels:hover,
+.dock-autohide-right #dock-right.has-panels:hover {
     transform: translateX(0);
 }
 
-.dock-autohide .dock-slot-resize {
+.dock-autohide-left #dock-left .dock-slot-resize,
+.dock-autohide-right #dock-right .dock-slot-resize {
     display: none !important;
 }

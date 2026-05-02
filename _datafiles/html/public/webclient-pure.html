@@ -1216,9 +1216,16 @@
                     <div class="settings-section">
                         <div class="settings-section-title">Layout</div>
                         <div class="win-toggle-row">
-                            <span>Auto-hide window docks</span>
+                            <span>Auto-hide left window dock</span>
                             <label class="toggle-switch">
-                                <input type="checkbox" id="dock-autohide-checkbox" onchange="toggleDockAutoHide(this.checked)">
+                                <input type="checkbox" id="dock-autohide-left-checkbox" onchange="toggleDockAutoHide('left', this.checked)">
+                                <span class="toggle-track"></span>
+                            </label>
+                        </div>
+                        <div class="win-toggle-row">
+                            <span>Auto-hide right window dock</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="dock-autohide-right-checkbox" onchange="toggleDockAutoHide('right', this.checked)">
                                 <span class="toggle-track"></span>
                             </label>
                         </div>
@@ -1600,7 +1607,7 @@
         function toggleMenu()            { Client.toggleMenu(); }
         function toggleMuteAll()         { Client.toggleMuteAll(); }
         function resetLayout()           { Client.resetLayout(); }
-        function toggleDockAutoHide(v)   { Client.toggleDockAutoHide(v); }
+        function toggleDockAutoHide(s,v)  { Client.toggleDockAutoHide(s,v); }
         function resetVolumeControls()   { Client.resetVolumeControls(); }
 
         // ---------------------------------------------------------------

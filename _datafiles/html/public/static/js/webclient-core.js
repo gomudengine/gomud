@@ -665,7 +665,22 @@ const LayoutStore = (() => {
         });
     }
 
-    return { saveWindow, saveDockWidths, getWindow, getDockWidths, reset, clearWindow };
+    function saveDockOrder(order) {
+        patch(data => {
+            if (order) {
+                data.dockOrder = order;
+            } else {
+                delete data.dockOrder;
+            }
+        });
+    }
+
+    function getDockOrder() {
+        const data = load();
+        return data.dockOrder || null;
+    }
+
+    return { saveWindow, saveDockWidths, getWindow, getDockWidths, reset, clearWindow, saveDockOrder, getDockOrder };
 })();
 
 // ---------------------------------------------------------------------------
@@ -964,6 +979,30 @@ class VirtualWindow {
 }
 
 // ---------------------------------------------------------------------------
+// Default dock layout configuration.
+//
+// Defines which side each window docks to by default and the order windows
+// appear within each dock (top-to-bottom).  Edit this array to change the
+// out-of-the-box layout.  Modules not listed here fall back to their own
+// constructor-declared dock side and are appended after configured windows.
+// ---------------------------------------------------------------------------
+const WINDOW_DOCK_DEFAULTS = [
+    { id: 'Time & Date',    side: 'left' },
+    { id: 'Vitals',         side: 'left' },    
+    { id: 'Character',      side: 'left' },
+    { id: 'Worth',          side: 'left' },
+    { id: 'Gear',           side: 'left' },
+    { id: 'Pet',            side: 'left' },    
+    { id: 'Map',            side: 'right' },
+    { id: 'Online',         side: 'right' },
+    { id: 'KillStats',      side: 'right' },
+    { id: 'Party',          side: 'right' },
+    { id: 'Communications', side: 'right' },
+    { id: 'RoomInfo',       side: 'right' },
+    
+];
+
+// ---------------------------------------------------------------------------
 // VirtualWindows registry
 //
 // Window modules call VirtualWindows.register(descriptor) where descriptor is:
@@ -991,6 +1030,12 @@ const VirtualWindows = (() => {
     const _dockOrder         = { left: [], right: [] };
     const _dockOrderOriginal = { left: [], right: [] };
 
+    // Precompute per-side default order from WINDOW_DOCK_DEFAULTS
+    const _defaultSideOrder = { left: [], right: [] };
+    WINDOW_DOCK_DEFAULTS.forEach(d => {
+        if (_defaultSideOrder[d.side]) { _defaultSideOrder[d.side].push(d.id); }
+    });
+
     function register(descriptor) {
         if (!descriptor || !Array.isArray(descriptor.gmcpHandlers)) {
             console.error('VirtualWindows.register: descriptor must have gmcpHandlers array');
@@ -1011,10 +1056,37 @@ const VirtualWindows = (() => {
         });
         if (win) {
             _windows.push(win);
-            // Record the registration order as the initial dock order
-            if (win._dockSide && _dockOrder[win._dockSide]) {
-                _dockOrder[win._dockSide].push(win._id);
-                _dockOrderOriginal[win._dockSide].push(win._id);
+
+            // Apply configured default dock side from WINDOW_DOCK_DEFAULTS
+            const defaultEntry = WINDOW_DOCK_DEFAULTS.find(d => d.id === win._id);
+            if (defaultEntry) {
+                win._dockSide     = defaultEntry.side;
+                win._origDockSide = defaultEntry.side;
+            }
+
+            // Insert into _dockOrderOriginal (and _dockOrder) at the position
+            // dictated by WINDOW_DOCK_DEFAULTS so the default layout matches
+            // the configured order regardless of file-load order.
+            const side = win._dockSide;
+            if (side && _dockOrderOriginal[side]) {
+                const sideOrder = _defaultSideOrder[side];
+                const configIdx = sideOrder ? sideOrder.indexOf(win._id) : -1;
+
+                if (configIdx === -1) {
+                    _dockOrderOriginal[side].push(win._id);
+                    _dockOrder[side].push(win._id);
+                } else {
+                    let insertAt = _dockOrderOriginal[side].length;
+                    for (let i = 0; i < _dockOrderOriginal[side].length; i++) {
+                        const existingIdx = sideOrder.indexOf(_dockOrderOriginal[side][i]);
+                        if (existingIdx !== -1 && existingIdx > configIdx) {
+                            insertAt = i;
+                            break;
+                        }
+                    }
+                    _dockOrderOriginal[side].splice(insertAt, 0, win._id);
+                    _dockOrder[side].splice(insertAt, 0, win._id);
+                }
             }
         }
     }
@@ -1044,6 +1116,10 @@ const VirtualWindows = (() => {
             }
         }
         return insertIdx;
+    }
+
+    function _saveDockOrder() {
+        LayoutStore.saveDockOrder({ left: [..._dockOrder.left], right: [..._dockOrder.right] });
     }
 
     // Called by DockSlot._movePanel after a drag reorder completes.
@@ -1078,6 +1154,7 @@ const VirtualWindows = (() => {
             merged.splice(insertAt, 0, id);
         }
         _dockOrder[side] = merged;
+        _saveDockOrder();
     }
 
     // Called when a window is dragged from one slot to the other.
@@ -1090,11 +1167,13 @@ const VirtualWindows = (() => {
         if (_dockOrder[newSide] && !_dockOrder[newSide].includes(winId)) {
             _dockOrder[newSide].push(winId);
         }
+        _saveDockOrder();
     }
 
     function resetOrder() {
         _dockOrder.left  = [..._dockOrderOriginal.left];
         _dockOrder.right = [..._dockOrderOriginal.right];
+        LayoutStore.saveDockOrder(null);
     }
 
     function handleGMCP(namespace, body) {
@@ -1126,6 +1205,51 @@ const VirtualWindows = (() => {
     }
 
     function openAll() {
+        // Restore saved dock order, or fall back to defaults.
+        const savedOrder = LayoutStore.getDockOrder();
+        if (savedOrder) {
+            const allRegistered = new Set(_windows.map(w => w._id));
+            const inSaved = new Set([
+                ...(savedOrder.left  || []),
+                ...(savedOrder.right || []),
+            ]);
+            ['left', 'right'].forEach(side => {
+                if (!savedOrder[side]) {
+                    _dockOrder[side] = [..._dockOrderOriginal[side]];
+                    return;
+                }
+                const restored = savedOrder[side].filter(id => allRegistered.has(id));
+                // Append any newly-registered windows not present in the saved order
+                _dockOrderOriginal[side].forEach(id => {
+                    if (!inSaved.has(id) && !restored.includes(id)) {
+                        const sideOrder = _defaultSideOrder[side];
+                        const configIdx = sideOrder ? sideOrder.indexOf(id) : -1;
+                        let insertAt = restored.length;
+                        if (configIdx !== -1) {
+                            for (let i = 0; i < restored.length; i++) {
+                                const ei = sideOrder.indexOf(restored[i]);
+                                if (ei !== -1 && ei > configIdx) { insertAt = i; break; }
+                            }
+                        }
+                        restored.splice(insertAt, 0, id);
+                    }
+                });
+                _dockOrder[side] = restored;
+            });
+            // Sync each window's dock side with the loaded order so that
+            // cross-dock moves from a prior session are honoured.
+            _windows.forEach(win => {
+                if (_dockOrder.left.includes(win._id) && win._dockSide !== 'left') {
+                    win._dockSide = 'left';
+                } else if (_dockOrder.right.includes(win._id) && win._dockSide !== 'right') {
+                    win._dockSide = 'right';
+                }
+            });
+        } else {
+            _dockOrder.left  = [..._dockOrderOriginal.left];
+            _dockOrder.right = [..._dockOrderOriginal.right];
+        }
+
         _windows.forEach(win => win.open());
 
         // Restore saved dock slot widths
@@ -1759,14 +1883,19 @@ const Client = (() => {
         });
     }
 
-    function toggleDockAutoHide(enabled) {
+    function toggleDockAutoHide(side, enabled) {
         const container = document.getElementById('main-container');
+        const cls = 'dock-autohide-' + side;
         if (enabled) {
-            container.classList.add('dock-autohide');
+            container.classList.add(cls);
         } else {
-            container.classList.remove('dock-autohide');
+            container.classList.remove(cls);
         }
-        localStorage.setItem('dockAutoHide', JSON.stringify(enabled));
+        var parsed;
+        try { parsed = JSON.parse(localStorage.getItem('dockAutoHide')); } catch (e) { /* ignore */ }
+        var state = (parsed && typeof parsed === 'object') ? parsed : {};
+        state[side] = enabled;
+        localStorage.setItem('dockAutoHide', JSON.stringify(state));
         requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
     }
 
@@ -1775,8 +1904,11 @@ const Client = (() => {
         const isOpen   = backdrop.classList.contains('open');
         if (!isOpen) {
             buildWindowToggles();
-            const ahCb = document.getElementById('dock-autohide-checkbox');
-            if (ahCb) { ahCb.checked = document.getElementById('main-container').classList.contains('dock-autohide'); }
+            const mc = document.getElementById('main-container');
+            const ahL = document.getElementById('dock-autohide-left-checkbox');
+            const ahR = document.getElementById('dock-autohide-right-checkbox');
+            if (ahL) { ahL.checked = mc.classList.contains('dock-autohide-left'); }
+            if (ahR) { ahR.checked = mc.classList.contains('dock-autohide-right'); }
             backdrop.classList.add('open');
         } else {
             backdrop.classList.remove('open');
@@ -1785,7 +1917,8 @@ const Client = (() => {
 
     function resetLayout() {
         LayoutStore.reset();
-        toggleDockAutoHide(false);
+        toggleDockAutoHide('left', false);
+        toggleDockAutoHide('right', false);
 
         // Close all windows first, then reopen each one in its default state.
         VirtualWindows.getWindows().forEach(win => {
@@ -1927,8 +2060,17 @@ const Client = (() => {
         DockSlots.right = new DockSlot('right');
 
         try {
-            if (JSON.parse(localStorage.getItem('dockAutoHide'))) {
-                document.getElementById('main-container').classList.add('dock-autohide');
+            var ah = JSON.parse(localStorage.getItem('dockAutoHide'));
+            if (ah) {
+                var mc = document.getElementById('main-container');
+                if (typeof ah !== 'object') {
+                    // Migrate old boolean format → enable both sides
+                    mc.classList.add('dock-autohide-left', 'dock-autohide-right');
+                    localStorage.setItem('dockAutoHide', JSON.stringify({ left: true, right: true }));
+                } else {
+                    if (ah.left)  { mc.classList.add('dock-autohide-left'); }
+                    if (ah.right) { mc.classList.add('dock-autohide-right'); }
+                }
             }
         } catch (e) {}
 
@@ -1941,13 +2083,14 @@ const Client = (() => {
         window.addEventListener('resize', resizeTerminal);
         resizeTerminal();
 
-        // Keep focus on terminal on click (not drag)
+        // Keep focus on input: click (not drag/select) in the terminal focuses the input box.
+        // xterm.js manages its own selection on a canvas, so we check term.hasSelection()
+        // rather than window.getSelection().
         let isDragging = false;
         textOutput.addEventListener('mousedown', () => { isDragging = false; });
         textOutput.addEventListener('mousemove', () => { isDragging = true; });
         textOutput.addEventListener('mouseup', () => {
-            const selected = window.getSelection().toString();
-            if (!isDragging && !selected) { textInput.focus(); }
+            if (!isDragging && !term.hasSelection()) { textInput.focus(); }
             isDragging = false;
         });
 
