@@ -280,21 +280,29 @@ func SetLinkDeadUser(userId int) {
 		u.Character.RemoveBuff(0)
 		u.Character.SetAdjective(`zombie`, true)
 
-		// Prevent guide mob dupes
-		for _, miid := range u.Character.CharmedMobs {
-			if m := mobs.GetInstance(miid); m != nil {
-				if m.MobId == 38 {
-					m.Character.Charmed.RoundsRemaining = 0
+		// Special case for `newbieguide` module exported function check
+		// If module was loaded, this function should exist.
+		if fn, ok := GetExportedFunction(`PlayerGuideMobId`); ok {
+			guideMobId := 0
+			if guideMobIdFn, ok := fn.(func() int); ok {
+				guideMobId = guideMobIdFn()
+			}
+
+			// Prevent guide mob dupes
+			for _, miid := range u.Character.CharmedMobs {
+				if m := mobs.GetInstance(miid); m != nil {
+					if m.MobId == mobs.MobId(guideMobId) && m.Character.Charmed != nil {
+						m.Character.Charmed.RoundsRemaining = 0
+					}
 				}
 			}
 		}
 
-		if _, ok := userManager.LinkDeadConnections[u.connectionId]; ok {
-			return
+		if _, ok := userManager.LinkDeadConnections[u.connectionId]; !ok {
+			u.isLinkDead = true
+			userManager.LinkDeadConnections[u.connectionId] = util.GetTurnCount()
 		}
 
-		u.isLinkDead = true
-		userManager.LinkDeadConnections[u.connectionId] = util.GetTurnCount()
 	}
 
 }
