@@ -45,6 +45,7 @@ func init() {
 	events.RegisterListener(events.ItemOwnership{}, m.onItemOwnership)
 	events.RegisterListener(events.GainExperience{}, m.onGainExperience)
 	events.RegisterListener(events.LevelUp{}, m.onLevelUp)
+	events.RegisterListener(events.RoomChange{}, m.onRoomChange)
 	events.RegisterListener(zombieSummary{}, m.onZombieSummary)
 }
 
@@ -55,6 +56,7 @@ type ZombieConfig struct {
 	RoamRadius    int                     `yaml:"roamradius,omitempty"`
 	RestThreshold int                     `yaml:"restthreshold,omitempty"`
 	LootTargets   []string                `yaml:"loottargets,omitempty"`
+	Waypoints     []int                   `yaml:"waypoints,omitempty"`
 	Profiles      map[string]ZombieConfig `yaml:"profiles,omitempty"`
 }
 
@@ -65,6 +67,7 @@ type zombieStats struct {
 	ItemsLooted      map[string]int
 	ExperienceGained int
 	LevelsGained     int
+	RoomsTravelled   int
 }
 
 func newZombieStats() zombieStats {
@@ -74,10 +77,18 @@ func newZombieStats() zombieStats {
 	}
 }
 
+// pathStepRecord stores a single path step for waypoint navigation.
+type pathStepRecord struct {
+	exitName string
+	roomId   int
+}
+
 // zombieRuntime holds transient state that is only valid while zombie mode is active.
 type zombieRuntime struct {
-	HomeRoom int
-	Stats    zombieStats
+	HomeRoom      int
+	Stats         zombieStats
+	WaypointIndex int              // index into cfg.Waypoints of the next target
+	WaypointPath  []pathStepRecord // remaining steps to reach current target waypoint
 }
 
 // zombieSummary is a module-local event that carries a completed session's stats
@@ -232,8 +243,12 @@ func (m *ZombieModule) onInput(e events.Event) events.ListenerReturn {
 		return events.Continue
 	}
 
-	// Allow "zombie status" without waking up.
-	if strings.TrimSpace(strings.ToLower(evt.InputText)) == `zombie status` {
+	// Allow certain zombie subcommands without waking up.
+	inputLower := strings.TrimSpace(strings.ToLower(evt.InputText))
+	if inputLower == `zombie status` {
+		return events.Continue
+	}
+	if inputLower == `zombie waypoints` || strings.HasPrefix(inputLower, `zombie waypoints `) {
 		return events.Continue
 	}
 
@@ -368,6 +383,27 @@ func (m *ZombieModule) onLevelUp(e events.Event) events.ListenerReturn {
 	return events.Continue
 }
 
+func (m *ZombieModule) onRoomChange(e events.Event) events.ListenerReturn {
+	evt, ok := e.(events.RoomChange)
+	if !ok {
+		return events.Continue
+	}
+
+	if evt.UserId == 0 {
+		return events.Continue
+	}
+
+	rt, isActive := m.active[evt.UserId]
+	if !isActive {
+		return events.Continue
+	}
+
+	rt.Stats.RoomsTravelled++
+	m.active[evt.UserId] = rt
+
+	return events.Continue
+}
+
 // sendSummary sends the zombie session summary to the player.
 func (m *ZombieModule) sendSummary(user *users.UserRecord, stats zombieStats) {
 	border := `<ansi fg="black-bold">+--------------------------------------------------+</ansi>`
@@ -398,6 +434,7 @@ func (m *ZombieModule) sendSummary(user *users.UserRecord, stats zombieStats) {
 	lines = append(lines, fmt.Sprintf(`  <ansi fg="white">Gold collected:</ansi>    <ansi fg="gold">%d</ansi>`, stats.GoldGained))
 	lines = append(lines, fmt.Sprintf(`  <ansi fg="white">Experience gained:</ansi> <ansi fg="experience">%d</ansi>`, stats.ExperienceGained))
 	lines = append(lines, fmt.Sprintf(`  <ansi fg="white">Levels gained:</ansi>     <ansi fg="stat">%d</ansi>`, stats.LevelsGained))
+	lines = append(lines, fmt.Sprintf(`  <ansi fg="white">Rooms travelled:</ansi>   <ansi fg="stat">%d</ansi>`, stats.RoomsTravelled))
 
 	lines = append(lines, ``)
 	lines = append(lines, `  <ansi fg="white">Items looted:</ansi>`)
