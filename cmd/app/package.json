@@ -1,0 +1,34 @@
+{
+  "name": "GoMud",
+  "version": "1.0.0",
+  "description": "GoMudClient",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:mac": "electron-builder --mac",
+    "build:win": "electron-builder --win",
+    "build:linux": "electron-builder --linux"
+  },
+  "devDependencies": {
+    "electron": "^35.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "com.gomudclient.app",
+    "productName": "GoMudClient",
+    "mac": {
+      "target": "dmg"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    },
+    "files": [
+      "main.js",
+      "build_cache/webclient-pure.html",
+      "build_cache/static/**/*"
+    ]
+  }
+}

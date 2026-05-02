@@ -1570,7 +1570,10 @@ const Client = (() => {
 
     function reconnectWithToken(token) {
         debugLog('Reconnecting with copyover token');
-        const wsUrl = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws';
+        var wsUrl = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws';
+        if (typeof WS_URL_OVERRIDE != "undefined" && WS_URL_OVERRIDE != "") {
+            wsUrl = WS_URL_OVERRIDE;
+        }
         socket = new WebSocket(wsUrl);
         attachSocketHandlers('Reconnected after server reboot.', false);
         const origOnOpen = socket.onopen;
@@ -2100,7 +2103,12 @@ const Client = (() => {
                 socket.close();
                 return;
             }
-            const wsUrl = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws';
+
+            var wsUrl = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws';
+            if (typeof WS_URL_OVERRIDE != "undefined" && WS_URL_OVERRIDE != "") {
+                wsUrl = WS_URL_OVERRIDE;
+            }
+            
             debugLog('Connecting to: ' + wsUrl);
             socket = new WebSocket(wsUrl);
             attachSocketHandlers('Connected to the server!', true);
