@@ -82,6 +82,14 @@ func Set(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 		user.SendText(fmt.Sprintf(`%d%%`, currentWimpy.(int)))
 		user.SendText(``)
 
+		currentStyle := user.GetConfigOption(`shopstyle`)
+		if currentStyle == nil {
+			currentStyle = "default"
+		}
+		user.SendText(`<ansi fg="yellow-bold">shopstyle:</ansi> `)
+		user.SendText(fmt.Sprintf(`%s`, currentStyle))
+		user.SendText(``)
+
 		user.SendText(`See: <ansi fg="command">help set</ansi>`)
 
 		return true, nil
@@ -287,6 +295,42 @@ func Set(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 
 		return true, nil
 
+	}
+
+	if setTarget == `shopstyle` {
+
+		validStyles := map[string]bool{"default": true, "fancy": true, "minimal": true, "grid": true, "arcane": true, "rugged": true}
+
+		if len(args) < 1 {
+			currentStyle := user.GetConfigOption(`shopstyle`)
+			if currentStyle == nil {
+				currentStyle = "default"
+			}
+			user.SendText(fmt.Sprintf("Current shop style: %s", currentStyle))
+			user.SendText(`Available styles: <ansi fg="command">default</ansi>, <ansi fg="command">fancy</ansi>, <ansi fg="command">minimal</ansi>, <ansi fg="command">grid</ansi>, <ansi fg="command">arcane</ansi>, <ansi fg="command">rugged</ansi>`)
+			return true, nil
+		}
+
+		style := args[0]
+		if !validStyles[style] {
+			user.SendText(`Invalid style. Available: <ansi fg="command">default</ansi>, <ansi fg="command">fancy</ansi>, <ansi fg="command">minimal</ansi>, <ansi fg="command">grid</ansi>, <ansi fg="command">arcane</ansi>, <ansi fg="command">rugged</ansi>`)
+			return true, nil
+		}
+
+		if style == "default" {
+			user.SetConfigOption(`shopstyle`, nil)
+		} else {
+			user.SetConfigOption(`shopstyle`, style)
+		}
+
+		user.SendText(fmt.Sprintf(`Shop list style set to: <ansi fg="command">%s</ansi>`, style))
+
+		events.AddToQueue(events.UserSettingChanged{
+			UserId: user.UserId,
+			Name:   `shopstyle`,
+		})
+
+		return true, nil
 	}
 
 	if setTarget == `screenreader` {
