@@ -234,9 +234,14 @@
         text-align: left;
         cursor: pointer;
     }
-    .mapper-ctx-menu .ctx-item:hover {
+    .mapper-ctx-menu .ctx-item:hover:not(:disabled) {
         background: var(--color-primary);
         color: #fff;
+    }
+    .mapper-ctx-menu .ctx-item:disabled {
+        color: var(--color-text-dim);
+        opacity: 0.4;
+        cursor: default;
     }
 
     .mapper-save-controls {
@@ -884,6 +889,36 @@ var exitDrawMode = {
     _mouseCx: 0, _mouseCy: 0
 };
 
+// Quick build mode
+var quickBuildMode = {
+    active: false,
+    sourceRoomId: null,
+    sourceGx: 0, sourceGy: 0, sourceGz: 0
+};
+
+var CARDINAL_BASE = [
+    { dx:  0, dy: -1, dir: 'north',     ret: 'south'     },
+    { dx:  0, dy:  1, dir: 'south',     ret: 'north'     },
+    { dx:  1, dy:  0, dir: 'east',      ret: 'west'      },
+    { dx: -1, dy:  0, dir: 'west',      ret: 'east'      },
+    { dx:  1, dy: -1, dir: 'northeast', ret: 'southwest'  },
+    { dx: -1, dy: -1, dir: 'northwest', ret: 'southeast'  },
+    { dx:  1, dy:  1, dir: 'southeast', ret: 'northwest'  },
+    { dx: -1, dy:  1, dir: 'southwest', ret: 'northeast'  }
+];
+
+var CARDINAL_OFFSETS = [];
+CARDINAL_BASE.forEach(function(b) {
+    for (var m = 1; m <= 3; m++) {
+        var suffix = m === 1 ? '' : '-x' + m;
+        CARDINAL_OFFSETS.push({
+            dx: b.dx * m, dy: b.dy * m, dist: m,
+            dir: b.dir + suffix, ret: b.ret + suffix,
+            label: b.dir
+        });
+    }
+});
+
 function isDirty() {
     return dirty.movedRooms.size > 0 || dirty.exitRemovals.length > 0 ||
            dirty.exitAdditions.length > 0 || dirty.deletedRooms.length > 0 ||
@@ -1434,7 +1469,48 @@ function render2d() {
             }
         });
     }
-    // Ghost cell outline on empty grid positions (not during room drag)
+    // Quick build mode: show 8 cardinal/intercardinal slots
+    else if (quickBuildMode.active && quickBuildMode.sourceGz === activeZ2d) {
+        var srcP = gridToCanvas2d(quickBuildMode.sourceGx, quickBuildMode.sourceGy);
+        // Highlight source room
+        ctx.strokeStyle = 'rgba(95,183,122,0.8)';
+        ctx.lineWidth = Math.max(2, 2.5 * zoomScale);
+        ctx.strokeRect(srcP.px - half - 2*zoomScale, srcP.py - half - 2*zoomScale, scaledSize + 4*zoomScale, scaledSize + 4*zoomScale);
+
+        var slots = getQuickBuildSlots();
+        var fadeByDist = [1.0, 0.7, 0.45];
+        slots.forEach(function(slot) {
+            var sp = gridToCanvas2d(slot.gx, slot.gy);
+            var isHovered = hoveredGridCell && hoveredGridCell.gx === slot.gx && hoveredGridCell.gy === slot.gy;
+            var fade = fadeByDist[slot.dist - 1] || 0.3;
+            if (slot.occupied) {
+                ctx.strokeStyle = 'rgba(255,255,255,' + (0.1 * fade) + ')';
+                ctx.lineWidth = Math.max(1, 1 * zoomScale);
+                ctx.strokeRect(sp.px - half, sp.py - half, scaledSize, scaledSize);
+            } else {
+                var alpha = isHovered ? 0.9 : 0.4 * fade;
+                ctx.strokeStyle = 'rgba(95,183,122,' + alpha + ')';
+                ctx.lineWidth = Math.max(1, 1.5 * zoomScale);
+                ctx.setLineDash(isHovered ? [] : [Math.max(2, 4 * zoomScale), Math.max(2, 4 * zoomScale)]);
+                ctx.strokeRect(sp.px - half, sp.py - half, scaledSize, scaledSize);
+                ctx.setLineDash([]);
+                ctx.fillStyle = 'rgba(95,183,122,' + (isHovered ? 0.15 : 0.05 * fade) + ')';
+                ctx.fillRect(sp.px - half, sp.py - half, scaledSize, scaledSize);
+                ctx.fillStyle = 'rgba(95,183,122,' + alpha + ')';
+                ctx.font = 'bold ' + Math.max(8, scaledFont * 0.6) + 'px monospace';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                var lbl = slot.label.substring(0, 2).toUpperCase();
+                if (slot.dist > 1) lbl += slot.dist;
+                ctx.fillText(lbl, sp.px, sp.py);
+            }
+            // Connection line from source to slot
+            var lineAlpha = slot.occupied ? 0.05 * fade : (isHovered ? 0.6 : 0.15 * fade);
+            ctx.strokeStyle = 'rgba(95,183,122,' + lineAlpha + ')';
+            ctx.lineWidth = Math.max(1, 2 * zoomScale);
+            ctx.beginPath(); ctx.moveTo(srcP.px, srcP.py); ctx.lineTo(sp.px, sp.py); ctx.stroke();
+        });
+    }
+    // Ghost cell outline on empty grid positions (not during room drag or quick build)
     else if (hoveredGridCell && !gridCellOccupied(hoveredGridCell.gx, hoveredGridCell.gy, activeZ2d)) {
         var gp = gridToCanvas2d(hoveredGridCell.gx, hoveredGridCell.gy);
         var ghalf = scaledSize / 2;
@@ -1833,8 +1909,38 @@ function render3d() {
         });
     }
 
+    // Quick build mode: show slots in 3D
+    if (quickBuildMode.active && quickBuildMode.sourceGz === drawZ) {
+        var ghw3q = TILE_HW_3D * zoomScale, ghh3q = TILE_HH_3D * zoomScale;
+        var slots3 = getQuickBuildSlots();
+        var fade3 = [1.0, 0.7, 0.45];
+        slots3.forEach(function(slot) {
+            var sp3 = isoProject3d(slot.gx, slot.gy, drawZ, drawZ);
+            var isH3 = hoveredGridCell && hoveredGridCell.gx === slot.gx && hoveredGridCell.gy === slot.gy;
+            var f3 = fade3[slot.dist - 1] || 0.3;
+            if (!slot.occupied) {
+                var a3 = isH3 ? 0.9 : 0.4 * f3;
+                ctx.strokeStyle = 'rgba(95,183,122,' + a3 + ')';
+                ctx.lineWidth = Math.max(1, 1.5 * zoomScale);
+                if (!isH3) ctx.setLineDash([Math.max(2, 4 * zoomScale), Math.max(2, 4 * zoomScale)]);
+                ctx.beginPath();
+                ctx.moveTo(sp3.sx, sp3.sy - ghh3q); ctx.lineTo(sp3.sx + ghw3q, sp3.sy);
+                ctx.lineTo(sp3.sx, sp3.sy + ghh3q); ctx.lineTo(sp3.sx - ghw3q, sp3.sy);
+                ctx.closePath(); ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.fillStyle = 'rgba(95,183,122,' + (isH3 ? 0.15 : 0.05 * f3) + ')';
+                ctx.fill();
+                ctx.fillStyle = 'rgba(95,183,122,' + a3 + ')';
+                ctx.font = 'bold ' + Math.max(6, SYMBOL_FONT_SIZE_3D * zoomScale * 0.6) + 'px monospace';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                var lbl3 = slot.label.substring(0, 2).toUpperCase();
+                if (slot.dist > 1) lbl3 += slot.dist;
+                ctx.fillText(lbl3, sp3.sx, sp3.sy);
+            }
+        });
+    }
     // Ghost cell on empty grid position
-    if (hoveredGridCell && !gridCellOccupied(hoveredGridCell.gx, hoveredGridCell.gy, drawZ)) {
+    else if (hoveredGridCell && !gridCellOccupied(hoveredGridCell.gx, hoveredGridCell.gy, drawZ)) {
         var gp3 = isoProject3d(hoveredGridCell.gx, hoveredGridCell.gy, drawZ, drawZ);
         var ghw = TILE_HW_3D * zoomScale;
         var ghh = TILE_HH_3D * zoomScale;
@@ -1928,6 +2034,91 @@ function cancelExitDrawMode() {
     exitDrawMode.hoveredTargetId = null;
     canvas.style.cursor = '';
     render();
+}
+
+function startQuickBuildMode(sourceRoomId) {
+    var room = mapperData.rooms.get(sourceRoomId);
+    if (!room || !room.HasCoordinates) return;
+    if (!mapperData.currentZone) {
+        alert('Select a zone from the dropdown first.');
+        return;
+    }
+    quickBuildMode.active = true;
+    quickBuildMode.sourceRoomId = sourceRoomId;
+    quickBuildMode.sourceGx = room.MapX;
+    quickBuildMode.sourceGy = room.MapY;
+    quickBuildMode.sourceGz = room.MapZ;
+    canvas.style.cursor = 'crosshair';
+    render();
+}
+
+function cancelQuickBuildMode() {
+    quickBuildMode.active = false;
+    quickBuildMode.sourceRoomId = null;
+    canvas.style.cursor = '';
+    render();
+}
+
+function getQuickBuildSlots() {
+    var slots = [];
+    var gz = quickBuildMode.sourceGz;
+    var blockedDirs = {};
+    CARDINAL_OFFSETS.forEach(function(co) {
+        var gx = quickBuildMode.sourceGx + co.dx;
+        var gy = quickBuildMode.sourceGy + co.dy;
+        var occupied = gridCellOccupied(gx, gy, gz);
+        var blocked = !!blockedDirs[co.label];
+        if (occupied) blockedDirs[co.label] = true;
+        slots.push({ gx: gx, gy: gy, gz: gz, dir: co.dir, ret: co.ret, label: co.label, dist: co.dist, occupied: occupied || blocked });
+    });
+    return slots;
+}
+
+function isQuickBuildSlot(gx, gy) {
+    var gz = quickBuildMode.sourceGz;
+    for (var i = 0; i < CARDINAL_OFFSETS.length; i++) {
+        var co = CARDINAL_OFFSETS[i];
+        if (quickBuildMode.sourceGx + co.dx === gx && quickBuildMode.sourceGy + co.dy === gy &&
+            !gridCellOccupied(gx, gy, gz)) return true;
+    }
+    return false;
+}
+
+function quickBuildAt(gx, gy) {
+    var gz = quickBuildMode.sourceGz;
+    var match = null;
+    CARDINAL_OFFSETS.forEach(function(co) {
+        if (quickBuildMode.sourceGx + co.dx === gx && quickBuildMode.sourceGy + co.dy === gy) {
+            match = co;
+        }
+    });
+    if (!match) return false;
+    if (gridCellOccupied(gx, gy, gz)) return false;
+
+    var newId = createRoomLocally(gx, gy, gz);
+
+    // Copy traits from the source room
+    var srcRoom = mapperData.rooms.get(quickBuildMode.sourceRoomId);
+    var newRoom = mapperData.rooms.get(newId);
+    if (srcRoom && newRoom) {
+        newRoom.Title = srcRoom.Title;
+        newRoom.Biome = srcRoom.Biome;
+        newRoom.MapSymbol = srcRoom.MapSymbol;
+        newRoom.MapLegend = srcRoom.MapLegend;
+        newRoom._symbol = symbolForRoom(newRoom);
+        newRoom._color = colorForSymbol(newRoom._symbol, newRoom.Biome);
+    }
+
+    addExitLocally(quickBuildMode.sourceRoomId, match.dir, newId);
+    addExitLocally(newId, match.ret, quickBuildMode.sourceRoomId);
+
+    // Advance source to the new room
+    quickBuildMode.sourceRoomId = newId;
+    quickBuildMode.sourceGx = gx;
+    quickBuildMode.sourceGy = gy;
+    selectRoom(newId);
+    render();
+    return true;
 }
 
 function validateExitName(dir, sourceRoom, targetRoom) {
@@ -2036,6 +2227,19 @@ canvas.addEventListener('mousedown', function(e) {
     var rect = canvas.getBoundingClientRect();
     var cx = e.clientX - rect.left, cy = e.clientY - rect.top;
     var id = roomAtPoint(cx, cy);
+
+    // Quick build mode: click on valid slot to stamp, anything else cancels
+    if (quickBuildMode.active) {
+        if (id === null) {
+            var gc = canvasToGrid(cx, cy);
+            if (!quickBuildAt(gc.gx, gc.gy)) {
+                cancelQuickBuildMode();
+            }
+        } else {
+            cancelQuickBuildMode();
+        }
+        return;
+    }
 
     // Exit draw mode: click commits or cancels
     if (exitDrawMode.active) {
@@ -2204,11 +2408,12 @@ canvas.addEventListener('mousemove', function(e) {
     hoveredRoomId = id;
     if (id !== null) {
         var hroom = mapperData.rooms.get(id);
-        if (hroom) { clearTimeout(tooltipHideTimer); showTooltip(e.clientX, e.clientY, hroom, id); }
-        canvas.style.cursor = exitDrawMode.active ? 'crosshair' : 'pointer';
+        if (hroom) { /* room hovered */ }
+        var specialCursor = exitDrawMode.active || quickBuildMode.active;
+        canvas.style.cursor = specialCursor ? 'crosshair' : 'pointer';
     } else {
-        hideTooltip();
-        canvas.style.cursor = exitDrawMode.active ? 'crosshair' : 'grab';
+        var specialCursor2 = exitDrawMode.active || quickBuildMode.active;
+        canvas.style.cursor = specialCursor2 ? 'crosshair' : 'grab';
     }
 
     // Ghost cell tracking for empty grid positions (both views)
@@ -2316,39 +2521,31 @@ canvas.addEventListener('click', function(e) {
     var cx = e.clientX - rect.left, cy = e.clientY - rect.top;
     var id = roomAtPoint(cx, cy);
     if (id !== null) {
-        if (e.shiftKey || e.ctrlKey) { toggleRoomSelection(id); }
-        else { selectRoom(id); }
-    } else if (mapperData.rooms.size > 0) {
-        var gc = canvasToGrid(cx, cy);
-        var cZ = currentZ();
-        if (!gridCellOccupied(gc.gx, gc.gy, cZ)) {
-            showCtxMenuForEmpty(e.clientX, e.clientY, gc.gx, gc.gy, cZ);
-            e.stopPropagation();
+        if (e.shiftKey || e.ctrlKey) {
+            toggleRoomSelection(id);
         } else {
-            selectRoom(null);
+            selectRoom(id);
+            showCtxMenuForRoom(e.clientX, e.clientY, id);
+            e.stopPropagation();
         }
     } else {
         selectRoom(null);
+        if (mapperData.rooms.size > 0) {
+            var gc = canvasToGrid(cx, cy);
+            var cZ = currentZ();
+            if (!gridCellOccupied(gc.gx, gc.gy, cZ)) {
+                showCtxMenuForEmpty(e.clientX, e.clientY, gc.gx, gc.gy, cZ);
+                e.stopPropagation();
+            }
+        }
     }
 });
 
 canvas.addEventListener('contextmenu', function(e) {
     e.preventDefault();
     e.stopPropagation();
+    if (quickBuildMode.active) { cancelQuickBuildMode(); return; }
     if (exitDrawMode.active) { cancelExitDrawMode(); return; }
-    hideCtxMenu();
-    var rect = canvas.getBoundingClientRect();
-    var cx = e.clientX - rect.left, cy = e.clientY - rect.top;
-    var id = roomAtPoint(cx, cy);
-    if (id !== null) {
-        showCtxMenuForRoom(e.clientX, e.clientY, id);
-    } else if (mapperData.rooms.size > 0) {
-        var gc = canvasToGrid(cx, cy);
-        var cZ = currentZ();
-        if (!gridCellOccupied(gc.gx, gc.gy, cZ)) {
-            showCtxMenuForEmpty(e.clientX, e.clientY, gc.gx, gc.gy, cZ);
-        }
-    }
 });
 
 canvas.addEventListener('wheel', function(e) {
@@ -2378,6 +2575,22 @@ function showCtxMenuForRoom(mx, my, roomId) {
     html += '<button class="ctx-item" data-action="select" data-id="' + roomId + '">Select</button>';
     html += '<button class="ctx-item" data-action="add-exit" data-id="' + roomId + '">Add Exit</button>';
     html += '<button class="ctx-item" data-action="add-exit-by-id" data-id="' + roomId + '">Add Exit (By Room Number)</button>';
+    if (room && room.HasCoordinates) {
+        var upZ = room.MapZ + 1, downZ = room.MapZ - 1;
+        var upOccupied = gridCellOccupied(room.MapX, room.MapY, upZ);
+        var downOccupied = gridCellOccupied(room.MapX, room.MapY, downZ);
+        html += '<button class="ctx-item" data-action="add-room-up" data-id="' + roomId + '"' +
+                ' data-gx="' + room.MapX + '" data-gy="' + room.MapY + '" data-gz="' + upZ + '"' +
+                (upOccupied ? ' disabled' : '') + '>Add Room Up (z:' + upZ + ')' +
+                (upOccupied ? ' — occupied' : '') + '</button>';
+        html += '<button class="ctx-item" data-action="add-room-down" data-id="' + roomId + '"' +
+                ' data-gx="' + room.MapX + '" data-gy="' + room.MapY + '" data-gz="' + downZ + '"' +
+                (downOccupied ? ' disabled' : '') + '>Add Room Down (z:' + downZ + ')' +
+                (downOccupied ? ' — occupied' : '') + '</button>';
+    }
+    if (room && room.HasCoordinates) {
+        html += '<button class="ctx-item" data-action="quick-build" data-id="' + roomId + '" style="color:#5fb77a">Quick Build From Here</button>';
+    }
     if (roomId > 0) html += '<button class="ctx-item" data-action="edit" data-id="' + roomId + '">Edit Room</button>';
     html += '<button class="ctx-item" style="color:#ff6b6b" data-action="delete" data-id="' + roomId + '">Delete Room</button>';
     ctxMenuEl.innerHTML = html;
@@ -2418,6 +2631,10 @@ function bindCtxMenuActions() {
                 startExitDrawMode(parseInt(btn.dataset.id));
             } else if (action === 'add-exit-by-id') {
                 addExitByRoomNumber(parseInt(btn.dataset.id));
+            } else if (action === 'add-room-up' || action === 'add-room-down') {
+                createRoomAt(parseInt(btn.dataset.gx), parseInt(btn.dataset.gy), parseInt(btn.dataset.gz));
+            } else if (action === 'quick-build') {
+                startQuickBuildMode(parseInt(btn.dataset.id));
             } else if (action === 'delete') {
                 var rid = parseInt(btn.dataset.id);
                 var room = mapperData.rooms.get(rid);
@@ -2436,6 +2653,7 @@ document.addEventListener('click', function(e) {
 });
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
+        if (quickBuildMode.active) { cancelQuickBuildMode(); return; }
         if (exitDrawMode.active) { cancelExitDrawMode(); return; }
         hideCtxMenu();
     }
@@ -2482,13 +2700,21 @@ async function saveAllChanges() {
         var zone = info.zone || mapperData.currentZone || '';
         var off = mapperData.zoneOffsets.get(zone) || { dx: 0, dy: 0 };
         var serverX = info.gx - off.dx, serverY = info.gy - off.dy;
+        var tempRoom = mapperData.rooms.get(tempId);
         var createRes = await AdminAPI.post('/admin/api/v1/rooms', { Zone: zone });
         if (createRes.ok && createRes.data && createRes.data.data) {
             var realId = createRes.data.data.RoomId;
             tempToReal.set(tempId, realId);
-            await AdminAPI.patch('/admin/api/v1/rooms/' + realId, {
+            var patchData = {
                 MapX: serverX, MapY: serverY, MapZ: info.gz, HasCoordinates: true
-            });
+            };
+            if (tempRoom) {
+                if (tempRoom.Title && tempRoom.Title !== 'New Room') patchData.Title = tempRoom.Title;
+                if (tempRoom.Biome) patchData.Biome = tempRoom.Biome;
+                if (tempRoom.MapSymbol) patchData.MapSymbol = tempRoom.MapSymbol;
+                if (tempRoom.MapLegend) patchData.MapLegend = tempRoom.MapLegend;
+            }
+            await AdminAPI.patch('/admin/api/v1/rooms/' + realId, patchData);
         }
     }
 
