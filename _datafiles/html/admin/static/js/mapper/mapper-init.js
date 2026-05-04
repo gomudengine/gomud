@@ -88,15 +88,20 @@
         var roomId = MapperRender.roomAtPoint(cx, cy);
         var gridCell = roomId === null ? MapperRender.canvasToGrid(cx, cy) : null;
 
-        // Intercept order matters: selection rect first, then room-drag
-        if (selectTool && selectTool.interceptMouseDown && selectTool.interceptMouseDown(e, cx, cy, roomId)) {
-            return;
-        }
-        if (roomDragTool && roomDragTool.interceptMouseDown && roomDragTool.interceptMouseDown(e, cx, cy, roomId)) {
-            return;
+        var tool = MapperTools.getActive();
+
+        // When a special tool (exit-draw, quick-build) is active, skip
+        // interceptors and forward directly to the tool
+        var specialActive = tool && (tool.name === 'exit-draw' || tool.name === 'quick-build');
+        if (!specialActive) {
+            if (selectTool && selectTool.interceptMouseDown && selectTool.interceptMouseDown(e, cx, cy, roomId)) {
+                return;
+            }
+            if (roomDragTool && roomDragTool.interceptMouseDown && roomDragTool.interceptMouseDown(e, cx, cy, roomId)) {
+                return;
+            }
         }
 
-        var tool = MapperTools.getActive();
         if (tool && tool.onMouseDown) {
             tool.onMouseDown(e, cx, cy, roomId, gridCell);
         }
