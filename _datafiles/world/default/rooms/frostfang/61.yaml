@@ -13,7 +13,6 @@ description: The Frostfire Inn stands as a beacon of warmth and respite amidst F
   beloved haven for both locals and wanderers alike.
 mapsymbol: I
 maplegend: Inn
-biome: city
 exits:
   north:
     roomid: 57
@@ -22,3 +21,7 @@ spawninfo:
   message: A serving wench enters from a back room.
   levelmod: 10
   respawnrate: 2 real minutes
+mapx: 4
+mapy: 1
+mapz: 0
+hascoordinates: true

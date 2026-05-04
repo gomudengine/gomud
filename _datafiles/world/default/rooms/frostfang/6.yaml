@@ -7,7 +7,6 @@ description: Standing at the castle gates of Frostfang, Cobblestone Way conclude
   shadows that dance and play on the snow-covered ground. From within the castle,
   the sound of music reaches your ears, a beautiful melody that seems to beckon you
   closer.
-biome: city
 exits:
   north:
     roomid: 36
@@ -26,3 +25,7 @@ spawninfo:
   message: A guard has returned from his break.
   levelmod: 10
   respawnrate: 5 real minutes
+mapx: 0
+mapy: -5
+mapz: 0
+hascoordinates: true

@@ -25,3 +25,7 @@ spawninfo:
 - mobid: 21
   message: A dark robed figure slinks into view.
   respawnrate: 10 real minutes
+mapx: 3
+mapy: 3
+mapz: -1
+hascoordinates: true

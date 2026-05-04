@@ -6,7 +6,6 @@ description: The distant sound of rustling leaves and the ominous sensation of b
   abruptly into a nightmarish landscape. Massive webs glisten like silver threads,
   spanning the trees and the path ahead, and the ominous skittering of giant arachnids
   echoes through the oppressive silence.
-biome: forest
 exits:
   north:
     roomid: 550
@@ -19,3 +18,7 @@ spawninfo:
 - mobid: 35
   message: A small spider hatches from a nearby egg.
   respawnrate: 7 real minutes
+mapx: 31
+mapy: -8
+mapz: 0
+hascoordinates: true

@@ -18,3 +18,7 @@ spawninfo:
 - mobid: 26
   levelmod: 10
   respawnrate: 5 real minutes
+mapx: 5
+mapy: -3
+mapz: 0
+hascoordinates: true

@@ -7,10 +7,13 @@ description: Encircling the city of Frostfang, the ramparts stand as a formidabl
   the winter winds.
 mapsymbol: ♜
 maplegend: Wall
-biome: city
 exits:
   north:
     roomid: 789
     mapdirection: north-x2
   southeast:
     roomid: 35
+mapx: -7
+mapy: -1
+mapz: 0
+hascoordinates: true

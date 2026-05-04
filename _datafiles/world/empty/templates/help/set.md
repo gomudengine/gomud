@@ -31,3 +31,7 @@ There are a handful of settings you can adjust with this command, including:
 
   ~set wimpy~  
   Set your wimpy percentage (See ~help wimpy~)
+
+  ~set shopstyle [style]~  
+  Changes the layout of merchant shop listings. Available styles:  
+  ~default~, ~fancy~, ~minimal~, ~grid~, ~arcane~, ~rugged~

@@ -12,7 +12,6 @@ description: The Throne Room of Frostfang Castle exudes an aura of cold majesty.
   starkly with the imposing stone surroundings, underscoring the room's potent authority.
 mapsymbol: '!'
 maplegend: Throneroom
-biome: city
 exits:
   south:
     roomid: 36
@@ -22,3 +21,7 @@ spawninfo:
   questflags: [2-start, 2-investigate, 2-inform]
   level: 100
   respawnrate: 7 real minutes
+mapx: 0
+mapy: -7
+mapz: 0
+hascoordinates: true

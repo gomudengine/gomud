@@ -6,7 +6,6 @@ description: As you venture further along the old road, it leads you into the he
   shadowy realm is abrupt and palpable. The once-clear path is now obscured by gnarled,
   twisted branches that reach out like skeletal fingers from ancient trees, their
   bark as black as night.
-biome: forest
 exits:
   north:
     roomid: 530
@@ -16,3 +15,7 @@ spawninfo:
 - mobid: 34
   message: A massive tree suddenly begins to move.
   respawnrate: 15 real minutes
+mapx: 43
+mapy: 9
+mapz: 0
+hascoordinates: true

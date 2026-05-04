@@ -11,3 +11,7 @@ description: At the very end of the south-most end of Bloodroot Way, the air is 
 exits:
   north:
     roomid: 849
+mapx: 71
+mapy: 10
+mapz: 0
+hascoordinates: true

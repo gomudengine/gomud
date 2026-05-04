@@ -13,3 +13,7 @@ biome: cave
 exits:
   east:
     roomid: 237
+mapx: -2
+mapy: 2
+mapz: 0
+hascoordinates: true

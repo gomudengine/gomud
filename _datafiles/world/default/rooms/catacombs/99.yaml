@@ -12,3 +12,7 @@ description: Moisture weeps from the stones, and the air is laced with the musty
 exits:
   south:
     roomid: 98
+mapx: -3
+mapy: 1
+mapz: -1
+hascoordinates: true

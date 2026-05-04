@@ -16,3 +16,7 @@ containers:
 exits:
   north:
     roomid: 260
+mapx: 3
+mapy: -1
+mapz: 0
+hascoordinates: true

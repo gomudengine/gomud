@@ -9,7 +9,6 @@ description: Further down Cobblestone Way, the path narrows, and the stone walls
   joined by the rhythmic beat of a drum, creating a lively tune that beckons you forward.
   The castle's grandeur is undeniable, its massive gates and fortified walls standing
   as a testament to Frostfang's history.
-biome: city
 exits:
   north:
     roomid: 5
@@ -17,3 +16,7 @@ exits:
     roomid: 3
   west:
     roomid: 74
+mapx: 0
+mapy: -3
+mapz: 0
+hascoordinates: true

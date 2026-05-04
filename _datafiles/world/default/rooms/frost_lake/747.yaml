@@ -16,3 +16,7 @@ spawninfo:
 - mobid: 60
   message: A crocodile slithers out from the water
   respawnrate: 5 real minutes
+mapx: 22
+mapy: 13
+mapz: 0
+hascoordinates: true

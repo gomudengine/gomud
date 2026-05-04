@@ -29,3 +29,7 @@ spawninfo:
   respawnrate: 5 real minutes
 idlemessages:
 - A gentle breeze blows through the cave from the west
+mapx: 2
+mapy: 0
+mapz: 0
+hascoordinates: true

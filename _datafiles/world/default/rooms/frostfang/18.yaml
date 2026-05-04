@@ -11,7 +11,6 @@ description: Inside the Sanctuary of the Benevolent Heart, a serene ambiance env
   upwards in delicate tendrils, creating an atmosphere of peace and reflection.
 mapsymbol: +
 maplegend: Temple
-biome: city
 exits:
   west:
     roomid: 17
@@ -40,3 +39,7 @@ spawninfo:
   questflags: [2-start]
   level: 40
   respawnrate: 3 real minutes
+mapx: 2
+mapy: 3
+mapz: 0
+hascoordinates: true

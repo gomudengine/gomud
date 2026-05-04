@@ -14,3 +14,7 @@ exits:
     roomid: 592
 nouns:
   boulder: off the path lies a boulder.
+mapx: 58
+mapy: 0
+mapz: 0
+hascoordinates: true

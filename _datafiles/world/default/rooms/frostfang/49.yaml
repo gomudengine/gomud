@@ -8,7 +8,10 @@ description: 'Tucked away in the East Wing, the storage closet is a modest, diml
   permeates the air, while the stone floor, cold to the touch, hints at the closet''s
   seldom use. A single, small window at the top allows a sliver of light, casting
   a muted glow over the room''s contents.'
-biome: city
 exits:
   west:
     roomid: 43
+mapx: 3
+mapy: -7
+mapz: 0
+hascoordinates: true

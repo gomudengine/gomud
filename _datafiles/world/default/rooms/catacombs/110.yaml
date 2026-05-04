@@ -16,3 +16,7 @@ exits:
     roomid: 160
     lock:
       difficulty: 5
+mapx: -6
+mapy: 1
+mapz: -1
+hascoordinates: true

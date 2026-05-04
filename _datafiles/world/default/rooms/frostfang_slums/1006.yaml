@@ -11,9 +11,34 @@ description: The north wing operates at a different frequency than the rest of t
   exhales slowly and turns a card. The room absorbs the result without comment. Whatever
   happens here happens quietly, which somehow makes it feel more consequential than
   the noise next door.
-biome: city
 exits:
   south:
     roomid: 1005
+nouns:
+  claw: :claw machine
+  claw machine: |-
+    <ansi fg="cyan">╔════════════════════════════════╗</ansi>
+    <ansi fg="cyan">║</ansi>     <ansi fg="cyan-bold">C L A W  M A C H I N E</ansi>     <ansi fg="cyan">║</ansi>
+    <ansi fg="cyan">╚════════════════════════════════╝</ansi>
+
+    A tall glass cabinet filled with small prizes, lit from within by a warm glow.
+    A mechanical claw hangs from a gantry inside, waiting to be guided by a brave soul.
+
+        Cost to play:  <ansi fg="gold">100 gold</ansi>
+        Chance to win: <ansi fg="cyan-bold">10%</ansi>
+
+    <ansi fg="cyan">Prizes</ansi> <ansi fg="8">(chance on win):</ansi>
+        <ansi fg="item">6-sided die     </ansi>  <ansi fg="cyan">30%</ansi>
+        <ansi fg="item">magic 8-ball    </ansi>  <ansi fg="cyan">30%</ansi>
+        <ansi fg="item">deck of cards   </ansi>  <ansi fg="cyan">20%</ansi>
+        <ansi fg="item">tarot deck      </ansi>  <ansi fg="cyan">10%</ansi>
+        <ansi fg="item">empty bottle    </ansi>  <ansi fg="cyan">8%</ansi>
+        <ansi fg="item">lucky coin      </ansi>  <ansi fg="cyan">2%</ansi>
+
+    Type <ansi fg="command">play claw machine</ansi> to try your luck.
 tags:
 - claw machine
+mapx: -2
+mapy: 5
+mapz: 0
+hascoordinates: true

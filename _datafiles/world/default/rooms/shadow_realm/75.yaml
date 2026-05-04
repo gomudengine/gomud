@@ -15,3 +15,8 @@ description: You find yourself in the heart of the Shadow Realm, a place suspend
 exits: {}
 mutators:
 - mutatorid: death-recovery
+  spawnedround: 1356530
+mapx: 0
+mapy: 0
+mapz: 0
+hascoordinates: true

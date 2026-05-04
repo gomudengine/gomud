@@ -16,3 +16,7 @@ exits:
 spawninfo:
 - mobid: 26
   respawnrate: 5 real minutes
+mapx: -6
+mapy: -3
+mapz: 0
+hascoordinates: true

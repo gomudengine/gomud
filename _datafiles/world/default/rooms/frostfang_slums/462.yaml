@@ -8,7 +8,6 @@ description: Tucked away in the heart of Frostfang's sprawling slums, a dimly li
   and fraying ropes dot the gaps between these structures. The sewers drain out of
   the canal here, through a rusted grate. The unthinkable slime, filth, and stench
   of the cities denizens repulses you.
-biome: city
 exits:
   grate:
     roomid: 294
@@ -19,9 +18,16 @@ exits:
     roomid: 464
   west:
     roomid: 447
+items:
+- itemid: 20011
+- itemid: 20011
 spawninfo:
 - mobid: 12
   message: A massive rat saunters out from the shadows.
   forcehostile: true
   level: 4
   respawnrate: 2 real minutes
+mapx: 6
+mapy: 7
+mapz: 0
+hascoordinates: true
