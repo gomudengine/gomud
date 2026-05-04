@@ -90,6 +90,10 @@ type Room struct {
 	Mutators          mutators.MutatorList              `yaml:"mutators,omitempty"`                  // mutators this room spawns with.
 	Pvp               bool                              `yaml:"pvp,omitempty"`                       // if config pvp is set to `limited`, uses this value
 	Tags              []string                          `yaml:"tags,omitempty"`                      // short tags that can be added to rooms for any purpose (modules, scripting, etc)
+	MapX              int                               `yaml:"mapx"`
+	MapY              int                               `yaml:"mapy"`
+	MapZ              int                               `yaml:"mapz"`
+	HasCoordinates    bool                              `yaml:"hascoordinates,omitempty"`
 	// Unexported/private
 	players       []int                          // list of user IDs currently in the room
 	mobs          []int                          // list of mob instance IDs currently in the room. Does not get saved.
@@ -132,6 +136,20 @@ func NewEmptyRoom() *Room {
 		tempDataStore: make(map[string]any),
 	}
 	return r
+}
+
+func (r *Room) SetCoordinates(x, y, z int) {
+	r.MapX = x
+	r.MapY = y
+	r.MapZ = z
+	r.HasCoordinates = true
+}
+
+func (r *Room) ClearCoordinates() {
+	r.MapX = 0
+	r.MapY = 0
+	r.MapZ = 0
+	r.HasCoordinates = false
 }
 
 func (r *Room) IsEphemeral() bool {

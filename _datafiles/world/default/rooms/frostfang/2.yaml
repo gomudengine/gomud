@@ -10,9 +10,12 @@ description: Before you stretches Cobblestone Way, an ancient thoroughfare flank
   At the end of the street, looming in majesty and mystery, the castle's imposing
   silhouette stands, its turrets reaching for the sky. A gentle breeze rustles the
   leaves and carries with it whispered tales of knights, dragons, and long-lost treasures.
-biome: city
 exits:
   north:
     roomid: 3
   south:
     roomid: 1
+mapx: 0
+mapy: -1
+mapz: 0
+hascoordinates: true

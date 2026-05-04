@@ -6,7 +6,6 @@ description: As you cautiously approach the massive tree at the heart of the Spi
   melodies of the wind, which weaves through the intricate webs that enshroud the
   colossal trunk. The tree itself is a gnarled and ancient giant, its bark obscured
   by layers upon layers of glistening silk cocoons.
-biome: forest
 exits:
   east:
     roomid: 622
@@ -21,3 +20,7 @@ spawninfo:
 - mobid: 35
   message: A small spider hatches from a nearby egg.
   respawnrate: 7 real minutes
+mapx: 31
+mapy: -6
+mapz: 0
+hascoordinates: true

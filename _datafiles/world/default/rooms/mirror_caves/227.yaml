@@ -19,3 +19,7 @@ exits:
     roomid: 226
 idlemessages:
 - A gentle breeze blows through the cave from the south
+mapx: 3
+mapy: 1
+mapz: 0
+hascoordinates: true

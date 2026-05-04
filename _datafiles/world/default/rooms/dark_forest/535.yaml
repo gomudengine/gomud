@@ -6,9 +6,12 @@ description: As you venture further along the old road, it leads you into the he
   shadowy realm is abrupt and palpable. The once-clear path is now obscured by gnarled,
   twisted branches that reach out like skeletal fingers from ancient trees, their
   bark as black as night.
-biome: forest
 exits:
   north:
     roomid: 536
   south:
     roomid: 534
+mapx: 45
+mapy: 3
+mapz: 0
+hascoordinates: true

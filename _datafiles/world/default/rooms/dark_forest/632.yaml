@@ -8,12 +8,13 @@ description: The Spider Queen's Nest is a place of profound darkness and peril. 
   silk cocoons hang in macabre suspension, their struggles long since silenced. The
   ground is treacherous, a web-covered graveyard where the bones and remnants of the
   Queen's prey lie hidden.
-biome: forest
 exits:
   north:
     roomid: 631
   web:
     roomid: 633
+items:
+- itemid: 10011
 spawninfo:
 - mobid: 36
   message: A giant spider descends from a web.
@@ -21,3 +22,7 @@ spawninfo:
 - mobid: 37
   message: The queen has arrived.
   respawnrate: 10 real minutes
+mapx: 31
+mapy: -6
+mapz: 3
+hascoordinates: true

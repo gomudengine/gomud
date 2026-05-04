@@ -16,8 +16,11 @@ exits:
     roomid: 136
   west:
     roomid: 133
-gold: 7
 spawninfo:
 - mobid: 18
   message: A dark acolyte steps into the room.
   respawnrate: 6 real minutes
+mapx: -3
+mapy: -2
+mapz: -1
+hascoordinates: true

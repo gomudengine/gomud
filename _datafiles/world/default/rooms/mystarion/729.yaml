@@ -12,3 +12,7 @@ exits:
     roomid: 728
   up:
     roomid: 730
+mapx: 78
+mapy: 3
+mapz: 0
+hascoordinates: true

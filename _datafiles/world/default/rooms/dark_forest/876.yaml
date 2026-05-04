@@ -13,7 +13,6 @@ description: At the southernmost reachable part of the chasm, the light barely p
   creating an unsettling symphony that sets your nerves on edge.
 mapsymbol: B
 maplegend: Bridge
-biome: forest
 exits:
   north:
     roomid: 875

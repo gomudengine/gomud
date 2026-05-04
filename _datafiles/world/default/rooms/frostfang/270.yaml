@@ -6,14 +6,17 @@ description: The Soldiers Barracks in Frostfang is a bastion of military discipl
   doors. Upon entering, the air is filled with a blend of leather, metal, and the
   faint scent of wood smoke from the central hearth that heats the large communal
   area.
-biome: city
 exits:
   jail:
     roomid: 1002
-    mapdirection: east
+    mapdirection: up
   north:
     roomid: 829
   northeast:
     roomid: 271
   west:
     roomid: 5
+mapx: 1
+mapy: -4
+mapz: 0
+hascoordinates: true

@@ -17,3 +17,7 @@ spawninfo:
 - mobid: 1
   message: A rat crawls out from a garbage pile.
   respawnrate: 4 real minutes
+mapx: 0
+mapy: -1
+mapz: 0
+hascoordinates: true

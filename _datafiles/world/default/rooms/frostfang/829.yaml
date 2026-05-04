@@ -13,7 +13,6 @@ description: Nestled within the fortified city of Frostfang, the training yard n
   breath visible in the cold. Here, under the watchful eye of the Master-at-Arms,
   warriors are forged, their skills honed against the ever-present backdrop of Frostfang's
   icy embrace.
-biome: city
 exits:
   south:
     roomid: 270
@@ -25,3 +24,7 @@ skilltraining:
   brawling:
     min: 1
     max: 4
+mapx: 1
+mapy: -5
+mapz: 0
+hascoordinates: true

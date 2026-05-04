@@ -11,6 +11,7 @@ description: Deeper within The Mirror Caves, you find yourself in a chamber that
   antiquity, a quiet ode to the enduring beauty of these subterranean depths.
 mapsymbol: X
 maplegend: Exit
+biome: cave
 exits:
   north:
     roomid: 241
@@ -22,3 +23,7 @@ spawninfo:
     the light.
   forcehostile: true
   respawnrate: 2 real minutes
+mapx: 2
+mapy: 4
+mapz: 0
+hascoordinates: true

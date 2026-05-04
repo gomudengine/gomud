@@ -16,3 +16,7 @@ biome: desert
 exits: {}
 idlemessages:
 - You see something shimmering in the distance, and then its gone. Must be a mirage.
+mapx: 0
+mapy: 0
+mapz: 0
+hascoordinates: true

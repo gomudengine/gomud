@@ -13,3 +13,7 @@ biome: snow
 exits:
   east:
     roomid: 217
+mapx: -20
+mapy: 6
+mapz: 0
+hascoordinates: true

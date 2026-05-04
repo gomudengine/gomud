@@ -18,3 +18,7 @@ idlemessages:
 - You hear the wind howling outside the gate.
 - The wind whistles through the arrow slits in the watchtowers.
 - The gate creaks in the wind.
+mapx: 15
+mapy: -2
+mapz: 0
+hascoordinates: true

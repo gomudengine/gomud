@@ -9,3 +9,7 @@ biome: fort
 exits:
   east:
     roomid: 880
+mapx: -20
+mapy: -4
+mapz: 0
+hascoordinates: true

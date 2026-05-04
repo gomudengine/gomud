@@ -7,7 +7,6 @@ description: The cold wind of Frostfang whistles through the narrow, snow-dusted
   and gray, bearing the scars of many harsh winters. The windows, few and far between,
   are mostly boarded up, but from some, faint glimmers of candlelight seep out, casting
   eerie shadows on the snow.
-biome: city
 exits:
   north:
     roomid: 20
@@ -18,3 +17,7 @@ spawninfo:
   message: A rat wanders out from nowhere and looks at you.
   level: 1
   respawnrate: 1 real minutes
+mapx: 1
+mapy: 5
+mapz: 0
+hascoordinates: true

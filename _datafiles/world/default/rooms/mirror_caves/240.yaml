@@ -19,3 +19,7 @@ spawninfo:
 - mobid: 24
   message: A reptilian creature catches your eye in the darkness.
   respawnrate: 5 real minutes
+mapx: 2
+mapy: 2
+mapz: 0
+hascoordinates: true

@@ -7,9 +7,12 @@ description: Within the hedge, the atmosphere is one of serene isolation. The fo
   Occasional gaps in the foliage reveal glimpses of the sky above, a canvas of shifting
   clouds or twinkling stars. This hidden enclave feels like a world apart, a tranquil
   haven untouched by the passage of time.
-biome: city
 exits:
   west:
     roomid: 275
 idlemessages:
 - A glimmer catches your eye in a pile of leaves.
+mapx: 5
+mapy: -4
+mapz: 0
+hascoordinates: true

@@ -13,3 +13,7 @@ exits:
     roomid: 656
   south:
     roomid: 654
+mapx: 68
+mapy: -1
+mapz: 0
+hascoordinates: true

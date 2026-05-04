@@ -29,6 +29,7 @@ var (
 		roomsWithMobs:     make(map[int]int),
 		roomIdToFileCache: make(map[int]string),
 		roomSummaries:     make(map[int]RoomSummaryInfo),
+		coordinateIndex:   make(map[string]map[[3]int]int),
 	}
 )
 
@@ -44,11 +45,12 @@ type RoomSummaryInfo struct {
 
 type RoomManager struct {
 	rooms             map[int]*Room
-	zones             map[string]*ZoneConfig  // a map of zone name to room id
-	roomsWithUsers    map[int]int             // key is roomId to # players
-	roomsWithMobs     map[int]int             // key is roomId to # mobs
-	roomIdToFileCache map[int]string          // key is room id, value is the file path
-	roomSummaries     map[int]RoomSummaryInfo // lightweight room info for admin listing
+	zones             map[string]*ZoneConfig    // a map of zone name to room id
+	roomsWithUsers    map[int]int               // key is roomId to # players
+	roomsWithMobs     map[int]int               // key is roomId to # mobs
+	roomIdToFileCache map[int]string            // key is room id, value is the file path
+	roomSummaries     map[int]RoomSummaryInfo   // lightweight room info for admin listing
+	coordinateIndex   map[string]map[[3]int]int // zone name -> [x,y,z] -> roomId
 }
 
 // Deletes any knowledge of a room in memory.
@@ -671,6 +673,12 @@ func MoveToZone(roomId int, newZoneName string) error {
 		return errors.New("can't move the root room of a zone")
 	}
 
+	if tplRoom.HasCoordinates {
+		UnregisterCoordinate(oldZoneName, roomId)
+		tplRoom.ClearCoordinates()
+		mudlog.Info("MoveToZone", "roomId", roomId, "msg", "coordinates cleared, must be reassigned in new zone")
+	}
+
 	tplRoom.Zone = newZoneName
 	newFilePath := fmt.Sprintf("%s/rooms/%s", configs.GetFilePathsConfig().DataFiles.String(), tplRoom.Filepath())
 	newInstanceFilePath := fmt.Sprintf("%s/rooms.instances/%s", configs.GetFilePathsConfig().DataFiles.String(), tplRoom.Filepath())
@@ -726,6 +734,7 @@ func CreateZone(zoneName string) (roomId int, err error) {
 	}
 
 	newRoom := NewRoom(zoneName)
+	newRoom.SetCoordinates(0, 0, 0)
 
 	if err := newRoom.Validate(); err != nil {
 		return 0, err
@@ -735,6 +744,8 @@ func CreateZone(zoneName string) (roomId int, err error) {
 
 	// save to the flat file
 	SaveRoomTemplate(*newRoom)
+
+	RegisterCoordinate(zoneName, newRoom.RoomId, 0, 0, 0)
 
 	// write room to the folder under the new ID
 	return newRoom.RoomId, nil
@@ -774,6 +785,22 @@ func BuildRoom(fromRoomId int, exitName string, mapDirection ...string) (room *R
 
 	if len(fromRoom.IdleMessages) > 0 {
 		//newRoom.IdleMessages = fromRoom.IdleMessages
+	}
+
+	if fromRoom.HasCoordinates {
+		dirToCheck := exitMapDirection
+		dx, dy, dz := exit.GetDelta(dirToCheck)
+		if dx != 0 || dy != 0 || dz != 0 {
+			newX := fromRoom.MapX + dx
+			newY := fromRoom.MapY + dy
+			newZ := fromRoom.MapZ + dz
+			if !IsCoordinateAvailable(fromRoom.Zone, newX, newY, newZ) {
+				occupyingId, _ := GetRoomAtCoordinate(fromRoom.Zone, newX, newY, newZ)
+				return nil, fmt.Errorf(`coordinate (%d, %d, %d) is already occupied by room %d`, newX, newY, newZ, occupyingId)
+			}
+			newRoom.SetCoordinates(newX, newY, newZ)
+			RegisterCoordinate(fromRoom.Zone, newRoom.RoomId, newX, newY, newZ)
+		}
 	}
 
 	mudlog.Info("Connecting room", "fromRoom", fromRoom.RoomId, "newRoom", newRoom.RoomId, "exitName", exitName)
@@ -820,6 +847,31 @@ func ConnectRoom(fromRoomId int, toRoomId int, exitName string, mapDirection ...
 		return fmt.Errorf(`room %d not found`, toRoomId)
 	}
 
+	dirToCheck := exitMapDirection
+	dx, dy, dz := exit.GetDelta(dirToCheck)
+	isDirectional := dx != 0 || dy != 0 || dz != 0
+
+	if fromRoom.HasCoordinates && isDirectional {
+		expectedX := fromRoom.MapX + dx
+		expectedY := fromRoom.MapY + dy
+		expectedZ := fromRoom.MapZ + dz
+
+		if toRoom.HasCoordinates {
+			if toRoom.MapX != expectedX || toRoom.MapY != expectedY || toRoom.MapZ != expectedZ {
+				return fmt.Errorf(`exit %q implies coordinates (%d, %d, %d) but room %d is at (%d, %d, %d)`,
+					exitName, expectedX, expectedY, expectedZ, toRoomId, toRoom.MapX, toRoom.MapY, toRoom.MapZ)
+			}
+		} else {
+			if !IsCoordinateAvailable(fromRoom.Zone, expectedX, expectedY, expectedZ) {
+				occupyingId, _ := GetRoomAtCoordinate(fromRoom.Zone, expectedX, expectedY, expectedZ)
+				return fmt.Errorf(`coordinate (%d, %d, %d) is already occupied by room %d`, expectedX, expectedY, expectedZ, occupyingId)
+			}
+			toRoom.SetCoordinates(expectedX, expectedY, expectedZ)
+			RegisterCoordinate(toRoom.Zone, toRoom.RoomId, expectedX, expectedY, expectedZ)
+			SaveRoomTemplate(*toRoom)
+		}
+	}
+
 	// connect the old room to the new room
 	newExit := exit.RoomExit{RoomId: toRoom.RoomId, Secret: false}
 	if exitMapDirection != exitName {
@@ -841,6 +893,78 @@ func GetRoomCount(zoneName string) int {
 	}
 
 	return len(zoneInfo.RoomIds)
+}
+
+func BuildCoordinateIndex(zoneName string) {
+	idx := make(map[[3]int]int)
+	zoneInfo, ok := roomManager.zones[zoneName]
+	if !ok {
+		return
+	}
+	for roomId := range zoneInfo.RoomIds {
+		room := getRoomFromMemory(roomId)
+		if room == nil || !room.HasCoordinates {
+			continue
+		}
+		key := [3]int{room.MapX, room.MapY, room.MapZ}
+		idx[key] = room.RoomId
+	}
+	roomManager.coordinateIndex[zoneName] = idx
+}
+
+func BuildAllCoordinateIndexes() {
+	for zoneName := range roomManager.zones {
+		BuildCoordinateIndex(zoneName)
+	}
+}
+
+func IsCoordinateAvailable(zoneName string, x, y, z int, excludeRoomId ...int) bool {
+	idx, ok := roomManager.coordinateIndex[zoneName]
+	if !ok {
+		return true
+	}
+	key := [3]int{x, y, z}
+	existingId, occupied := idx[key]
+	if !occupied {
+		return true
+	}
+	for _, exclude := range excludeRoomId {
+		if existingId == exclude {
+			return true
+		}
+	}
+	return false
+}
+
+func RegisterCoordinate(zoneName string, roomId, x, y, z int) {
+	idx, ok := roomManager.coordinateIndex[zoneName]
+	if !ok {
+		idx = make(map[[3]int]int)
+		roomManager.coordinateIndex[zoneName] = idx
+	}
+	idx[[3]int{x, y, z}] = roomId
+}
+
+func UnregisterCoordinate(zoneName string, roomId int) {
+	idx, ok := roomManager.coordinateIndex[zoneName]
+	if !ok {
+		return
+	}
+	for key, id := range idx {
+		if id == roomId {
+			delete(idx, key)
+			return
+		}
+	}
+}
+
+func GetRoomAtCoordinate(zoneName string, x, y, z int) (int, bool) {
+	idx, ok := roomManager.coordinateIndex[zoneName]
+	if !ok {
+		return 0, false
+	}
+	roomId, found := idx[[3]int{x, y, z}]
+	return roomId, found
 }
 
 func LoadDataFiles() {

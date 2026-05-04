@@ -23,3 +23,7 @@ spawninfo:
 - mobid: 15
   message: The bones in the room stir, and a skeleton rises from the dirt.
   respawnrate: 10 real minutes
+mapx: -4
+mapy: 0
+mapz: -1
+hascoordinates: true

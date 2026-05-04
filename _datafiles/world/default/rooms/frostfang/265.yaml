@@ -20,3 +20,7 @@ spawninfo:
   questflags: [1-start, 1-return]
   levelmod: 10
   respawnrate: 5 real minutes
+mapx: 6
+mapy: -3
+mapz: 0
+hascoordinates: true

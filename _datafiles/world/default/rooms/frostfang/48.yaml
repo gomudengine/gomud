@@ -9,7 +9,6 @@ description: The Frostfang Castle library, ensconced within the West Wing, is a 
   chairs and tables. Amidst this stark simplicity, an ornate astrolabe stands in a
   corner, symbolizing the region's enduring thirst for knowledge and the mysteries
   of the cosmos.
-biome: city
 exits:
   east:
     roomid: 41
@@ -25,3 +24,7 @@ spawninfo:
   questflags: [6-start, 6-return]
   level: 40
   respawnrate: 10 real minutes
+mapx: -3
+mapy: -7
+mapz: 0
+hascoordinates: true

@@ -8,3 +8,7 @@ description: You are at the Newbie School. Here you will learn the very basics o
 exits:
   east:
     roomid: 901
+mapx: 0
+mapy: 0
+mapz: 0
+hascoordinates: true

@@ -12,6 +12,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/gamelock"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/mapper"
 	"github.com/GoMudEngine/GoMud/internal/mutators"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/templates"
@@ -352,7 +353,10 @@ func Room(rest string, user *users.UserRecord, liveRoom *rooms.Room, flags event
 			return handled, nil
 		}
 
-		rooms.ConnectRoom(room.RoomId, targetRoom.RoomId, direction)
+		if err := rooms.ConnectRoom(room.RoomId, targetRoom.RoomId, direction); err != nil {
+			user.SendText(err.Error())
+			return handled, nil
+		}
 		user.SendText(fmt.Sprintf("Exit %s added.", direction))
 
 	} else if len(args) >= 2 && roomCmd == "secretexit" {
@@ -473,6 +477,47 @@ func Room(rest string, user *users.UserRecord, liveRoom *rooms.Room, flags event
 
 		} else if propertyName == "biome" {
 			room.Biome = strings.ToLower(propertyValue)
+		} else if propertyName == "coordinates" || propertyName == "coords" {
+
+			if propertyValue == "clear" {
+				if room.HasCoordinates {
+					rooms.UnregisterCoordinate(room.Zone, room.RoomId)
+					room.ClearCoordinates()
+					rooms.SaveRoomTemplate(*room)
+					user.SendText("Coordinates cleared.")
+				} else {
+					user.SendText("Room has no coordinates set.")
+				}
+				return true, nil
+			}
+
+			coordParts := strings.Fields(propertyValue)
+			if len(coordParts) != 3 {
+				user.SendText("Usage: room set coordinates <x> <y> <z>")
+				user.SendText("       room set coordinates clear")
+				return true, nil
+			}
+			cx, errX := strconv.Atoi(coordParts[0])
+			cy, errY := strconv.Atoi(coordParts[1])
+			cz, errZ := strconv.Atoi(coordParts[2])
+			if errX != nil || errY != nil || errZ != nil {
+				user.SendText("Coordinates must be integers.")
+				return true, nil
+			}
+			if !rooms.IsCoordinateAvailable(room.Zone, cx, cy, cz, room.RoomId) {
+				occupyingId, _ := rooms.GetRoomAtCoordinate(room.Zone, cx, cy, cz)
+				user.SendText(fmt.Sprintf("Coordinate (%d, %d, %d) is already occupied by room %d.", cx, cy, cz, occupyingId))
+				return true, nil
+			}
+			if room.HasCoordinates {
+				rooms.UnregisterCoordinate(room.Zone, room.RoomId)
+			}
+			room.SetCoordinates(cx, cy, cz)
+			rooms.RegisterCoordinate(room.Zone, room.RoomId, cx, cy, cz)
+			rooms.SaveRoomTemplate(*room)
+			user.SendText(fmt.Sprintf("Coordinates set to (%d, %d, %d).", cx, cy, cz))
+			return true, nil
+
 		} else {
 			user.SendText(
 				`Invalid property provided to <ansi fg="command">room set</ansi>.`,
@@ -481,6 +526,31 @@ func Room(rest string, user *users.UserRecord, liveRoom *rooms.Room, flags event
 		}
 
 		user.SendText(fmt.Sprintf("Room %s set to %s.", propertyName, propertyValue))
+	} else if roomCmd == "migrate-coordinates" {
+
+		if !user.HasRolePermission(`room.set`) {
+			user.SendText(`you do not have <ansi fg="command">room.set</ansi> permission`)
+			return true, nil
+		}
+
+		force := len(args) > 1 && args[1] == "force"
+
+		migrated, conflicts, unreachable := mapper.MigrateCoordinates(force)
+
+		user.SendText(fmt.Sprintf("Migration complete: %d rooms updated.", migrated))
+		if len(conflicts) > 0 {
+			user.SendText(fmt.Sprintf("Coordinate conflicts (%d):", len(conflicts)))
+			for _, c := range conflicts {
+				user.SendText(fmt.Sprintf("  %s", c))
+			}
+		}
+		if len(unreachable) > 0 {
+			user.SendText(fmt.Sprintf("Unreachable rooms (not connected to zone root): %d", len(unreachable)))
+			for _, rId := range unreachable {
+				user.SendText(fmt.Sprintf("  Room %d", rId))
+			}
+		}
+
 	} else {
 		user.SendText(fmt.Sprintf(`Invalid room command: <ansi fg="command">%s</ansi>`, roomCmd))
 	}

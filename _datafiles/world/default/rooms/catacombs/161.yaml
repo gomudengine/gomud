@@ -18,3 +18,7 @@ exits:
     mapdirection: east-gap
   southwest:
     roomid: 130
+mapx: 5
+mapy: -2
+mapz: -1
+hascoordinates: true

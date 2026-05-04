@@ -118,12 +118,16 @@ func (g *GMCPWorldModule) buildWorldMap(user *users.UserRecord) []GMCPWorldMap_R
 
 			// Coordinates
 			entry.Coordinates = room.Zone
-			m := mapper.GetMapper(room.RoomId)
-			x, y, z, err := m.GetCoordinates(room.RoomId)
-			if err != nil {
-				entry.Coordinates += `, 999999999999999999, 999999999999999999, 999999999999999999`
+			if room.HasCoordinates {
+				entry.Coordinates += `, ` + strconv.Itoa(room.MapX) + `, ` + strconv.Itoa(room.MapY) + `, ` + strconv.Itoa(room.MapZ)
 			} else {
-				entry.Coordinates += `, ` + strconv.Itoa(x) + `, ` + strconv.Itoa(y) + `, ` + strconv.Itoa(z)
+				m := mapper.GetMapper(room.RoomId)
+				x, y, z, err := m.GetCoordinates(room.RoomId)
+				if err != nil {
+					entry.Coordinates += `, 999999999999999999, 999999999999999999, 999999999999999999`
+				} else {
+					entry.Coordinates += `, ` + strconv.Itoa(x) + `, ` + strconv.Itoa(y) + `, ` + strconv.Itoa(z)
+				}
 			}
 
 			// Exits - only include exits to rooms the player has also visited,

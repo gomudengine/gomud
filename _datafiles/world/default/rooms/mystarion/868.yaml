@@ -14,3 +14,7 @@ spawninfo:
 - mobid: 47
   message: The brewer enters the shop.
   respawnrate: 2 real minutes
+mapx: 75
+mapy: 0
+mapz: 0
+hascoordinates: true

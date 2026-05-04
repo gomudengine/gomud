@@ -9,7 +9,6 @@ description: The West Wing of Frostfang Castle stands in stark contrast to the r
   ornate armors to delicate pottery, each piece telling of trade, exploration, or
   conquest. The floors are covered in plush carpets, and the walls are adorned with
   vibrant tapestries depicting serene landscapes and maritime adventures.
-biome: city
 exits:
   north:
     roomid: 42
@@ -17,3 +16,7 @@ exits:
     roomid: 40
   west:
     roomid: 48
+mapx: -2
+mapy: -7
+mapz: 0
+hascoordinates: true

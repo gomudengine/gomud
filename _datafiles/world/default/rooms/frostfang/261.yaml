@@ -10,7 +10,6 @@ description: "The district's pathways, lined with cobblestones polished by endle
   bundled in layers of fur and heavy garments, breathe out transient wisps of mist
   in the biting air, their footfalls subtly indicating an intriguing, seldom-seen
   house concealed close to the districtb\0\x19s northern boundary."
-biome: city
 exits:
   east:
     roomid: 262
@@ -18,3 +17,7 @@ exits:
     roomid: 267
   west:
     roomid: 260
+mapx: 4
+mapy: -2
+mapz: 0
+hascoordinates: true

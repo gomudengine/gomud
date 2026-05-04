@@ -5,7 +5,6 @@ description: This ancient street, lined with gnarled trees and dimly lit lantern
   leads adventurers out of the familiar comforts of town and into the unknown. As
   you traverse this enigmatic path, your mind races with riddles whispered by the
   wind of nefarious creatures lurking in the shadows.
-biome: city
 exits:
   east:
     roomid: 8
@@ -13,3 +12,7 @@ exits:
     roomid: 64
   west:
     roomid: 10
+mapx: -3
+mapy: 0
+mapz: 0
+hascoordinates: true

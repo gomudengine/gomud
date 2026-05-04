@@ -20,3 +20,7 @@ exits:
 idlemessages:
 - Type <ansi fg="command">look</ansi> to look around.
 - Type <ansi fg="command">help</ansi> to see help topics.
+mapx: 0
+mapy: 0
+mapz: 0
+hascoordinates: true

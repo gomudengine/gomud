@@ -14,3 +14,7 @@ exits:
     roomid: 282
 idlemessages:
 - a snowhare runs across the road.
+mapx: 13
+mapy: 0
+mapz: 0
+hascoordinates: true

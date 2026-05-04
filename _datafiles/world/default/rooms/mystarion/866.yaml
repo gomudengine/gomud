@@ -16,3 +16,7 @@ description: The center of the Grand Arcane Arena is a vast, circular battlegrou
 exits:
   west:
     roomid: 865
+mapx: 82
+mapy: -4
+mapz: 0
+hascoordinates: true
