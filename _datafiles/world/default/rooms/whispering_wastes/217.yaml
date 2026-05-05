@@ -14,7 +14,7 @@ maplegend: Cave
 biome: snow
 exits:
   cave:
-    roomid: 218
+    roomid: 1014
   north:
     roomid: 216
   west:

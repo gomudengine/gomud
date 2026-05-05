@@ -11,9 +11,9 @@
  */
 /* jshint esversion: 11, browser: true */
 /* globals MapperTools, MapperState, MapperRender, MapperEvents,
-   BASE_STEP_2D, TILE_HW_3D, GRID_STEP_XY_3D,
-   ROOM_SIZE_2D, SYMBOL_FONT_SIZE_2D, SYMBOL_FONT_SIZE_3D,
-   TILE_HH_3D, ZOOM_STEP, ZOOM_MIN, ZOOM_MAX */
+   BASE_STEP_2D, ROOM_SIZE_2D, SYMBOL_FONT_SIZE_2D,
+   GHOST_CELL_BORDER, GHOST_CELL_FILL, GHOST_CELL_SYMBOL,
+   ZOOM_STEP, ZOOM_MIN, ZOOM_MAX */
 'use strict';
 
 (function() {
@@ -52,23 +52,12 @@
             var cam = MapperState.camera;
 
             if (cam.dragActive) {
-                if (cam.activeTab === '2d') {
-                    var step = BASE_STEP_2D * cam.zoomScale;
-                    cam.panOffsetX = cam.dragStartPanX - (e.clientX - cam.dragStartPxX) / step;
-                    cam.panOffsetY = cam.dragStartPanY - (e.clientY - cam.dragStartPxY) / step;
-                } else {
-                    // Invert the iso projection so pixel deltas map to grid units
-                    var step3 = TILE_HW_3D * GRID_STEP_XY_3D * cam.spacingScale3d * cam.zoomScale;
-                    var dsx = e.clientX - cam.dragStartPxX;
-                    var dsy = e.clientY - cam.dragStartPxY;
-                    cam.panOffsetX = cam.dragStartPanX - (dsx / step3 + dsy * 2 / step3) / 2;
-                    cam.panOffsetY = cam.dragStartPanY - (dsy * 2 / step3 - dsx / step3) / 2;
-                }
+                var step = BASE_STEP_2D * cam.zoomScale;
+                cam.panOffsetX = cam.dragStartPanX - (e.clientX - cam.dragStartPxX) / step;
+                cam.panOffsetY = cam.dragStartPanY - (e.clientY - cam.dragStartPxY) / step;
                 MapperRender.render();
                 return;
             }
-
-            // Hover cursor logic is handled by init; nothing extra needed here
         },
 
         onMouseUp: function(e, cx, cy) {
@@ -85,10 +74,6 @@
 
         onKeyDown: function() {},
 
-        // -----------------------------------------------------------------
-        //  2D overlay -- ghost cell on empty hovered grid position
-        // -----------------------------------------------------------------
-
         renderOverlay2d: function(ctx, rs) {
             if (MapperState.roomDrag.active) return;
             if (MapperState.quickBuildMode.active) return;
@@ -102,61 +87,20 @@
             var scaledSize = rs.scaledSize;
             var ghalf = scaledSize / 2;
 
-            ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+            ctx.strokeStyle = GHOST_CELL_BORDER;
             ctx.lineWidth = Math.max(1, 1.5 * rs.zoomScale);
             ctx.setLineDash([Math.max(2, 4 * rs.zoomScale), Math.max(2, 4 * rs.zoomScale)]);
             ctx.strokeRect(gp.px - ghalf, gp.py - ghalf, scaledSize, scaledSize);
             ctx.setLineDash([]);
 
-            ctx.fillStyle = 'rgba(255,255,255,0.08)';
+            ctx.fillStyle = GHOST_CELL_FILL;
             ctx.fillRect(gp.px - ghalf, gp.py - ghalf, scaledSize, scaledSize);
 
-            ctx.fillStyle = 'rgba(255,255,255,0.25)';
+            ctx.fillStyle = GHOST_CELL_SYMBOL;
             ctx.font = 'bold ' + Math.max(10, rs.scaledFont * 0.8) + 'px monospace';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText('+', gp.px, gp.py);
-        },
-
-        // -----------------------------------------------------------------
-        //  3D overlay -- ghost cell (iso diamond on empty hovered cell)
-        // -----------------------------------------------------------------
-
-        renderOverlay3d: function(ctx, rs) {
-            if (MapperState.roomDrag.active) return;
-            if (MapperState.quickBuildMode.active) return;
-            if (MapperState.exitDrawMode.active) return;
-
-            var hoveredGridCell = rs.hoveredGridCell;
-            if (!hoveredGridCell) return;
-
-            var drawZ = rs.activeZ3d !== null ? rs.activeZ3d : 0;
-            if (rs.gridCellOccupied(hoveredGridCell.gx, hoveredGridCell.gy, drawZ)) return;
-
-            var gp3 = rs.isoProject3d(hoveredGridCell.gx, hoveredGridCell.gy, drawZ, drawZ);
-            var ghw = TILE_HW_3D * rs.zoomScale;
-            var ghh = TILE_HH_3D * rs.zoomScale;
-
-            ctx.strokeStyle = 'rgba(255,255,255,0.35)';
-            ctx.lineWidth = Math.max(1, 1.5 * rs.zoomScale);
-            ctx.setLineDash([Math.max(2, 4 * rs.zoomScale), Math.max(2, 4 * rs.zoomScale)]);
-            ctx.beginPath();
-            ctx.moveTo(gp3.sx, gp3.sy - ghh);
-            ctx.lineTo(gp3.sx + ghw, gp3.sy);
-            ctx.lineTo(gp3.sx, gp3.sy + ghh);
-            ctx.lineTo(gp3.sx - ghw, gp3.sy);
-            ctx.closePath();
-            ctx.stroke();
-            ctx.setLineDash([]);
-
-            ctx.fillStyle = 'rgba(255,255,255,0.08)';
-            ctx.fill();
-
-            ctx.fillStyle = 'rgba(255,255,255,0.25)';
-            ctx.font = 'bold ' + Math.max(8, SYMBOL_FONT_SIZE_3D * rs.zoomScale * 0.8) + 'px monospace';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('+', gp3.sx, gp3.sy);
         }
     };
 

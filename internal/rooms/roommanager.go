@@ -718,7 +718,7 @@ func CreateZone(zoneName string) (roomId int, err error) {
 
 	roomsBasePath := util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), "/", "rooms")
 	zoneFolder := util.FilePath(roomsBasePath, "/", ZoneToFolder(zoneName))
-	if err := os.Mkdir(zoneFolder, 0755); err != nil {
+	if err := os.MkdirAll(zoneFolder, 0755); err != nil {
 		return 0, err
 	}
 
@@ -729,7 +729,7 @@ func CreateZone(zoneName string) (roomId int, err error) {
 	roomManager.zones[zoneName] = zoneInfo
 
 	instanceZoneFolder := util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), "/", "rooms.instances", "/", ZoneToFolder(zoneName))
-	if err := os.Mkdir(instanceZoneFolder, 0755); err != nil {
+	if err := os.MkdirAll(instanceZoneFolder, 0755); err != nil {
 		return 0, err
 	}
 

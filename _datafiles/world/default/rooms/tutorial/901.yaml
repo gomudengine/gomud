@@ -11,7 +11,7 @@ exits:
       difficulty: 10
   west:
     roomid: 900
-mapx: 1
+mapx: -9
 mapy: 0
-mapz: 0
+mapz: -99
 hascoordinates: true

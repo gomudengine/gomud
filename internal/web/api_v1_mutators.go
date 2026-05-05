@@ -63,6 +63,8 @@ func apiV1PatchMutator(w http.ResponseWriter, r *http.Request) {
 	}
 
 	updated := *existing
+	// Nil out map fields that must be fully replaced (not merged) by the JSON decode.
+	updated.Exits = nil
 	if err := json.NewDecoder(r.Body).Decode(&updated); err != nil {
 		writeAPIError(w, http.StatusBadRequest, "malformed request body: "+err.Error())
 		return

@@ -7,7 +7,7 @@
  * throwaway DOM node for correctness).
  */
 /* jshint esversion: 11, browser: true */
-/* globals DIRECTION_DELTAS, DIRECTIONAL_EXITS, ENVIRONMENT_SYMBOLS, ENVIRONMENT_COLORS, SYMBOL_COLORS, BIOME_SYMBOLS, BIOME_COLORS, DEFAULT_ROOM_COLOR, mapperData */
+/* globals DIRECTION_DELTAS, DIRECTIONAL_EXITS, ENVIRONMENT_SYMBOLS, ENVIRONMENT_COLORS, SYMBOL_COLORS, BIOME_SYMBOLS, BIOME_COLORS, DEFAULT_ROOM_COLOR, ZONE_BOX_PADDING, MapperState */
 'use strict';
 
 // --- Exit & Direction Helpers ---
@@ -67,6 +67,16 @@ function colorForSymbol(sym, biome) {
     return DEFAULT_ROOM_COLOR;
 }
 
+/** Returns '#ffffff' or '#000000' whichever contrasts better against the given hex fill color. */
+function contrastColor(hex) {
+    var r = parseInt(hex.slice(1, 3), 16);
+    var g = parseInt(hex.slice(3, 5), 16);
+    var b = parseInt(hex.slice(5, 7), 16);
+    // Perceived luminance (sRGB)
+    var lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return lum > 0.45 ? '#000000' : '#ffffff';
+}
+
 // Cache mapping biome IDs to their canonical environment name
 var biomeEnvMap = {};
 
@@ -81,6 +91,114 @@ function biomeEnvName(biomeId) {
     if (!biomeId) return '';
     if (ENVIRONMENT_COLORS[biomeId]) return biomeId;
     return biomeEnvMap[biomeId] || '';
+}
+
+// --- Zone Helpers ---
+
+/**
+ * Computes per-zone padded bounding boxes in grid space for all rooms on
+ * the given Z level. Padding on each edge is capped to half the gap to the
+ * nearest room from a different zone, so adjacent zone boxes never overlap.
+ *
+ * Returns an object keyed by zone name:
+ *   { minX, maxX, minY, maxY }  (already padded, in grid units)
+ */
+function computeZonePaddedBounds(rooms, activeZ) {
+    var maxPad = ZONE_BOX_PADDING;
+
+    // Collect raw (unpadded) grid bounds per zone
+    var raw = {};
+    rooms.forEach(function(room) {
+        if (!room.HasCoordinates || room.MapZ !== activeZ) return;
+        var z = room.Zone || '';
+        if (!raw[z]) {
+            raw[z] = { minX: room.MapX, maxX: room.MapX, minY: room.MapY, maxY: room.MapY };
+        } else {
+            var b = raw[z];
+            if (room.MapX < b.minX) b.minX = room.MapX;
+            if (room.MapX > b.maxX) b.maxX = room.MapX;
+            if (room.MapY < b.minY) b.minY = room.MapY;
+            if (room.MapY > b.maxY) b.maxY = room.MapY;
+        }
+    });
+
+    var zones = Object.keys(raw);
+    if (zones.length === 0) return {};
+
+    // For each zone edge, find the minimum gap to any room from a different zone.
+    // gap[zone] = { left, right, top, bottom } in grid units
+    var gap = {};
+    zones.forEach(function(z) {
+        gap[z] = { left: Infinity, right: Infinity, top: Infinity, bottom: Infinity };
+    });
+
+    rooms.forEach(function(room) {
+        if (!room.HasCoordinates || room.MapZ !== activeZ) return;
+        var rz = room.Zone || '';
+        zones.forEach(function(z) {
+            if (z === rz) return;
+            var b = raw[z];
+            // Distance from this foreign room to each edge of zone z's raw box
+            var dRight  = room.MapX - b.maxX;  // positive = room is to the right of zone
+            var dLeft   = b.minX - room.MapX;  // positive = room is to the left of zone
+            var dBottom = room.MapY - b.maxY;  // positive = room is below zone
+            var dTop    = b.minY - room.MapY;  // positive = room is above zone
+            if (dRight  > 0 && dRight  < gap[z].right)  gap[z].right  = dRight;
+            if (dLeft   > 0 && dLeft   < gap[z].left)   gap[z].left   = dLeft;
+            if (dBottom > 0 && dBottom < gap[z].bottom) gap[z].bottom = dBottom;
+            if (dTop    > 0 && dTop    < gap[z].top)    gap[z].top    = dTop;
+        });
+    });
+
+    // Build padded bounds: pad each edge by min(maxPad, gap/2)
+    var result = {};
+    zones.forEach(function(z) {
+        var b = raw[z], g = gap[z];
+        var padLeft   = Math.min(maxPad, g.left   === Infinity ? maxPad : g.left   / 2);
+        var padRight  = Math.min(maxPad, g.right  === Infinity ? maxPad : g.right  / 2);
+        var padTop    = Math.min(maxPad, g.top    === Infinity ? maxPad : g.top    / 2);
+        var padBottom = Math.min(maxPad, g.bottom === Infinity ? maxPad : g.bottom / 2);
+        result[z] = {
+            minX: b.minX - padLeft,
+            maxX: b.maxX + padRight,
+            minY: b.minY - padTop,
+            maxY: b.maxY + padBottom
+        };
+    });
+    return result;
+}
+
+/**
+ * Returns the names of all visible zones whose padded grid bounding box
+ * (on the given Z level) contains the point (gx, gy).
+ */
+function getZonesAtPoint(gx, gy, gz) {
+    var bounds = computeZonePaddedBounds(MapperState.data.rooms, gz);
+    var result = [];
+    for (var zone in bounds) {
+        var b = bounds[zone];
+        if (gx >= b.minX && gx <= b.maxX && gy >= b.minY && gy <= b.maxY) {
+            result.push(zone);
+        }
+    }
+    return result;
+}
+
+/**
+ * Returns the zone of the closest room to (gx, gy) on the given Z level.
+ * Falls back to hintZone if no rooms exist.
+ */
+function closestZone(gx, gy, gz, hintZone) {
+    var rooms = MapperState.data.rooms;
+    var bestZone = hintZone || '';
+    var bestDist = Infinity;
+    rooms.forEach(function(room) {
+        if (!room.HasCoordinates || room.MapZ !== gz) return;
+        var dx = room.MapX - gx, dy = room.MapY - gy;
+        var d = dx * dx + dy * dy;
+        if (d < bestDist) { bestDist = d; bestZone = room.Zone || bestZone; }
+    });
+    return bestZone;
 }
 
 // --- Math Utilities ---
@@ -120,7 +238,7 @@ function darkenColor(hex, factor) {
  * @return {Array}   Constraint objects used by isExitConstraintSatisfied().
  */
 function buildDragConstraints(roomId, groupSet) {
-    var room = mapperData.rooms.get(roomId);
+    var room = MapperState.data.rooms.get(roomId);
     if (!room) return [];
     var constraints = [];
 
@@ -131,7 +249,7 @@ function buildDragConstraints(roomId, groupSet) {
             if (groupSet && groupSet.has(ex.RoomId)) continue;
             var delta = exitDelta(dir, room);
             if (!delta || (delta[0] === 0 && delta[1] === 0)) continue;
-            var dest = mapperData.rooms.get(ex.RoomId);
+            var dest = MapperState.data.rooms.get(ex.RoomId);
             if (!dest || !dest.HasCoordinates) continue;
             constraints.push({
                 signDx: sign(delta[0]),
@@ -147,7 +265,7 @@ function buildDragConstraints(roomId, groupSet) {
     }
 
     // Incoming exits: from neighbors outside the group pointing at this room
-    mapperData.rooms.forEach(function(other, otherId) {
+    MapperState.data.rooms.forEach(function(other, otherId) {
         if (otherId === roomId || !other.HasCoordinates || !other.Exits) return;
         if (groupSet && groupSet.has(otherId)) return;
         for (var dir in other.Exits) {

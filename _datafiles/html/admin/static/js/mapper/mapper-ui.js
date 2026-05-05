@@ -10,8 +10,8 @@
 /* jshint esversion: 11, browser: true */
 /* globals MapperState, MapperRender, MapperEvents, MapperCtxMenu, AdminAPI,
    symbolForRoom, colorForSymbol, escapeHtml, smoothstep,
-   ZOOM_STEP, ZOOM_MIN, ZOOM_MAX, CENTER_EASE_DURATION,
-   SPACING_STEP_3D, SPACING_MIN_3D, SPACING_MAX_3D, ROOM_SIZE_2D */
+   getZonesAtPoint, closestZone,
+   ZOOM_STEP, ZOOM_MIN, ZOOM_MAX, CENTER_EASE_DURATION, ROOM_SIZE_2D */
 'use strict';
 
 var MapperUI = (function() {
@@ -58,12 +58,9 @@ var MapperUI = (function() {
 
     function switchTab(tab) {
         MapperState.camera.activeTab = tab;
-        localStorage.setItem('mapper.activeTab', tab);
         document.querySelectorAll('.mapper-tabs .tab-btn').forEach(function(b) {
             b.classList.toggle('active', b.dataset.tab === tab);
         });
-        // Spacing slider only applies to the 3D projection
-        if (dom.spacingCtrlEl) dom.spacingCtrlEl.style.display = tab === '3d' ? '' : 'none';
         MapperRender.resizeCanvas();
         updateZButtons();
         MapperRender.render();
@@ -83,18 +80,6 @@ var MapperUI = (function() {
         MapperRender.render();
     }
 
-    function spacingDown() {
-        MapperState.camera.spacingScale3d = Math.max(SPACING_MIN_3D, MapperState.camera.spacingScale3d / SPACING_STEP_3D);
-        localStorage.setItem('mapper.spacing3d', MapperState.camera.spacingScale3d);
-        MapperRender.render();
-    }
-
-    function spacingUp() {
-        MapperState.camera.spacingScale3d = Math.min(SPACING_MAX_3D, MapperState.camera.spacingScale3d * SPACING_STEP_3D);
-        localStorage.setItem('mapper.spacing3d', MapperState.camera.spacingScale3d);
-        MapperRender.render();
-    }
-
     // =====================================================================
     //  Camera centering and easing
     // =====================================================================
@@ -106,7 +91,6 @@ var MapperUI = (function() {
             MapperState.centerOnZone(MapperState.data.currentZone);
         } else if (MapperState.data.zLevels.length > 0) {
             MapperState.camera.activeZ2d = MapperState.data.zLevels[0];
-            MapperState.camera.activeZ3d = MapperState.data.zLevels[0];
             updateZButtons();
             MapperRender.render();
         }
@@ -156,7 +140,7 @@ var MapperUI = (function() {
         if (MapperState.data.zLevels.length <= 1) return;
 
         var cam = MapperState.camera;
-        var current = cam.activeTab === '3d' ? cam.activeZ3d : cam.activeZ2d;
+        var current = cam.activeZ2d;
 
         // Reverse so the highest Z is at the top, matching spatial intuition
         MapperState.data.zLevels.slice().reverse().forEach(function(z) {
@@ -174,7 +158,7 @@ var MapperUI = (function() {
                 btn.style.color = 'var(--color-text-dim)';
             }
             btn.addEventListener('click', function() {
-                if (cam.activeTab === '3d') cam.activeZ3d = z; else cam.activeZ2d = z;
+                cam.activeZ2d = z;
                 updateZButtons();
                 MapperRender.render();
             });
@@ -230,6 +214,36 @@ var MapperUI = (function() {
         html += '<div class="info-row"><span class="info-label">Symbol</span><span class="info-value">' + escapeHtml(room._symbol || '-') + '</span></div>';
         if (room.MapLegend) {
             html += '<div class="info-row"><span class="info-label">Legend</span><span class="info-value">' + escapeHtml(room.MapLegend) + '</span></div>';
+        }
+        if (room.SpawnInfo && room.SpawnInfo.length > 0) {
+            var mobSpawns = room.SpawnInfo.filter(function(s) { return s.MobId > 0; });
+            if (mobSpawns.length > 0) {
+                html += '<div class="info-row info-row-block"><span class="info-label">Mob Spawns</span>' +
+                    '<table class="info-spawn-table">' +
+                    '<tbody>';
+                mobSpawns.forEach(function(s) {
+                    var name = MapperState.mobNames[+s.MobId] || ('Mob #' + s.MobId);
+                    html += '<tr><td>' + escapeHtml(name) + '</td></tr>';
+                });
+                html += '</tbody></table></div>';
+            }
+        }
+
+        if (room.Tags && room.Tags.length > 0) {
+            var tagBadges = room.Tags.map(function(t) {
+                var mod = MapperState.tagDescriptions[t];
+                var tipText = mod ? 'module: ' + mod : t;
+                return '<span class="info-badge" style="cursor:default" title="' + escapeHtml(tipText) + '">' + escapeHtml(t) + '</span>';
+            }).join(' ');
+            html += '<div class="info-row"><span class="info-label">Tags</span><span class="info-value info-badges">' + tagBadges + '</span></div>';
+        }
+        if (room.Nouns && Object.keys(room.Nouns).length > 0) {
+            var nounBadges = Object.keys(room.Nouns).sort().map(function(n) {
+                var desc = room.Nouns[n];
+                var tip = desc ? 'title="' + escapeHtml(desc) + '"' : '';
+                return '<span class="info-badge" style="cursor:default" ' + tip + '>' + escapeHtml(n) + '</span>';
+            }).join(' ');
+            html += '<div class="info-row"><span class="info-label">Nouns</span><span class="info-value info-badges">' + nounBadges + '</span></div>';
         }
         html += '<div class="info-row"><span class="info-label">Coords</span><span class="info-value">' + room.MapX + ', ' + room.MapY + ', ' + room.MapZ + '</span></div>';
         html += '<div class="info-row"><span class="info-label">Has Coords</span><span class="info-value">' + (room.HasCoordinates ? 'yes' : 'no') + '</span></div>';
@@ -328,7 +342,7 @@ var MapperUI = (function() {
         var txt = total + ' rooms';
         if (unmapped > 0) txt += ' (' + unmapped + ' unmapped)';
         txt += ' | ' + data.zLevels.length + ' z-level' + (data.zLevels.length !== 1 ? 's' : '');
-        txt += ' | ' + data.visibleZones.size + '/' + data.allZones.length + ' zones';
+        txt += ' | ' + data.allZones.length + ' zones';
         dom.statsEl.textContent = txt;
     }
 
@@ -350,17 +364,162 @@ var MapperUI = (function() {
     }
 
     // =====================================================================
+    //  Zone picker modal
+    // =====================================================================
+
+    var zonePickerCallback = null;
+
+    function showZonePicker(zones, callback) {
+        var backdrop = document.getElementById('zone-picker-backdrop');
+        var list = document.getElementById('zone-picker-list');
+        var cancelBtn = document.getElementById('zone-picker-cancel');
+        if (!backdrop || !list) { callback(zones[0]); return; }
+
+        list.innerHTML = '';
+        zones.forEach(function(zone) {
+            var btn = document.createElement('button');
+            btn.textContent = zone;
+            btn.addEventListener('click', function() {
+                hideZonePicker();
+                callback(zone);
+            });
+            list.appendChild(btn);
+        });
+
+        zonePickerCallback = null;
+        cancelBtn.onclick = hideZonePicker;
+        backdrop.classList.add('visible');
+    }
+
+    function hideZonePicker() {
+        var backdrop = document.getElementById('zone-picker-backdrop');
+        if (backdrop) backdrop.classList.remove('visible');
+        zonePickerCallback = null;
+    }
+
+    /**
+     * Resolves which zone a new room at (gx, gy, gz) should belong to.
+     * hintZone is used as a fallback (e.g. the source room's zone in quick-build).
+     * Calls callback(zoneName) asynchronously (immediately or after user picks).
+     */
+    function resolveZoneForRoom(gx, gy, gz, hintZone, callback) {
+        var candidates = getZonesAtPoint(gx, gy, gz);
+        if (candidates.length === 0) {
+            // Outside all bounding boxes — use hint or closest room
+            callback(hintZone || closestZone(gx, gy, gz, MapperState.data.currentZone || ''));
+        } else if (candidates.length === 1) {
+            callback(candidates[0]);
+        } else {
+            showZonePicker(candidates, callback);
+        }
+    }
+
+    // =====================================================================
+    //  Zone creation
+    // =====================================================================
+
+    function createZoneAt(gx, gy, gz) {
+        var backdrop  = document.getElementById('zone-name-backdrop');
+        var input     = document.getElementById('zone-name-input');
+        var errorEl   = document.getElementById('zone-name-error');
+        var confirmBtn = document.getElementById('zone-name-confirm');
+        var cancelBtn  = document.getElementById('zone-name-cancel');
+        if (!backdrop || !input) return;
+
+        input.value = '';
+        errorEl.textContent = '';
+        backdrop.classList.add('visible');
+        setTimeout(function() { input.focus(); }, 50);
+
+        function close() {
+            backdrop.classList.remove('visible');
+            confirmBtn.onclick = null;
+            cancelBtn.onclick = null;
+            input.onkeydown = null;
+        }
+
+        function submit() {
+            var name = input.value.trim();
+            if (!name) { errorEl.textContent = 'Zone name is required.'; return; }
+            if (name.length < 2) { errorEl.textContent = 'Zone name must be at least 2 characters.'; return; }
+            var nameLower = name.toLowerCase();
+            var exists = MapperState.data.allZones.some(function(z) { return z.Name.toLowerCase() === nameLower; });
+            if (exists) { errorEl.textContent = 'A zone with that name already exists.'; return; }
+
+            errorEl.textContent = '';
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Creating…';
+
+            AdminAPI.post('/admin/api/v1/zones', { Name: name })
+                .then(function(res) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = 'Create Zone';
+                    if (!res.ok || !res.data || !res.data.data) {
+                        errorEl.textContent = (res.data && res.data.error) || 'Failed to create zone.';
+                        return;
+                    }
+                    var serverRootId = res.data.data.RoomId;
+
+                    // Immediately patch the root room to the clicked coordinates
+                    // so the server state matches local state without requiring a save.
+                    AdminAPI.patch('/admin/api/v1/rooms/' + serverRootId, {
+                        MapX: gx, MapY: gy, MapZ: gz, HasCoordinates: true
+                    }).then(function() {
+                        close();
+
+                        // Zone now exists on the server — register it in local state
+                        MapperState.data.allZones.push({ Name: name, RoomCount: 1, RoomId: serverRootId, DefaultBiome: '' });
+                        populateZoneDropdown();
+
+                        // Create a local room at the chosen position assigned to the new zone.
+                        // Replace its temp ID with the server root room ID so saves patch
+                        // the real room rather than creating a duplicate.
+                        var tempId = MapperState.createRoomLocally(gx, gy, gz, name);
+                        MapperState.replaceRoomId(tempId, serverRootId);
+                        // The room is already saved at the correct position — remove it
+                        // from dirty.createdRooms so save doesn't patch it again.
+                        MapperState.dirty.createdRooms.delete(serverRootId);
+                        MapperState.selectRoom(serverRootId);
+
+                        if (dom.zoneSelect) {
+                            dom.zoneSelect.value = name;
+                            dom.zoneSelect.dispatchEvent(new Event('change'));
+                        }
+                        MapperRender.render();
+                    }).catch(function() {
+                        close();
+                        errorEl.textContent = 'Zone created but failed to set room coordinates.';
+                    });
+                })
+                .catch(function() {
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = 'Create Zone';
+                    errorEl.textContent = 'Request failed.';
+                });
+        }
+
+        confirmBtn.onclick = submit;
+        cancelBtn.onclick = close;
+        input.onkeydown = function(e) {
+            if (e.key === 'Enter') submit();
+            if (e.key === 'Escape') close();
+        };
+    }
+
+    // =====================================================================
     //  Local room creation (deferred until save)
     // =====================================================================
 
     function createRoomAt(gx, gy, gz) {
-        if (!MapperState.data.currentZone) {
+        if (!MapperState.data.currentZone && MapperState.data.rooms.size === 0) {
             alert('Select a zone from the dropdown first to set which zone new rooms are created in.');
             return;
         }
-        var tempId = MapperState.createRoomLocally(gx, gy, gz);
-        MapperState.selectRoom(tempId);
-        MapperRender.render();
+        resolveZoneForRoom(gx, gy, gz, MapperState.data.currentZone, function(zone) {
+            var tempId = MapperState.createRoomLocally(gx, gy, gz, zone);
+            MapperState.selectRoom(tempId);
+            MapperRender.render();
+        });
     }
 
     // =====================================================================
@@ -373,11 +532,7 @@ var MapperUI = (function() {
      */
     function toServerCoords(room) {
         if (!room) return { x: 0, y: 0, z: 0 };
-        var data = MapperState.data;
-        var zone = room.Zone || data.currentZone;
-        var off = zone ? data.zoneOffsets.get(zone) : null;
-        if (!off) return { x: room.MapX, y: room.MapY, z: room.MapZ };
-        return { x: room.MapX - off.dx, y: room.MapY - off.dy, z: room.MapZ };
+        return { x: room.MapX, y: room.MapY, z: room.MapZ };
     }
 
     // =====================================================================
@@ -394,17 +549,23 @@ var MapperUI = (function() {
             await AdminAPI.delete('/admin/api/v1/rooms/' + dirty.deletedRooms[i]);
         }
 
-        // 2. Create new rooms on server and build a temp-to-real ID map
+        // 2. Create new rooms on server and build a temp-to-real ID map.
+        //    Rooms whose IDs are already positive were pre-created (e.g. zone root
+        //    rooms) and only need a position patch, not a new POST.
         var tempToReal = new Map();
         for (var entry of dirty.createdRooms) {
             var tempId = entry[0], info = entry[1];
             var zone = info.zone || data.currentZone || '';
-            var off = data.zoneOffsets.get(zone) || { dx: 0, dy: 0 };
-            var serverX = info.gx - off.dx, serverY = info.gy - off.dy;
+            var serverX = info.gx, serverY = info.gy;
             var tempRoom = data.rooms.get(tempId);
-            var createRes = await AdminAPI.post('/admin/api/v1/rooms', { Zone: zone });
-            if (createRes.ok && createRes.data && createRes.data.data) {
-                var realId = createRes.data.data.RoomId;
+            var realId = tempId > 0 ? tempId : null;
+            if (realId === null) {
+                var createRes = await AdminAPI.post('/admin/api/v1/rooms', { Zone: zone });
+                if (createRes.ok && createRes.data && createRes.data.data) {
+                    realId = createRes.data.data.RoomId;
+                }
+            }
+            if (realId !== null) {
                 tempToReal.set(tempId, realId);
                 var patchData = {
                     MapX: serverX, MapY: serverY, MapZ: info.gz, HasCoordinates: true
@@ -426,9 +587,11 @@ var MapperUI = (function() {
             var room = data.rooms.get(roomId);
             if (room) {
                 var sc = toServerCoords(room);
-                await AdminAPI.patch('/admin/api/v1/rooms/' + roomId, {
-                    MapX: sc.x, MapY: sc.y, MapZ: sc.z, HasCoordinates: true
-                });
+                var moveData = {
+                    MapX: sc.x, MapY: sc.y, MapZ: sc.z, HasCoordinates: true,
+                    Exits: room.Exits || {}
+                };
+                await AdminAPI.patch('/admin/api/v1/rooms/' + roomId, moveData);
             }
         }
 
@@ -464,7 +627,14 @@ var MapperUI = (function() {
         }
 
         MapperState.clearDirty();
+        var cam = MapperState.camera;
+        var savedCamX = cam.cameraX, savedCamY = cam.cameraY;
+        var savedPanX = cam.panOffsetX, savedPanY = cam.panOffsetY;
+        var savedZ = cam.activeZ2d;
         await MapperState.loadAllRooms();
+        cam.cameraX = savedCamX; cam.cameraY = savedCamY;
+        cam.panOffsetX = savedPanX; cam.panOffsetY = savedPanY;
+        cam.activeZ2d = savedZ;
         showLoading(false);
         MapperState.selected.clear();
         updateInfoPanel();
@@ -488,13 +658,15 @@ var MapperUI = (function() {
     return {
         init: init,
         switchTab: switchTab, zoomIn: zoomIn, zoomOut: zoomOut,
-        spacingDown: spacingDown, spacingUp: spacingUp,
         centerCamera: centerCamera, setCameraTarget: setCameraTarget,
         updateZButtons: updateZButtons, updateInfoPanel: updateInfoPanel,
         showTooltip: showTooltip, positionTooltip: positionTooltip, hideTooltip: hideTooltip,
         showLoading: showLoading, updateStats: updateStats,
         populateZoneDropdown: populateZoneDropdown,
         createRoomAt: createRoomAt,
+        createZoneAt: createZoneAt,
+        resolveZoneForRoom: resolveZoneForRoom,
+        hideZonePicker: hideZonePicker,
         toServerCoords: toServerCoords,
         saveAllChanges: saveAllChanges, discardChanges: discardChanges
     };

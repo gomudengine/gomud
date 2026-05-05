@@ -26,33 +26,11 @@ var SYMBOL_FONT_SIZE_2D  = 14;
 var MAP_BG_2D            = '#111';
 var ROOM_BORDER_COLOR_2D = '#000000';
 
-// --- 3D Isometric Rendering ---
-
-var TILE_HW_3D           = 20;    // half-width of an iso tile
-var TILE_HH_3D           = 10;    // half-height of an iso tile
-var TILE_DEPTH_3D        = 7;     // visible "thickness" of the side face
-var GRID_STEP_XY_3D      = 1.6;   // spacing multiplier between tiles on the same Z
-var Z_STEP_3D            = 50;    // vertical pixel offset per Z level
-var Z_SPACING_EXP_3D     = 1.5;   // exponent controlling Z-level separation curve
-var CONNECTION_WIDTH_3D   = 2;
-var MAP_BG_3D            = '#000';
-var TILE_BORDER_COLOR_3D = '#000';
-var TILE_BORDER_WIDTH_3D = 0.8;
-var SIDE_DARKEN_3D       = 0.55;  // multiplier to darken tile side faces
-var SYMBOL_FONT_SIZE_3D  = 11;
-var SPACING_STEP_3D      = 1.25;
-var SPACING_MIN_3D       = 0.6;
-var SPACING_MAX_3D       = 4.0;
-
-// Transparency for Z-levels the user is NOT viewing directly
-var ALPHA_INACTIVE_3D    = 0.0;
-var ALPHA_CONNECTED_3D   = 0.30;  // faint ghost for rooms linked to the active Z
-
-// Connection line colors vary by whether the two rooms share a Z level
-var CONN_COLOR_SAME_Z    = '#ffffff';
-var CONN_COLOR_CROSS_Z   = '#3a6b8a';
-var CROSS_Z_OFFSET_X     = 8;     // horizontal nudge for cross-Z arrow markers
-var CROSS_Z_ARROW_SIZE   = 6;
+var ZONE_BOX_PADDING      = 0.6;                      // extra grid cells of padding around the zone bounding box
+var ZONE_BOX_COLOR        = 'rgba(180,180,220,0.06)';  // fill for non-hovered zones
+var ZONE_BOX_COLOR_HOV    = 'rgba(180,180,255,0.20)';  // fill for hovered zone
+var ZONE_BOX_BORDER       = 'rgba(180,180,220,0.20)';  // border for non-hovered zones
+var ZONE_BOX_BORDER_HOV   = 'rgba(180,180,255,0.7)';   // border for hovered zone
 
 // --- Shared Color Palette ---
 
@@ -62,6 +40,41 @@ var SELECTED_ROOM_COLOR       = '#1a6abf';
 var SELECTED_ROOM_TEXT_COLOR  = '#ffffff';
 var SYMBOL_TEXT_COLOR          = '#e0e0e0';
 var DEFAULT_ROOM_COLOR        = '#3a3a4a';
+
+// Room border indicators
+var ROOM_BORDER_MOB_SPAWN     = '#cc2222';  // border color when room has a mob spawn
+var ROOM_BORDER_SCRIPT_GLOW   = '#d4a843';  // script glow border color
+var ROOM_ARROW_COLOR          = '#ff00ff';  // up/down Z-arrow color
+
+// Line badge colors
+var BADGE_SECRET_COLOR        = '#d4a843';  // secret exit badge
+var BADGE_LOCK_COLOR          = '#9ab0d4';  // locked exit badge
+
+// Ghost / hover cell (pan tool)
+var GHOST_CELL_BORDER         = 'rgba(255,255,255,0.35)';
+var GHOST_CELL_FILL           = 'rgba(255,255,255,0.08)';
+var GHOST_CELL_SYMBOL         = 'rgba(255,255,255,0.25)';
+
+// Exit-draw tool
+var EXIT_DRAW_TARGET_HIGHLIGHT = 'rgba(100,255,100,0.8)';
+var EXIT_DRAW_LINE_COLOR       = 'rgba(100,200,255,0.8)';
+
+// Room drag tool
+var DRAG_ORIGIN_MARKER        = 'rgba(255,255,255,0.15)';
+var DRAG_SNAP_BLOCKED         = 'rgba(255,80,80,0.5)';
+var DRAG_SNAP_BROKEN          = 'rgba(255,180,60,0.5)';
+var DRAG_SNAP_CLEAN           = 'rgba(100,200,255,0.5)';
+var DRAG_CONSTRAINT_BROKEN    = 'rgba(255,60,60,0.7)';
+var DRAG_CONSTRAINT_OK        = 'rgba(100,200,100,0.6)';
+var DRAG_GHOST_BROKEN_FILL    = 'rgba(255,180,60,0.2)';
+
+// Quick-build tool
+var QB_COLOR                  = '95,183,122';  // RGB components for quick-build green
+var QB_OCCUPIED_COLOR         = '255,255,255'; // RGB components for occupied slot
+
+// Selection rectangle
+var SELECT_RECT_FILL          = 'rgba(100,160,255,0.12)';
+var SELECT_RECT_BORDER        = 'rgba(100,160,255,0.6)';
 
 // --- Symbol & Environment Lookup Tables ---
 // Each symbol has a fixed color so the palette stays consistent across biomes.

@@ -12,8 +12,8 @@
  *   Empty items:  Create Room Here
  */
 /* jshint esversion: 11, browser: true */
-/* globals MapperTools, MapperCtxMenu, MapperState, MapperRender, MapperEvents,
-   ROOM_SIZE_2D, escapeHtml */
+/* globals MapperTools, MapperCtxMenu, MapperState, MapperRender, MapperEvents, MapperUI,
+   ROOM_SIZE_2D, SELECT_RECT_FILL, SELECT_RECT_BORDER, escapeHtml */
 'use strict';
 
 (function() {
@@ -108,17 +108,14 @@
             var sw = Math.abs(sr.endCx - sr.startCx);
             var sh = Math.abs(sr.endCy - sr.startCy);
 
-            ctx.fillStyle = 'rgba(100,160,255,0.12)';
+            ctx.fillStyle = SELECT_RECT_FILL;
             ctx.fillRect(sx, sy, sw, sh);
-            ctx.strokeStyle = 'rgba(100,160,255,0.6)';
+            ctx.strokeStyle = SELECT_RECT_BORDER;
             ctx.lineWidth = 1;
             ctx.setLineDash([4, 3]);
             ctx.strokeRect(sx, sy, sw, sh);
             ctx.setLineDash([]);
-        },
-
-        // Selection rectangle is 2D-only in the current implementation
-        renderOverlay3d: function() {}
+        }
     };
 
     MapperTools.register(tool);
@@ -137,6 +134,7 @@
 
             items.push({
                 label: 'Select',
+                icon: '↗',
                 action: function() {
                     MapperState.selectRoom(roomId);
                 }
@@ -151,6 +149,7 @@
 
                 items.push({
                     label: 'Add Room Up (z:' + upZ + ')' + (upOccupied ? ' — occupied' : ''),
+                    icon: '▴',
                     disabled: upOccupied,
                     action: function() {
                         MapperEvents.emit('room:createAt', { gx: room.MapX, gy: room.MapY, gz: upZ });
@@ -158,6 +157,7 @@
                 });
                 items.push({
                     label: 'Add Room Down (z:' + downZ + ')' + (downOccupied ? ' — occupied' : ''),
+                    icon: '▾',
                     disabled: downOccupied,
                     action: function() {
                         MapperEvents.emit('room:createAt', { gx: room.MapX, gy: room.MapY, gz: downZ });
@@ -169,6 +169,7 @@
             if (roomId > 0) {
                 items.push({
                     label: 'Edit Room',
+                    icon: '✎',
                     action: function() {
                         window.location.href = '/admin/rooms#' + roomId;
                     }
@@ -177,6 +178,7 @@
 
             items.push({
                 label: 'Delete Room',
+                icon: '✕',
                 style: 'color:#ff6b6b',
                 action: function() {
                     var lbl = room ? room.Title : 'Room #' + roomId;
@@ -195,8 +197,16 @@
             return [
                 {
                     label: 'Create Room Here',
+                    icon: '⊕',
                     action: function() {
                         MapperEvents.emit('room:createAt', { gx: target.gx, gy: target.gy, gz: target.gz });
+                    }
+                },
+                {
+                    label: 'Create Zone Here',
+                    icon: '⬡',
+                    action: function() {
+                        MapperUI.createZoneAt(target.gx, target.gy, target.gz);
                     }
                 }
             ];

@@ -323,7 +323,12 @@ type MapperRoomData struct {
 	HasCoordinates bool                      `json:"HasCoordinates"`
 	MapSymbol      string                    `json:"MapSymbol"`
 	MapLegend      string                    `json:"MapLegend"`
-	Biome          string                    `json:"Biome"`
+	Biome          string                    `json:"Biome,omitempty"`
+	Tags           []string                  `json:"Tags,omitempty"`
+	Nouns          map[string]string         `json:"Nouns,omitempty"`
+	HasScript      bool                      `json:"HasScript,omitempty"`
+	HasMobSpawn    bool                      `json:"HasMobSpawn,omitempty"`
+	SpawnInfo      []SpawnInfo               `json:"SpawnInfo,omitempty"`
 	Exits          map[string]MapperExitData `json:"Exits"`
 }
 
@@ -363,6 +368,19 @@ func GetMapperRooms(zoneName string) ([]MapperRoomData, error) {
 			}
 		}
 
+		biome := r.Biome
+		if biome == "" {
+			biome = zoneInfo.DefaultBiome
+		}
+
+		hasMobSpawn := false
+		for _, si := range r.SpawnInfo {
+			if si.MobId > 0 {
+				hasMobSpawn = true
+				break
+			}
+		}
+
 		result = append(result, MapperRoomData{
 			RoomId:         r.RoomId,
 			Zone:           r.Zone,
@@ -373,7 +391,12 @@ func GetMapperRooms(zoneName string) ([]MapperRoomData, error) {
 			HasCoordinates: r.HasCoordinates,
 			MapSymbol:      r.MapSymbol,
 			MapLegend:      r.MapLegend,
-			Biome:          r.Biome,
+			Biome:          biome,
+			Tags:           r.Tags,
+			Nouns:          r.Nouns,
+			HasScript:      r.GetScript() != "",
+			HasMobSpawn:    hasMobSpawn,
+			SpawnInfo:      r.SpawnInfo,
 			Exits:          exits,
 		})
 	}
@@ -405,6 +428,21 @@ func GetAllMapperRooms() []MapperRoomData {
 			}
 		}
 
+		biome := r.Biome
+		if biome == "" {
+			if zi, ok := roomManager.zones[r.Zone]; ok {
+				biome = zi.DefaultBiome
+			}
+		}
+
+		hasMobSpawn2 := false
+		for _, si := range r.SpawnInfo {
+			if si.MobId > 0 {
+				hasMobSpawn2 = true
+				break
+			}
+		}
+
 		result = append(result, MapperRoomData{
 			RoomId:         r.RoomId,
 			Zone:           r.Zone,
@@ -415,7 +453,12 @@ func GetAllMapperRooms() []MapperRoomData {
 			HasCoordinates: r.HasCoordinates,
 			MapSymbol:      r.MapSymbol,
 			MapLegend:      r.MapLegend,
-			Biome:          r.Biome,
+			Biome:          biome,
+			Tags:           r.Tags,
+			Nouns:          r.Nouns,
+			HasScript:      r.GetScript() != "",
+			HasMobSpawn:    hasMobSpawn2,
+			SpawnInfo:      r.SpawnInfo,
 			Exits:          exits,
 		})
 	}

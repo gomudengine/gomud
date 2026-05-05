@@ -1,5 +1,5 @@
 /* jshint esversion: 11, browser: true */
-/* globals MapperEvents, AdminAPI, symbolForRoom, colorForSymbol, escapeHtml, isDirectionalExit, DIRECTION_DELTAS, isExitConstraintSatisfied, buildDragConstraints, breakExitLocally, BIOME_SYMBOLS, biomeEnvMap */
+/* globals MapperEvents, AdminAPI, symbolForRoom, colorForSymbol, contrastColor, escapeHtml, isDirectionalExit, DIRECTION_DELTAS, isExitConstraintSatisfied, buildDragConstraints, breakExitLocally, BIOME_SYMBOLS, biomeEnvMap */
 'use strict';
 
 /**
@@ -18,7 +18,7 @@
  *                    clearDirty, moveRoomLocally, breakExitLocally,
  *                    addExitLocally, deleteRoomLocally, createRoomLocally,
  *                    applyGroupMove, selectRoom, toggleRoomSelection
- *   Data loading   — loadBiomes, loadAllRooms, buildCrossZoneGraph,
+ *   Data loading   — loadBiomes, loadAllRooms,
  *                    applyZoneLayout, centerOnZone
  *   Registration   — setDom, setRenderFn, setUpdateFns
  */
@@ -47,19 +47,26 @@ var MapperState = (function() {
 
     var dom = {
         saveCtrlEl: null,
-        dirtyCountEl: null,
         changelogEl: null,
-        clEntriesEl: null
+        clEntriesEl: null,
+        changelogBtnEl: null,
+        changelogBadgeEl: null,
+        toastContainerEl: null
     };
 
     function setDom(domRefs) {
         if (domRefs.saveCtrlEl) dom.saveCtrlEl = domRefs.saveCtrlEl;
-        if (domRefs.dirtyCountEl) dom.dirtyCountEl = domRefs.dirtyCountEl;
         if (domRefs.changelogEl) dom.changelogEl = domRefs.changelogEl;
         if (domRefs.clEntriesEl) dom.clEntriesEl = domRefs.clEntriesEl;
+        if (domRefs.changelogBtnEl) dom.changelogBtnEl = domRefs.changelogBtnEl;
+        if (domRefs.changelogBadgeEl) dom.changelogBadgeEl = domRefs.changelogBadgeEl;
+        if (domRefs.toastContainerEl) dom.toastContainerEl = domRefs.toastContainerEl;
     }
 
     // --- Data Layer ---
+
+    var tagDescriptions = {};  // tag -> module
+    var mobNames = {};          // mobId -> name
 
     var mapperData = {
         allZones: [],
@@ -68,9 +75,7 @@ var MapperState = (function() {
         rooms: new Map(),
         roomsByCoord: new Map(),
         zLevels: [],
-        zoneRootRooms: new Map(),
-        zoneOffsets: new Map(),
-        visibleZones: new Set()
+        zoneRootRooms: new Map()
     };
 
     // --- Selection State ---
@@ -128,7 +133,7 @@ var MapperState = (function() {
 
     // --- Camera Primitives ---
 
-    var activeTab = localStorage.getItem('mapper.activeTab') === '3d' ? '3d' : '2d';
+    var activeTab = '2d';
     var zoomScale = 1.0;
     var cameraX = 0, cameraY = 0, cameraZ = 0;
     var panOffsetX = 0, panOffsetY = 0;
@@ -138,11 +143,11 @@ var MapperState = (function() {
     var dragActive = false, dragStartPxX = 0, dragStartPxY = 0, dragStartPanX = 0, dragStartPanY = 0;
 
     var activeZ2d = 0;
-    var activeZ3d = null;
-    var spacingScale3d = (function() {
-        var s = parseFloat(localStorage.getItem('mapper.spacing3d'));
-        return (isFinite(s) && s >= 0.6 && s <= 4.0) ? s : 0.6;
+    var spacingScale2d = (function() {
+        var s = parseFloat(localStorage.getItem('mapper.spacing2d'));
+        return (isFinite(s) && s >= 0.75 && s <= 3.0) ? s : 1.0;
     })();
+    var showBounds = localStorage.getItem('mapper.showBounds') === 'true';
     var tooltipHideTimer = null;
 
     // --- Mouse State Primitives ---
@@ -198,10 +203,10 @@ var MapperState = (function() {
         set dragStartPanY(v) { dragStartPanY = v; },
         get activeZ2d() { return activeZ2d; },
         set activeZ2d(v) { activeZ2d = v; },
-        get activeZ3d() { return activeZ3d; },
-        set activeZ3d(v) { activeZ3d = v; },
-        get spacingScale3d() { return spacingScale3d; },
-        set spacingScale3d(v) { spacingScale3d = v; },
+        get spacingScale2d() { return spacingScale2d; },
+        set spacingScale2d(v) { spacingScale2d = v; },
+        get showBounds() { return showBounds; },
+        set showBounds(v) { showBounds = v; },
         get tooltipHideTimer() { return tooltipHideTimer; },
         set tooltipHideTimer(v) { tooltipHideTimer = v; }
     };
@@ -227,28 +232,55 @@ var MapperState = (function() {
                dirty.createdRooms.size > 0;
     }
 
+    var toastTimer = null;
+
+    function showToastDirty() {
+        if (!dom.toastContainerEl) return;
+        var parts = [];
+        if (dirty.movedRooms.size > 0)     parts.push(dirty.movedRooms.size + ' moved');
+        if (dirty.createdRooms.size > 0)   parts.push(dirty.createdRooms.size + ' new');
+        if (dirty.deletedRooms.length > 0) parts.push(dirty.deletedRooms.length + ' deleted');
+        if (dirty.exitAdditions.length > 0) parts.push(dirty.exitAdditions.length + ' exits added');
+        if (dirty.exitRemovals.length > 0)  parts.push(dirty.exitRemovals.length + ' exits removed');
+        if (parts.length === 0) return;
+        var el = document.createElement('div');
+        el.className = 'mapper-toast';
+        el.textContent = parts.join(', ');
+        dom.toastContainerEl.appendChild(el);
+        setTimeout(function() {
+            if (el.parentNode) el.parentNode.removeChild(el);
+        }, 2900);
+    }
+
     function updateSaveButtons() {
         var d = isDirty();
         if (dom.saveCtrlEl) dom.saveCtrlEl.classList.toggle('visible', d);
-        if (d && dom.dirtyCountEl) {
-            var parts = [];
-            if (dirty.movedRooms.size > 0) parts.push(dirty.movedRooms.size + ' moved');
-            if (dirty.createdRooms.size > 0) parts.push(dirty.createdRooms.size + ' new');
-            if (dirty.deletedRooms.length > 0) parts.push(dirty.deletedRooms.length + ' deleted');
-            if (dirty.exitAdditions.length > 0) parts.push(dirty.exitAdditions.length + ' exits added');
-            if (dirty.exitRemovals.length > 0) parts.push(dirty.exitRemovals.length + ' exits removed');
-            dom.dirtyCountEl.textContent = parts.join(', ');
+        if (d) {
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(function() {
+                toastTimer = null;
+                showToastDirty();
+            }, 400);
         }
     }
 
     function logChange(cssClass, text) {
-        if (!dom.clEntriesEl || !dom.changelogEl) return;
+        if (!dom.clEntriesEl) return;
         var entry = document.createElement('div');
         entry.className = 'cl-entry ' + cssClass;
         entry.innerHTML = text;
         dom.clEntriesEl.appendChild(entry);
-        dom.changelogEl.classList.add('visible');
-        entry.scrollIntoView({ block: 'nearest' });
+        // Update badge count
+        if (dom.changelogBadgeEl) {
+            var count = dom.clEntriesEl.childElementCount;
+            dom.changelogBadgeEl.textContent = count;
+            dom.changelogBadgeEl.classList.add('visible');
+        }
+        if (dom.changelogBtnEl) dom.changelogBtnEl.classList.add('has-entries');
+        // Scroll if overlay is open
+        if (dom.changelogEl && dom.changelogEl.classList.contains('visible')) {
+            entry.scrollIntoView({ block: 'nearest' });
+        }
     }
 
     function roomLabel(roomId) {
@@ -265,6 +297,8 @@ var MapperState = (function() {
         dirty.nextTempId = -1;
         if (dom.clEntriesEl) dom.clEntriesEl.innerHTML = '';
         if (dom.changelogEl) dom.changelogEl.classList.remove('visible');
+        if (dom.changelogBadgeEl) { dom.changelogBadgeEl.textContent = ''; dom.changelogBadgeEl.classList.remove('visible'); }
+        if (dom.changelogBtnEl) dom.changelogBtnEl.classList.remove('has-entries');
         updateSaveButtons();
     }
 
@@ -273,6 +307,45 @@ var MapperState = (function() {
     // reflects changes before the server round-trip.  Each mutation also
     // records what changed in the `dirty` tracker so it can be persisted
     // later.
+
+    /**
+     * Replaces a temporary (negative) room ID with the real server-assigned ID.
+     * Updates rooms map, roomsByCoord, dirty.createdRooms, selection, and any
+     * exit references that point at the old temp ID.
+     */
+    function replaceRoomId(oldId, newId) {
+        var room = mapperData.rooms.get(oldId);
+        if (!room) return;
+
+        // Update the room object and re-key in rooms map
+        room.RoomId = newId;
+        mapperData.rooms.delete(oldId);
+        mapperData.rooms.set(newId, room);
+
+        // Update coord index
+        var coordKey = room.MapX + ',' + room.MapY + ',' + room.MapZ;
+        if (mapperData.roomsByCoord.get(coordKey) === oldId) {
+            mapperData.roomsByCoord.set(coordKey, newId);
+        }
+
+        // Update dirty.createdRooms
+        if (dirty.createdRooms.has(oldId)) {
+            var info = dirty.createdRooms.get(oldId);
+            dirty.createdRooms.delete(oldId);
+            dirty.createdRooms.set(newId, info);
+        }
+
+        // Update any exit references pointing at oldId
+        mapperData.rooms.forEach(function(r) {
+            if (!r.Exits) return;
+            for (var dir in r.Exits) {
+                if (r.Exits[dir].RoomId === oldId) r.Exits[dir].RoomId = newId;
+            }
+        });
+
+        // Update selection
+        if (selected.has(oldId)) { selected.delete(oldId); selected.add(newId); }
+    }
 
     function moveRoomLocally(roomId, newGx, newGy) {
         var room = mapperData.rooms.get(roomId);
@@ -303,6 +376,24 @@ var MapperState = (function() {
             logChange('cl-exit-remove', '<span class="cl-action">REMOVE EXIT</span> "' + escapeHtml(dir) + '" from ' + roomLabel(roomId) + ' (was &rarr; #' + targetId + ')');
             updateSaveButtons();
         }
+    }
+
+    function deleteAllExitsLocally(roomId) {
+        var room = mapperData.rooms.get(roomId);
+        if (!room) return;
+        // Remove all outgoing exits from this room
+        if (room.Exits) {
+            Object.keys(room.Exits).forEach(function(dir) { breakExitLocally(roomId, dir); });
+        }
+        // Remove all return exits from other rooms pointing back at this room
+        mapperData.rooms.forEach(function(other, otherId) {
+            if (otherId === roomId || !other.Exits) return;
+            Object.keys(other.Exits).forEach(function(dir) {
+                if (other.Exits[dir] && other.Exits[dir].RoomId === roomId) {
+                    breakExitLocally(otherId, dir);
+                }
+            });
+        });
     }
 
     function addExitLocally(sourceRoomId, dir, targetRoomId) {
@@ -347,18 +438,20 @@ var MapperState = (function() {
         _updateStats();
     }
 
-    function createRoomLocally(gx, gy, gz) {
+    function createRoomLocally(gx, gy, gz, zone) {
         var tempId = dirty.nextTempId--;
-        var zoneInfo = mapperData.allZones.find(function(z) { return z.Name === mapperData.currentZone; });
+        var resolvedZone = zone || mapperData.currentZone || '';
+        var zoneInfo = mapperData.allZones.find(function(z) { return z.Name === resolvedZone; });
         var biome = zoneInfo ? zoneInfo.DefaultBiome : '';
 
         var tempRoom = {
-            RoomId: tempId, Zone: mapperData.currentZone || '', Title: 'New Room',
+            RoomId: tempId, Zone: resolvedZone, Title: 'New Room',
             MapX: gx, MapY: gy, MapZ: gz,
             HasCoordinates: true, MapSymbol: '', MapLegend: '', Biome: biome, Exits: {}
         };
         tempRoom._symbol = symbolForRoom(tempRoom);
         tempRoom._color = colorForSymbol(tempRoom._symbol, tempRoom.Biome);
+        tempRoom._symbolColor = contrastColor(tempRoom._color);
 
         mapperData.rooms.set(tempId, tempRoom);
         mapperData.roomsByCoord.set(gx + ',' + gy + ',' + gz, tempId);
@@ -368,8 +461,8 @@ var MapperState = (function() {
             mapperData.zLevels.sort(function(a, b) { return a - b; });
         }
 
-        dirty.createdRooms.set(tempId, { gx: gx, gy: gy, gz: gz, zone: mapperData.currentZone || '' });
-        logChange('cl-create', '<span class="cl-action">CREATE</span> New Room at (' + gx + ', ' + gy + ', ' + gz + ') in zone ' + escapeHtml(mapperData.currentZone || '?'));
+        dirty.createdRooms.set(tempId, { gx: gx, gy: gy, gz: gz, zone: resolvedZone });
+        logChange('cl-create', '<span class="cl-action">CREATE</span> New Room at (' + gx + ', ' + gy + ', ' + gz + ') in zone ' + escapeHtml(resolvedZone || '?'));
         updateSaveButtons();
         _updateStats();
         return tempId;
@@ -385,39 +478,6 @@ var MapperState = (function() {
             var newGx = start.startGx + deltaGx;
             var newGy = start.startGy + deltaGy;
             moveRoomLocally(roomId, newGx, newGy);
-        });
-
-        // Break exits that violate their directional constraints post-move
-        group.forEach(function(start, roomId) {
-            var room = mapperData.rooms.get(roomId);
-            if (!room) return;
-            var constraints = buildDragConstraints(roomId);
-            constraints.forEach(function(c) {
-                if (!isExitConstraintSatisfied(c, room.MapX, room.MapY)) {
-                    if (c.outgoing) {
-                        var neighborId = mapperData.roomsByCoord.get(c.refX + ',' + c.refY + ',' + room.MapZ);
-                        if (room.Exits) {
-                            for (var dir in room.Exits) {
-                                if (room.Exits[dir].RoomId === neighborId) {
-                                    breakExitLocally(roomId, dir);
-                                }
-                            }
-                        }
-                    } else {
-                        var neighborId2 = mapperData.roomsByCoord.get(c.refX + ',' + c.refY + ',' + room.MapZ);
-                        if (neighborId2 !== undefined) {
-                            var neighbor = mapperData.rooms.get(neighborId2);
-                            if (neighbor && neighbor.Exits) {
-                                for (var dir2 in neighbor.Exits) {
-                                    if (neighbor.Exits[dir2].RoomId === roomId) {
-                                        breakExitLocally(neighborId2, dir2);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            });
         });
     }
 
@@ -438,6 +498,28 @@ var MapperState = (function() {
     }
 
     // --- Data Loading ---
+
+    async function loadTags() {
+        var res = await AdminAPI.get('/admin/api/v1/tags');
+        var list = res.ok && res.data ? res.data.data : null;
+        if (Array.isArray(list)) {
+            list.forEach(function(t) {
+                tagDescriptions[t.tag] = t.module;
+            });
+        }
+    }
+
+    async function loadMobNames() {
+        var res = await AdminAPI.get('/admin/api/v1/mobs');
+        var list = res.ok && res.data ? res.data.data : null;
+        if (Array.isArray(list)) {
+            list.forEach(function(m) {
+                var id = m.MobId;
+                var name = m.Character && m.Character.Name ? m.Character.Name : null;
+                if (id && name) mobNames[id] = name;
+            });
+        }
+    }
 
     async function loadBiomes() {
         var res = await AdminAPI.get('/admin/api/v1/biomes');
@@ -466,136 +548,70 @@ var MapperState = (function() {
         mapperData.rawRooms = (data.Rooms || []).map(function(r) {
             r._symbol = symbolForRoom(r);
             r._color = colorForSymbol(r._symbol, r.Biome);
+            r._symbolColor = contrastColor(r._color);
             return r;
         });
 
-        if (mapperData.currentZone) {
-            applyZoneLayout(mapperData.currentZone);
-        }
-    }
-
-    // --- Cross-Zone Graph ---
-    // Builds a directed edge map between zones based on directional exits
-    // that cross zone boundaries.  Used by applyZoneLayout to BFS outward
-    // from the center zone and compute spatial offsets for neighboring zones.
-
-    function buildCrossZoneGraph(rawRooms) {
-        var roomById = new Map();
-        rawRooms.forEach(function(r) { roomById.set(r.RoomId, r); });
-
-        var edges = new Map();
-        rawRooms.forEach(function(r) {
-            if (!r.HasCoordinates || !r.Zone || !r.Exits) return;
-            for (var dir in r.Exits) {
-                if (!isDirectionalExit(dir)) continue;
-                var delta = DIRECTION_DELTAS[dir];
-                if (!delta || (delta[0] === 0 && delta[1] === 0 && delta[2] === 0)) continue;
-                var dest = roomById.get(r.Exits[dir].RoomId);
-                if (!dest || !dest.HasCoordinates || !dest.Zone) continue;
-                if (dest.Zone === r.Zone) continue;
-                var key = r.Zone + '>' + dest.Zone;
-                if (!edges.has(key)) {
-                    edges.set(key, {
-                        fromZone: r.Zone, toZone: dest.Zone,
-                        fromX: r.MapX, fromY: r.MapY,
-                        toX: dest.MapX, toY: dest.MapY,
-                        dx: delta[0], dy: delta[1]
-                    });
-                }
-            }
-        });
-        return edges;
-    }
-
-    // --- Zone Layout ---
-    // Rebuilds the visible room set by BFS-ing from a center zone through
-    // cross-zone exits, computing coordinate offsets so adjacent zones tile
-    // seamlessly on the canvas.
-
-    function applyZoneLayout(centerZone) {
-        mapperData.currentZone = centerZone;
+        // Populate all rooms directly by coordinates — no zone filtering or offsets
         mapperData.rooms.clear();
         mapperData.roomsByCoord.clear();
-        mapperData.zoneOffsets.clear();
-        mapperData.visibleZones.clear();
-
-        var graph = buildCrossZoneGraph(mapperData.rawRooms);
-
-        var adj = new Map();
-        graph.forEach(function(edge) {
-            if (!adj.has(edge.fromZone)) adj.set(edge.fromZone, []);
-            adj.get(edge.fromZone).push(edge);
-        });
-
-        mapperData.zoneOffsets.set(centerZone, { dx: 0, dy: 0 });
-        mapperData.visibleZones.add(centerZone);
-        var queue = [centerZone];
-
-        while (queue.length > 0) {
-            var zone = queue.shift();
-            var myOff = mapperData.zoneOffsets.get(zone);
-            var neighbors = adj.get(zone) || [];
-            neighbors.forEach(function(edge) {
-                if (mapperData.visibleZones.has(edge.toZone)) return;
-                var dx = myOff.dx + (edge.fromX + edge.dx) - edge.toX;
-                var dy = myOff.dy + (edge.fromY + edge.dy) - edge.toY;
-                mapperData.zoneOffsets.set(edge.toZone, { dx: dx, dy: dy });
-                mapperData.visibleZones.add(edge.toZone);
-                queue.push(edge.toZone);
-            });
-        }
-
-        // Populate rooms for visible zones, applying coordinate offsets
         var zSet = new Set();
         mapperData.rawRooms.forEach(function(r) {
-            if (!r.Zone || !mapperData.visibleZones.has(r.Zone)) return;
-            var copy = Object.assign({}, r);
-            copy.Exits = r.Exits;
-            copy._symbol = r._symbol;
-            copy._color = r._color;
-            copy._serverX = r.MapX;
-            copy._serverY = r.MapY;
-            if (copy.HasCoordinates) {
-                var off = mapperData.zoneOffsets.get(copy.Zone);
-                if (off) { copy.MapX = r.MapX + off.dx; copy.MapY = r.MapY + off.dy; }
-            }
-            mapperData.rooms.set(copy.RoomId, copy);
-            if (copy.HasCoordinates) {
-                mapperData.roomsByCoord.set(copy.MapX + ',' + copy.MapY + ',' + copy.MapZ, copy.RoomId);
-                zSet.add(copy.MapZ);
+            mapperData.rooms.set(r.RoomId, r);
+            if (r.HasCoordinates) {
+                mapperData.roomsByCoord.set(r.MapX + ',' + r.MapY + ',' + r.MapZ, r.RoomId);
+                zSet.add(r.MapZ);
             }
         });
         mapperData.zLevels = Array.from(zSet).sort(function(a, b) { return a - b; });
 
         _updateStats();
         _updateZButtons();
-        _render();
+
+        if (mapperData.currentZone) {
+            centerOnZone(mapperData.currentZone);
+        } else {
+            _render();
+        }
+    }
+
+    // --- Zone Layout ---
+    // Sets the current zone for default room-creation assignment.
+    // All rooms are always visible; no filtering or coordinate offsets are applied.
+
+    function applyZoneLayout(zoneName) {
+        mapperData.currentZone = zoneName;
     }
 
     function centerOnZone(zoneName) {
         applyZoneLayout(zoneName);
         var rootId = mapperData.zoneRootRooms.get(zoneName);
-        if (rootId) {
-            var root = mapperData.rooms.get(rootId);
-            if (root && root.HasCoordinates) {
-                cameraX = root.MapX;
-                cameraY = root.MapY;
-                cameraZ = root.MapZ;
-                panOffsetX = 0;
-                panOffsetY = 0;
-                activeZ2d = root.MapZ;
-                activeZ3d = root.MapZ;
-                _updateZButtons();
-                _render();
-                return;
+        var root = rootId ? mapperData.rooms.get(rootId) : null;
+        var targetZ = null;
+
+        if (root && root.HasCoordinates) {
+            cameraX = root.MapX;
+            cameraY = root.MapY;
+            cameraZ = root.MapZ;
+            panOffsetX = 0;
+            panOffsetY = 0;
+            targetZ = root.MapZ;
+        }
+
+        if (mapperData.zLevels.length > 0) {
+            if (mapperData.zLevels.includes(0)) {
+                activeZ2d = 0;
+            } else if (targetZ !== null && mapperData.zLevels.includes(targetZ)) {
+                activeZ2d = targetZ;
+            } else {
+                activeZ2d = mapperData.zLevels.reduce(function(best, z) {
+                    return Math.abs(z) < Math.abs(best) ? z : best;
+                }, mapperData.zLevels[0]);
             }
         }
-        if (mapperData.zLevels.length > 0) {
-            activeZ2d = mapperData.zLevels[0];
-            activeZ3d = mapperData.zLevels[0];
-            _updateZButtons();
-            _render();
-        }
+
+        _updateZButtons();
+        _render();
     }
 
     // --- Public API ---
@@ -625,7 +641,9 @@ var MapperState = (function() {
         roomLabel: roomLabel,
         clearDirty: clearDirty,
         moveRoomLocally: moveRoomLocally,
+        replaceRoomId: replaceRoomId,
         breakExitLocally: breakExitLocally,
+        deleteAllExitsLocally: deleteAllExitsLocally,
         addExitLocally: addExitLocally,
         deleteRoomLocally: deleteRoomLocally,
         createRoomLocally: createRoomLocally,
@@ -633,8 +651,12 @@ var MapperState = (function() {
         selectRoom: selectRoom,
         toggleRoomSelection: toggleRoomSelection,
         loadBiomes: loadBiomes,
+        loadTags: loadTags,
+        loadMobNames: loadMobNames,
+        mobNames: mobNames,
+        tagDescriptions: tagDescriptions,
         loadAllRooms: loadAllRooms,
-        buildCrossZoneGraph: buildCrossZoneGraph,
+        buildCrossZoneGraph: null,
         applyZoneLayout: applyZoneLayout,
         centerOnZone: centerOnZone,
 
