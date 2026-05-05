@@ -3,7 +3,7 @@
    ZOOM_STEP, ZOOM_MIN, ZOOM_MAX, CENTER_EASE_DURATION,
    ROOM_SIZE_2D, ROOM_GAP_2D, BASE_STEP_2D, CONNECTION_WIDTH_2D, ROOM_BORDER_WIDTH_2D, SYMBOL_FONT_SIZE_2D, MAP_BG_2D, ROOM_BORDER_COLOR_2D,
    CONNECTION_COLOR, ABNORMAL_CONNECTION_COLOR, SELECTED_ROOM_COLOR, SELECTED_ROOM_TEXT_COLOR, SYMBOL_TEXT_COLOR,
-   ZONE_BOX_PADDING, ZONE_BOX_COLOR, ZONE_BOX_COLOR_HOV,
+   ZONE_BOX_PADDING, ZONE_BOX_COLOR, ZONE_BOX_COLOR_HOV, ZONE_BOX_BORDER, ZONE_BOX_BORDER_HOV,
    computeZonePaddedBounds,
    exitDelta, isDirectionalExit, darkenColor, smoothstep, isExitConstraintSatisfied */
 
@@ -226,7 +226,7 @@ var MapperRender = (function() {
             ctx.fillRect(rx, ry, rw, rh);
 
             // Border
-            ctx.strokeStyle = isHov ? 'rgba(180,180,255,0.7)' : 'rgba(180,180,220,0.35)';
+            ctx.strokeStyle = isHov ? ZONE_BOX_BORDER_HOV : ZONE_BOX_BORDER;
             ctx.lineWidth = Math.max(1, cam.zoomScale);
             if (!isHov) {
                 ctx.setLineDash([Math.max(3, 6 * cam.zoomScale), Math.max(3, 6 * cam.zoomScale)]);
