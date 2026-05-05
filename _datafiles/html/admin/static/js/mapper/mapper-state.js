@@ -1,5 +1,5 @@
 /* jshint esversion: 11, browser: true */
-/* globals MapperEvents, AdminAPI, symbolForRoom, colorForSymbol, escapeHtml, isDirectionalExit, DIRECTION_DELTAS, isExitConstraintSatisfied, buildDragConstraints, breakExitLocally, BIOME_SYMBOLS, biomeEnvMap */
+/* globals MapperEvents, AdminAPI, symbolForRoom, colorForSymbol, contrastColor, escapeHtml, isDirectionalExit, DIRECTION_DELTAS, isExitConstraintSatisfied, buildDragConstraints, breakExitLocally, BIOME_SYMBOLS, biomeEnvMap */
 'use strict';
 
 /**
@@ -49,7 +49,9 @@ var MapperState = (function() {
         saveCtrlEl: null,
         dirtyCountEl: null,
         changelogEl: null,
-        clEntriesEl: null
+        clEntriesEl: null,
+        changelogBtnEl: null,
+        changelogBadgeEl: null
     };
 
     function setDom(domRefs) {
@@ -57,9 +59,13 @@ var MapperState = (function() {
         if (domRefs.dirtyCountEl) dom.dirtyCountEl = domRefs.dirtyCountEl;
         if (domRefs.changelogEl) dom.changelogEl = domRefs.changelogEl;
         if (domRefs.clEntriesEl) dom.clEntriesEl = domRefs.clEntriesEl;
+        if (domRefs.changelogBtnEl) dom.changelogBtnEl = domRefs.changelogBtnEl;
+        if (domRefs.changelogBadgeEl) dom.changelogBadgeEl = domRefs.changelogBadgeEl;
     }
 
     // --- Data Layer ---
+
+    var tagDescriptions = {};  // tag -> module
 
     var mapperData = {
         allZones: [],
@@ -128,7 +134,7 @@ var MapperState = (function() {
 
     // --- Camera Primitives ---
 
-    var activeTab = localStorage.getItem('mapper.activeTab') === '3d' ? '3d' : '2d';
+    var activeTab = '2d';
     var zoomScale = 1.0;
     var cameraX = 0, cameraY = 0, cameraZ = 0;
     var panOffsetX = 0, panOffsetY = 0;
@@ -138,10 +144,9 @@ var MapperState = (function() {
     var dragActive = false, dragStartPxX = 0, dragStartPxY = 0, dragStartPanX = 0, dragStartPanY = 0;
 
     var activeZ2d = 0;
-    var activeZ3d = null;
-    var spacingScale3d = (function() {
-        var s = parseFloat(localStorage.getItem('mapper.spacing3d'));
-        return (isFinite(s) && s >= 0.6 && s <= 4.0) ? s : 0.6;
+    var spacingScale2d = (function() {
+        var s = parseFloat(localStorage.getItem('mapper.spacing2d'));
+        return (isFinite(s) && s >= 0.75 && s <= 3.0) ? s : 1.0;
     })();
     var tooltipHideTimer = null;
 
@@ -198,10 +203,8 @@ var MapperState = (function() {
         set dragStartPanY(v) { dragStartPanY = v; },
         get activeZ2d() { return activeZ2d; },
         set activeZ2d(v) { activeZ2d = v; },
-        get activeZ3d() { return activeZ3d; },
-        set activeZ3d(v) { activeZ3d = v; },
-        get spacingScale3d() { return spacingScale3d; },
-        set spacingScale3d(v) { spacingScale3d = v; },
+        get spacingScale2d() { return spacingScale2d; },
+        set spacingScale2d(v) { spacingScale2d = v; },
         get tooltipHideTimer() { return tooltipHideTimer; },
         set tooltipHideTimer(v) { tooltipHideTimer = v; }
     };
@@ -242,13 +245,22 @@ var MapperState = (function() {
     }
 
     function logChange(cssClass, text) {
-        if (!dom.clEntriesEl || !dom.changelogEl) return;
+        if (!dom.clEntriesEl) return;
         var entry = document.createElement('div');
         entry.className = 'cl-entry ' + cssClass;
         entry.innerHTML = text;
         dom.clEntriesEl.appendChild(entry);
-        dom.changelogEl.classList.add('visible');
-        entry.scrollIntoView({ block: 'nearest' });
+        // Update badge count
+        if (dom.changelogBadgeEl) {
+            var count = dom.clEntriesEl.childElementCount;
+            dom.changelogBadgeEl.textContent = count;
+            dom.changelogBadgeEl.classList.add('visible');
+        }
+        if (dom.changelogBtnEl) dom.changelogBtnEl.classList.add('has-entries');
+        // Scroll if overlay is open
+        if (dom.changelogEl && dom.changelogEl.classList.contains('visible')) {
+            entry.scrollIntoView({ block: 'nearest' });
+        }
     }
 
     function roomLabel(roomId) {
@@ -265,6 +277,8 @@ var MapperState = (function() {
         dirty.nextTempId = -1;
         if (dom.clEntriesEl) dom.clEntriesEl.innerHTML = '';
         if (dom.changelogEl) dom.changelogEl.classList.remove('visible');
+        if (dom.changelogBadgeEl) { dom.changelogBadgeEl.textContent = ''; dom.changelogBadgeEl.classList.remove('visible'); }
+        if (dom.changelogBtnEl) dom.changelogBtnEl.classList.remove('has-entries');
         updateSaveButtons();
     }
 
@@ -303,6 +317,24 @@ var MapperState = (function() {
             logChange('cl-exit-remove', '<span class="cl-action">REMOVE EXIT</span> "' + escapeHtml(dir) + '" from ' + roomLabel(roomId) + ' (was &rarr; #' + targetId + ')');
             updateSaveButtons();
         }
+    }
+
+    function deleteAllExitsLocally(roomId) {
+        var room = mapperData.rooms.get(roomId);
+        if (!room) return;
+        // Remove all outgoing exits from this room
+        if (room.Exits) {
+            Object.keys(room.Exits).forEach(function(dir) { breakExitLocally(roomId, dir); });
+        }
+        // Remove all return exits from other rooms pointing back at this room
+        mapperData.rooms.forEach(function(other, otherId) {
+            if (otherId === roomId || !other.Exits) return;
+            Object.keys(other.Exits).forEach(function(dir) {
+                if (other.Exits[dir] && other.Exits[dir].RoomId === roomId) {
+                    breakExitLocally(otherId, dir);
+                }
+            });
+        });
     }
 
     function addExitLocally(sourceRoomId, dir, targetRoomId) {
@@ -359,6 +391,7 @@ var MapperState = (function() {
         };
         tempRoom._symbol = symbolForRoom(tempRoom);
         tempRoom._color = colorForSymbol(tempRoom._symbol, tempRoom.Biome);
+        tempRoom._symbolColor = contrastColor(tempRoom._color);
 
         mapperData.rooms.set(tempId, tempRoom);
         mapperData.roomsByCoord.set(gx + ',' + gy + ',' + gz, tempId);
@@ -439,6 +472,16 @@ var MapperState = (function() {
 
     // --- Data Loading ---
 
+    async function loadTags() {
+        var res = await AdminAPI.get('/admin/api/v1/tags');
+        var list = res.ok && res.data ? res.data.data : null;
+        if (Array.isArray(list)) {
+            list.forEach(function(t) {
+                tagDescriptions[t.tag] = t.module;
+            });
+        }
+    }
+
     async function loadBiomes() {
         var res = await AdminAPI.get('/admin/api/v1/biomes');
         var biomeList = res.ok && res.data ? res.data.data : null;
@@ -466,6 +509,7 @@ var MapperState = (function() {
         mapperData.rawRooms = (data.Rooms || []).map(function(r) {
             r._symbol = symbolForRoom(r);
             r._color = colorForSymbol(r._symbol, r.Biome);
+            r._symbolColor = contrastColor(r._color);
             return r;
         });
 
@@ -553,6 +597,7 @@ var MapperState = (function() {
             copy.Exits = r.Exits;
             copy._symbol = r._symbol;
             copy._color = r._color;
+            copy._symbolColor = r._symbolColor;
             copy._serverX = r.MapX;
             copy._serverY = r.MapY;
             if (copy.HasCoordinates) {
@@ -584,7 +629,6 @@ var MapperState = (function() {
                 panOffsetX = 0;
                 panOffsetY = 0;
                 activeZ2d = root.MapZ;
-                activeZ3d = root.MapZ;
                 _updateZButtons();
                 _render();
                 return;
@@ -592,7 +636,6 @@ var MapperState = (function() {
         }
         if (mapperData.zLevels.length > 0) {
             activeZ2d = mapperData.zLevels[0];
-            activeZ3d = mapperData.zLevels[0];
             _updateZButtons();
             _render();
         }
@@ -626,6 +669,7 @@ var MapperState = (function() {
         clearDirty: clearDirty,
         moveRoomLocally: moveRoomLocally,
         breakExitLocally: breakExitLocally,
+        deleteAllExitsLocally: deleteAllExitsLocally,
         addExitLocally: addExitLocally,
         deleteRoomLocally: deleteRoomLocally,
         createRoomLocally: createRoomLocally,
@@ -633,6 +677,8 @@ var MapperState = (function() {
         selectRoom: selectRoom,
         toggleRoomSelection: toggleRoomSelection,
         loadBiomes: loadBiomes,
+        loadTags: loadTags,
+        tagDescriptions: tagDescriptions,
         loadAllRooms: loadAllRooms,
         buildCrossZoneGraph: buildCrossZoneGraph,
         applyZoneLayout: applyZoneLayout,

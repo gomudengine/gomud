@@ -324,6 +324,9 @@ type MapperRoomData struct {
 	MapSymbol      string                    `json:"MapSymbol"`
 	MapLegend      string                    `json:"MapLegend"`
 	Biome          string                    `json:"Biome"`
+	Tags           []string                  `json:"Tags,omitempty"`
+	Nouns          map[string]string         `json:"Nouns,omitempty"`
+	HasScript      bool                      `json:"HasScript,omitempty"`
 	Exits          map[string]MapperExitData `json:"Exits"`
 }
 
@@ -363,6 +366,11 @@ func GetMapperRooms(zoneName string) ([]MapperRoomData, error) {
 			}
 		}
 
+		biome := r.Biome
+		if biome == "" {
+			biome = zoneInfo.DefaultBiome
+		}
+
 		result = append(result, MapperRoomData{
 			RoomId:         r.RoomId,
 			Zone:           r.Zone,
@@ -373,7 +381,10 @@ func GetMapperRooms(zoneName string) ([]MapperRoomData, error) {
 			HasCoordinates: r.HasCoordinates,
 			MapSymbol:      r.MapSymbol,
 			MapLegend:      r.MapLegend,
-			Biome:          r.Biome,
+			Biome:          biome,
+			Tags:           r.Tags,
+			Nouns:          r.Nouns,
+			HasScript:      r.GetScript() != "",
 			Exits:          exits,
 		})
 	}
@@ -405,6 +416,13 @@ func GetAllMapperRooms() []MapperRoomData {
 			}
 		}
 
+		biome := r.Biome
+		if biome == "" {
+			if zi, ok := roomManager.zones[r.Zone]; ok {
+				biome = zi.DefaultBiome
+			}
+		}
+
 		result = append(result, MapperRoomData{
 			RoomId:         r.RoomId,
 			Zone:           r.Zone,
@@ -415,7 +433,10 @@ func GetAllMapperRooms() []MapperRoomData {
 			HasCoordinates: r.HasCoordinates,
 			MapSymbol:      r.MapSymbol,
 			MapLegend:      r.MapLegend,
-			Biome:          r.Biome,
+			Biome:          biome,
+			Tags:           r.Tags,
+			Nouns:          r.Nouns,
+			HasScript:      r.GetScript() != "",
 			Exits:          exits,
 		})
 	}

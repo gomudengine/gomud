@@ -15,7 +15,8 @@
  *   7. Run the async boot sequence (load biomes, load rooms, center camera).
  */
 /* jshint esversion: 11, browser: true */
-/* globals MapperState, MapperRender, MapperTools, MapperCtxMenu, MapperUI, MapperEvents, AdminAPI */
+/* globals MapperState, MapperRender, MapperTools, MapperCtxMenu, MapperUI, MapperEvents, AdminAPI,
+   BASE_STEP_2D */
 'use strict';
 
 (function() {
@@ -28,21 +29,23 @@
     var viewport   = document.getElementById('mapper-viewport');
 
     var domRefs = {
-        canvas:       canvas,
-        viewport:     viewport,
-        spacingCtrlEl: document.getElementById('spacing-controls'),
-        zButtonsEl:    document.getElementById('z-buttons'),
-        saveCtrlEl:    document.getElementById('save-controls'),
-        dirtyCountEl:  document.getElementById('dirty-count'),
-        changelogEl:   document.getElementById('mapper-changelog'),
-        clEntriesEl:   document.getElementById('changelog-entries'),
-        statsEl:       document.getElementById('mapper-stats'),
-        zoneSelect:    document.getElementById('zone-select'),
-        loadingEl:     document.getElementById('mapper-loading'),
-        infoEmptyEl:   document.getElementById('info-empty'),
-        infoContentEl: document.getElementById('info-content'),
-        tooltip:       document.getElementById('mapper-tooltip'),
-        ctxMenuEl:     document.getElementById('mapper-ctx-menu')
+        canvas:            canvas,
+        viewport:          viewport,
+        spacingCtrlEl:     document.getElementById('spacing-controls'),
+        zButtonsEl:        document.getElementById('z-buttons'),
+        saveCtrlEl:        document.getElementById('save-controls'),
+        dirtyCountEl:      document.getElementById('dirty-count'),
+        changelogEl:       document.getElementById('mapper-changelog'),
+        clEntriesEl:       document.getElementById('changelog-entries'),
+        changelogBtnEl:    document.getElementById('changelog-btn'),
+        changelogBadgeEl:  document.getElementById('changelog-badge'),
+        statsEl:           document.getElementById('mapper-stats'),
+        zoneSelect:        document.getElementById('zone-select'),
+        loadingEl:         document.getElementById('mapper-loading'),
+        infoEmptyEl:       document.getElementById('info-empty'),
+        infoContentEl:     document.getElementById('info-content'),
+        tooltip:           document.getElementById('mapper-tooltip'),
+        ctxMenuEl:         document.getElementById('mapper-ctx-menu')
     };
 
     // =====================================================================
@@ -63,6 +66,10 @@
 
     MapperEvents.on('room:createAt', function(data) {
         MapperUI.createRoomAt(data.gx, data.gy, data.gz);
+    });
+
+    MapperEvents.on('pan:suppressClick', function() {
+        canvas.dataset.suppressClick = '1';
     });
 
     // =====================================================================
@@ -248,6 +255,13 @@
     document.addEventListener('click', function(e) {
         var ctxEl = domRefs.ctxMenuEl;
         if (!ctxEl.contains(e.target)) MapperCtxMenu.hide();
+        // Close changelog overlay when clicking outside it and outside the button
+        var clEl = domRefs.changelogEl;
+        var btnEl = domRefs.changelogBtnEl;
+        if (clEl && clEl.classList.contains('visible') &&
+            !clEl.contains(e.target) && btnEl && !btnEl.contains(e.target)) {
+            clEl.classList.remove('visible');
+        }
     });
 
     // =====================================================================
@@ -261,13 +275,26 @@
             if (activeTool && activeTool.name === 'exit-draw') { MapperTools.activate('pan'); return; }
             MapperCtxMenu.hide();
         }
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+            // Skip if focus is on an input/select so text fields still work
+            var tag = document.activeElement && document.activeElement.tagName;
+            if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+            e.preventDefault();
+            var cam = MapperState.camera;
+            var step = BASE_STEP_2D * cam.spacingScale2d * cam.zoomScale;
+            var gridStep = 1 / step * 40;  // 40px worth of scroll per keypress
+            if (e.key === 'ArrowLeft')  cam.panOffsetX -= gridStep;
+            if (e.key === 'ArrowRight') cam.panOffsetX += gridStep;
+            if (e.key === 'ArrowUp')    cam.panOffsetY -= gridStep;
+            if (e.key === 'ArrowDown')  cam.panOffsetY += gridStep;
+            MapperRender.render();
+            return;
+        }
         if (e.key === 'Delete' || e.key === 'Backspace') {
             if (MapperState.selected.size > 0) {
                 var ids = Array.from(MapperState.selected);
-                var msg = ids.length === 1
-                    ? 'Delete this room? All exits to/from it will be removed.'
-                    : 'Delete ' + ids.length + ' selected rooms? All exits to/from them will be removed.';
-                if (confirm(msg)) {
+                var proceed = ids.length === 1 || confirm('Delete ' + ids.length + ' selected rooms? All exits to/from them will be removed.');
+                if (proceed) {
                     ids.forEach(function(rid) { MapperState.deleteRoomLocally(rid); });
                     MapperRender.render();
                 }
@@ -299,14 +326,30 @@
     //  Global handler exposure (for inline HTML onclick attributes)
     // =====================================================================
 
-    window.switchTab      = MapperUI.switchTab;
-    window.zoomIn         = MapperUI.zoomIn;
-    window.zoomOut        = MapperUI.zoomOut;
-    window.centerCamera   = MapperUI.centerCamera;
-    window.spacingDown    = MapperUI.spacingDown;
-    window.spacingUp      = MapperUI.spacingUp;
-    window.saveAllChanges = MapperUI.saveAllChanges;
-    window.discardChanges = MapperUI.discardChanges;
+    window.switchTab        = MapperUI.switchTab;
+    window.zoomIn           = MapperUI.zoomIn;
+    window.zoomOut          = MapperUI.zoomOut;
+    window.centerCamera     = MapperUI.centerCamera;
+    window.saveAllChanges   = MapperUI.saveAllChanges;
+    window.discardChanges   = MapperUI.discardChanges;
+    window.toggleChangelog  = function() {
+        var clEl = domRefs.changelogEl;
+        if (!clEl) return;
+        clEl.classList.toggle('visible');
+        if (clEl.classList.contains('visible')) {
+            var last = clEl.lastElementChild && clEl.lastElementChild.lastElementChild;
+            if (last) last.scrollIntoView({ block: 'nearest' });
+        }
+    };
+
+    window.onSpacingSlider = function(val) {
+        var v = Math.max(0.75, parseFloat(val));
+        MapperState.camera.spacingScale2d = v;
+        localStorage.setItem('mapper.spacing2d', v);
+        var lbl = document.getElementById('spacing-val');
+        if (lbl) lbl.textContent = v.toFixed(2);
+        MapperRender.render();
+    };
 
     // =====================================================================
     //  Boot sequence
@@ -314,10 +357,19 @@
 
     (async function() {
         await MapperState.loadBiomes();
+        await MapperState.loadTags();
         await MapperState.loadAllRooms();
         MapperUI.populateZoneDropdown();
-        MapperUI.switchTab(MapperState.camera.activeTab);
+        MapperUI.switchTab('2d');
         MapperRender.initResizeObserver();
+
+        // Sync spacing slider to persisted value
+        var slider = document.getElementById('spacing-slider');
+        var sliderVal = document.getElementById('spacing-val');
+        if (slider) {
+            slider.value = MapperState.camera.spacingScale2d;
+            if (sliderVal) sliderVal.textContent = MapperState.camera.spacingScale2d.toFixed(2);
+        }
 
         // Restore last-used zone, falling back to the first available zone
         var lastZone = localStorage.getItem('mapper.lastZone');

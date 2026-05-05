@@ -7,7 +7,7 @@
  * throwaway DOM node for correctness).
  */
 /* jshint esversion: 11, browser: true */
-/* globals DIRECTION_DELTAS, DIRECTIONAL_EXITS, ENVIRONMENT_SYMBOLS, ENVIRONMENT_COLORS, SYMBOL_COLORS, BIOME_SYMBOLS, BIOME_COLORS, DEFAULT_ROOM_COLOR, mapperData */
+/* globals DIRECTION_DELTAS, DIRECTIONAL_EXITS, ENVIRONMENT_SYMBOLS, ENVIRONMENT_COLORS, SYMBOL_COLORS, BIOME_SYMBOLS, BIOME_COLORS, DEFAULT_ROOM_COLOR, MapperState */
 'use strict';
 
 // --- Exit & Direction Helpers ---
@@ -67,6 +67,16 @@ function colorForSymbol(sym, biome) {
     return DEFAULT_ROOM_COLOR;
 }
 
+/** Returns '#ffffff' or '#000000' whichever contrasts better against the given hex fill color. */
+function contrastColor(hex) {
+    var r = parseInt(hex.slice(1, 3), 16);
+    var g = parseInt(hex.slice(3, 5), 16);
+    var b = parseInt(hex.slice(5, 7), 16);
+    // Perceived luminance (sRGB)
+    var lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return lum > 0.45 ? '#000000' : '#ffffff';
+}
+
 // Cache mapping biome IDs to their canonical environment name
 var biomeEnvMap = {};
 
@@ -120,7 +130,7 @@ function darkenColor(hex, factor) {
  * @return {Array}   Constraint objects used by isExitConstraintSatisfied().
  */
 function buildDragConstraints(roomId, groupSet) {
-    var room = mapperData.rooms.get(roomId);
+    var room = MapperState.data.rooms.get(roomId);
     if (!room) return [];
     var constraints = [];
 
@@ -131,7 +141,7 @@ function buildDragConstraints(roomId, groupSet) {
             if (groupSet && groupSet.has(ex.RoomId)) continue;
             var delta = exitDelta(dir, room);
             if (!delta || (delta[0] === 0 && delta[1] === 0)) continue;
-            var dest = mapperData.rooms.get(ex.RoomId);
+            var dest = MapperState.data.rooms.get(ex.RoomId);
             if (!dest || !dest.HasCoordinates) continue;
             constraints.push({
                 signDx: sign(delta[0]),
@@ -147,7 +157,7 @@ function buildDragConstraints(roomId, groupSet) {
     }
 
     // Incoming exits: from neighbors outside the group pointing at this room
-    mapperData.rooms.forEach(function(other, otherId) {
+    MapperState.data.rooms.forEach(function(other, otherId) {
         if (otherId === roomId || !other.HasCoordinates || !other.Exits) return;
         if (groupSet && groupSet.has(otherId)) return;
         for (var dir in other.Exits) {

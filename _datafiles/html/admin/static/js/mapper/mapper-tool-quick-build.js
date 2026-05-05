@@ -13,9 +13,8 @@
  */
 /* jshint esversion: 11, browser: true */
 /* globals MapperTools, MapperCtxMenu, MapperState, MapperRender,
-   ROOM_SIZE_2D, SYMBOL_FONT_SIZE_2D, SYMBOL_FONT_SIZE_3D,
-   TILE_HW_3D, TILE_HH_3D,
-   CARDINAL_OFFSETS, symbolForRoom, colorForSymbol */
+   ROOM_SIZE_2D, SYMBOL_FONT_SIZE_2D,
+   CARDINAL_OFFSETS, symbolForRoom, colorForSymbol, contrastColor */
 'use strict';
 
 (function() {
@@ -89,6 +88,7 @@
             newRoom.MapLegend = srcRoom.MapLegend;
             newRoom._symbol = symbolForRoom(newRoom);
             newRoom._color = colorForSymbol(newRoom._symbol, newRoom.Biome);
+            newRoom._symbolColor = contrastColor(newRoom._color);
         }
 
         MapperState.addExitLocally(qb.sourceRoomId, match.dir, newId);
@@ -228,54 +228,6 @@
                 ctx.moveTo(srcP.px, srcP.py);
                 ctx.lineTo(sp.px, sp.py);
                 ctx.stroke();
-            });
-        },
-
-        // -----------------------------------------------------------------
-        //  3D overlay -- cardinal slots as iso diamonds
-        // -----------------------------------------------------------------
-
-        renderOverlay3d: function(ctx, rs) {
-            var qb = MapperState.quickBuildMode;
-            if (!qb.active) return;
-
-            var drawZ = rs.activeZ3d !== null ? rs.activeZ3d : 0;
-            if (qb.sourceGz !== drawZ) return;
-
-            var ghw3q = TILE_HW_3D * rs.zoomScale;
-            var ghh3q = TILE_HH_3D * rs.zoomScale;
-            var hoveredGridCell = rs.hoveredGridCell;
-            var slots3 = getQuickBuildSlots();
-            var fade3 = [1.0, 0.7, 0.45];
-
-            slots3.forEach(function(slot) {
-                var sp3 = rs.isoProject3d(slot.gx, slot.gy, drawZ, drawZ);
-                var isH3 = hoveredGridCell && hoveredGridCell.gx === slot.gx && hoveredGridCell.gy === slot.gy;
-                var f3 = fade3[slot.dist - 1] || 0.3;
-
-                if (!slot.occupied) {
-                    var a3 = isH3 ? 0.9 : 0.4 * f3;
-                    ctx.strokeStyle = 'rgba(95,183,122,' + a3 + ')';
-                    ctx.lineWidth = Math.max(1, 1.5 * rs.zoomScale);
-                    if (!isH3) ctx.setLineDash([Math.max(2, 4 * rs.zoomScale), Math.max(2, 4 * rs.zoomScale)]);
-                    ctx.beginPath();
-                    ctx.moveTo(sp3.sx, sp3.sy - ghh3q);
-                    ctx.lineTo(sp3.sx + ghw3q, sp3.sy);
-                    ctx.lineTo(sp3.sx, sp3.sy + ghh3q);
-                    ctx.lineTo(sp3.sx - ghw3q, sp3.sy);
-                    ctx.closePath();
-                    ctx.stroke();
-                    ctx.setLineDash([]);
-                    ctx.fillStyle = 'rgba(95,183,122,' + (isH3 ? 0.15 : 0.05 * f3) + ')';
-                    ctx.fill();
-                    ctx.fillStyle = 'rgba(95,183,122,' + a3 + ')';
-                    ctx.font = 'bold ' + Math.max(6, SYMBOL_FONT_SIZE_3D * rs.zoomScale * 0.6) + 'px monospace';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    var lbl3 = slot.label.substring(0, 2).toUpperCase();
-                    if (slot.dist > 1) lbl3 += slot.dist;
-                    ctx.fillText(lbl3, sp3.sx, sp3.sy);
-                }
             });
         }
     };

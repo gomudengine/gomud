@@ -115,10 +115,7 @@
             ctx.setLineDash([4, 3]);
             ctx.strokeRect(sx, sy, sw, sh);
             ctx.setLineDash([]);
-        },
-
-        // Selection rectangle is 2D-only in the current implementation
-        renderOverlay3d: function() {}
+        }
     };
 
     MapperTools.register(tool);

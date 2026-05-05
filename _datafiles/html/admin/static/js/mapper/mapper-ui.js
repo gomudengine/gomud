@@ -10,8 +10,7 @@
 /* jshint esversion: 11, browser: true */
 /* globals MapperState, MapperRender, MapperEvents, MapperCtxMenu, AdminAPI,
    symbolForRoom, colorForSymbol, escapeHtml, smoothstep,
-   ZOOM_STEP, ZOOM_MIN, ZOOM_MAX, CENTER_EASE_DURATION,
-   SPACING_STEP_3D, SPACING_MIN_3D, SPACING_MAX_3D, ROOM_SIZE_2D */
+   ZOOM_STEP, ZOOM_MIN, ZOOM_MAX, CENTER_EASE_DURATION, ROOM_SIZE_2D */
 'use strict';
 
 var MapperUI = (function() {
@@ -58,12 +57,9 @@ var MapperUI = (function() {
 
     function switchTab(tab) {
         MapperState.camera.activeTab = tab;
-        localStorage.setItem('mapper.activeTab', tab);
         document.querySelectorAll('.mapper-tabs .tab-btn').forEach(function(b) {
             b.classList.toggle('active', b.dataset.tab === tab);
         });
-        // Spacing slider only applies to the 3D projection
-        if (dom.spacingCtrlEl) dom.spacingCtrlEl.style.display = tab === '3d' ? '' : 'none';
         MapperRender.resizeCanvas();
         updateZButtons();
         MapperRender.render();
@@ -83,18 +79,6 @@ var MapperUI = (function() {
         MapperRender.render();
     }
 
-    function spacingDown() {
-        MapperState.camera.spacingScale3d = Math.max(SPACING_MIN_3D, MapperState.camera.spacingScale3d / SPACING_STEP_3D);
-        localStorage.setItem('mapper.spacing3d', MapperState.camera.spacingScale3d);
-        MapperRender.render();
-    }
-
-    function spacingUp() {
-        MapperState.camera.spacingScale3d = Math.min(SPACING_MAX_3D, MapperState.camera.spacingScale3d * SPACING_STEP_3D);
-        localStorage.setItem('mapper.spacing3d', MapperState.camera.spacingScale3d);
-        MapperRender.render();
-    }
-
     // =====================================================================
     //  Camera centering and easing
     // =====================================================================
@@ -106,7 +90,6 @@ var MapperUI = (function() {
             MapperState.centerOnZone(MapperState.data.currentZone);
         } else if (MapperState.data.zLevels.length > 0) {
             MapperState.camera.activeZ2d = MapperState.data.zLevels[0];
-            MapperState.camera.activeZ3d = MapperState.data.zLevels[0];
             updateZButtons();
             MapperRender.render();
         }
@@ -156,7 +139,7 @@ var MapperUI = (function() {
         if (MapperState.data.zLevels.length <= 1) return;
 
         var cam = MapperState.camera;
-        var current = cam.activeTab === '3d' ? cam.activeZ3d : cam.activeZ2d;
+        var current = cam.activeZ2d;
 
         // Reverse so the highest Z is at the top, matching spatial intuition
         MapperState.data.zLevels.slice().reverse().forEach(function(z) {
@@ -174,7 +157,7 @@ var MapperUI = (function() {
                 btn.style.color = 'var(--color-text-dim)';
             }
             btn.addEventListener('click', function() {
-                if (cam.activeTab === '3d') cam.activeZ3d = z; else cam.activeZ2d = z;
+                cam.activeZ2d = z;
                 updateZButtons();
                 MapperRender.render();
             });
@@ -230,6 +213,22 @@ var MapperUI = (function() {
         html += '<div class="info-row"><span class="info-label">Symbol</span><span class="info-value">' + escapeHtml(room._symbol || '-') + '</span></div>';
         if (room.MapLegend) {
             html += '<div class="info-row"><span class="info-label">Legend</span><span class="info-value">' + escapeHtml(room.MapLegend) + '</span></div>';
+        }
+        if (room.Tags && room.Tags.length > 0) {
+            var tagBadges = room.Tags.map(function(t) {
+                var mod = MapperState.tagDescriptions[t];
+                var tipText = mod ? 'module: ' + mod : t;
+                return '<span class="info-badge" style="cursor:default" title="' + escapeHtml(tipText) + '">' + escapeHtml(t) + '</span>';
+            }).join(' ');
+            html += '<div class="info-row"><span class="info-label">Tags</span><span class="info-value info-badges">' + tagBadges + '</span></div>';
+        }
+        if (room.Nouns && Object.keys(room.Nouns).length > 0) {
+            var nounBadges = Object.keys(room.Nouns).sort().map(function(n) {
+                var desc = room.Nouns[n];
+                var tip = desc ? 'title="' + escapeHtml(desc) + '"' : '';
+                return '<span class="info-badge" style="cursor:default" ' + tip + '>' + escapeHtml(n) + '</span>';
+            }).join(' ');
+            html += '<div class="info-row"><span class="info-label">Nouns</span><span class="info-value info-badges">' + nounBadges + '</span></div>';
         }
         html += '<div class="info-row"><span class="info-label">Coords</span><span class="info-value">' + room.MapX + ', ' + room.MapY + ', ' + room.MapZ + '</span></div>';
         html += '<div class="info-row"><span class="info-label">Has Coords</span><span class="info-value">' + (room.HasCoordinates ? 'yes' : 'no') + '</span></div>';
@@ -488,7 +487,6 @@ var MapperUI = (function() {
     return {
         init: init,
         switchTab: switchTab, zoomIn: zoomIn, zoomOut: zoomOut,
-        spacingDown: spacingDown, spacingUp: spacingUp,
         centerCamera: centerCamera, setCameraTarget: setCameraTarget,
         updateZButtons: updateZButtons, updateInfoPanel: updateInfoPanel,
         showTooltip: showTooltip, positionTooltip: positionTooltip, hideTooltip: hideTooltip,

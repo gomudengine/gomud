@@ -275,37 +275,96 @@
         font-family: monospace;
     }
 
-    .mapper-changelog {
-        margin-top: 6px;
+    .mapper-changelog-btn {
+        position: relative;
+        width: 24px; height: 24px;
+        padding: 0;
+        font-size: 14px; line-height: 1;
+        font-family: monospace;
+        background: var(--color-surface-white);
+        color: var(--color-text-dim);
+        border: 1px solid var(--color-border);
+        border-radius: 3px;
+        cursor: pointer;
+    }
+    .mapper-changelog-btn:hover { color: var(--color-text); background: var(--color-surface); }
+    .mapper-changelog-btn.has-entries { color: #d4a843; border-color: #d4a843; }
+    .mapper-changelog-badge {
+        position: absolute;
+        top: -6px; right: -6px;
+        background: #d4a843;
+        color: #000;
+        font-size: 0.55rem;
+        font-family: monospace;
+        font-weight: bold;
+        min-width: 14px;
+        height: 14px;
+        border-radius: 7px;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 0 3px;
+        pointer-events: none;
+    }
+    .mapper-changelog-badge.visible { display: flex; }
+    .mapper-changelog-overlay {
+        position: absolute;
+        top: 8px; left: 8px;
+        z-index: 10;
         background: var(--color-surface);
         border: 1px solid var(--color-border);
         border-radius: 4px;
         padding: 6px 10px;
-        max-height: 160px;
+        max-height: 260px;
+        width: 680px;
         overflow-y: auto;
         font-family: monospace;
         font-size: 0.75rem;
         line-height: 1.5;
         display: none;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.5);
     }
-    .mapper-changelog.visible { display: block; }
-    .mapper-changelog .cl-title {
+    .mapper-changelog-overlay.visible { display: block; }
+    .mapper-changelog-overlay .cl-overlay-header {
+        border-bottom: 1px solid var(--color-border);
+        padding-bottom: 6px;
+        margin-bottom: 4px;
+    }
+    .mapper-changelog-overlay .cl-spacing-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .mapper-changelog-overlay .cl-overlay-label {
+        font-size: 0.72rem;
+        color: var(--color-text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        white-space: nowrap;
+    }
+    .mapper-changelog-overlay .cl-spacing-val {
+        font-size: 0.72rem;
+        color: var(--color-text-dim);
+        min-width: 28px;
+        text-align: right;
+    }
+    .mapper-changelog-overlay .cl-title {
         font-size: 0.72rem;
         color: var(--color-text-dim);
         text-transform: uppercase;
         letter-spacing: 0.04em;
         margin-bottom: 4px;
     }
-    .mapper-changelog .cl-entry { color: var(--color-text); }
-    .mapper-changelog .cl-entry .cl-action { color: var(--color-text-dim); }
-    .mapper-changelog .cl-entry.cl-move .cl-action { color: #6aacf0; }
-    .mapper-changelog .cl-entry.cl-create .cl-action { color: #5fb77a; }
-    .mapper-changelog .cl-entry.cl-delete .cl-action { color: #ff6b6b; }
-    .mapper-changelog .cl-entry.cl-exit-add .cl-action { color: #a8d86e; }
-    .mapper-changelog .cl-entry.cl-exit-remove .cl-action { color: #d4a843; }
+
+    .mapper-changelog-overlay .cl-entry { color: var(--color-text); }
+    .mapper-changelog-overlay .cl-entry .cl-action { color: var(--color-text-dim); }
+    .mapper-changelog-overlay .cl-entry.cl-move .cl-action { color: #6aacf0; }
+    .mapper-changelog-overlay .cl-entry.cl-create .cl-action { color: #5fb77a; }
+    .mapper-changelog-overlay .cl-entry.cl-delete .cl-action { color: #ff6b6b; }
+    .mapper-changelog-overlay .cl-entry.cl-exit-add .cl-action { color: #a8d86e; }
+    .mapper-changelog-overlay .cl-entry.cl-exit-remove .cl-action { color: #d4a843; }
 
     .mapper-loading {
-        position: absolute;
         inset: 0;
         display: flex;
         align-items: center;
@@ -333,7 +392,6 @@
     <span class="sep"></span>
     <div class="mapper-tabs">
         <button class="tab-btn active" data-tab="2d" onclick="switchTab('2d')">2D</button>
-        <button class="tab-btn" data-tab="3d" onclick="switchTab('3d')">3D</button>
     </div>
     <span class="sep"></span>
     <div class="mapper-controls">
@@ -342,21 +400,29 @@
         <span class="ctrl-sep"></span>
         <button onclick="centerCamera()" title="Re-center on root room">&#8982;</button>
     </div>
+    <div class="mapper-controls" style="gap:6px;align-items:center">
+        <span class="ctrl-sep"></span>
+        <span style="font-size:0.72rem;color:var(--color-text-dim);font-family:monospace;white-space:nowrap">Spacing</span>
+        <input type="range" id="spacing-slider" min="0.75" max="3.0" step="0.05"
+            oninput="onSpacingSlider(this.value)"
+            style="width:90px;cursor:pointer;vertical-align:middle">
+        <span id="spacing-val" style="font-size:0.72rem;color:var(--color-text-dim);font-family:monospace;min-width:28px"></span>
+    </div>
     <div class="mapper-z-controls" id="z-controls">
         <span class="ctrl-sep"></span>
         <span>Z:</span>
         <div id="z-buttons"></div>
-    </div>
-    <div class="mapper-controls" id="spacing-controls" style="display:none">
-        <span class="ctrl-sep"></span>
-        <button onclick="spacingDown()" title="Decrease spacing">&darr;</button>
-        <button onclick="spacingUp()" title="Increase spacing">&uarr;</button>
     </div>
     <div class="mapper-save-controls" id="save-controls">
         <span class="sep"></span>
         <span class="dirty-count" id="dirty-count"></span>
         <button class="btn-save" onclick="saveAllChanges()">Save Changes</button>
         <button class="btn-discard" onclick="discardChanges()">Discard</button>
+    </div>
+    <div class="mapper-controls" style="margin-left:4px">
+        <button class="mapper-changelog-btn" id="changelog-btn" onclick="toggleChangelog()" title="Pending changes">!
+            <span class="mapper-changelog-badge" id="changelog-badge"></span>
+        </button>
     </div>
     <span class="mapper-stats" id="mapper-stats"></span>
 </div>
@@ -365,17 +431,16 @@
     <div class="mapper-viewport" id="mapper-viewport">
         <canvas id="mapper-canvas"></canvas>
         <div class="mapper-loading hidden" id="mapper-loading">Loading zone data...</div>
+        <div class="mapper-changelog-overlay" id="mapper-changelog">
+            <div class="cl-title">Pending Changes</div>
+            <div id="changelog-entries"></div>
+        </div>
     </div>
     <div class="mapper-info-panel" id="mapper-info-panel">
         <h3>Room Info</h3>
         <div class="info-empty" id="info-empty">Click a room to see details</div>
         <div id="info-content" style="display:none"></div>
     </div>
-</div>
-
-<div class="mapper-changelog" id="mapper-changelog">
-    <div class="cl-title">Pending Changes</div>
-    <div id="changelog-entries"></div>
 </div>
 
 <div id="mapper-tooltip"></div>

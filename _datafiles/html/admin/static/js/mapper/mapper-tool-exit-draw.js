@@ -12,8 +12,7 @@
  */
 /* jshint esversion: 11, browser: true */
 /* globals MapperTools, MapperCtxMenu, MapperState, MapperRender,
-   ROOM_SIZE_2D, CONNECTION_WIDTH_2D, CONNECTION_WIDTH_3D,
-   TILE_HW_3D, TILE_HH_3D,
+   ROOM_SIZE_2D, CONNECTION_WIDTH_2D,
    DIRECTION_DELTAS, DIRECTIONAL_EXITS, sign, escapeHtml */
 'use strict';
 
@@ -227,42 +226,6 @@
                 ctx.stroke();
                 ctx.setLineDash([]);
             }
-        },
-
-        // -----------------------------------------------------------------
-        //  3D overlay -- rubber-band line (iso projection)
-        // -----------------------------------------------------------------
-
-        renderOverlay3d: function(ctx, rs) {
-            var edm = MapperState.exitDrawMode;
-            if (!edm.active) return;
-
-            var drawZ = rs.activeZ3d !== null ? rs.activeZ3d : 0;
-            var srcP3 = rs.isoProject3d(edm.sourceGx, edm.sourceGy, edm.sourceGz, drawZ);
-            var endX3, endY3;
-
-            if (edm.hoveredTargetId !== null) {
-                var tgt3 = MapperState.data.rooms.get(edm.hoveredTargetId);
-                if (tgt3 && tgt3.HasCoordinates) {
-                    var tgtP3 = rs.isoProject3d(tgt3.MapX, tgt3.MapY, tgt3.MapZ, drawZ);
-                    endX3 = tgtP3.sx;
-                    endY3 = tgtP3.sy;
-                }
-            } else {
-                endX3 = edm._mouseCx;
-                endY3 = edm._mouseCy;
-            }
-
-            if (endX3 !== undefined) {
-                ctx.strokeStyle = 'rgba(100,200,255,0.8)';
-                ctx.lineWidth = Math.max(2, CONNECTION_WIDTH_3D * rs.zoomScale * 1.5);
-                ctx.setLineDash([6 * rs.zoomScale, 4 * rs.zoomScale]);
-                ctx.beginPath();
-                ctx.moveTo(srcP3.sx, srcP3.sy);
-                ctx.lineTo(endX3, endY3);
-                ctx.stroke();
-                ctx.setLineDash([]);
-            }
         }
     };
 
@@ -285,6 +248,14 @@
                 label: 'Add Exit (By Room Number)',
                 action: function() {
                     addExitByRoomNumber(target.roomId);
+                }
+            },
+            {
+                label: 'Delete All Exits',
+                style: 'color:#ff6b6b',
+                action: function() {
+                    MapperState.deleteAllExitsLocally(target.roomId);
+                    MapperRender.render();
                 }
             }
         ];

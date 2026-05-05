@@ -26,34 +26,6 @@ var SYMBOL_FONT_SIZE_2D  = 14;
 var MAP_BG_2D            = '#111';
 var ROOM_BORDER_COLOR_2D = '#000000';
 
-// --- 3D Isometric Rendering ---
-
-var TILE_HW_3D           = 20;    // half-width of an iso tile
-var TILE_HH_3D           = 10;    // half-height of an iso tile
-var TILE_DEPTH_3D        = 7;     // visible "thickness" of the side face
-var GRID_STEP_XY_3D      = 1.6;   // spacing multiplier between tiles on the same Z
-var Z_STEP_3D            = 50;    // vertical pixel offset per Z level
-var Z_SPACING_EXP_3D     = 1.5;   // exponent controlling Z-level separation curve
-var CONNECTION_WIDTH_3D   = 2;
-var MAP_BG_3D            = '#000';
-var TILE_BORDER_COLOR_3D = '#000';
-var TILE_BORDER_WIDTH_3D = 0.8;
-var SIDE_DARKEN_3D       = 0.55;  // multiplier to darken tile side faces
-var SYMBOL_FONT_SIZE_3D  = 11;
-var SPACING_STEP_3D      = 1.25;
-var SPACING_MIN_3D       = 0.6;
-var SPACING_MAX_3D       = 4.0;
-
-// Transparency for Z-levels the user is NOT viewing directly
-var ALPHA_INACTIVE_3D    = 0.0;
-var ALPHA_CONNECTED_3D   = 0.30;  // faint ghost for rooms linked to the active Z
-
-// Connection line colors vary by whether the two rooms share a Z level
-var CONN_COLOR_SAME_Z    = '#ffffff';
-var CONN_COLOR_CROSS_Z   = '#3a6b8a';
-var CROSS_Z_OFFSET_X     = 8;     // horizontal nudge for cross-Z arrow markers
-var CROSS_Z_ARROW_SIZE   = 6;
-
 // --- Shared Color Palette ---
 
 var CONNECTION_COLOR          = '#7a4a1a';
