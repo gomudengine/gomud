@@ -26,6 +26,10 @@ var SYMBOL_FONT_SIZE_2D  = 14;
 var MAP_BG_2D            = '#111';
 var ROOM_BORDER_COLOR_2D = '#000000';
 
+var ZONE_BOX_PADDING   = 0.6;  // extra grid cells of padding around the zone bounding box
+var ZONE_BOX_COLOR     = 'rgba(180,180,220,0.18)';
+var ZONE_BOX_COLOR_HOV = 'rgba(180,180,255,0.38)';
+
 // --- Shared Color Palette ---
 
 var CONNECTION_COLOR          = '#7a4a1a';

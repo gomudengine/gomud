@@ -240,18 +240,21 @@
         return [
             {
                 label: 'Add Exit',
+                icon: '→',
                 action: function() {
                     MapperTools.activate('exit-draw', { sourceRoomId: target.roomId });
                 }
             },
             {
                 label: 'Add Exit (By Room Number)',
+                icon: '⌨',
                 action: function() {
                     addExitByRoomNumber(target.roomId);
                 }
             },
             {
                 label: 'Delete All Exits',
+                icon: '✕',
                 style: 'color:#ff6b6b',
                 action: function() {
                     MapperState.deleteAllExitsLocally(target.roomId);

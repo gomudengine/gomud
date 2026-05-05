@@ -223,7 +223,9 @@
         margin-bottom: 2px;
     }
     .mapper-ctx-menu .ctx-item {
-        display: block;
+        display: flex;
+        align-items: center;
+        gap: 7px;
         width: 100%;
         padding: 5px 10px;
         background: none;
@@ -233,6 +235,12 @@
         font-size: 0.8rem;
         text-align: left;
         cursor: pointer;
+        white-space: nowrap;
+    }
+    .mapper-ctx-menu .ctx-icon {
+        width: 1.1em;
+        text-align: center;
+        flex-shrink: 0;
     }
     .mapper-ctx-menu .ctx-item:hover:not(:disabled) {
         background: var(--color-primary);
@@ -269,10 +277,33 @@
         color: var(--color-text-dim);
     }
     .mapper-save-controls .btn-discard:hover { color: var(--color-text); }
-    .mapper-save-controls .dirty-count {
-        font-size: 0.72rem;
+    .mapper-toast-container {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 6px;
+        pointer-events: none;
+    }
+    .mapper-toast {
+        background: rgba(30,30,40,0.92);
         color: #d4a843;
         font-family: monospace;
+        font-size: 0.78rem;
+        padding: 6px 16px;
+        border-radius: 20px;
+        border: 1px solid rgba(212,168,67,0.4);
+        white-space: nowrap;
+        animation: mapper-toast-fly 2.8s ease-in forwards;
+    }
+    @keyframes mapper-toast-fly {
+        0%   { opacity: 0; transform: translateX(12px); }
+        12%  { opacity: 1; transform: translateX(0); }
+        70%  { opacity: 1; transform: translateX(0); }
+        100% { opacity: 0; transform: translateX(80px); }
     }
 
     .mapper-changelog-btn {
@@ -364,7 +395,38 @@
     .mapper-changelog-overlay .cl-entry.cl-exit-add .cl-action { color: #a8d86e; }
     .mapper-changelog-overlay .cl-entry.cl-exit-remove .cl-action { color: #d4a843; }
 
-    .mapper-loading {
+    .toggle-switch {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.72rem;
+        color: var(--color-text-dim);
+        font-family: monospace;
+        cursor: pointer;
+        user-select: none;
+        white-space: nowrap;
+    }
+    .toggle-switch input[type=checkbox] { display: none; }
+    .toggle-track {
+        width: 28px; height: 14px;
+        background: var(--color-border);
+        border-radius: 7px;
+        position: relative;
+        transition: background 0.15s;
+        flex-shrink: 0;
+    }
+    .toggle-track::after {
+        content: '';
+        position: absolute;
+        left: 2px; top: 2px;
+        width: 10px; height: 10px;
+        background: var(--color-text-dim);
+        border-radius: 50%;
+        transition: left 0.15s, background 0.15s;
+    }
+    .toggle-switch input:checked + .toggle-track { background: var(--color-primary); }
+    .toggle-switch input:checked + .toggle-track::after { left: 16px; background: #fff; }
+
         inset: 0;
         display: flex;
         align-items: center;
@@ -376,6 +438,140 @@
         z-index: 5;
     }
     .mapper-loading.hidden { display: none; }
+
+    .zone-picker-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.55);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+    }
+    .zone-picker-backdrop.visible { display: flex; }
+    .zone-picker-modal {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 6px;
+        padding: 20px 24px;
+        min-width: 260px;
+        max-width: 380px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    }
+    .zone-picker-modal h3 {
+        margin: 0 0 6px 0;
+        font-size: 0.9rem;
+        color: var(--color-text);
+    }
+    .zone-picker-modal p {
+        margin: 0 0 14px 0;
+        font-size: 0.75rem;
+        color: var(--color-text-dim);
+    }
+    .zone-picker-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 14px;
+    }
+    .zone-picker-list button {
+        background: var(--color-surface-white);
+        color: var(--color-text);
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        padding: 7px 12px;
+        font-family: monospace;
+        font-size: 0.8rem;
+        cursor: pointer;
+        text-align: left;
+    }
+    .zone-picker-list button:hover { background: var(--color-surface); border-color: var(--color-primary); color: var(--color-primary); }
+    .zone-picker-cancel {
+        font-size: 0.72rem;
+        color: var(--color-text-dim);
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        font-family: monospace;
+    }
+    .zone-picker-cancel:hover { color: var(--color-text); }
+
+    .zone-name-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.55);
+        z-index: 1001;
+        align-items: center;
+        justify-content: center;
+    }
+    .zone-name-backdrop.visible { display: flex; }
+    .zone-name-modal {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 6px;
+        padding: 20px 24px;
+        min-width: 280px;
+        max-width: 400px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    }
+    .zone-name-modal h3 {
+        margin: 0 0 6px 0;
+        font-size: 0.9rem;
+        color: var(--color-text);
+    }
+    .zone-name-modal p {
+        margin: 0 0 10px 0;
+        font-size: 0.75rem;
+        color: var(--color-text-dim);
+    }
+    .zone-name-modal input[type=text] {
+        width: 100%;
+        box-sizing: border-box;
+        background: var(--color-surface-white);
+        color: var(--color-text);
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        padding: 7px 10px;
+        font-family: monospace;
+        font-size: 0.85rem;
+        margin-bottom: 12px;
+    }
+    .zone-name-modal input[type=text]:focus { outline: none; border-color: var(--color-primary); }
+    .zone-name-modal .zone-name-error {
+        font-size: 0.72rem;
+        color: #ff6b6b;
+        margin: -8px 0 10px 0;
+        min-height: 1em;
+    }
+    .zone-name-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+    }
+    .zone-name-actions .btn-confirm {
+        background: var(--color-primary);
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        padding: 6px 16px;
+        font-family: monospace;
+        font-size: 0.8rem;
+        cursor: pointer;
+    }
+    .zone-name-actions .btn-confirm:hover { opacity: 0.85; }
+    .zone-name-actions .btn-cancel-sm {
+        background: none;
+        color: var(--color-text-dim);
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        padding: 6px 12px;
+        font-family: monospace;
+        font-size: 0.8rem;
+        cursor: pointer;
+    }
+    .zone-name-actions .btn-cancel-sm:hover { color: var(--color-text); }
 
     .mapper-stats {
         font-size: 0.72rem;
@@ -408,6 +604,14 @@
             style="width:90px;cursor:pointer;vertical-align:middle">
         <span id="spacing-val" style="font-size:0.72rem;color:var(--color-text-dim);font-family:monospace;min-width:28px"></span>
     </div>
+    <div class="mapper-controls" style="gap:6px;align-items:center">
+        <span class="ctrl-sep"></span>
+        <label class="toggle-switch" title="Show zone bounding boxes">
+            <input type="checkbox" id="show-bounds-toggle" onchange="onShowBoundsToggle(this.checked)">
+            <span class="toggle-track"></span>
+            Show Bounds
+        </label>
+    </div>
     <div class="mapper-z-controls" id="z-controls">
         <span class="ctrl-sep"></span>
         <span>Z:</span>
@@ -415,7 +619,6 @@
     </div>
     <div class="mapper-save-controls" id="save-controls">
         <span class="sep"></span>
-        <span class="dirty-count" id="dirty-count"></span>
         <button class="btn-save" onclick="saveAllChanges()">Save Changes</button>
         <button class="btn-discard" onclick="discardChanges()">Discard</button>
     </div>
@@ -435,11 +638,34 @@
             <div class="cl-title">Pending Changes</div>
             <div id="changelog-entries"></div>
         </div>
+        <div class="mapper-toast-container" id="mapper-toast-container"></div>
     </div>
     <div class="mapper-info-panel" id="mapper-info-panel">
         <h3>Room Info</h3>
         <div class="info-empty" id="info-empty">Click a room to see details</div>
         <div id="info-content" style="display:none"></div>
+    </div>
+</div>
+
+<div class="zone-picker-backdrop" id="zone-picker-backdrop">
+    <div class="zone-picker-modal">
+        <h3>Select Zone</h3>
+        <p>The new room overlaps multiple zones. Choose which zone it belongs to:</p>
+        <div class="zone-picker-list" id="zone-picker-list"></div>
+        <button class="zone-picker-cancel" id="zone-picker-cancel">Cancel</button>
+    </div>
+</div>
+
+<div class="zone-name-backdrop" id="zone-name-backdrop">
+    <div class="zone-name-modal">
+        <h3>Create New Zone</h3>
+        <p>Enter a name for the new zone. A root room will be created at the selected location.</p>
+        <input type="text" id="zone-name-input" placeholder="Zone name..." autocomplete="off">
+        <div class="zone-name-error" id="zone-name-error"></div>
+        <div class="zone-name-actions">
+            <button class="btn-cancel-sm" id="zone-name-cancel">Cancel</button>
+            <button class="btn-confirm" id="zone-name-confirm">Create Zone</button>
+        </div>
     </div>
 </div>
 

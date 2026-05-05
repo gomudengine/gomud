@@ -10,6 +10,7 @@
 /* jshint esversion: 11, browser: true */
 /* globals MapperState, MapperRender, MapperEvents, MapperCtxMenu, AdminAPI,
    symbolForRoom, colorForSymbol, escapeHtml, smoothstep,
+   getZonesAtPoint, closestZone,
    ZOOM_STEP, ZOOM_MIN, ZOOM_MAX, CENTER_EASE_DURATION, ROOM_SIZE_2D */
 'use strict';
 
@@ -349,17 +350,130 @@ var MapperUI = (function() {
     }
 
     // =====================================================================
+    //  Zone picker modal
+    // =====================================================================
+
+    var zonePickerCallback = null;
+
+    function showZonePicker(zones, callback) {
+        var backdrop = document.getElementById('zone-picker-backdrop');
+        var list = document.getElementById('zone-picker-list');
+        var cancelBtn = document.getElementById('zone-picker-cancel');
+        if (!backdrop || !list) { callback(zones[0]); return; }
+
+        list.innerHTML = '';
+        zones.forEach(function(zone) {
+            var btn = document.createElement('button');
+            btn.textContent = zone;
+            btn.addEventListener('click', function() {
+                hideZonePicker();
+                callback(zone);
+            });
+            list.appendChild(btn);
+        });
+
+        zonePickerCallback = null;
+        cancelBtn.onclick = hideZonePicker;
+        backdrop.classList.add('visible');
+    }
+
+    function hideZonePicker() {
+        var backdrop = document.getElementById('zone-picker-backdrop');
+        if (backdrop) backdrop.classList.remove('visible');
+        zonePickerCallback = null;
+    }
+
+    /**
+     * Resolves which zone a new room at (gx, gy, gz) should belong to.
+     * hintZone is used as a fallback (e.g. the source room's zone in quick-build).
+     * Calls callback(zoneName) asynchronously (immediately or after user picks).
+     */
+    function resolveZoneForRoom(gx, gy, gz, hintZone, callback) {
+        var candidates = getZonesAtPoint(gx, gy, gz);
+        if (candidates.length === 0) {
+            // Outside all bounding boxes — use hint or closest room
+            callback(hintZone || closestZone(gx, gy, gz, MapperState.data.currentZone || ''));
+        } else if (candidates.length === 1) {
+            callback(candidates[0]);
+        } else {
+            showZonePicker(candidates, callback);
+        }
+    }
+
+    // =====================================================================
+    //  Zone creation
+    // =====================================================================
+
+    function createZoneAt(gx, gy, gz) {
+        var backdrop  = document.getElementById('zone-name-backdrop');
+        var input     = document.getElementById('zone-name-input');
+        var errorEl   = document.getElementById('zone-name-error');
+        var confirmBtn = document.getElementById('zone-name-confirm');
+        var cancelBtn  = document.getElementById('zone-name-cancel');
+        if (!backdrop || !input) return;
+
+        input.value = '';
+        errorEl.textContent = '';
+        backdrop.classList.add('visible');
+        setTimeout(function() { input.focus(); }, 50);
+
+        function close() {
+            backdrop.classList.remove('visible');
+            confirmBtn.onclick = null;
+            cancelBtn.onclick = null;
+            input.onkeydown = null;
+        }
+
+        function submit() {
+            var name = input.value.trim();
+            if (!name) { errorEl.textContent = 'Zone name is required.'; return; }
+            if (name.length < 2) { errorEl.textContent = 'Zone name must be at least 2 characters.'; return; }
+            // Case-insensitive duplicate check against existing and pending zones
+            var nameLower = name.toLowerCase();
+            var exists = MapperState.data.allZones.some(function(z) { return z.Name.toLowerCase() === nameLower; }) ||
+                         Array.from(MapperState.dirty.pendingZones).some(function(z) { return z.toLowerCase() === nameLower; });
+            if (exists) { errorEl.textContent = 'A zone with that name already exists.'; return; }
+            close();
+
+            // Register the new zone locally so bounding boxes and zone resolution work
+            MapperState.dirty.pendingZones.add(name);
+            MapperState.data.allZones.push({ Name: name, RoomCount: 0, RoomId: 0, DefaultBiome: '' });
+            populateZoneDropdown();
+
+            // Create a local room assigned to the new zone at the chosen position
+            var tempId = MapperState.createRoomLocally(gx, gy, gz, name);
+            MapperState.selectRoom(tempId);
+
+            // Switch the zone dropdown to the new zone
+            if (dom.zoneSelect) {
+                dom.zoneSelect.value = name;
+                dom.zoneSelect.dispatchEvent(new Event('change'));
+            }
+            MapperRender.render();
+        }
+
+        confirmBtn.onclick = submit;
+        cancelBtn.onclick = close;
+        input.onkeydown = function(e) {
+            if (e.key === 'Enter') submit();
+            if (e.key === 'Escape') close();
+        };
+    }
+
+    // =====================================================================
     //  Local room creation (deferred until save)
     // =====================================================================
 
     function createRoomAt(gx, gy, gz) {
-        if (!MapperState.data.currentZone) {
+        if (!MapperState.data.currentZone && MapperState.data.rooms.size === 0) {
             alert('Select a zone from the dropdown first to set which zone new rooms are created in.');
             return;
         }
-        var tempId = MapperState.createRoomLocally(gx, gy, gz);
-        MapperState.selectRoom(tempId);
-        MapperRender.render();
+        resolveZoneForRoom(gx, gy, gz, MapperState.data.currentZone, function(zone) {
+            var tempId = MapperState.createRoomLocally(gx, gy, gz, zone);
+            MapperState.selectRoom(tempId);
+            MapperRender.render();
+        });
     }
 
     // =====================================================================
@@ -388,12 +502,25 @@ var MapperUI = (function() {
         var dirty = MapperState.dirty;
         showLoading(true);
 
+        // 0. Create any pending new zones on the server first.
+        //    Capture the auto-created root room ID per zone so step 2 can
+        //    patch it to the correct position instead of creating a second room.
+        var zoneRootIds = {};  // zoneName -> server roomId
+        for (var zoneName of dirty.pendingZones) {
+            var zRes = await AdminAPI.post('/admin/api/v1/zones', { Name: zoneName });
+            if (zRes.ok && zRes.data && zRes.data.data) {
+                zoneRootIds[zoneName] = zRes.data.data.RoomId;
+            }
+        }
+
         // 1. Delete rooms on server
         for (var i = 0; i < dirty.deletedRooms.length; i++) {
             await AdminAPI.delete('/admin/api/v1/rooms/' + dirty.deletedRooms[i]);
         }
 
-        // 2. Create new rooms on server and build a temp-to-real ID map
+        // 2. Create new rooms on server and build a temp-to-real ID map.
+        //    For rooms belonging to a pending zone, reuse the zone's auto-created
+        //    root room rather than creating a second room.
         var tempToReal = new Map();
         for (var entry of dirty.createdRooms) {
             var tempId = entry[0], info = entry[1];
@@ -401,9 +528,18 @@ var MapperUI = (function() {
             var off = data.zoneOffsets.get(zone) || { dx: 0, dy: 0 };
             var serverX = info.gx - off.dx, serverY = info.gy - off.dy;
             var tempRoom = data.rooms.get(tempId);
-            var createRes = await AdminAPI.post('/admin/api/v1/rooms', { Zone: zone });
-            if (createRes.ok && createRes.data && createRes.data.data) {
-                var realId = createRes.data.data.RoomId;
+            var realId = null;
+            if (zoneRootIds[zone] !== undefined) {
+                // Reuse the root room the zone API already created
+                realId = zoneRootIds[zone];
+                delete zoneRootIds[zone];  // only consume it once
+            } else {
+                var createRes = await AdminAPI.post('/admin/api/v1/rooms', { Zone: zone });
+                if (createRes.ok && createRes.data && createRes.data.data) {
+                    realId = createRes.data.data.RoomId;
+                }
+            }
+            if (realId !== null) {
                 tempToReal.set(tempId, realId);
                 var patchData = {
                     MapX: serverX, MapY: serverY, MapZ: info.gz, HasCoordinates: true
@@ -493,6 +629,9 @@ var MapperUI = (function() {
         showLoading: showLoading, updateStats: updateStats,
         populateZoneDropdown: populateZoneDropdown,
         createRoomAt: createRoomAt,
+        createZoneAt: createZoneAt,
+        resolveZoneForRoom: resolveZoneForRoom,
+        hideZonePicker: hideZonePicker,
         toServerCoords: toServerCoords,
         saveAllChanges: saveAllChanges, discardChanges: discardChanges
     };

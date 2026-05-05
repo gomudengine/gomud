@@ -63,7 +63,7 @@ var MapperCtxMenu = (function() {
         items.forEach(function(item) {
             var style    = item.style ? ' style="' + item.style + '"' : '';
             var disabled = item.disabled ? ' disabled' : '';
-            html += '<button class="ctx-item"' + style + disabled + '>' + item.label + '</button>';
+            html += '<button class="ctx-item"' + style + disabled + '><span class="ctx-icon">' + (item.icon || '') + '</span>' + item.label + '</button>';
         });
 
         el.innerHTML = html;

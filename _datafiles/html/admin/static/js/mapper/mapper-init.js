@@ -34,7 +34,7 @@
         spacingCtrlEl:     document.getElementById('spacing-controls'),
         zButtonsEl:        document.getElementById('z-buttons'),
         saveCtrlEl:        document.getElementById('save-controls'),
-        dirtyCountEl:      document.getElementById('dirty-count'),
+        toastContainerEl:  document.getElementById('mapper-toast-container'),
         changelogEl:       document.getElementById('mapper-changelog'),
         clEntriesEl:       document.getElementById('changelog-entries'),
         changelogBtnEl:    document.getElementById('changelog-btn'),
@@ -351,6 +351,12 @@
         MapperRender.render();
     };
 
+    window.onShowBoundsToggle = function(checked) {
+        MapperState.camera.showBounds = checked;
+        localStorage.setItem('mapper.showBounds', checked);
+        MapperRender.render();
+    };
+
     // =====================================================================
     //  Boot sequence
     // =====================================================================
@@ -370,6 +376,10 @@
             slider.value = MapperState.camera.spacingScale2d;
             if (sliderVal) sliderVal.textContent = MapperState.camera.spacingScale2d.toFixed(2);
         }
+
+        // Sync show-bounds toggle to persisted value
+        var boundsToggle = document.getElementById('show-bounds-toggle');
+        if (boundsToggle) boundsToggle.checked = MapperState.camera.showBounds;
 
         // Restore last-used zone, falling back to the first available zone
         var lastZone = localStorage.getItem('mapper.lastZone');

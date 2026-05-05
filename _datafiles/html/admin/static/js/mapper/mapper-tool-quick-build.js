@@ -76,10 +76,12 @@
         if (!match) return false;
         if (MapperRender.gridCellOccupied(gx, gy, gz)) return false;
 
-        var newId = MapperState.createRoomLocally(gx, gy, gz);
+        var srcRoom = MapperState.data.rooms.get(qb.sourceRoomId);
+        var zone = srcRoom ? srcRoom.Zone : (MapperState.data.currentZone || '');
+
+        var newId = MapperState.createRoomLocally(gx, gy, gz, zone);
 
         // Copy visual traits from the source so the new room blends in
-        var srcRoom = MapperState.data.rooms.get(qb.sourceRoomId);
         var newRoom = MapperState.data.rooms.get(newId);
         if (srcRoom && newRoom) {
             newRoom.Title = srcRoom.Title;

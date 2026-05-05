@@ -3,6 +3,8 @@
    ZOOM_STEP, ZOOM_MIN, ZOOM_MAX, CENTER_EASE_DURATION,
    ROOM_SIZE_2D, ROOM_GAP_2D, BASE_STEP_2D, CONNECTION_WIDTH_2D, ROOM_BORDER_WIDTH_2D, SYMBOL_FONT_SIZE_2D, MAP_BG_2D, ROOM_BORDER_COLOR_2D,
    CONNECTION_COLOR, ABNORMAL_CONNECTION_COLOR, SELECTED_ROOM_COLOR, SELECTED_ROOM_TEXT_COLOR, SYMBOL_TEXT_COLOR,
+   ZONE_BOX_PADDING, ZONE_BOX_COLOR, ZONE_BOX_COLOR_HOV,
+   computeZonePaddedBounds,
    exitDelta, isDirectionalExit, darkenColor, smoothstep, isExitConstraintSatisfied */
 
 /**
@@ -186,6 +188,66 @@ var MapperRender = (function() {
         }
     }
 
+    // --- Zone Bounding Boxes ---
+
+    /** Draws faint dashed zone bounding boxes behind all rooms. The zone
+     *  containing the currently hovered room is drawn solid. */
+    function drawZoneBounds2d(rooms, activeZ, hoveredRoomId) {
+        var cam = MapperState.camera;
+        var half = (ROOM_SIZE_2D * cam.zoomScale) / 2;
+
+        // Determine hovered zone
+        var hoveredZone = null;
+        if (hoveredRoomId !== null) {
+            var hr = rooms.get(hoveredRoomId);
+            if (hr) hoveredZone = hr.Zone;
+        }
+
+        // Compute per-zone padded bounds in grid space (gaps between zones respected)
+        var zoneBounds = computeZonePaddedBounds(rooms, activeZ);
+
+        ctx.save();
+        ctx.lineJoin = 'round';
+
+        for (var zone in zoneBounds) {
+            var b = zoneBounds[zone];
+            var isHov = zone === hoveredZone;
+
+            // Convert padded grid bounds to canvas space
+            var pMin = gridToCanvas2d(b.minX, b.minY);
+            var pMax = gridToCanvas2d(b.maxX, b.maxY);
+            var rx = pMin.px;
+            var ry = pMin.py;
+            var rw = pMax.px - pMin.px;
+            var rh = pMax.py - pMin.py;
+
+            // Fill
+            ctx.fillStyle = isHov ? ZONE_BOX_COLOR_HOV : ZONE_BOX_COLOR;
+            ctx.fillRect(rx, ry, rw, rh);
+
+            // Border
+            ctx.strokeStyle = isHov ? 'rgba(180,180,255,0.7)' : 'rgba(180,180,220,0.35)';
+            ctx.lineWidth = Math.max(1, cam.zoomScale);
+            if (!isHov) {
+                ctx.setLineDash([Math.max(3, 6 * cam.zoomScale), Math.max(3, 6 * cam.zoomScale)]);
+            } else {
+                ctx.setLineDash([]);
+            }
+            ctx.strokeRect(rx, ry, rw, rh);
+            ctx.setLineDash([]);
+
+            // Zone name label in top-left corner
+            var fontSize = Math.max(9, 11 * cam.zoomScale);
+            ctx.font = fontSize + 'px monospace';
+            ctx.fillStyle = isHov ? 'rgba(200,200,255,0.9)' : 'rgba(180,180,220,0.5)';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText(zone, rx + 4, ry + 3);
+        }
+
+        ctx.restore();
+    }
+
     // --- Tool Overlay Dispatch ---
 
     function getRenderState() {
@@ -230,6 +292,11 @@ var MapperRender = (function() {
 
         var rooms = data.rooms;
         if (rooms.size === 0) { renderToolOverlays2d(); return; }
+
+        // Zone bounding boxes (drawn first, behind everything)
+        if (MapperState.camera.showBounds) {
+            drawZoneBounds2d(rooms, cam.activeZ2d, MapperState.hoveredRoomId);
+        }
 
         ctx.lineCap = 'round';
         var drawnEdges = new Set();

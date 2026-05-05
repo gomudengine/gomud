@@ -47,20 +47,20 @@ var MapperState = (function() {
 
     var dom = {
         saveCtrlEl: null,
-        dirtyCountEl: null,
         changelogEl: null,
         clEntriesEl: null,
         changelogBtnEl: null,
-        changelogBadgeEl: null
+        changelogBadgeEl: null,
+        toastContainerEl: null
     };
 
     function setDom(domRefs) {
         if (domRefs.saveCtrlEl) dom.saveCtrlEl = domRefs.saveCtrlEl;
-        if (domRefs.dirtyCountEl) dom.dirtyCountEl = domRefs.dirtyCountEl;
         if (domRefs.changelogEl) dom.changelogEl = domRefs.changelogEl;
         if (domRefs.clEntriesEl) dom.clEntriesEl = domRefs.clEntriesEl;
         if (domRefs.changelogBtnEl) dom.changelogBtnEl = domRefs.changelogBtnEl;
         if (domRefs.changelogBadgeEl) dom.changelogBadgeEl = domRefs.changelogBadgeEl;
+        if (domRefs.toastContainerEl) dom.toastContainerEl = domRefs.toastContainerEl;
     }
 
     // --- Data Layer ---
@@ -97,6 +97,7 @@ var MapperState = (function() {
         exitAdditions: [],          // [{ roomId, dir, targetRoomId }]
         deletedRooms: [],           // [roomId]
         createdRooms: new Map(),    // tempId -> { gx, gy, gz, zone }
+        pendingZones: new Set(),    // zone names to create on server before rooms
         nextTempId: -1
     };
 
@@ -148,6 +149,7 @@ var MapperState = (function() {
         var s = parseFloat(localStorage.getItem('mapper.spacing2d'));
         return (isFinite(s) && s >= 0.75 && s <= 3.0) ? s : 1.0;
     })();
+    var showBounds = localStorage.getItem('mapper.showBounds') === 'true';
     var tooltipHideTimer = null;
 
     // --- Mouse State Primitives ---
@@ -205,6 +207,8 @@ var MapperState = (function() {
         set activeZ2d(v) { activeZ2d = v; },
         get spacingScale2d() { return spacingScale2d; },
         set spacingScale2d(v) { spacingScale2d = v; },
+        get showBounds() { return showBounds; },
+        set showBounds(v) { showBounds = v; },
         get tooltipHideTimer() { return tooltipHideTimer; },
         set tooltipHideTimer(v) { tooltipHideTimer = v; }
     };
@@ -227,20 +231,38 @@ var MapperState = (function() {
     function isDirty() {
         return dirty.movedRooms.size > 0 || dirty.exitRemovals.length > 0 ||
                dirty.exitAdditions.length > 0 || dirty.deletedRooms.length > 0 ||
-               dirty.createdRooms.size > 0;
+               dirty.createdRooms.size > 0 || dirty.pendingZones.size > 0;
+    }
+
+    var toastTimer = null;
+
+    function showToastDirty() {
+        if (!dom.toastContainerEl) return;
+        var parts = [];
+        if (dirty.movedRooms.size > 0)     parts.push(dirty.movedRooms.size + ' moved');
+        if (dirty.createdRooms.size > 0)   parts.push(dirty.createdRooms.size + ' new');
+        if (dirty.deletedRooms.length > 0) parts.push(dirty.deletedRooms.length + ' deleted');
+        if (dirty.exitAdditions.length > 0) parts.push(dirty.exitAdditions.length + ' exits added');
+        if (dirty.exitRemovals.length > 0)  parts.push(dirty.exitRemovals.length + ' exits removed');
+        if (parts.length === 0) return;
+        var el = document.createElement('div');
+        el.className = 'mapper-toast';
+        el.textContent = parts.join(', ');
+        dom.toastContainerEl.appendChild(el);
+        setTimeout(function() {
+            if (el.parentNode) el.parentNode.removeChild(el);
+        }, 2900);
     }
 
     function updateSaveButtons() {
         var d = isDirty();
         if (dom.saveCtrlEl) dom.saveCtrlEl.classList.toggle('visible', d);
-        if (d && dom.dirtyCountEl) {
-            var parts = [];
-            if (dirty.movedRooms.size > 0) parts.push(dirty.movedRooms.size + ' moved');
-            if (dirty.createdRooms.size > 0) parts.push(dirty.createdRooms.size + ' new');
-            if (dirty.deletedRooms.length > 0) parts.push(dirty.deletedRooms.length + ' deleted');
-            if (dirty.exitAdditions.length > 0) parts.push(dirty.exitAdditions.length + ' exits added');
-            if (dirty.exitRemovals.length > 0) parts.push(dirty.exitRemovals.length + ' exits removed');
-            dom.dirtyCountEl.textContent = parts.join(', ');
+        if (d) {
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(function() {
+                toastTimer = null;
+                showToastDirty();
+            }, 400);
         }
     }
 
@@ -274,6 +296,7 @@ var MapperState = (function() {
         dirty.exitAdditions = [];
         dirty.deletedRooms = [];
         dirty.createdRooms.clear();
+        dirty.pendingZones.clear();
         dirty.nextTempId = -1;
         if (dom.clEntriesEl) dom.clEntriesEl.innerHTML = '';
         if (dom.changelogEl) dom.changelogEl.classList.remove('visible');
@@ -379,13 +402,14 @@ var MapperState = (function() {
         _updateStats();
     }
 
-    function createRoomLocally(gx, gy, gz) {
+    function createRoomLocally(gx, gy, gz, zone) {
         var tempId = dirty.nextTempId--;
-        var zoneInfo = mapperData.allZones.find(function(z) { return z.Name === mapperData.currentZone; });
+        var resolvedZone = zone || mapperData.currentZone || '';
+        var zoneInfo = mapperData.allZones.find(function(z) { return z.Name === resolvedZone; });
         var biome = zoneInfo ? zoneInfo.DefaultBiome : '';
 
         var tempRoom = {
-            RoomId: tempId, Zone: mapperData.currentZone || '', Title: 'New Room',
+            RoomId: tempId, Zone: resolvedZone, Title: 'New Room',
             MapX: gx, MapY: gy, MapZ: gz,
             HasCoordinates: true, MapSymbol: '', MapLegend: '', Biome: biome, Exits: {}
         };
@@ -401,8 +425,8 @@ var MapperState = (function() {
             mapperData.zLevels.sort(function(a, b) { return a - b; });
         }
 
-        dirty.createdRooms.set(tempId, { gx: gx, gy: gy, gz: gz, zone: mapperData.currentZone || '' });
-        logChange('cl-create', '<span class="cl-action">CREATE</span> New Room at (' + gx + ', ' + gy + ', ' + gz + ') in zone ' + escapeHtml(mapperData.currentZone || '?'));
+        dirty.createdRooms.set(tempId, { gx: gx, gy: gy, gz: gz, zone: resolvedZone });
+        logChange('cl-create', '<span class="cl-action">CREATE</span> New Room at (' + gx + ', ' + gy + ', ' + gz + ') in zone ' + escapeHtml(resolvedZone || '?'));
         updateSaveButtons();
         _updateStats();
         return tempId;
@@ -628,14 +652,28 @@ var MapperState = (function() {
                 cameraZ = root.MapZ;
                 panOffsetX = 0;
                 panOffsetY = 0;
-                activeZ2d = root.MapZ;
+                // Prefer Z=0 regardless of where the root room sits
+                if (mapperData.zLevels.includes(0)) {
+                    activeZ2d = 0;
+                } else {
+                    activeZ2d = mapperData.zLevels.reduce(function(best, z) {
+                        return Math.abs(z) < Math.abs(best) ? z : best;
+                    }, root.MapZ);
+                }
                 _updateZButtons();
                 _render();
                 return;
             }
         }
         if (mapperData.zLevels.length > 0) {
-            activeZ2d = mapperData.zLevels[0];
+            // Prefer Z=0; otherwise pick the level closest to 0
+            if (mapperData.zLevels.includes(0)) {
+                activeZ2d = 0;
+            } else {
+                activeZ2d = mapperData.zLevels.reduce(function(best, z) {
+                    return Math.abs(z) < Math.abs(best) ? z : best;
+                }, mapperData.zLevels[0]);
+            }
             _updateZButtons();
             _render();
         }
