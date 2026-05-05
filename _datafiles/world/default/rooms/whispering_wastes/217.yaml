@@ -13,6 +13,8 @@ mapsymbol: M
 maplegend: Cave
 biome: snow
 exits:
+  cave:
+    roomid: 1014
   north:
     roomid: 216
   west:

@@ -13,7 +13,7 @@ exits:
 mutators:
 - mutatorid: training-combat
   spawnedround: 1356530
-mapx: 1
+mapx: -9
 mapy: 1
-mapz: -102
+mapz: -99
 hascoordinates: true

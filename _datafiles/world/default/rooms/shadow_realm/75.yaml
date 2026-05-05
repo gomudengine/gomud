@@ -16,7 +16,7 @@ exits: {}
 mutators:
 - mutatorid: death-recovery
   spawnedround: 1356530
-mapx: 0
+mapx: 9
 mapy: 0
-mapz: -101
+mapz: -99
 hascoordinates: true

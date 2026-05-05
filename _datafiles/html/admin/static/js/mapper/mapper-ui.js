@@ -328,7 +328,7 @@ var MapperUI = (function() {
         var txt = total + ' rooms';
         if (unmapped > 0) txt += ' (' + unmapped + ' unmapped)';
         txt += ' | ' + data.zLevels.length + ' z-level' + (data.zLevels.length !== 1 ? 's' : '');
-        txt += ' | ' + data.visibleZones.size + '/' + data.allZones.length + ' zones';
+        txt += ' | ' + data.allZones.length + ' zones';
         dom.statsEl.textContent = txt;
     }
 
@@ -445,24 +445,37 @@ var MapperUI = (function() {
                         return;
                     }
                     var serverRootId = res.data.data.RoomId;
-                    close();
 
-                    // Zone now exists on the server — register it in local state
-                    MapperState.data.allZones.push({ Name: name, RoomCount: 1, RoomId: serverRootId, DefaultBiome: '' });
-                    populateZoneDropdown();
+                    // Immediately patch the root room to the clicked coordinates
+                    // so the server state matches local state without requiring a save.
+                    AdminAPI.patch('/admin/api/v1/rooms/' + serverRootId, {
+                        MapX: gx, MapY: gy, MapZ: gz, HasCoordinates: true
+                    }).then(function() {
+                        close();
 
-                    // Create a local room at the chosen position assigned to the new zone.
-                    // Then replace its temp ID with the server's root room ID so saves
-                    // patch the real room rather than creating a duplicate.
-                    var tempId = MapperState.createRoomLocally(gx, gy, gz, name);
-                    MapperState.replaceRoomId(tempId, serverRootId);
-                    MapperState.selectRoom(serverRootId);
+                        // Zone now exists on the server — register it in local state
+                        MapperState.data.allZones.push({ Name: name, RoomCount: 1, RoomId: serverRootId, DefaultBiome: '' });
+                        populateZoneDropdown();
 
-                    if (dom.zoneSelect) {
-                        dom.zoneSelect.value = name;
-                        dom.zoneSelect.dispatchEvent(new Event('change'));
-                    }
-                    MapperRender.render();
+                        // Create a local room at the chosen position assigned to the new zone.
+                        // Replace its temp ID with the server root room ID so saves patch
+                        // the real room rather than creating a duplicate.
+                        var tempId = MapperState.createRoomLocally(gx, gy, gz, name);
+                        MapperState.replaceRoomId(tempId, serverRootId);
+                        // The room is already saved at the correct position — remove it
+                        // from dirty.createdRooms so save doesn't patch it again.
+                        MapperState.dirty.createdRooms.delete(serverRootId);
+                        MapperState.selectRoom(serverRootId);
+
+                        if (dom.zoneSelect) {
+                            dom.zoneSelect.value = name;
+                            dom.zoneSelect.dispatchEvent(new Event('change'));
+                        }
+                        MapperRender.render();
+                    }).catch(function() {
+                        close();
+                        errorEl.textContent = 'Zone created but failed to set room coordinates.';
+                    });
                 })
                 .catch(function() {
                     confirmBtn.disabled = false;
@@ -505,11 +518,7 @@ var MapperUI = (function() {
      */
     function toServerCoords(room) {
         if (!room) return { x: 0, y: 0, z: 0 };
-        var data = MapperState.data;
-        var zone = room.Zone || data.currentZone;
-        var off = zone ? data.zoneOffsets.get(zone) : null;
-        if (!off) return { x: room.MapX, y: room.MapY, z: room.MapZ };
-        return { x: room.MapX - off.dx, y: room.MapY - off.dy, z: room.MapZ };
+        return { x: room.MapX, y: room.MapY, z: room.MapZ };
     }
 
     // =====================================================================
@@ -533,8 +542,7 @@ var MapperUI = (function() {
         for (var entry of dirty.createdRooms) {
             var tempId = entry[0], info = entry[1];
             var zone = info.zone || data.currentZone || '';
-            var off = data.zoneOffsets.get(zone) || { dx: 0, dy: 0 };
-            var serverX = info.gx - off.dx, serverY = info.gy - off.dy;
+            var serverX = info.gx, serverY = info.gy;
             var tempRoom = data.rooms.get(tempId);
             var realId = tempId > 0 ? tempId : null;
             if (realId === null) {

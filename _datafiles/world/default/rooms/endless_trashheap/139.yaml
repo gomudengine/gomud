@@ -56,5 +56,5 @@ idlemessages:
   bursts from the pressure.
 mapx: 0
 mapy: 0
-mapz: -100
+mapz: -99
 hascoordinates: true

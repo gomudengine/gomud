@@ -18,7 +18,7 @@
  *                    clearDirty, moveRoomLocally, breakExitLocally,
  *                    addExitLocally, deleteRoomLocally, createRoomLocally,
  *                    applyGroupMove, selectRoom, toggleRoomSelection
- *   Data loading   — loadBiomes, loadAllRooms, buildCrossZoneGraph,
+ *   Data loading   — loadBiomes, loadAllRooms,
  *                    applyZoneLayout, centerOnZone
  *   Registration   — setDom, setRenderFn, setUpdateFns
  */
@@ -74,9 +74,7 @@ var MapperState = (function() {
         rooms: new Map(),
         roomsByCoord: new Map(),
         zLevels: [],
-        zoneRootRooms: new Map(),
-        zoneOffsets: new Map(),
-        visibleZones: new Set()
+        zoneRootRooms: new Map()
     };
 
     // --- Selection State ---
@@ -574,146 +572,66 @@ var MapperState = (function() {
             return r;
         });
 
-        if (mapperData.currentZone) {
-            applyZoneLayout(mapperData.currentZone);
-        }
-    }
-
-    // --- Cross-Zone Graph ---
-    // Builds a directed edge map between zones based on directional exits
-    // that cross zone boundaries.  Used by applyZoneLayout to BFS outward
-    // from the center zone and compute spatial offsets for neighboring zones.
-
-    function buildCrossZoneGraph(rawRooms) {
-        var roomById = new Map();
-        rawRooms.forEach(function(r) { roomById.set(r.RoomId, r); });
-
-        var edges = new Map();
-        rawRooms.forEach(function(r) {
-            if (!r.HasCoordinates || !r.Zone || !r.Exits) return;
-            for (var dir in r.Exits) {
-                if (!isDirectionalExit(dir)) continue;
-                var delta = DIRECTION_DELTAS[dir];
-                if (!delta || (delta[0] === 0 && delta[1] === 0 && delta[2] === 0)) continue;
-                var dest = roomById.get(r.Exits[dir].RoomId);
-                if (!dest || !dest.HasCoordinates || !dest.Zone) continue;
-                if (dest.Zone === r.Zone) continue;
-                var key = r.Zone + '>' + dest.Zone;
-                if (!edges.has(key)) {
-                    edges.set(key, {
-                        fromZone: r.Zone, toZone: dest.Zone,
-                        fromX: r.MapX, fromY: r.MapY,
-                        toX: dest.MapX, toY: dest.MapY,
-                        dx: delta[0], dy: delta[1]
-                    });
-                }
-            }
-        });
-        return edges;
-    }
-
-    // --- Zone Layout ---
-    // Rebuilds the visible room set by BFS-ing from a center zone through
-    // cross-zone exits, computing coordinate offsets so adjacent zones tile
-    // seamlessly on the canvas.
-
-    function applyZoneLayout(centerZone) {
-        mapperData.currentZone = centerZone;
+        // Populate all rooms directly by coordinates — no zone filtering or offsets
         mapperData.rooms.clear();
         mapperData.roomsByCoord.clear();
-        mapperData.zoneOffsets.clear();
-        mapperData.visibleZones.clear();
-
-        var graph = buildCrossZoneGraph(mapperData.rawRooms);
-
-        var adj = new Map();
-        graph.forEach(function(edge) {
-            if (!adj.has(edge.fromZone)) adj.set(edge.fromZone, []);
-            adj.get(edge.fromZone).push(edge);
-        });
-
-        mapperData.zoneOffsets.set(centerZone, { dx: 0, dy: 0 });
-        mapperData.visibleZones.add(centerZone);
-        var queue = [centerZone];
-
-        while (queue.length > 0) {
-            var zone = queue.shift();
-            var myOff = mapperData.zoneOffsets.get(zone);
-            var neighbors = adj.get(zone) || [];
-            neighbors.forEach(function(edge) {
-                if (mapperData.visibleZones.has(edge.toZone)) return;
-                var dx = myOff.dx + (edge.fromX + edge.dx) - edge.toX;
-                var dy = myOff.dy + (edge.fromY + edge.dy) - edge.toY;
-                mapperData.zoneOffsets.set(edge.toZone, { dx: dx, dy: dy });
-                mapperData.visibleZones.add(edge.toZone);
-                queue.push(edge.toZone);
-            });
-        }
-
-        // Populate rooms for visible zones, applying coordinate offsets
         var zSet = new Set();
         mapperData.rawRooms.forEach(function(r) {
-            if (!r.Zone || !mapperData.visibleZones.has(r.Zone)) return;
-            var copy = Object.assign({}, r);
-            copy.Exits = r.Exits;
-            copy._symbol = r._symbol;
-            copy._color = r._color;
-            copy._symbolColor = r._symbolColor;
-            copy._serverX = r.MapX;
-            copy._serverY = r.MapY;
-            if (copy.HasCoordinates) {
-                var off = mapperData.zoneOffsets.get(copy.Zone);
-                if (off) { copy.MapX = r.MapX + off.dx; copy.MapY = r.MapY + off.dy; }
-            }
-            mapperData.rooms.set(copy.RoomId, copy);
-            if (copy.HasCoordinates) {
-                mapperData.roomsByCoord.set(copy.MapX + ',' + copy.MapY + ',' + copy.MapZ, copy.RoomId);
-                zSet.add(copy.MapZ);
+            mapperData.rooms.set(r.RoomId, r);
+            if (r.HasCoordinates) {
+                mapperData.roomsByCoord.set(r.MapX + ',' + r.MapY + ',' + r.MapZ, r.RoomId);
+                zSet.add(r.MapZ);
             }
         });
         mapperData.zLevels = Array.from(zSet).sort(function(a, b) { return a - b; });
 
         _updateStats();
         _updateZButtons();
-        _render();
+
+        if (mapperData.currentZone) {
+            centerOnZone(mapperData.currentZone);
+        } else {
+            _render();
+        }
+    }
+
+    // --- Zone Layout ---
+    // Sets the current zone for default room-creation assignment.
+    // All rooms are always visible; no filtering or coordinate offsets are applied.
+
+    function applyZoneLayout(zoneName) {
+        mapperData.currentZone = zoneName;
     }
 
     function centerOnZone(zoneName) {
         applyZoneLayout(zoneName);
         var rootId = mapperData.zoneRootRooms.get(zoneName);
-        if (rootId) {
-            var root = mapperData.rooms.get(rootId);
-            if (root && root.HasCoordinates) {
-                cameraX = root.MapX;
-                cameraY = root.MapY;
-                cameraZ = root.MapZ;
-                panOffsetX = 0;
-                panOffsetY = 0;
-                // Prefer Z=0 regardless of where the root room sits
-                if (mapperData.zLevels.includes(0)) {
-                    activeZ2d = 0;
-                } else {
-                    activeZ2d = mapperData.zLevels.reduce(function(best, z) {
-                        return Math.abs(z) < Math.abs(best) ? z : best;
-                    }, root.MapZ);
-                }
-                _updateZButtons();
-                _render();
-                return;
-            }
+        var root = rootId ? mapperData.rooms.get(rootId) : null;
+        var targetZ = null;
+
+        if (root && root.HasCoordinates) {
+            cameraX = root.MapX;
+            cameraY = root.MapY;
+            cameraZ = root.MapZ;
+            panOffsetX = 0;
+            panOffsetY = 0;
+            targetZ = root.MapZ;
         }
+
         if (mapperData.zLevels.length > 0) {
-            // Prefer Z=0; otherwise pick the level closest to 0
             if (mapperData.zLevels.includes(0)) {
                 activeZ2d = 0;
+            } else if (targetZ !== null && mapperData.zLevels.includes(targetZ)) {
+                activeZ2d = targetZ;
             } else {
                 activeZ2d = mapperData.zLevels.reduce(function(best, z) {
                     return Math.abs(z) < Math.abs(best) ? z : best;
                 }, mapperData.zLevels[0]);
             }
-            _updateZButtons();
-            _render();
         }
+
+        _updateZButtons();
+        _render();
     }
 
     // --- Public API ---
@@ -756,7 +674,7 @@ var MapperState = (function() {
         loadTags: loadTags,
         tagDescriptions: tagDescriptions,
         loadAllRooms: loadAllRooms,
-        buildCrossZoneGraph: buildCrossZoneGraph,
+        buildCrossZoneGraph: null,
         applyZoneLayout: applyZoneLayout,
         centerOnZone: centerOnZone,
 
