@@ -57,20 +57,6 @@ var MapperUI = (function() {
     }
 
     // =====================================================================
-    //  Tab switching
-    // =====================================================================
-
-    function switchTab(tab) {
-        MapperState.camera.activeTab = tab;
-        document.querySelectorAll('.mapper-tabs .tab-btn').forEach(function(b) {
-            b.classList.toggle('active', b.dataset.tab === tab);
-        });
-        MapperRender.resizeCanvas();
-        updateZButtons();
-        MapperRender.render();
-    }
-
-    // =====================================================================
     //  Zoom / spacing controls
     // =====================================================================
 
@@ -745,7 +731,7 @@ var MapperUI = (function() {
 
     return {
         init: init,
-        switchTab: switchTab, zoomIn: zoomIn, zoomOut: zoomOut,
+        zoomIn: zoomIn, zoomOut: zoomOut,
         centerCamera: centerCamera, setCameraTarget: setCameraTarget,
         updateZButtons: updateZButtons, updateInfoPanel: updateInfoPanel,
         showTooltip: showTooltip, positionTooltip: positionTooltip, hideTooltip: hideTooltip,

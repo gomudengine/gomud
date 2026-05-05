@@ -362,7 +362,6 @@
     //  Global handler exposure (for inline HTML onclick attributes)
     // =====================================================================
 
-    window.switchTab        = MapperUI.switchTab;
     window.zoomIn           = MapperUI.zoomIn;
     window.zoomOut          = MapperUI.zoomOut;
     window.centerCamera     = MapperUI.centerCamera;
@@ -397,6 +396,11 @@
         MapperUI.updateZButtons();
         MapperUI.updateInfoPanel();
         MapperRender.render();
+    };
+
+    window.toggleLegend = function() {
+        var el = document.getElementById('mapper-legend');
+        if (el) el.classList.toggle('visible');
     };
 
     window.addEventListener('beforeunload', function() {
@@ -443,7 +447,6 @@
         await MapperState.loadMobNames();
         await MapperState.loadAllRooms();
         MapperUI.populateZoneDropdown();
-        MapperUI.switchTab('2d');
         MapperRender.initResizeObserver();
 
         // Sync spacing slider to persisted value

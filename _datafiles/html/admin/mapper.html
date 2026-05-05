@@ -467,6 +467,109 @@
     .mapper-changelog-overlay .cl-entry.cl-exit-add .cl-action { color: #a8d86e; }
     .mapper-changelog-overlay .cl-entry.cl-exit-remove .cl-action { color: #d4a843; }
 
+    .mapper-legend-btn {
+        position: absolute;
+        top: 8px; left: 8px;
+        z-index: 8;
+        width: 26px; height: 26px;
+        padding: 0;
+        font-size: 15px; line-height: 1;
+        font-family: monospace;
+        font-weight: bold;
+        background: var(--color-surface);
+        color: var(--color-text-dim);
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        cursor: pointer;
+        opacity: 0.7;
+    }
+    .mapper-legend-btn:hover { opacity: 1; color: var(--color-text); }
+
+    .mapper-legend-overlay {
+        position: absolute;
+        top: 42px; left: 8px;
+        z-index: 9;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        padding: 0;
+        width: 260px;
+        max-height: calc(100% - 56px);
+        display: none;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+        font-family: monospace;
+        font-size: 0.75rem;
+        overflow: hidden;
+        flex-direction: column;
+    }
+    .mapper-legend-overlay.visible { display: flex; }
+    .legend-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 10px;
+        border-bottom: 1px solid var(--color-border);
+        flex-shrink: 0;
+    }
+    .legend-title {
+        font-size: 0.72rem;
+        color: var(--color-text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+    .legend-close {
+        background: none;
+        border: none;
+        color: var(--color-text-dim);
+        font-size: 1.1rem;
+        cursor: pointer;
+        padding: 0 2px;
+        line-height: 1;
+    }
+    .legend-close:hover { color: var(--color-text); }
+    .legend-body {
+        padding: 6px 10px 10px;
+        overflow-y: auto;
+    }
+    .legend-section {
+        font-size: 0.68rem;
+        color: var(--color-text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin: 8px 0 4px 0;
+        padding-bottom: 2px;
+        border-bottom: 1px solid var(--color-border);
+    }
+    .legend-section:first-child { margin-top: 0; }
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 2px 0;
+        color: var(--color-text);
+        font-size: 0.74rem;
+        line-height: 1.5;
+    }
+    .legend-swatch {
+        width: 18px; height: 18px;
+        flex-shrink: 0;
+        border-radius: 2px;
+        box-sizing: border-box;
+    }
+    .legend-swatch-text {
+        width: 18px;
+        flex-shrink: 0;
+        text-align: center;
+        font-size: 14px;
+        font-weight: bold;
+        line-height: 18px;
+    }
+    .legend-line {
+        width: 18px; height: 4px;
+        flex-shrink: 0;
+        border-radius: 2px;
+    }
+
     .toggle-switch {
         display: inline-flex;
         align-items: center;
@@ -750,10 +853,6 @@
     <select id="zone-select"><option value="">-- select zone --</option></select>
     <button class="room-search-btn" onclick="searchRoom()" title="Go to room by ID">&#128269;</button>
     <span class="sep"></span>
-    <div class="mapper-tabs">
-        <button class="tab-btn active" data-tab="2d" onclick="switchTab('2d')">2D</button>
-    </div>
-    <span class="sep"></span>
     <div class="mapper-controls">
         <button onclick="zoomOut()" title="Zoom out">&minus;</button>
         <button onclick="zoomIn()" title="Zoom in">+</button>
@@ -810,6 +909,42 @@
             <div id="changelog-entries"></div>
         </div>
         <div class="mapper-toast-container" id="mapper-toast-container"></div>
+        <button class="mapper-legend-btn" id="mapper-legend-btn" onclick="toggleLegend()" title="Map legend">?</button>
+        <div class="mapper-legend-overlay" id="mapper-legend">
+            <div class="legend-header">
+                <span class="legend-title">Map Legend</span>
+                <button class="legend-close" onclick="toggleLegend()">&times;</button>
+            </div>
+            <div class="legend-body">
+                <div class="legend-section">Rooms</div>
+                <div class="legend-item"><span class="legend-swatch" style="background:#3a3a4a;border:2px solid #d9d9d9"></span> Standard room</div>
+                <div class="legend-item"><span class="legend-swatch" style="background:#1a6abf;border:2px solid #1a6abf"></span> Selected room</div>
+                <div class="legend-item"><span class="legend-swatch" style="background:#3a3a4a;border:2px solid #d9d9d9;box-shadow:0 0 6px #d4a843,inset 0 0 0 1px #d4a843"></span> Room with script</div>
+                <div class="legend-item"><span class="legend-swatch" style="background:#3a3a4a;border:2px solid rgb(255,90,90)"></span> Room with mob spawn</div>
+                <div class="legend-item"><span class="legend-swatch-text" style="color:#ff00ff">&#9652;</span> Exit goes up a Z-level</div>
+                <div class="legend-item"><span class="legend-swatch-text" style="color:#ff00ff">&#9662;</span> Exit goes down a Z-level</div>
+
+                <div class="legend-section">Connections</div>
+                <div class="legend-item"><span class="legend-line" style="background:#7a4a1a"></span> Standard exit</div>
+                <div class="legend-item"><span class="legend-line dashed" style="background:repeating-linear-gradient(90deg,#d4c050 0 4px,transparent 4px 8px)"></span> Non-directional / named exit</div>
+                <div class="legend-item"><span class="legend-swatch-text" style="color:#d4a843;font-weight:bold">?</span> Secret exit</div>
+                <div class="legend-item"><span class="legend-swatch-text" style="color:#9ab0d4">&#9919;</span> Locked exit</div>
+
+                <div class="legend-section">Biomes / Environments</div>
+                <div class="legend-item"><span class="legend-swatch-text" style="color:#1a6b1a">&clubs;</span> Forest</div>
+                <div class="legend-item"><span class="legend-swatch-text" style="color:#4a6b20">&#9832;</span> Swamp</div>
+                <div class="legend-item"><span class="legend-swatch-text" style="color:#b8d8f0">&#10052;</span> Snow</div>
+                <div class="legend-item"><span class="legend-swatch-text" style="color:#5a4a38">&#9004;</span> Cave / Dungeon</div>
+                <div class="legend-item"><span class="legend-swatch-text" style="color:#7a6a50">&#10837;</span> Mountains</div>
+                <div class="legend-item"><span class="legend-swatch-text" style="color:#8a7a5a">&#9660;</span> Cliffs</div>
+                <div class="legend-item"><span class="legend-swatch-text" style="color:#8a6a3a">&#8962;</span> House</div>
+                <div class="legend-item"><span class="legend-swatch-text" style="color:#d4aa55">*</span> Desert</div>
+                <div class="legend-item"><span class="legend-swatch-text" style="color:#6a8a30">'</span> Farmland</div>
+                <div class="legend-item"><span class="legend-swatch-text" style="color:#a07840">=</span> Road</div>
+                <div class="legend-item"><span class="legend-swatch-text" style="color:#2a53f7">~</span> Shore / Water</div>
+                <div class="legend-item"><span class="legend-swatch-text" style="color:#0033cd">&asymp;</span> Deep Water</div>
+            </div>
+        </div>
     </div>
     <div class="mapper-info-panel" id="mapper-info-panel">
         <h3>Room Info</h3>
