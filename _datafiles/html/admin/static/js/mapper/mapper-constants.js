@@ -20,7 +20,7 @@ var CENTER_EASE_DURATION = 0.2;   // seconds for the smooth-scroll to a room
 var ROOM_SIZE_2D         = 28;
 var ROOM_GAP_2D          = 14;
 var BASE_STEP_2D         = ROOM_SIZE_2D + ROOM_GAP_2D;  // grid pitch in px
-var CONNECTION_WIDTH_2D  = 5;
+var CONNECTION_WIDTH_2D  = 14;
 var ROOM_BORDER_WIDTH_2D = 3;
 var SYMBOL_FONT_SIZE_2D  = 14;
 var MAP_BG_2D            = '#111';
@@ -34,7 +34,7 @@ var ZONE_BOX_BORDER_HOV   = 'rgba(180,180,255,0.7)';   // border for hovered zon
 
 // --- Shared Color Palette ---
 
-var CONNECTION_COLOR          = '#7a4a1a';
+var CONNECTION_COLOR          = '#ffffff';
 var ABNORMAL_CONNECTION_COLOR = '#d4c050';  // visually flags non-standard exits
 var SELECTED_ROOM_COLOR       = '#1a6abf';
 var SELECTED_ROOM_TEXT_COLOR  = '#ffffff';

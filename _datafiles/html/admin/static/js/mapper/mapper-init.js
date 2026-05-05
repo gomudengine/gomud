@@ -20,7 +20,8 @@
    MAP_BG_2D, CONNECTION_COLOR, ABNORMAL_CONNECTION_COLOR, SELECTED_ROOM_COLOR, SELECTED_ROOM_TEXT_COLOR,
    SYMBOL_TEXT_COLOR, ROOM_BORDER_MOB_SPAWN, ROOM_BORDER_SCRIPT_GLOW, ROOM_ARROW_COLOR,
    BADGE_SECRET_COLOR, BADGE_LOCK_COLOR, ZONE_BOX_COLOR, ZONE_BOX_COLOR_HOV, ZONE_BOX_BORDER,
-   ZONE_BOX_BORDER_HOV, ZONE_BOX_PADDING, computeZonePaddedBounds */
+   ZONE_BOX_BORDER_HOV, ZONE_BOX_PADDING, computeZonePaddedBounds,
+   CONNECTION_WIDTH_2D */
 'use strict';
 
 (function() {
@@ -298,6 +299,11 @@
             !clEl.contains(e.target) && btnEl && !btnEl.contains(e.target)) {
             clEl.classList.remove('visible');
         }
+        // Close settings modal when clicking the backdrop directly
+        var settingsBackdrop = document.getElementById('mapper-settings-backdrop');
+        if (settingsBackdrop && e.target === settingsBackdrop) {
+            settingsBackdrop.classList.remove('visible');
+        }
     });
 
     // =====================================================================
@@ -306,6 +312,11 @@
 
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
+            var settingsBackdrop = document.getElementById('mapper-settings-backdrop');
+            if (settingsBackdrop && settingsBackdrop.classList.contains('visible')) {
+                settingsBackdrop.classList.remove('visible');
+                return;
+            }
             var activeTool = MapperTools.getActive();
             if (activeTool && activeTool.name === 'quick-build') { MapperTools.activate('pan'); return; }
             if (activeTool && activeTool.name === 'exit-draw') { MapperTools.activate('pan'); return; }
@@ -341,6 +352,71 @@
         var tool = MapperTools.getActive();
         if (tool && tool.onKeyDown) tool.onKeyDown(e);
     });
+
+    // =====================================================================
+    //  Toolbar tooltips
+    // =====================================================================
+
+    (function() {
+        var tip = document.getElementById('toolbar-tooltip');
+        var toolbar = document.querySelector('.mapper-toolbar');
+        if (!tip || !toolbar) return;
+
+        var showTimer = null;
+        var currentTarget = null;
+
+        function show(el, x, y) {
+            var text = el.getAttribute('data-tip');
+            if (!text) return;
+            tip.textContent = text;
+            tip.style.display = 'block';
+            position(x, y);
+        }
+
+        function position(x, y) {
+            var tw = tip.offsetWidth;
+            var th = tip.offsetHeight;
+            var left = x + 12;
+            var top  = y + 18;
+            if (left + tw + 8 > window.innerWidth)  left = x - tw - 8;
+            if (top  + th + 8 > window.innerHeight) top  = y - th - 8;
+            tip.style.left = left + 'px';
+            tip.style.top  = top  + 'px';
+        }
+
+        function hide() {
+            clearTimeout(showTimer);
+            showTimer = null;
+            currentTarget = null;
+            tip.style.display = 'none';
+        }
+
+        toolbar.addEventListener('mouseover', function(e) {
+            var el = e.target.closest('[data-tip]');
+            if (!el || el === currentTarget) return;
+            hide();
+            currentTarget = el;
+            showTimer = setTimeout(function() {
+                show(el, e.clientX, e.clientY);
+            }, 400);
+        });
+
+        toolbar.addEventListener('mousemove', function(e) {
+            if (tip.style.display === 'block') {
+                position(e.clientX, e.clientY);
+            }
+        });
+
+        toolbar.addEventListener('mouseout', function(e) {
+            var el = e.target.closest('[data-tip]');
+            if (!el) return;
+            var to = e.relatedTarget;
+            if (to && el.contains(to)) return;
+            hide();
+        });
+
+        toolbar.addEventListener('mousedown', hide);
+    })();
 
     // =====================================================================
     //  Zone dropdown
@@ -403,6 +479,11 @@
         if (el) el.classList.toggle('visible');
     };
 
+    window.toggleMapperSettings = function() {
+        var el = document.getElementById('mapper-settings-backdrop');
+        if (el) el.classList.toggle('visible');
+    };
+
     window.addEventListener('beforeunload', function() {
         var cam = MapperState.camera;
         localStorage.setItem('mapper.cameraState', JSON.stringify({
@@ -422,6 +503,21 @@
         localStorage.setItem('mapper.spacing2d', v);
         var lbl = document.getElementById('spacing-val');
         if (lbl) lbl.textContent = v.toFixed(2);
+        MapperRender.render();
+    };
+
+    window.onConnectionWidthSlider = function(val) {
+        var v = Math.min(ROOM_SIZE_2D, Math.max(1, parseInt(val, 10)));
+        CONNECTION_WIDTH_2D = v;
+        localStorage.setItem('mapper.connectionWidth2d', v);
+        var lbl = document.getElementById('conn-width-val');
+        if (lbl) lbl.textContent = v;
+        MapperRender.render();
+    };
+
+    window.onConnectionColorPicker = function(val) {
+        CONNECTION_COLOR = val;
+        localStorage.setItem('mapper.connectionColor', val);
         MapperRender.render();
     };
 
@@ -456,6 +552,28 @@
             slider.value = MapperState.camera.spacingScale2d;
             if (sliderVal) sliderVal.textContent = MapperState.camera.spacingScale2d.toFixed(2);
         }
+
+        // Sync connection width slider to persisted value
+        var savedConnWidth = localStorage.getItem('mapper.connectionWidth2d');
+        if (savedConnWidth !== null) {
+            var cw = Math.min(ROOM_SIZE_2D, Math.max(1, parseInt(savedConnWidth, 10)));
+            CONNECTION_WIDTH_2D = cw;
+        }
+        var connWidthSlider = document.getElementById('conn-width-slider');
+        var connWidthVal = document.getElementById('conn-width-val');
+        if (connWidthSlider) {
+            connWidthSlider.max = ROOM_SIZE_2D;
+            connWidthSlider.value = CONNECTION_WIDTH_2D;
+            if (connWidthVal) connWidthVal.textContent = CONNECTION_WIDTH_2D;
+        }
+
+        // Sync connection color picker to persisted value
+        var savedConnColor = localStorage.getItem('mapper.connectionColor');
+        if (savedConnColor) {
+            CONNECTION_COLOR = savedConnColor;
+        }
+        var connColorPicker = document.getElementById('conn-color-picker');
+        if (connColorPicker) connColorPicker.value = CONNECTION_COLOR;
 
         // Sync show-bounds toggle to persisted value
         var boundsToggle = document.getElementById('show-bounds-toggle');

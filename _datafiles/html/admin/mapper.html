@@ -250,6 +250,24 @@
         background: rgba(255,255,255,0.03);
     }
 
+    #toolbar-tooltip {
+        position: fixed;
+        z-index: 100000;
+        pointer-events: none;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.45);
+        padding: 5px 9px;
+        max-width: 220px;
+        display: none;
+        font-family: monospace;
+        font-size: 0.75rem;
+        color: var(--color-text);
+        line-height: 1.45;
+        white-space: normal;
+    }
+
     #mapper-tooltip {
         position: fixed;
         z-index: 99999;
@@ -845,55 +863,115 @@
     }
     .unmapped-list tr:nth-child(even) td { background: rgba(255,255,255,0.03); }
     .unmapped-list a { color: var(--color-link); font-size: 0.72rem; }
+
+    .mapper-settings-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.55);
+        z-index: 1003;
+        align-items: center;
+        justify-content: center;
+    }
+    .mapper-settings-backdrop.visible { display: flex; }
+    .mapper-settings-modal {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 6px;
+        min-width: 300px;
+        max-width: 400px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+        font-family: monospace;
+        overflow: hidden;
+    }
+    .mapper-settings-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--color-border);
+    }
+    .mapper-settings-title {
+        font-size: 0.82rem;
+        color: var(--color-text);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+    .mapper-settings-close {
+        background: none;
+        border: none;
+        color: var(--color-text-dim);
+        font-size: 1.2rem;
+        cursor: pointer;
+        padding: 0 4px;
+        line-height: 1;
+    }
+    .mapper-settings-close:hover { color: var(--color-text); }
+    .mapper-settings-body {
+        padding: 10px 14px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    .mapper-settings-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+    .mapper-settings-label {
+        font-size: 0.78rem;
+        color: var(--color-text-dim);
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .mapper-settings-control {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .mapper-settings-control input[type=range] {
+        width: 130px;
+        cursor: pointer;
+    }
+    .mapper-settings-val {
+        font-size: 0.72rem;
+        color: var(--color-text-dim);
+        min-width: 28px;
+        text-align: right;
+    }
 </style>
 
 <h1>Zone Mapper</h1>
 
 <div class="mapper-toolbar">
-    <select id="zone-select"><option value="">-- select zone --</option></select>
-    <button class="room-search-btn" onclick="searchRoom()" title="Go to room by ID">&#128269;</button>
+    <select id="zone-select" data-tip="Select a zone to view and edit on the map"><option value="">-- select zone --</option></select>
+    <button class="room-search-btn" onclick="searchRoom()" data-tip="Jump to a specific room by its numeric ID">&#128269;</button>
     <span class="sep"></span>
     <div class="mapper-controls">
-        <button onclick="zoomOut()" title="Zoom out">&minus;</button>
-        <button onclick="zoomIn()" title="Zoom in">+</button>
+        <button onclick="zoomOut()" data-tip="Zoom out">&minus;</button>
+        <button onclick="zoomIn()" data-tip="Zoom in">+</button>
         <span class="ctrl-sep"></span>
-        <button onclick="centerCamera()" title="Re-center on root room">&#8982;</button>
+        <button onclick="centerCamera()" data-tip="Re-center the view on the zone's root room">&#8982;</button>
     </div>
-    <div class="mapper-controls" style="gap:6px;align-items:center">
+    <div class="mapper-controls">
         <span class="ctrl-sep"></span>
-        <span style="font-size:0.72rem;color:var(--color-text-dim);font-family:monospace;white-space:nowrap">Spacing</span>
-        <input type="range" id="spacing-slider" min="0.75" max="3.0" step="0.05"
-            oninput="onSpacingSlider(this.value)"
-            style="width:90px;cursor:pointer;vertical-align:middle">
-        <span id="spacing-val" style="font-size:0.72rem;color:var(--color-text-dim);font-family:monospace;min-width:28px"></span>
-    </div>
-    <div class="mapper-controls" style="gap:6px;align-items:center">
-        <span class="ctrl-sep"></span>
-        <label class="toggle-switch" title="Show zone bounding boxes">
-            <input type="checkbox" id="show-bounds-toggle" onchange="onShowBoundsToggle(this.checked)">
-            <span class="toggle-track"></span>
-            Show Bounds
-        </label>
-        <label class="toggle-switch" title="Only render rooms in the selected zone">
-            <input type="checkbox" id="selected-zone-only-toggle" onchange="onSelectedZoneOnlyToggle(this.checked)">
-            <span class="toggle-track"></span>
-            Selected Zone Only
-        </label>
+        <button onclick="toggleMapperSettings()" data-tip="Open map display settings (spacing, connection width, color, and visibility options)">&#9881;</button>
     </div>
     <div class="mapper-z-controls" id="z-controls">
         <span class="ctrl-sep"></span>
         <span>Z:</span>
-        <button class="z-nav-btn" id="z-prev" title="Previous Z level">&#9650;</button>
-        <select id="z-select"></select>
-        <button class="z-nav-btn" id="z-next" title="Next Z level">&#9660;</button>
+        <button class="z-nav-btn" id="z-prev" data-tip="Move up one Z-level">&#9650;</button>
+        <select id="z-select" data-tip="Jump directly to a Z-level"></select>
+        <button class="z-nav-btn" id="z-next" data-tip="Move down one Z-level">&#9660;</button>
     </div>
     <div class="mapper-save-controls" id="save-controls">
         <span class="sep"></span>
-        <button class="btn-save" onclick="saveAllChanges()">Save Changes</button>
-        <button class="btn-discard" onclick="discardChanges()">Discard</button>
+        <button class="btn-save" onclick="saveAllChanges()" data-tip="Commit all pending room and exit changes to the server">Save Changes</button>
+        <button class="btn-discard" onclick="discardChanges()" data-tip="Discard all pending changes and revert to the last saved state">Discard</button>
     </div>
     <div class="mapper-controls" style="margin-left:4px">
-        <button class="mapper-changelog-btn" id="changelog-btn" onclick="toggleChangelog()" title="Pending changes">!
+        <button class="mapper-changelog-btn" id="changelog-btn" onclick="toggleChangelog()" data-tip="Show or hide the list of pending unsaved changes">!
             <span class="mapper-changelog-badge" id="changelog-badge"></span>
         </button>
     </div>
@@ -986,7 +1064,56 @@
     </div>
 </div>
 
+<div class="mapper-settings-backdrop" id="mapper-settings-backdrop">
+    <div class="mapper-settings-modal">
+        <div class="mapper-settings-header">
+            <span class="mapper-settings-title">Map Settings</span>
+            <button class="mapper-settings-close" onclick="toggleMapperSettings()">&times;</button>
+        </div>
+        <div class="mapper-settings-body">
+            <div class="mapper-settings-row">
+                <label class="mapper-settings-label" for="spacing-slider">Room Spacing</label>
+                <div class="mapper-settings-control">
+                    <input type="range" id="spacing-slider" min="0.75" max="3.0" step="0.05"
+                        oninput="onSpacingSlider(this.value)">
+                    <span id="spacing-val" class="mapper-settings-val"></span>
+                </div>
+            </div>
+            <div class="mapper-settings-row">
+                <label class="mapper-settings-label" for="conn-width-slider">Connection Width</label>
+                <div class="mapper-settings-control">
+                    <input type="range" id="conn-width-slider" min="1" max="28" step="1"
+                        oninput="onConnectionWidthSlider(this.value)">
+                    <span id="conn-width-val" class="mapper-settings-val"></span>
+                    <input type="color" id="conn-color-picker" title="Connection line color"
+                        oninput="onConnectionColorPicker(this.value)"
+                        style="width:28px;height:22px;padding:1px 2px;border:1px solid var(--color-border);border-radius:3px;background:var(--color-surface-white);cursor:pointer;">
+                </div>
+            </div>
+            <div class="mapper-settings-row">
+                <label class="mapper-settings-label">Show Bounds</label>
+                <div class="mapper-settings-control">
+                    <label class="toggle-switch" title="Show zone bounding boxes">
+                        <input type="checkbox" id="show-bounds-toggle" onchange="onShowBoundsToggle(this.checked)">
+                        <span class="toggle-track"></span>
+                    </label>
+                </div>
+            </div>
+            <div class="mapper-settings-row">
+                <label class="mapper-settings-label">Selected Zone Only</label>
+                <div class="mapper-settings-control">
+                    <label class="toggle-switch" title="Only render rooms in the selected zone">
+                        <input type="checkbox" id="selected-zone-only-toggle" onchange="onSelectedZoneOnlyToggle(this.checked)">
+                        <span class="toggle-track"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div id="mapper-tooltip"></div>
+<div id="toolbar-tooltip"></div>
 <div id="mapper-ctx-menu" class="mapper-ctx-menu"></div>
 
 <script src="/admin/static/js/mapper/_all.js?mapper-constants.js,mapper-events.js,mapper-helpers.js,mapper-state.js,mapper-render.js,mapper-tools.js,mapper-ctx-menu.js,mapper-ui.js,mapper-tool-pan.js,mapper-tool-room-drag.js,mapper-tool-exit-draw.js,mapper-tool-quick-build.js,mapper-tool-select.js,mapper-init.js"></script>
