@@ -9,7 +9,6 @@ description: Cobblestone streets, worn smooth by endless travel, meander through
   Clad in heavy furs and cloaks, the people of this area exhale brief vapors in the
   chilly air, their footsteps subtly suggesting the presence of a seldom-visited but
   captivating abode discreetly situated near the district's northern exit.
-biome: city
 exits:
   east:
     roomid: 263
@@ -17,3 +16,7 @@ exits:
     roomid: 266
   west:
     roomid: 261
+mapx: 5
+mapy: -2
+mapz: 0
+hascoordinates: true

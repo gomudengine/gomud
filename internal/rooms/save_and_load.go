@@ -445,6 +445,10 @@ func loadAllRoomZones() error {
 			Zone:  loadedRoom.Zone,
 			Biome: loadedRoom.Biome,
 		}
+
+		if loadedRoom.HasCoordinates {
+			RegisterCoordinate(loadedRoom.Zone, loadedRoom.RoomId, loadedRoom.MapX, loadedRoom.MapY, loadedRoom.MapZ)
+		}
 	}
 
 	mudlog.Info("rooms.loadAllRoomZones()", "zoneCount", len(loadedZones), "loadedCount", len(loadedRooms), "Time Taken", time.Since(start))

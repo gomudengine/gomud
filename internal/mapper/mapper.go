@@ -202,6 +202,7 @@ func (r *RoomGrid) addNode(n *mapNode) {
 
 type mapper struct {
 	rootRoomId   int              // The room the crawler starts from
+	rootZone     string           // The zone of the root room
 	crawlQueue   []crawlRoom      // A stack of rooms to crawl
 	crawledRooms map[int]*mapNode // A look up table of rooms already crawled
 
@@ -209,8 +210,13 @@ type mapper struct {
 }
 
 func NewMapper(rootRoomId int) *mapper {
+	rootZone := ""
+	if room := rooms.LoadRoom(rootRoomId); room != nil {
+		rootZone = room.Zone
+	}
 	return &mapper{
 		rootRoomId:   rootRoomId,
+		rootZone:     rootZone,
 		crawledRooms: make(map[int]*mapNode, 100), // pre-allocate 100
 		roomGrid: RoomGrid{
 			rooms: [][][]*mapNode{},
@@ -267,10 +273,30 @@ func (r *mapper) Start() {
 		if node == nil {
 			continue
 		}
-		node.Pos = roomNow.Pos
+		if !node.HasStoredCoords {
+			node.Pos = roomNow.Pos
+		}
+
+		if node.Pos.x < minX {
+			minX = node.Pos.x
+		} else if node.Pos.x > maxX {
+			maxX = node.Pos.x
+		}
+		if node.Pos.y < minY {
+			minY = node.Pos.y
+		} else if node.Pos.y > maxY {
+			maxY = node.Pos.y
+		}
+		if node.Pos.z < minZ {
+			minZ = node.Pos.z
+		} else if node.Pos.z > maxZ {
+			maxZ = node.Pos.z
+		}
 
 		// Add to crawled list so we don't revisit it
 		r.crawledRooms[node.RoomId] = node
+
+		nodePos := node.Pos
 
 		// Now process it
 		for _, exitInfo := range node.Exits {
@@ -280,7 +306,7 @@ func (r *mapper) Start() {
 
 			newCrawl := crawlRoom{
 				RoomId: exitInfo.RoomId,
-				Pos:    roomNow.Pos.Combine(exitInfo.Direction),
+				Pos:    nodePos.Combine(exitInfo.Direction),
 			}
 
 			if newCrawl.Pos.x < minX {
@@ -308,13 +334,21 @@ func (r *mapper) Start() {
 
 	r.crawlQueue = nil
 
-	var xOffset, yOffset, zOffset = 0, 0, 0
-	lowestRoom := r.crawledRooms[lowestRoomId]
-	if lowestRoom != nil {
-		xOffset, yOffset, zOffset = lowestRoom.Pos.x, lowestRoom.Pos.y, lowestRoom.Pos.z
+	hasAnyStoredCoords := false
+	for _, node := range r.crawledRooms {
+		if node.HasStoredCoords {
+			hasAnyStoredCoords = true
+			break
+		}
 	}
 
-	// calculate the final array length.
+	var xOffset, yOffset, zOffset = 0, 0, 0
+	if !hasAnyStoredCoords {
+		lowestRoom := r.crawledRooms[lowestRoomId]
+		if lowestRoom != nil {
+			xOffset, yOffset, zOffset = lowestRoom.Pos.x, lowestRoom.Pos.y, lowestRoom.Pos.z
+		}
+	}
 
 	minX, minY, minZ = minX-xOffset, minY-yOffset, minZ-zOffset
 	maxX, maxY, maxZ = maxX-xOffset, maxY-yOffset, maxZ-zOffset
@@ -322,7 +356,9 @@ func (r *mapper) Start() {
 	r.roomGrid.initialize(minX, maxX, minY, maxY, minZ, maxZ)
 
 	for _, node := range r.crawledRooms {
-		node.Pos.x, node.Pos.y, node.Pos.z = node.Pos.x-xOffset, node.Pos.y-yOffset, node.Pos.z-zOffset
+		if !hasAnyStoredCoords {
+			node.Pos.x, node.Pos.y, node.Pos.z = node.Pos.x-xOffset, node.Pos.y-yOffset, node.Pos.z-zOffset
+		}
 		r.roomGrid.addNode(node)
 	}
 }
@@ -870,10 +906,17 @@ func (r *mapper) getMapNode(roomId int) *mapNode {
 		return nil
 	}
 
+	useStoredCoords := room.HasCoordinates && room.Zone == r.rootZone
+
 	mNode := &mapNode{
-		RoomId:      room.RoomId,
-		Exits:       make(map[string]nodeExit, 2), // assume there will be on average 2 exits per room
-		SecretExits: make(map[string]struct{}),
+		RoomId:          room.RoomId,
+		Exits:           make(map[string]nodeExit, 2), // assume there will be on average 2 exits per room
+		SecretExits:     make(map[string]struct{}),
+		HasStoredCoords: useStoredCoords,
+	}
+
+	if useStoredCoords {
+		mNode.Pos = positionDelta{x: room.MapX, y: room.MapY, z: room.MapZ}
 	}
 
 	if room.MapSymbol != `` {
@@ -1176,4 +1219,60 @@ func (m *mapper) OverrideRoomIds(replacements map[int]int) {
 		m.crawledRooms[newRoomId] = currentNode
 	}
 
+}
+
+func MigrateCoordinates(force bool) (migrated int, conflicts []string, unreachable []int) {
+	for _, zoneName := range rooms.GetAllZoneNames() {
+		rootRoomId, err := rooms.GetZoneRoot(zoneName)
+		if err != nil {
+			continue
+		}
+
+		m := NewMapper(rootRoomId)
+		m.Start()
+
+		zoneRoomIds := rooms.GetAllZoneRoomsIds(zoneName)
+		crawledSet := make(map[int]struct{}, len(m.crawledRooms))
+		for rid := range m.crawledRooms {
+			crawledSet[rid] = struct{}{}
+		}
+
+		for _, rid := range zoneRoomIds {
+			if _, found := crawledSet[rid]; !found {
+				unreachable = append(unreachable, rid)
+			}
+		}
+
+		for roomId, node := range m.crawledRooms {
+			room := rooms.LoadRoom(roomId)
+			if room == nil {
+				continue
+			}
+
+			if room.Zone != zoneName {
+				continue
+			}
+
+			if room.HasCoordinates && !force {
+				continue
+			}
+
+			x, y, z := node.Pos.x, node.Pos.y, node.Pos.z
+
+			if !rooms.IsCoordinateAvailable(zoneName, x, y, z, roomId) {
+				occupyingId, _ := rooms.GetRoomAtCoordinate(zoneName, x, y, z)
+				conflicts = append(conflicts, fmt.Sprintf("room %d and room %d both at (%d, %d, %d) in zone %s", roomId, occupyingId, x, y, z, zoneName))
+				continue
+			}
+
+			if room.HasCoordinates {
+				rooms.UnregisterCoordinate(zoneName, roomId)
+			}
+			room.SetCoordinates(x, y, z)
+			rooms.RegisterCoordinate(zoneName, roomId, x, y, z)
+			rooms.SaveRoomTemplate(*room)
+			migrated++
+		}
+	}
+	return
 }

@@ -1,0 +1,268 @@
+/**
+ * mapper-tool-exit-draw.js -- Rubber-band line drawing mode for wiring exits.
+ *
+ * Activated from the context menu "Add Exit" item. A dashed line stretches
+ * from the source room to the cursor; clicking on a different room finishes
+ * the connection after prompting for the exit name (and optional return
+ * exit). Directional exit names are validated against the spatial
+ * relationship between the two rooms so "north" cannot point south, etc.
+ *
+ * A separate "Add Exit (By Room Number)" path skips the visual rubber-band
+ * and just prompts for a target room ID directly.
+ */
+/* jshint esversion: 11, browser: true */
+/* globals MapperTools, MapperCtxMenu, MapperState, MapperRender,
+   ROOM_SIZE_2D, CONNECTION_WIDTH_2D,
+   EXIT_DRAW_TARGET_HIGHLIGHT, EXIT_DRAW_LINE_COLOR,
+   DIRECTION_DELTAS, DIRECTIONAL_EXITS, sign, escapeHtml */
+'use strict';
+
+(function() {
+
+    // =====================================================================
+    //  Exit-name validation
+    // =====================================================================
+
+    /**
+     * Reject directional exit names that contradict the spatial relationship.
+     * Returns an error string, or null when the name is acceptable.
+     */
+    function validateExitName(dir, sourceRoom, targetRoom) {
+        if (!dir) return null;
+        if (DIRECTIONAL_EXITS[dir]) {
+            var delta = DIRECTION_DELTAS[dir];
+            if (delta && sourceRoom && targetRoom && sourceRoom.HasCoordinates && targetRoom.HasCoordinates) {
+                var dx = targetRoom.MapX - sourceRoom.MapX;
+                var dy = targetRoom.MapY - sourceRoom.MapY;
+                var dz = targetRoom.MapZ - sourceRoom.MapZ;
+                if (sign(dx) !== sign(delta[0]) || sign(dy) !== sign(delta[1]) || sign(dz) !== sign(delta[2])) {
+                    return 'Exit "' + dir + '" does not match the spatial direction to the target room. Use a non-directional name instead.';
+                }
+            }
+        }
+        return null;
+    }
+
+    // =====================================================================
+    //  Finish / cancel
+    // =====================================================================
+
+    /** Complete the rubber-band draw: prompt for exit names and wire them up. */
+    function finishExitDraw(targetRoomId) {
+        var edm = MapperState.exitDrawMode;
+        if (targetRoomId === edm.sourceRoomId) {
+            MapperTools.activate('pan');
+            return;
+        }
+        var sourceRoom = MapperState.data.rooms.get(edm.sourceRoomId);
+        var targetRoom = MapperState.data.rooms.get(targetRoomId);
+
+        var dir = null;
+        while (true) {
+            dir = prompt('Exit name (e.g. "north", "portal", "trapdoor"):');
+            if (!dir || !dir.trim()) { MapperTools.activate('pan'); return; }
+            dir = dir.trim();
+            var err = validateExitName(dir, sourceRoom, targetRoom);
+            if (!err) break;
+            alert(err);
+        }
+
+        MapperState.addExitLocally(edm.sourceRoomId, dir, targetRoomId);
+
+        var returnDir = prompt('Return exit name (leave blank for no return exit):');
+        if (returnDir && returnDir.trim()) {
+            returnDir = returnDir.trim();
+            var err2 = validateExitName(returnDir, targetRoom, sourceRoom);
+            if (err2) {
+                alert(err2 + '\nReturn exit not created.');
+            } else {
+                MapperState.addExitLocally(targetRoomId, returnDir, edm.sourceRoomId);
+            }
+        }
+
+        MapperTools.activate('pan');
+        MapperRender.render();
+    }
+
+    /** Prompt-only path that skips the visual rubber-band altogether. */
+    function addExitByRoomNumber(sourceRoomId) {
+        var targetIdStr = prompt('Target room number:');
+        if (!targetIdStr || !targetIdStr.trim()) return;
+        var targetRoomId = parseInt(targetIdStr.trim(), 10);
+        if (isNaN(targetRoomId)) { alert('Invalid room number.'); return; }
+        if (targetRoomId === sourceRoomId) { alert('Cannot connect a room to itself.'); return; }
+
+        var sourceRoom = MapperState.data.rooms.get(sourceRoomId);
+        var targetRoom = MapperState.data.rooms.get(targetRoomId);
+
+        var dir = null;
+        while (true) {
+            dir = prompt('Exit name (e.g. "north", "portal", "trapdoor"):');
+            if (!dir || !dir.trim()) return;
+            dir = dir.trim();
+            if (sourceRoom && targetRoom) {
+                var err = validateExitName(dir, sourceRoom, targetRoom);
+                if (err) { alert(err); continue; }
+            }
+            break;
+        }
+
+        MapperState.addExitLocally(sourceRoomId, dir, targetRoomId);
+
+        var returnDir = prompt('Return exit name (leave blank for no return exit):');
+        if (returnDir && returnDir.trim()) {
+            returnDir = returnDir.trim();
+            if (sourceRoom && targetRoom) {
+                var err2 = validateExitName(returnDir, targetRoom, sourceRoom);
+                if (err2) {
+                    alert(err2 + '\nReturn exit not created.');
+                } else {
+                    MapperState.addExitLocally(targetRoomId, returnDir, sourceRoomId);
+                }
+            } else {
+                MapperState.addExitLocally(targetRoomId, returnDir, sourceRoomId);
+            }
+        }
+
+        MapperRender.render();
+    }
+
+    // =====================================================================
+    //  Tool definition
+    // =====================================================================
+
+    var tool = {
+        name: 'exit-draw',
+        cursor: 'crosshair',
+
+        // --- Mode activation ---
+
+        onActivate: function(context) {
+            var sourceRoomId = context.sourceRoomId;
+            var room = MapperState.data.rooms.get(sourceRoomId);
+            if (!room || !room.HasCoordinates) {
+                MapperTools.activate('pan');
+                return;
+            }
+            var edm = MapperState.exitDrawMode;
+            edm.active = true;
+            edm.sourceRoomId = sourceRoomId;
+            edm.sourceGx = room.MapX;
+            edm.sourceGy = room.MapY;
+            edm.sourceGz = room.MapZ;
+            edm.hoveredTargetId = null;
+            MapperRender.render();
+        },
+
+        onDeactivate: function() {
+            var edm = MapperState.exitDrawMode;
+            edm.active = false;
+            edm.sourceRoomId = null;
+            edm.hoveredTargetId = null;
+            MapperRender.render();
+        },
+
+        onMouseDown: function(e, cx, cy, roomId) {
+            var edm = MapperState.exitDrawMode;
+            if (!edm.active) return false;
+            if (roomId !== null && roomId !== edm.sourceRoomId) {
+                finishExitDraw(roomId);
+            } else {
+                MapperTools.activate('pan');
+            }
+            return true; // claim
+        },
+
+        onMouseMove: function(e, cx, cy, roomId) {
+            var edm = MapperState.exitDrawMode;
+            if (!edm.active) return;
+            edm.hoveredTargetId = (roomId !== null && roomId !== edm.sourceRoomId) ? roomId : null;
+            edm._mouseCx = cx;
+            edm._mouseCy = cy;
+            MapperRender.render();
+        },
+
+        onMouseUp: function() {},
+
+        onKeyDown: function(e) {
+            if (e.key === 'Escape') {
+                MapperTools.activate('pan');
+            }
+        },
+
+        // -----------------------------------------------------------------
+        //  2D overlay -- rubber-band line and target highlight
+        // -----------------------------------------------------------------
+
+        renderOverlay2d: function(ctx, rs) {
+            var edm = MapperState.exitDrawMode;
+            if (!edm.active) return;
+
+            var srcP = rs.gridToCanvas2d(edm.sourceGx, edm.sourceGy);
+            var endX, endY;
+
+            if (edm.hoveredTargetId !== null) {
+                var tgt = MapperState.data.rooms.get(edm.hoveredTargetId);
+                if (tgt && tgt.HasCoordinates) {
+                    var tgtP = rs.gridToCanvas2d(tgt.MapX, tgt.MapY);
+                    endX = tgtP.px;
+                    endY = tgtP.py;
+                    var hlHalf = rs.scaledSize / 2 + 3 * rs.zoomScale;
+                    ctx.strokeStyle = EXIT_DRAW_TARGET_HIGHLIGHT;
+                    ctx.lineWidth = 2 * rs.zoomScale;
+                    ctx.strokeRect(tgtP.px - hlHalf, tgtP.py - hlHalf, hlHalf * 2, hlHalf * 2);
+                }
+            } else {
+                endX = edm._mouseCx;
+                endY = edm._mouseCy;
+            }
+
+            if (endX !== undefined) {
+                ctx.strokeStyle = EXIT_DRAW_LINE_COLOR;
+                ctx.lineWidth = Math.max(2, CONNECTION_WIDTH_2D * rs.zoomScale);
+                ctx.setLineDash([6 * rs.zoomScale, 4 * rs.zoomScale]);
+                ctx.beginPath();
+                ctx.moveTo(srcP.px, srcP.py);
+                ctx.lineTo(endX, endY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+        }
+    };
+
+    MapperTools.register(tool);
+
+    // =====================================================================
+    //  Context menu items
+    // =====================================================================
+
+    MapperCtxMenu.registerProvider(function(target) {
+        if (target.type !== 'room') return null;
+        return [
+            {
+                label: 'Add Exit',
+                icon: '→',
+                action: function() {
+                    MapperTools.activate('exit-draw', { sourceRoomId: target.roomId });
+                }
+            },
+            {
+                label: 'Add Exit (By Room Number)',
+                icon: '⌨',
+                action: function() {
+                    addExitByRoomNumber(target.roomId);
+                }
+            },
+            {
+                label: 'Delete All Exits',
+                icon: '✕',
+                style: 'color:#ff6b6b',
+                action: function() {
+                    MapperState.deleteAllExitsLocally(target.roomId);
+                    MapperRender.render();
+                }
+            }
+        ];
+    });
+
+})();

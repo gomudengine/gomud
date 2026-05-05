@@ -10,7 +10,6 @@ description: At the northernmost reachable part of the chasm, the light barely p
   the path, threatening to trip the unwary.
 mapsymbol: B
 maplegend: Bridge
-biome: forest
 exits:
   south:
     roomid: 874

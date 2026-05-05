@@ -8,7 +8,6 @@ description: 'Tucked away in the heart of Frostfang''s sprawling slums, a dimly 
   and fraying ropes dot the gaps between these structures. The uneven ground is littered
   with remnants of daily life: discarded meal bones, worn-out shoes, and glimmers
   from shattered glass. An ornate door stands out here, clearly well cared for.'
-biome: city
 exits:
   door:
     roomid: 1004
@@ -22,3 +21,7 @@ exits:
     roomid: 489
   north:
     roomid: 487
+mapx: -3
+mapy: 11
+mapz: 0
+hascoordinates: true

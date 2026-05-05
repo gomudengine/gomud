@@ -20,3 +20,7 @@ idlemessages:
 - "304"
 tags:
 - fishing
+mapx: 26
+mapy: 3
+mapz: 0
+hascoordinates: true

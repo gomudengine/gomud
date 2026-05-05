@@ -8,7 +8,6 @@ description: From this lofty perch, you can see the entire expanse of the Spider
   the dark forest stretches far into the distance. To the west you can see the winter-locked
   city of Frostfang, and to the east the stormshard mountains, where the city of Mystarion
   resides.
-biome: forest
 exits:
   down:
     roomid: 630
@@ -24,3 +23,7 @@ spawninfo:
 - mobid: 35
   message: A small spider hatches from a nearby egg.
   respawnrate: 7 real minutes
+mapx: 31
+mapy: -7
+mapz: 3
+hascoordinates: true

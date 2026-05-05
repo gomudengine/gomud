@@ -9,9 +9,13 @@ description: The jail adjoins the Soldiers Barracks like a grim shadow, its cold
   one passes through without command.
 biome: city
 exits:
-  west:
+  down:
     roomid: 270
 nouns:
   CELLS: :cells
   cell: :cells
   cells: The cells are inpenetrable. Only a guard can gain access.
+mapx: 1
+mapy: -4
+mapz: 1
+hascoordinates: true

@@ -21,3 +21,7 @@ spawninfo:
 - mobid: 18
   message: A dark acolyte steps into the room.
   respawnrate: 6 real minutes
+mapx: -2
+mapy: -2
+mapz: -1
+hascoordinates: true

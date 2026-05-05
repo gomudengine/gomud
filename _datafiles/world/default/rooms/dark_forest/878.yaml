@@ -13,7 +13,6 @@ description: Behind the cascading waterfall lies a hidden cave, its entrance shr
   that is both invigorating and mysterious.
 mapsymbol: B
 maplegend: Bridge
-biome: forest
 containers:
   ornate chest:
     lock:

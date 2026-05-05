@@ -10,7 +10,6 @@ description: You find yourself in a mesmerizing magical grove, where the air hum
   arching gateway made of intertwined silver and gold vines, encrusted with sparkling
   gems that twinkle like captured starlight. The gateway emits a faint, beckoning
   glow, its surface rippling like a silken veil in the breeze.
-biome: forest
 exits:
   gateway:
     roomid: 558

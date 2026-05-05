@@ -6,7 +6,6 @@ description: As you venture further along the old road, it leads you into the he
   shadowy realm is abrupt and palpable. The once-clear path is now obscured by gnarled,
   twisted branches that reach out like skeletal fingers from ancient trees, their
   bark as black as night.
-biome: forest
 exits:
   northeast:
     roomid: 527
@@ -21,3 +20,7 @@ spawninfo:
   respawnrate: 15 real minutes
 - mobid: 56
   respawnrate: 3 real minutes
+mapx: 40
+mapy: 12
+mapz: 0
+hascoordinates: true

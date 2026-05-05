@@ -11,3 +11,7 @@ exits:
     roomid: 693
   west:
     roomid: 695
+mapx: 85
+mapy: 12
+mapz: 0
+hascoordinates: true

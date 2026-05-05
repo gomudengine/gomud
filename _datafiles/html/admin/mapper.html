@@ -1,0 +1,712 @@
+{{template "header" .}}
+
+<style>
+    main {
+        max-width: none;
+        padding: 0 1rem 1rem 1rem;
+        margin-top: 1rem;
+    }
+    h1 { margin-bottom: 0.25rem; }
+    .subtitle { color: var(--color-text-dim); font-size: 0.85rem; margin-bottom: 0.75rem; }
+    .subtitle a { color: var(--color-link); }
+
+    .mapper-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 8px;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        margin-bottom: 6px;
+        flex-wrap: wrap;
+    }
+    .mapper-toolbar select {
+        padding: 4px 6px;
+        font-size: 0.82rem;
+        font-family: monospace;
+        background: var(--color-surface-white);
+        color: var(--color-text);
+        border: 1px solid var(--color-border);
+        border-radius: 3px;
+        min-width: 160px;
+    }
+    .mapper-toolbar .sep {
+        width: 1px;
+        height: 20px;
+        background: var(--color-border);
+    }
+    .mapper-tabs { display: flex; gap: 2px; }
+    .mapper-tabs button {
+        padding: 3px 10px;
+        font-size: 0.78rem;
+        font-family: monospace;
+        background: var(--color-surface-white);
+        color: var(--color-text-dim);
+        border: 1px solid var(--color-border);
+        border-radius: 3px;
+        cursor: pointer;
+    }
+    .mapper-tabs button:hover { color: var(--color-text); }
+    .mapper-tabs button.active {
+        background: var(--color-primary);
+        color: #fff;
+        border-color: var(--color-primary);
+    }
+    .mapper-controls { display: flex; gap: 2px; align-items: center; }
+    .mapper-controls button {
+        width: 24px; height: 24px;
+        padding: 0;
+        font-size: 14px; line-height: 1;
+        font-family: monospace;
+        background: var(--color-surface-white);
+        color: var(--color-text-dim);
+        border: 1px solid var(--color-border);
+        border-radius: 3px;
+        cursor: pointer;
+    }
+    .mapper-controls button:hover { color: var(--color-text); background: var(--color-surface); }
+    .mapper-controls button.active {
+        background: var(--color-primary);
+        color: #fff;
+        border-color: var(--color-primary);
+    }
+    .mapper-controls .ctrl-sep {
+        width: 1px; height: 16px;
+        background: var(--color-border);
+        margin: 0 3px;
+    }
+    .mapper-z-controls { display: flex; gap: 2px; align-items: center; }
+    .mapper-z-controls span { font-size: 0.72rem; color: var(--color-text-dim); font-family: monospace; }
+
+    .mapper-body {
+        display: flex;
+        gap: 6px;
+        height: calc(100vh - 180px);
+        min-height: 400px;
+    }
+    .mapper-viewport {
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+        background: #111;
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+    }
+    .mapper-viewport canvas {
+        display: block;
+        position: absolute;
+        top: 0; left: 0;
+        cursor: grab;
+    }
+
+    .mapper-info-panel {
+        width: 260px;
+        flex-shrink: 0;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        padding: 8px 10px;
+        overflow-y: auto;
+        font-size: 0.8rem;
+        font-family: monospace;
+    }
+    .mapper-info-panel h3 {
+        margin: 0 0 6px 0;
+        font-size: 0.85rem;
+        color: var(--color-text);
+    }
+    .mapper-info-panel .info-empty {
+        color: var(--color-text-dim);
+        font-style: italic;
+    }
+    .mapper-info-panel .info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 8px;
+        line-height: 1.8;
+    }
+    .mapper-info-panel .info-label {
+        color: var(--color-text-dim);
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        flex-shrink: 0;
+    }
+    .mapper-info-panel .info-value {
+        color: var(--color-text);
+        text-align: right;
+        word-break: break-word;
+    }
+    .mapper-info-panel .info-divider {
+        border: none;
+        border-top: 1px solid var(--color-border);
+        margin: 6px 0;
+    }
+    .mapper-info-panel .info-link {
+        display: inline-block;
+        margin-top: 6px;
+        font-size: 0.78rem;
+        color: var(--color-link);
+    }
+    .mapper-info-panel .info-exits {
+        margin-top: 4px;
+    }
+    .mapper-info-panel .info-exit-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 6px;
+        line-height: 1.6;
+        font-size: 0.75rem;
+    }
+    .mapper-info-panel .info-exit-dir { color: var(--color-text-dim); }
+    .mapper-info-panel .info-exit-id { color: var(--color-text); }
+    .mapper-info-panel .info-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 3px;
+        margin-top: 4px;
+    }
+    .mapper-info-panel .info-badge {
+        font-size: 0.65rem;
+        padding: 1px 4px;
+        border-radius: 3px;
+        background: var(--color-surface-white);
+        color: var(--color-text-dim);
+        border: 1px solid var(--color-border);
+    }
+    .mapper-info-panel .info-badge.secret { color: #d4a843; border-color: #d4a843; }
+    .mapper-info-panel .info-badge.locked { color: #9ab0d4; border-color: #9ab0d4; }
+    .mapper-info-panel .info-sub-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 6px;
+        font-size: 0.72rem;
+        padding: 1px 0;
+    }
+    .mapper-info-panel .info-sub-label { color: var(--color-text); }
+    .mapper-info-panel .info-sub-val   { color: var(--color-text-dim); text-align: right; }
+    .mapper-info-panel .info-row-block {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+    .mapper-info-panel .info-spawn-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.72rem;
+        margin-top: 2px;
+    }
+    .mapper-info-panel .info-spawn-table th {
+        text-align: left;
+        color: var(--color-text-dim);
+        font-weight: normal;
+        padding: 1px 4px 3px 0;
+        border-bottom: 1px solid var(--color-border);
+    }
+    .mapper-info-panel .info-spawn-table td {
+        color: var(--color-text);
+        padding: 2px 4px 2px 0;
+        vertical-align: top;
+    }
+    .mapper-info-panel .info-spawn-table tr:nth-child(even) td {
+        background: rgba(255,255,255,0.03);
+    }
+
+    #mapper-tooltip {
+        position: fixed;
+        z-index: 99999;
+        pointer-events: none;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 6px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+        padding: 8px 10px;
+        min-width: 140px;
+        max-width: 260px;
+        display: none;
+        font-family: monospace;
+        font-size: 0.78rem;
+    }
+    #mapper-tooltip .tt-title { font-weight: bold; color: var(--color-text); margin-bottom: 2px; }
+    #mapper-tooltip .tt-id { color: var(--color-text-dim); font-size: 0.7rem; }
+    #mapper-tooltip .tt-row { display: flex; justify-content: space-between; gap: 8px; line-height: 1.6; }
+    #mapper-tooltip .tt-label { color: var(--color-text-dim); font-size: 0.72rem; text-transform: uppercase; }
+    #mapper-tooltip .tt-value { color: var(--color-text); }
+    #mapper-tooltip .tt-divider { border: none; border-top: 1px solid var(--color-border); margin: 4px 0; }
+
+    .mapper-ctx-menu {
+        position: fixed;
+        z-index: 99998;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+        min-width: 160px;
+        padding: 4px 0;
+        font-family: monospace;
+        font-size: 0.8rem;
+        display: none;
+    }
+    .mapper-ctx-menu .ctx-header {
+        padding: 4px 10px;
+        color: var(--color-text-dim);
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        border-bottom: 1px solid var(--color-border);
+        margin-bottom: 2px;
+    }
+    .mapper-ctx-menu .ctx-item {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        width: 100%;
+        padding: 5px 10px;
+        background: none;
+        border: none;
+        color: var(--color-text);
+        font-family: monospace;
+        font-size: 0.8rem;
+        text-align: left;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+    .mapper-ctx-menu .ctx-icon {
+        width: 1.1em;
+        text-align: center;
+        flex-shrink: 0;
+    }
+    .mapper-ctx-menu .ctx-item:hover:not(:disabled) {
+        background: var(--color-primary);
+        color: #fff;
+    }
+    .mapper-ctx-menu .ctx-item:disabled {
+        color: var(--color-text-dim);
+        opacity: 0.4;
+        cursor: default;
+    }
+
+    .mapper-save-controls {
+        display: none;
+        gap: 4px;
+        align-items: center;
+    }
+    .mapper-save-controls.visible { display: flex; }
+    .mapper-save-controls button {
+        padding: 3px 10px;
+        font-size: 0.78rem;
+        font-family: monospace;
+        border: 1px solid var(--color-border);
+        border-radius: 3px;
+        cursor: pointer;
+    }
+    .mapper-save-controls .btn-save {
+        background: #2a7a2a;
+        color: #fff;
+        border-color: #2a7a2a;
+    }
+    .mapper-save-controls .btn-save:hover { background: #35953a; }
+    .mapper-save-controls .btn-discard {
+        background: var(--color-surface-white);
+        color: var(--color-text-dim);
+    }
+    .mapper-save-controls .btn-discard:hover { color: var(--color-text); }
+    .mapper-toast-container {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 6px;
+        pointer-events: none;
+    }
+    .mapper-toast {
+        background: rgba(30,30,40,0.92);
+        color: #d4a843;
+        font-family: monospace;
+        font-size: 0.78rem;
+        padding: 6px 16px;
+        border-radius: 20px;
+        border: 1px solid rgba(212,168,67,0.4);
+        white-space: nowrap;
+        animation: mapper-toast-fly 2.8s ease-in forwards;
+    }
+    @keyframes mapper-toast-fly {
+        0%   { opacity: 0; transform: translateX(12px); }
+        12%  { opacity: 1; transform: translateX(0); }
+        70%  { opacity: 1; transform: translateX(0); }
+        100% { opacity: 0; transform: translateX(80px); }
+    }
+
+    .mapper-changelog-btn {
+        position: relative;
+        width: 24px; height: 24px;
+        padding: 0;
+        font-size: 14px; line-height: 1;
+        font-family: monospace;
+        background: var(--color-surface-white);
+        color: var(--color-text-dim);
+        border: 1px solid var(--color-border);
+        border-radius: 3px;
+        cursor: pointer;
+    }
+    .mapper-changelog-btn:hover { color: var(--color-text); background: var(--color-surface); }
+    .mapper-changelog-btn.has-entries { color: #d4a843; border-color: #d4a843; }
+    .mapper-changelog-badge {
+        position: absolute;
+        top: -6px; right: -6px;
+        background: #d4a843;
+        color: #000;
+        font-size: 0.55rem;
+        font-family: monospace;
+        font-weight: bold;
+        min-width: 14px;
+        height: 14px;
+        border-radius: 7px;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 0 3px;
+        pointer-events: none;
+    }
+    .mapper-changelog-badge.visible { display: flex; }
+    .mapper-changelog-overlay {
+        position: absolute;
+        top: 8px; left: 8px;
+        z-index: 10;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        padding: 6px 10px;
+        max-height: 260px;
+        width: 680px;
+        overflow-y: auto;
+        font-family: monospace;
+        font-size: 0.75rem;
+        line-height: 1.5;
+        display: none;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    }
+    .mapper-changelog-overlay.visible { display: block; }
+    .mapper-changelog-overlay .cl-overlay-header {
+        border-bottom: 1px solid var(--color-border);
+        padding-bottom: 6px;
+        margin-bottom: 4px;
+    }
+    .mapper-changelog-overlay .cl-spacing-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .mapper-changelog-overlay .cl-overlay-label {
+        font-size: 0.72rem;
+        color: var(--color-text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        white-space: nowrap;
+    }
+    .mapper-changelog-overlay .cl-spacing-val {
+        font-size: 0.72rem;
+        color: var(--color-text-dim);
+        min-width: 28px;
+        text-align: right;
+    }
+    .mapper-changelog-overlay .cl-title {
+        font-size: 0.72rem;
+        color: var(--color-text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 4px;
+    }
+
+    .mapper-changelog-overlay .cl-entry { color: var(--color-text); }
+    .mapper-changelog-overlay .cl-entry .cl-action { color: var(--color-text-dim); }
+    .mapper-changelog-overlay .cl-entry.cl-move .cl-action { color: #6aacf0; }
+    .mapper-changelog-overlay .cl-entry.cl-create .cl-action { color: #5fb77a; }
+    .mapper-changelog-overlay .cl-entry.cl-delete .cl-action { color: #ff6b6b; }
+    .mapper-changelog-overlay .cl-entry.cl-exit-add .cl-action { color: #a8d86e; }
+    .mapper-changelog-overlay .cl-entry.cl-exit-remove .cl-action { color: #d4a843; }
+
+    .toggle-switch {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.72rem;
+        color: var(--color-text-dim);
+        font-family: monospace;
+        cursor: pointer;
+        user-select: none;
+        white-space: nowrap;
+    }
+    .toggle-switch input[type=checkbox] { display: none; }
+    .toggle-track {
+        width: 28px; height: 14px;
+        background: var(--color-border);
+        border-radius: 7px;
+        position: relative;
+        transition: background 0.15s;
+        flex-shrink: 0;
+    }
+    .toggle-track::after {
+        content: '';
+        position: absolute;
+        left: 2px; top: 2px;
+        width: 10px; height: 10px;
+        background: var(--color-text-dim);
+        border-radius: 50%;
+        transition: left 0.15s, background 0.15s;
+    }
+    .toggle-switch input:checked + .toggle-track { background: var(--color-primary); }
+    .toggle-switch input:checked + .toggle-track::after { left: 16px; background: #fff; }
+
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--color-text-dim);
+        font-family: monospace;
+        font-size: 0.85rem;
+        background: rgba(0,0,0,0.6);
+        z-index: 5;
+    }
+    .mapper-loading.hidden { display: none; }
+
+    .zone-picker-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.55);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+    }
+    .zone-picker-backdrop.visible { display: flex; }
+    .zone-picker-modal {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 6px;
+        padding: 20px 24px;
+        min-width: 260px;
+        max-width: 380px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    }
+    .zone-picker-modal h3 {
+        margin: 0 0 6px 0;
+        font-size: 0.9rem;
+        color: var(--color-text);
+    }
+    .zone-picker-modal p {
+        margin: 0 0 14px 0;
+        font-size: 0.75rem;
+        color: var(--color-text-dim);
+    }
+    .zone-picker-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 14px;
+    }
+    .zone-picker-list button {
+        background: var(--color-surface-white);
+        color: var(--color-text);
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        padding: 7px 12px;
+        font-family: monospace;
+        font-size: 0.8rem;
+        cursor: pointer;
+        text-align: left;
+    }
+    .zone-picker-list button:hover { background: var(--color-surface); border-color: var(--color-primary); color: var(--color-primary); }
+    .zone-picker-cancel {
+        font-size: 0.72rem;
+        color: var(--color-text-dim);
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        font-family: monospace;
+    }
+    .zone-picker-cancel:hover { color: var(--color-text); }
+
+    .zone-name-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.55);
+        z-index: 1001;
+        align-items: center;
+        justify-content: center;
+    }
+    .zone-name-backdrop.visible { display: flex; }
+    .zone-name-modal {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 6px;
+        padding: 20px 24px;
+        min-width: 280px;
+        max-width: 400px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    }
+    .zone-name-modal h3 {
+        margin: 0 0 6px 0;
+        font-size: 0.9rem;
+        color: var(--color-text);
+    }
+    .zone-name-modal p {
+        margin: 0 0 10px 0;
+        font-size: 0.75rem;
+        color: var(--color-text-dim);
+    }
+    .zone-name-modal input[type=text] {
+        width: 100%;
+        box-sizing: border-box;
+        background: var(--color-surface-white);
+        color: var(--color-text);
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        padding: 7px 10px;
+        font-family: monospace;
+        font-size: 0.85rem;
+        margin-bottom: 12px;
+    }
+    .zone-name-modal input[type=text]:focus { outline: none; border-color: var(--color-primary); }
+    .zone-name-modal .zone-name-error {
+        font-size: 0.72rem;
+        color: #ff6b6b;
+        margin: -8px 0 10px 0;
+        min-height: 1em;
+    }
+    .zone-name-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+    }
+    .zone-name-actions .btn-confirm {
+        background: var(--color-primary);
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        padding: 6px 16px;
+        font-family: monospace;
+        font-size: 0.8rem;
+        cursor: pointer;
+    }
+    .zone-name-actions .btn-confirm:hover { opacity: 0.85; }
+    .zone-name-actions .btn-cancel-sm {
+        background: none;
+        color: var(--color-text-dim);
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        padding: 6px 12px;
+        font-family: monospace;
+        font-size: 0.8rem;
+        cursor: pointer;
+    }
+    .zone-name-actions .btn-cancel-sm:hover { color: var(--color-text); }
+
+    .mapper-stats {
+        font-size: 0.72rem;
+        color: var(--color-text-dim);
+        font-family: monospace;
+        margin-left: auto;
+    }
+</style>
+
+<h1>Zone Mapper</h1>
+
+<div class="mapper-toolbar">
+    <select id="zone-select"><option value="">-- select zone --</option></select>
+    <span class="sep"></span>
+    <div class="mapper-tabs">
+        <button class="tab-btn active" data-tab="2d" onclick="switchTab('2d')">2D</button>
+    </div>
+    <span class="sep"></span>
+    <div class="mapper-controls">
+        <button onclick="zoomOut()" title="Zoom out">&minus;</button>
+        <button onclick="zoomIn()" title="Zoom in">+</button>
+        <span class="ctrl-sep"></span>
+        <button onclick="centerCamera()" title="Re-center on root room">&#8982;</button>
+    </div>
+    <div class="mapper-controls" style="gap:6px;align-items:center">
+        <span class="ctrl-sep"></span>
+        <span style="font-size:0.72rem;color:var(--color-text-dim);font-family:monospace;white-space:nowrap">Spacing</span>
+        <input type="range" id="spacing-slider" min="0.75" max="3.0" step="0.05"
+            oninput="onSpacingSlider(this.value)"
+            style="width:90px;cursor:pointer;vertical-align:middle">
+        <span id="spacing-val" style="font-size:0.72rem;color:var(--color-text-dim);font-family:monospace;min-width:28px"></span>
+    </div>
+    <div class="mapper-controls" style="gap:6px;align-items:center">
+        <span class="ctrl-sep"></span>
+        <label class="toggle-switch" title="Show zone bounding boxes">
+            <input type="checkbox" id="show-bounds-toggle" onchange="onShowBoundsToggle(this.checked)">
+            <span class="toggle-track"></span>
+            Show Bounds
+        </label>
+    </div>
+    <div class="mapper-z-controls" id="z-controls">
+        <span class="ctrl-sep"></span>
+        <span>Z:</span>
+        <div id="z-buttons"></div>
+    </div>
+    <div class="mapper-save-controls" id="save-controls">
+        <span class="sep"></span>
+        <button class="btn-save" onclick="saveAllChanges()">Save Changes</button>
+        <button class="btn-discard" onclick="discardChanges()">Discard</button>
+    </div>
+    <div class="mapper-controls" style="margin-left:4px">
+        <button class="mapper-changelog-btn" id="changelog-btn" onclick="toggleChangelog()" title="Pending changes">!
+            <span class="mapper-changelog-badge" id="changelog-badge"></span>
+        </button>
+    </div>
+    <span class="mapper-stats" id="mapper-stats"></span>
+</div>
+
+<div class="mapper-body">
+    <div class="mapper-viewport" id="mapper-viewport">
+        <canvas id="mapper-canvas"></canvas>
+        <div class="mapper-loading hidden" id="mapper-loading">Loading zone data...</div>
+        <div class="mapper-changelog-overlay" id="mapper-changelog">
+            <div class="cl-title">Pending Changes</div>
+            <div id="changelog-entries"></div>
+        </div>
+        <div class="mapper-toast-container" id="mapper-toast-container"></div>
+    </div>
+    <div class="mapper-info-panel" id="mapper-info-panel">
+        <h3>Room Info</h3>
+        <div class="info-empty" id="info-empty">Click a room to see details</div>
+        <div id="info-content" style="display:none"></div>
+    </div>
+</div>
+
+<div class="zone-picker-backdrop" id="zone-picker-backdrop">
+    <div class="zone-picker-modal">
+        <h3>Select Zone</h3>
+        <p>The new room overlaps multiple zones. Choose which zone it belongs to:</p>
+        <div class="zone-picker-list" id="zone-picker-list"></div>
+        <button class="zone-picker-cancel" id="zone-picker-cancel">Cancel</button>
+    </div>
+</div>
+
+<div class="zone-name-backdrop" id="zone-name-backdrop">
+    <div class="zone-name-modal">
+        <h3>Create New Zone</h3>
+        <p>Enter a name for the new zone. A root room will be created at the selected location.</p>
+        <input type="text" id="zone-name-input" placeholder="Zone name..." autocomplete="off">
+        <div class="zone-name-error" id="zone-name-error"></div>
+        <div class="zone-name-actions">
+            <button class="btn-cancel-sm" id="zone-name-cancel">Cancel</button>
+            <button class="btn-confirm" id="zone-name-confirm">Create Zone</button>
+        </div>
+    </div>
+</div>
+
+<div id="mapper-tooltip"></div>
+<div id="mapper-ctx-menu" class="mapper-ctx-menu"></div>
+
+<script src="/admin/static/js/mapper/_all.js?mapper-constants.js,mapper-events.js,mapper-helpers.js,mapper-state.js,mapper-render.js,mapper-tools.js,mapper-ctx-menu.js,mapper-ui.js,mapper-tool-pan.js,mapper-tool-room-drag.js,mapper-tool-exit-draw.js,mapper-tool-quick-build.js,mapper-tool-select.js,mapper-init.js"></script>
+
+{{template "footer" .}}

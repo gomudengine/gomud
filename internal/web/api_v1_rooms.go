@@ -200,6 +200,13 @@ func apiV1PatchRoom(w http.ResponseWriter, r *http.Request) {
 	}
 
 	updated := *existing
+	// Nil out map fields that must be fully replaced (not merged) by the JSON decode.
+	// Go's json.Decoder merges into existing maps, so without this, removing a key
+	// (e.g. deleting an exit) would leave the old key intact.
+	updated.Exits = nil
+	updated.Nouns = nil
+	updated.SkillTraining = nil
+	updated.Containers = nil
 	if err := json.NewDecoder(r.Body).Decode(&updated); err != nil {
 		writeAPIError(w, http.StatusBadRequest, "malformed request body: "+err.Error())
 		return

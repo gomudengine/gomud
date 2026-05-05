@@ -12,3 +12,8 @@ exits:
     roomid: 903
 mutators:
 - mutatorid: training-combat
+  spawnedround: 1356530
+mapx: -9
+mapy: 1
+mapz: -99
+hascoordinates: true

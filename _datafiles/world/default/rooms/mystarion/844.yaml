@@ -13,3 +13,7 @@ description: At the very end of Bloodroot Way, the shadows converge, and the air
 exits:
   south:
     roomid: 843
+mapx: 71
+mapy: -4
+mapz: 0
+hascoordinates: true

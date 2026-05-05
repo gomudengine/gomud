@@ -24,3 +24,7 @@ idlemessages:
 - Several small birds fly overhead, harassing a larger bird
 tags:
 - fishing
+mapx: 19
+mapy: 10
+mapz: 0
+hascoordinates: true

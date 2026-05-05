@@ -13,3 +13,7 @@ biome: mountains
 exits:
   north:
     roomid: 609
+mapx: 63
+mapy: 4
+mapz: 0
+hascoordinates: true

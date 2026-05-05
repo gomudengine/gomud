@@ -12,7 +12,6 @@ description: Descending into the chasm, you leave the oppressive shadows of the 
   sets your nerves on edge.
 mapsymbol: B
 maplegend: Bridge
-biome: forest
 exits:
   climb:
     roomid: 565

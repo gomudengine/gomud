@@ -6,7 +6,6 @@ description: The air is heavy with a musty, earthy scent, and the soft rustling 
   entire clearings, glisten like silver threads in the dim light. The thicket is alive
   with the unsettling skittering of giant spiders, their eight legs moving with unnerving
   grace.
-biome: forest
 exits:
   north:
     roomid: 618
@@ -21,3 +20,7 @@ spawninfo:
 - mobid: 35
   message: A small spider hatches from a nearby egg.
   respawnrate: 7 real minutes
+mapx: 31
+mapy: -7
+mapz: 0
+hascoordinates: true

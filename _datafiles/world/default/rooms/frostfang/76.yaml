@@ -8,7 +8,6 @@ description: The walls of the Hacking Hut are adorned with an impressive array o
   Ivar's creations are not just tools of war; they are pieces of art, imbued with
   the essence of the frigid wilderness and forged to perfection.
 mapsymbol: $
-biome: city
 exits:
   north:
     roomid: 55
@@ -16,3 +15,7 @@ spawninfo:
 - mobid: 10
   message: A Ivar Froststeel enters from a back room.
   respawnrate: 2 real minutes
+mapx: 2
+mapy: 1
+mapz: 0
+hascoordinates: true

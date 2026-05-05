@@ -14,10 +14,14 @@ maplegend: Cave
 biome: snow
 exits:
   cave:
-    roomid: 218
+    roomid: 1014
   north:
     roomid: 216
   west:
     roomid: 871
 idlemessages:
 - The wind howls from every direction
+mapx: -19
+mapy: 6
+mapz: 0
+hascoordinates: true

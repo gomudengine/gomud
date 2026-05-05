@@ -6,7 +6,6 @@ import (
 	"slices"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -19,9 +18,8 @@ import (
 )
 
 var (
-	memoryReportCacheMu sync.Mutex
-	memoryReportCache   = map[string]util.MemoryResult{}
-	errValueLocked      = errors.New("This config value is locked. You must edit the config file directly.")
+	memoryReportCache = map[string]util.MemoryResult{}
+	errValueLocked    = errors.New("This config value is locked. You must edit the config file directly.")
 )
 
 const (
@@ -147,7 +145,6 @@ func Server(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 		user.SendText(``)
 		user.SendText(fmt.Sprintf(`<ansi fg="yellow-bold">IP/Port:</ansi>    <ansi fg="red">%s</ansi>`, util.GetServerAddress()))
 		user.SendText(``)
-
 		//
 		// Special timing related stats
 		//
@@ -159,6 +156,7 @@ func Server(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 		allNames := []string{}
 
 		times := util.GetTimeTrackers()
+
 		for _, timeAcc := range times {
 
 			allNames = append(allNames, timeAcc.Name)
@@ -198,7 +196,6 @@ func Server(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 
 		sectionNames, memReports := util.GetMemoryReport()
 
-		memoryReportCacheMu.Lock()
 		for idx, memReport := range memReports {
 
 			sectionName := sectionNames[idx]
@@ -293,7 +290,6 @@ func Server(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 		}
 
 		memoryReportCache[name] = util.MemoryResult{Memory: memRepTotalTotal, Unit: util.UnitBytes}
-		memoryReportCacheMu.Unlock()
 
 		bFormatted := util.FormatBytes(memRepTotalTotal)
 		if strings.Contains(bFormatted, `KB`) {

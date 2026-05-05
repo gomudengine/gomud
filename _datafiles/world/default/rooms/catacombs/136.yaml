@@ -20,6 +20,7 @@ nouns:
     etched with enigmatic runes and the stern visage of the entombed sovereign, exuding
     an air of timeless dominion and whispered dread.
   tomb: :sarcophagus
+gold: 3
 spawninfo:
 - mobid: 17
   message: A dark acolyte steps into the room.
@@ -27,3 +28,7 @@ spawninfo:
 - mobid: 18
   message: A dark acolyte steps into the room.
   respawnrate: 6 real minutes
+mapx: -3
+mapy: -1
+mapz: -1
+hascoordinates: true

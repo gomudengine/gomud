@@ -8,7 +8,6 @@ description: 'To the east, a beacon of hope stands amidst the desolation: a temp
   A sign above the entrance reads, Sanctuary of the Benevolent Heart: All Are Welcome.
   A priest in humble robes stands by the entrance, offering bread and warm soup to
   those in need.'
-biome: city
 exits:
   east:
     roomid: 17
@@ -16,3 +15,7 @@ exits:
     roomid: 13
   south:
     roomid: 15
+mapx: 0
+mapy: 3
+mapz: 0
+hascoordinates: true
