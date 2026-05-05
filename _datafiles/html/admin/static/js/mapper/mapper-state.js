@@ -145,9 +145,10 @@ var MapperState = (function() {
     var activeZ2d = 0;
     var spacingScale2d = (function() {
         var s = parseFloat(localStorage.getItem('mapper.spacing2d'));
-        return (isFinite(s) && s >= 0.75 && s <= 3.0) ? s : 1.0;
+        return (isFinite(s) && s >= 0.75 && s <= 3.0) ? s : 1.30;
     })();
     var showBounds = localStorage.getItem('mapper.showBounds') === 'true';
+    var selectedZoneOnly = localStorage.getItem('mapper.selectedZoneOnly') === 'true';
     var tooltipHideTimer = null;
 
     // --- Mouse State Primitives ---
@@ -207,6 +208,8 @@ var MapperState = (function() {
         set spacingScale2d(v) { spacingScale2d = v; },
         get showBounds() { return showBounds; },
         set showBounds(v) { showBounds = v; },
+        get selectedZoneOnly() { return selectedZoneOnly; },
+        set selectedZoneOnly(v) { selectedZoneOnly = v; },
         get tooltipHideTimer() { return tooltipHideTimer; },
         set tooltipHideTimer(v) { tooltipHideTimer = v; }
     };

@@ -76,8 +76,32 @@
         background: var(--color-border);
         margin: 0 3px;
     }
-    .mapper-z-controls { display: flex; gap: 2px; align-items: center; }
+    .mapper-z-controls { display: flex; gap: 4px; align-items: center; }
     .mapper-z-controls span { font-size: 0.72rem; color: var(--color-text-dim); font-family: monospace; }
+    .mapper-z-controls select {
+        padding: 2px 4px;
+        font-size: 0.75rem;
+        font-family: monospace;
+        background: var(--color-surface-white);
+        color: var(--color-text);
+        border: 1px solid var(--color-border);
+        border-radius: 3px;
+        min-width: 48px;
+        text-align: center;
+    }
+    .z-nav-btn {
+        width: 22px; height: 22px;
+        padding: 0;
+        font-size: 10px; line-height: 1;
+        font-family: monospace;
+        background: var(--color-surface-white);
+        color: var(--color-text-dim);
+        border: 1px solid var(--color-border);
+        border-radius: 3px;
+        cursor: pointer;
+    }
+    .z-nav-btn:hover { color: var(--color-text); background: var(--color-surface); }
+    .z-nav-btn:disabled { opacity: 0.3; cursor: default; }
 
     .mapper-body {
         display: flex;
@@ -614,12 +638,104 @@
         font-family: monospace;
         margin-left: auto;
     }
+    .room-search-btn {
+        width: 26px; height: 26px;
+        padding: 0;
+        font-size: 13px; line-height: 1;
+        background: var(--color-surface-white);
+        color: var(--color-text-dim);
+        border: 1px solid var(--color-border);
+        border-radius: 3px;
+        cursor: pointer;
+    }
+    .room-search-btn:hover { color: var(--color-text); background: var(--color-surface); }
+
+    .mapper-stats .unmapped-link {
+        color: #d4a843;
+        cursor: pointer;
+        text-decoration: underline;
+        text-decoration-style: dotted;
+    }
+    .mapper-stats .unmapped-link:hover { color: #e8c060; }
+
+    .unmapped-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.55);
+        z-index: 1002;
+        align-items: center;
+        justify-content: center;
+    }
+    .unmapped-backdrop.visible { display: flex; }
+    .unmapped-modal {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 6px;
+        padding: 16px 20px;
+        min-width: 340px;
+        max-width: 520px;
+        max-height: 70vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    }
+    .unmapped-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .unmapped-header h3 { margin: 0; font-size: 0.9rem; color: var(--color-text); }
+    .unmapped-close {
+        background: none;
+        border: none;
+        color: var(--color-text-dim);
+        font-size: 1.2rem;
+        cursor: pointer;
+        padding: 0 4px;
+        line-height: 1;
+    }
+    .unmapped-close:hover { color: var(--color-text); }
+    .unmapped-modal p {
+        margin: 4px 0 10px 0;
+        font-size: 0.75rem;
+        color: var(--color-text-dim);
+    }
+    .unmapped-list {
+        overflow-y: auto;
+        font-family: monospace;
+        font-size: 0.78rem;
+    }
+    .unmapped-list table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .unmapped-list th {
+        text-align: left;
+        color: var(--color-text-dim);
+        font-weight: normal;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        padding: 3px 8px 5px 0;
+        border-bottom: 1px solid var(--color-border);
+        position: sticky;
+        top: 0;
+        background: var(--color-surface);
+    }
+    .unmapped-list td {
+        padding: 4px 8px 4px 0;
+        color: var(--color-text);
+        vertical-align: top;
+    }
+    .unmapped-list tr:nth-child(even) td { background: rgba(255,255,255,0.03); }
+    .unmapped-list a { color: var(--color-link); font-size: 0.72rem; }
 </style>
 
 <h1>Zone Mapper</h1>
 
 <div class="mapper-toolbar">
     <select id="zone-select"><option value="">-- select zone --</option></select>
+    <button class="room-search-btn" onclick="searchRoom()" title="Go to room by ID">&#128269;</button>
     <span class="sep"></span>
     <div class="mapper-tabs">
         <button class="tab-btn active" data-tab="2d" onclick="switchTab('2d')">2D</button>
@@ -646,11 +762,18 @@
             <span class="toggle-track"></span>
             Show Bounds
         </label>
+        <label class="toggle-switch" title="Only render rooms in the selected zone">
+            <input type="checkbox" id="selected-zone-only-toggle" onchange="onSelectedZoneOnlyToggle(this.checked)">
+            <span class="toggle-track"></span>
+            Selected Zone Only
+        </label>
     </div>
     <div class="mapper-z-controls" id="z-controls">
         <span class="ctrl-sep"></span>
         <span>Z:</span>
-        <div id="z-buttons"></div>
+        <button class="z-nav-btn" id="z-prev" title="Previous Z level">&#9650;</button>
+        <select id="z-select"></select>
+        <button class="z-nav-btn" id="z-next" title="Next Z level">&#9660;</button>
     </div>
     <div class="mapper-save-controls" id="save-controls">
         <span class="sep"></span>
@@ -701,6 +824,17 @@
             <button class="btn-cancel-sm" id="zone-name-cancel">Cancel</button>
             <button class="btn-confirm" id="zone-name-confirm">Create Zone</button>
         </div>
+    </div>
+</div>
+
+<div class="unmapped-backdrop" id="unmapped-backdrop">
+    <div class="unmapped-modal">
+        <div class="unmapped-header">
+            <h3>Unmapped Rooms</h3>
+            <button class="unmapped-close" id="unmapped-close">&times;</button>
+        </div>
+        <p>These rooms have no map coordinates assigned. This may be intentional.</p>
+        <div class="unmapped-list" id="unmapped-list"></div>
     </div>
 </div>
 

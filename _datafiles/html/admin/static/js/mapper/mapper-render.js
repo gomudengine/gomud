@@ -150,18 +150,15 @@ var MapperRender = (function() {
         ctx.strokeRect(rx, ry, scaledSize, scaledSize);
 
         if (!isSelected && room.HasScript) {
-            var offset = scaledBorder + Math.max(1, scaledBorder);
+            var offset = scaledBorder //+ Math.max(1, scaledBorder);
             var glowColor = ROOM_BORDER_SCRIPT_GLOW;
             ctx.save();
             ctx.shadowColor = glowColor;
             ctx.shadowBlur = Math.max(4, scaledSize * 0.35) * cam.zoomScale;
             ctx.strokeStyle = glowColor;
-            ctx.lineWidth = Math.max(1.5, scaledBorder * 1.5);
+            ctx.lineWidth = scaledBorder//Math.max(1.5, scaledBorder * 1.5);
             ctx.strokeRect(rx - offset, ry - offset, scaledSize + offset * 2, scaledSize + offset * 2);
             ctx.restore();
-            ctx.strokeStyle = glowColor;
-            ctx.lineWidth = Math.max(1, scaledBorder);
-            ctx.strokeRect(rx - offset, ry - offset, scaledSize + offset * 2, scaledSize + offset * 2);
         }
 
         ctx.fillStyle = isSelected ? SELECTED_ROOM_TEXT_COLOR : (room._symbolColor || SYMBOL_TEXT_COLOR);
@@ -298,6 +295,8 @@ var MapperRender = (function() {
         var rooms = data.rooms;
         if (rooms.size === 0) { renderToolOverlays2d(); return; }
 
+        var zoneOnly = cam.selectedZoneOnly ? data.currentZone : null;
+
         // Zone bounding boxes (drawn first, behind everything)
         if (MapperState.camera.showBounds) {
             drawZoneBounds2d(rooms, cam.activeZ2d, MapperState.hoveredRoomId);
@@ -306,17 +305,20 @@ var MapperRender = (function() {
         ctx.lineCap = 'round';
         var drawnEdges = new Set();
         var abnormalEdges = [];
+        var deferredBadges = [];
 
         // Pass 1: normal directional edges
         ctx.strokeStyle = CONNECTION_COLOR;
         ctx.lineWidth = CONNECTION_WIDTH_2D * cam.zoomScale;
         rooms.forEach(function(room, id) {
             if (!room.HasCoordinates || room.MapZ !== cam.activeZ2d) return;
+            if (zoneOnly && room.Zone !== zoneOnly) return;
             if (!room.Exits) return;
             for (var dir in room.Exits) {
                 var ex = room.Exits[dir];
                 var dest = rooms.get(ex.RoomId);
                 if (!dest || !dest.HasCoordinates) continue;
+                if (zoneOnly && dest.Zone !== zoneOnly) continue;
                 var key = Math.min(id, ex.RoomId) + '-' + Math.max(id, ex.RoomId) + ':' + dir;
                 if (drawnEdges.has(key)) continue;
                 drawnEdges.add(key);
@@ -332,7 +334,7 @@ var MapperRender = (function() {
                 var pB = gridToCanvas2d(dest.MapX, dest.MapY);
                 ctx.beginPath(); ctx.moveTo(pA.px, pA.py); ctx.lineTo(pB.px, pB.py); ctx.stroke();
                 if (ex.Secret || ex.HasLock) {
-                    drawLineBadge2d((pA.px + pB.px) / 2, (pA.py + pB.py) / 2, ex.Secret ? 'secret' : 'key');
+                    deferredBadges.push({ mx: (pA.px + pB.px) / 2, my: (pA.py + pB.py) / 2, type: ex.Secret ? 'secret' : 'key' });
                 }
             }
         });
@@ -340,8 +342,8 @@ var MapperRender = (function() {
         // Pass 2: abnormal edges (yellow dotted arcs)
         if (abnormalEdges.length > 0) {
             ctx.strokeStyle = ABNORMAL_CONNECTION_COLOR;
-            ctx.lineWidth = Math.max(1, CONNECTION_WIDTH_2D * cam.zoomScale * 0.7);
-            ctx.setLineDash([Math.max(3, 8 * cam.zoomScale), Math.max(4, 10 * cam.zoomScale)]);
+            ctx.lineWidth = Math.max(1, CONNECTION_WIDTH_2D * cam.zoomScale * 0.5);
+            ctx.setLineDash([Math.max(3, 4 * cam.zoomScale), Math.max(4, 5 * cam.zoomScale)]);
             abnormalEdges.forEach(function(ae) {
                 var pA = gridToCanvas2d(ae.room.MapX, ae.room.MapY);
                 var pB = gridToCanvas2d(ae.dest.MapX, ae.dest.MapY);
@@ -363,9 +365,15 @@ var MapperRender = (function() {
 
         rooms.forEach(function(room, id) {
             if (!room.HasCoordinates || room.MapZ !== cam.activeZ2d) return;
+            if (zoneOnly && room.Zone !== zoneOnly) return;
             if (dragGroupSet.has(id)) return;
             drawRoom2d(gridToCanvas2d(room.MapX, room.MapY), room, id);
         });
+
+        for (var bi = 0; bi < deferredBadges.length; bi++) {
+            var b = deferredBadges[bi];
+            drawLineBadge2d(b.mx, b.my, b.type);
+        }
 
         renderToolOverlays2d();
     }

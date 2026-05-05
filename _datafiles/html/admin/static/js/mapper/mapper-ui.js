@@ -23,7 +23,9 @@ var MapperUI = (function() {
     var dom = {
         viewport: null,
         spacingCtrlEl: null,
-        zButtonsEl: null,
+        zSelectEl: null,
+        zPrevBtn: null,
+        zNextBtn: null,
         saveCtrlEl: null,
         dirtyCountEl: null,
         changelogEl: null,
@@ -39,7 +41,9 @@ var MapperUI = (function() {
     function init(domRefs) {
         if (domRefs.viewport) dom.viewport = domRefs.viewport;
         if (domRefs.spacingCtrlEl) dom.spacingCtrlEl = domRefs.spacingCtrlEl;
-        if (domRefs.zButtonsEl) dom.zButtonsEl = domRefs.zButtonsEl;
+        if (domRefs.zSelectEl) dom.zSelectEl = domRefs.zSelectEl;
+        if (domRefs.zPrevBtn) dom.zPrevBtn = domRefs.zPrevBtn;
+        if (domRefs.zNextBtn) dom.zNextBtn = domRefs.zNextBtn;
         if (domRefs.saveCtrlEl) dom.saveCtrlEl = domRefs.saveCtrlEl;
         if (domRefs.dirtyCountEl) dom.dirtyCountEl = domRefs.dirtyCountEl;
         if (domRefs.changelogEl) dom.changelogEl = domRefs.changelogEl;
@@ -135,35 +139,23 @@ var MapperUI = (function() {
     // =====================================================================
 
     function updateZButtons() {
-        if (!dom.zButtonsEl) return;
-        dom.zButtonsEl.innerHTML = '';
-        if (MapperState.data.zLevels.length <= 1) return;
-
+        if (!dom.zSelectEl) return;
+        var levels = MapperState.data.zLevels;
         var cam = MapperState.camera;
         var current = cam.activeZ2d;
 
-        // Reverse so the highest Z is at the top, matching spatial intuition
-        MapperState.data.zLevels.slice().reverse().forEach(function(z) {
-            var btn = document.createElement('button');
-            btn.textContent = z;
-            btn.title = 'Z level ' + z;
-            btn.style.cssText = 'width:24px;height:20px;padding:0;font-size:0.7rem;font-family:monospace;' +
-                'border:1px solid var(--color-border);border-radius:3px;cursor:pointer;';
-            if (z === current) {
-                btn.style.background = 'var(--color-primary)';
-                btn.style.color = '#fff';
-                btn.style.borderColor = 'var(--color-primary)';
-            } else {
-                btn.style.background = 'var(--color-surface-white)';
-                btn.style.color = 'var(--color-text-dim)';
-            }
-            btn.addEventListener('click', function() {
-                cam.activeZ2d = z;
-                updateZButtons();
-                MapperRender.render();
-            });
-            dom.zButtonsEl.appendChild(btn);
+        dom.zSelectEl.innerHTML = '';
+        levels.slice().reverse().forEach(function(z) {
+            var opt = document.createElement('option');
+            opt.value = z;
+            opt.textContent = z;
+            if (z === current) opt.selected = true;
+            dom.zSelectEl.appendChild(opt);
         });
+
+        var idx = levels.indexOf(current);
+        if (dom.zPrevBtn) dom.zPrevBtn.disabled = (idx < 0 || idx >= levels.length - 1);
+        if (dom.zNextBtn) dom.zNextBtn.disabled = (idx <= 0);
     }
 
     // =====================================================================
@@ -339,11 +331,69 @@ var MapperUI = (function() {
         var coordinated = 0;
         data.rooms.forEach(function(r) { if (r.HasCoordinates) coordinated++; });
         var unmapped = total - coordinated;
-        var txt = total + ' rooms';
-        if (unmapped > 0) txt += ' (' + unmapped + ' unmapped)';
-        txt += ' | ' + data.zLevels.length + ' z-level' + (data.zLevels.length !== 1 ? 's' : '');
-        txt += ' | ' + data.allZones.length + ' zones';
-        dom.statsEl.textContent = txt;
+        dom.statsEl.innerHTML = '';
+        var prefix = document.createTextNode(total + ' rooms');
+        dom.statsEl.appendChild(prefix);
+        if (unmapped > 0) {
+            var link = document.createElement('span');
+            link.className = 'unmapped-link';
+            link.textContent = ' (' + unmapped + ' unmapped)';
+            link.title = 'Click to see unmapped rooms';
+            link.addEventListener('click', showUnmappedModal);
+            dom.statsEl.appendChild(link);
+        }
+        var suffix = document.createTextNode(
+            ' | ' + data.zLevels.length + ' z-level' + (data.zLevels.length !== 1 ? 's' : '') +
+            ' | ' + data.allZones.length + ' zones'
+        );
+        dom.statsEl.appendChild(suffix);
+    }
+
+    // =====================================================================
+    //  Unmapped rooms modal
+    // =====================================================================
+
+    function showUnmappedModal() {
+        var backdrop = document.getElementById('unmapped-backdrop');
+        var listEl = document.getElementById('unmapped-list');
+        var closeBtn = document.getElementById('unmapped-close');
+        if (!backdrop || !listEl) return;
+
+        var unmapped = [];
+        MapperState.data.rooms.forEach(function(room, id) {
+            if (!room.HasCoordinates) {
+                unmapped.push({ id: id, title: room.Title || '', zone: room.Zone || '' });
+            }
+        });
+        unmapped.sort(function(a, b) {
+            if (a.zone !== b.zone) return a.zone.localeCompare(b.zone);
+            return a.id - b.id;
+        });
+
+        var html = '<table><tr><th>ID</th><th>Title</th><th>Zone</th><th></th></tr>';
+        unmapped.forEach(function(r) {
+            html += '<tr>' +
+                '<td>' + r.id + '</td>' +
+                '<td>' + escapeHtml(r.title) + '</td>' +
+                '<td>' + escapeHtml(r.zone) + '</td>' +
+                '<td><a href="/admin/rooms#' + r.id + '">edit</a></td>' +
+                '</tr>';
+        });
+        html += '</table>';
+        listEl.innerHTML = html;
+
+        backdrop.classList.add('visible');
+
+        function close() {
+            backdrop.classList.remove('visible');
+            backdrop.removeEventListener('click', onBackdropClick);
+            closeBtn.removeEventListener('click', close);
+        }
+        function onBackdropClick(e) {
+            if (e.target === backdrop) close();
+        }
+        backdrop.addEventListener('click', onBackdropClick);
+        closeBtn.addEventListener('click', close);
     }
 
     // =====================================================================

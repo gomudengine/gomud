@@ -36,7 +36,9 @@
         canvas:            canvas,
         viewport:          viewport,
         spacingCtrlEl:     document.getElementById('spacing-controls'),
-        zButtonsEl:        document.getElementById('z-buttons'),
+        zSelectEl:         document.getElementById('z-select'),
+        zPrevBtn:          document.getElementById('z-prev'),
+        zNextBtn:          document.getElementById('z-next'),
         saveCtrlEl:        document.getElementById('save-controls'),
         toastContainerEl:  document.getElementById('mapper-toast-container'),
         changelogEl:       document.getElementById('mapper-changelog'),
@@ -67,6 +69,36 @@
     MapperRender.setCanvas(canvas);
     MapperCtxMenu.init(domRefs.ctxMenuEl);
     MapperUI.init(domRefs);
+
+    if (domRefs.zSelectEl) {
+        domRefs.zSelectEl.addEventListener('change', function() {
+            MapperState.camera.activeZ2d = parseInt(this.value, 10);
+            MapperUI.updateZButtons();
+            MapperRender.render();
+        });
+    }
+    if (domRefs.zPrevBtn) {
+        domRefs.zPrevBtn.addEventListener('click', function() {
+            var levels = MapperState.data.zLevels;
+            var idx = levels.indexOf(MapperState.camera.activeZ2d);
+            if (idx < levels.length - 1) {
+                MapperState.camera.activeZ2d = levels[idx + 1];
+                MapperUI.updateZButtons();
+                MapperRender.render();
+            }
+        });
+    }
+    if (domRefs.zNextBtn) {
+        domRefs.zNextBtn.addEventListener('click', function() {
+            var levels = MapperState.data.zLevels;
+            var idx = levels.indexOf(MapperState.camera.activeZ2d);
+            if (idx > 0) {
+                MapperState.camera.activeZ2d = levels[idx - 1];
+                MapperUI.updateZButtons();
+                MapperRender.render();
+            }
+        });
+    }
 
     MapperEvents.on('room:createAt', function(data) {
         MapperUI.createRoomAt(data.gx, data.gy, data.gz);
@@ -346,6 +378,40 @@
         }
     };
 
+    window.searchRoom = function() {
+        var input = prompt('Enter a Room ID:');
+        if (!input) return;
+        var roomId = parseInt(input, 10);
+        if (isNaN(roomId)) return;
+        var room = MapperState.data.rooms.get(roomId);
+        if (!room) { alert('Room #' + roomId + ' not found.'); return; }
+        if (!room.HasCoordinates) { alert('Room #' + roomId + ' has no map coordinates.'); return; }
+        var cam = MapperState.camera;
+        cam.cameraX = room.MapX;
+        cam.cameraY = room.MapY;
+        cam.panOffsetX = 0;
+        cam.panOffsetY = 0;
+        cam.activeZ2d = room.MapZ;
+        MapperState.selected.clear();
+        MapperState.selected.add(roomId);
+        MapperUI.updateZButtons();
+        MapperUI.updateInfoPanel();
+        MapperRender.render();
+    };
+
+    window.addEventListener('beforeunload', function() {
+        var cam = MapperState.camera;
+        localStorage.setItem('mapper.cameraState', JSON.stringify({
+            zone: MapperState.data.currentZone,
+            zoomScale: cam.zoomScale,
+            cameraX: cam.cameraX,
+            cameraY: cam.cameraY,
+            panOffsetX: cam.panOffsetX,
+            panOffsetY: cam.panOffsetY,
+            activeZ2d: cam.activeZ2d
+        }));
+    });
+
     window.onSpacingSlider = function(val) {
         var v = Math.max(0.75, parseFloat(val));
         MapperState.camera.spacingScale2d = v;
@@ -358,6 +424,12 @@
     window.onShowBoundsToggle = function(checked) {
         MapperState.camera.showBounds = checked;
         localStorage.setItem('mapper.showBounds', checked);
+        MapperRender.render();
+    };
+
+    window.onSelectedZoneOnlyToggle = function(checked) {
+        MapperState.camera.selectedZoneOnly = checked;
+        localStorage.setItem('mapper.selectedZoneOnly', checked);
         MapperRender.render();
     };
 
@@ -386,6 +458,10 @@
         var boundsToggle = document.getElementById('show-bounds-toggle');
         if (boundsToggle) boundsToggle.checked = MapperState.camera.showBounds;
 
+        // Sync selected-zone-only toggle to persisted value
+        var zoneOnlyToggle = document.getElementById('selected-zone-only-toggle');
+        if (zoneOnlyToggle) zoneOnlyToggle.checked = MapperState.camera.selectedZoneOnly;
+
         // Restore last-used zone, falling back to the first available zone
         var lastZone = localStorage.getItem('mapper.lastZone');
         if (!lastZone || !MapperState.data.allZones.some(function(z) { return z.Name === lastZone; })) {
@@ -394,6 +470,25 @@
         if (lastZone) {
             domRefs.zoneSelect.value = lastZone;
             MapperState.centerOnZone(lastZone);
+        }
+
+        var savedCam = localStorage.getItem('mapper.cameraState');
+        if (savedCam) {
+            try {
+                var cs = JSON.parse(savedCam);
+                if (cs.zone === lastZone) {
+                    var cam = MapperState.camera;
+                    if (typeof cs.zoomScale === 'number') cam.zoomScale = cs.zoomScale;
+                    if (typeof cs.cameraX === 'number') cam.cameraX = cs.cameraX;
+                    if (typeof cs.cameraY === 'number') cam.cameraY = cs.cameraY;
+                    if (typeof cs.panOffsetX === 'number') cam.panOffsetX = cs.panOffsetX;
+                    if (typeof cs.panOffsetY === 'number') cam.panOffsetY = cs.panOffsetY;
+                    if (typeof cs.activeZ2d === 'number' && MapperState.data.zLevels.indexOf(cs.activeZ2d) !== -1) {
+                        cam.activeZ2d = cs.activeZ2d;
+                        MapperUI.updateZButtons();
+                    }
+                }
+            } catch(e) { /* ignore corrupt data */ }
         }
 
         MapperRender.resizeCanvas();
