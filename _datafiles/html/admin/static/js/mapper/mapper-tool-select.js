@@ -13,7 +13,7 @@
  */
 /* jshint esversion: 11, browser: true */
 /* globals MapperTools, MapperCtxMenu, MapperState, MapperRender, MapperEvents, MapperUI,
-   ROOM_SIZE_2D, escapeHtml */
+   ROOM_SIZE_2D, SELECT_RECT_FILL, SELECT_RECT_BORDER, escapeHtml */
 'use strict';
 
 (function() {
@@ -108,9 +108,9 @@
             var sw = Math.abs(sr.endCx - sr.startCx);
             var sh = Math.abs(sr.endCy - sr.startCy);
 
-            ctx.fillStyle = 'rgba(100,160,255,0.12)';
+            ctx.fillStyle = SELECT_RECT_FILL;
             ctx.fillRect(sx, sy, sw, sh);
-            ctx.strokeStyle = 'rgba(100,160,255,0.6)';
+            ctx.strokeStyle = SELECT_RECT_BORDER;
             ctx.lineWidth = 1;
             ctx.setLineDash([4, 3]);
             ctx.strokeRect(sx, sy, sw, sh);

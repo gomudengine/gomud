@@ -215,6 +215,20 @@ var MapperUI = (function() {
         if (room.MapLegend) {
             html += '<div class="info-row"><span class="info-label">Legend</span><span class="info-value">' + escapeHtml(room.MapLegend) + '</span></div>';
         }
+        if (room.SpawnInfo && room.SpawnInfo.length > 0) {
+            var mobSpawns = room.SpawnInfo.filter(function(s) { return s.MobId > 0; });
+            if (mobSpawns.length > 0) {
+                html += '<div class="info-row info-row-block"><span class="info-label">Mob Spawns</span>' +
+                    '<table class="info-spawn-table">' +
+                    '<tbody>';
+                mobSpawns.forEach(function(s) {
+                    var name = MapperState.mobNames[+s.MobId] || ('Mob #' + s.MobId);
+                    html += '<tr><td>' + escapeHtml(name) + '</td></tr>';
+                });
+                html += '</tbody></table></div>';
+            }
+        }
+
         if (room.Tags && room.Tags.length > 0) {
             var tagBadges = room.Tags.map(function(t) {
                 var mod = MapperState.tagDescriptions[t];
@@ -613,7 +627,14 @@ var MapperUI = (function() {
         }
 
         MapperState.clearDirty();
+        var cam = MapperState.camera;
+        var savedCamX = cam.cameraX, savedCamY = cam.cameraY;
+        var savedPanX = cam.panOffsetX, savedPanY = cam.panOffsetY;
+        var savedZ = cam.activeZ2d;
         await MapperState.loadAllRooms();
+        cam.cameraX = savedCamX; cam.cameraY = savedCamY;
+        cam.panOffsetX = savedPanX; cam.panOffsetY = savedPanY;
+        cam.activeZ2d = savedZ;
         showLoading(false);
         MapperState.selected.clear();
         updateInfoPanel();

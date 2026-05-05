@@ -102,12 +102,12 @@ var MapperRender = (function() {
         ctx.fillRect(mx - half, my - half, sz, sz);
 
         if (type === 'secret') {
-            ctx.fillStyle = '#d4a843';
+            ctx.fillStyle = BADGE_SECRET_COLOR;
             ctx.font = 'bold ' + Math.round(sz * 0.85) + 'px monospace';
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             ctx.fillText('?', mx, my);
         } else {
-            var kc = '#9ab0d4', lw = Math.max(1, sz * 0.14);
+            var kc = BADGE_LOCK_COLOR, lw = Math.max(1, sz * 0.14);
             ctx.strokeStyle = kc; ctx.fillStyle = kc;
             ctx.lineWidth = lw; ctx.lineCap = 'round';
             var bowR = sz * 0.22, bowCx = mx - sz * 0.14;
@@ -125,7 +125,7 @@ var MapperRender = (function() {
         ctx.restore();
     }
 
-    /** Draws a single room tile in 2D: filled square, border, symbol, and Z-arrow indicators. */
+    /** Draws a single room tile in 2D: filled square, borders, symbol, and Z-arrow indicators. */
     function drawRoom2d(p, room, id) {
         var cam = MapperState.camera;
         var scaledSize = ROOM_SIZE_2D * cam.zoomScale;
@@ -140,23 +140,28 @@ var MapperRender = (function() {
         ctx.fillStyle = fill;
         ctx.fillRect(rx, ry, scaledSize, scaledSize);
 
+        // Innermost border: red if mob spawn, otherwise normal
+        if (!isSelected && room.HasMobSpawn) {
+            ctx.strokeStyle = ROOM_BORDER_MOB_SPAWN;
+        } else {
+            ctx.strokeStyle = isSelected ? SELECTED_ROOM_COLOR : ROOM_BORDER_COLOR_2D;
+        }
+        ctx.lineWidth = scaledBorder;
+        ctx.strokeRect(rx, ry, scaledSize, scaledSize);
+
         if (!isSelected && room.HasScript) {
-            // Glow: multiple progressively thicker, more transparent strokes
-            var glowColor = '#d4a843';
+            var offset = scaledBorder + Math.max(1, scaledBorder);
+            var glowColor = ROOM_BORDER_SCRIPT_GLOW;
             ctx.save();
             ctx.shadowColor = glowColor;
-            ctx.shadowBlur = Math.max(4, scaledSize * 0.4) * cam.zoomScale;
+            ctx.shadowBlur = Math.max(4, scaledSize * 0.35) * cam.zoomScale;
             ctx.strokeStyle = glowColor;
-            ctx.lineWidth = scaledBorder * 2;
-            ctx.strokeRect(rx, ry, scaledSize, scaledSize);
+            ctx.lineWidth = Math.max(1.5, scaledBorder * 1.5);
+            ctx.strokeRect(rx - offset, ry - offset, scaledSize + offset * 2, scaledSize + offset * 2);
             ctx.restore();
             ctx.strokeStyle = glowColor;
-            ctx.lineWidth = scaledBorder * 1.5;
-            ctx.strokeRect(rx, ry, scaledSize, scaledSize);
-        } else {
-            ctx.strokeStyle = ROOM_BORDER_COLOR_2D;
-            ctx.lineWidth = scaledBorder;
-            ctx.strokeRect(rx, ry, scaledSize, scaledSize);
+            ctx.lineWidth = Math.max(1, scaledBorder);
+            ctx.strokeRect(rx - offset, ry - offset, scaledSize + offset * 2, scaledSize + offset * 2);
         }
 
         ctx.fillStyle = isSelected ? SELECTED_ROOM_TEXT_COLOR : (room._symbolColor || SYMBOL_TEXT_COLOR);
@@ -176,7 +181,7 @@ var MapperRender = (function() {
             var arrowSize = Math.max(10, scaledSize * 0.56);
             var margin = Math.max(2, scaledSize * 0.1);
             ctx.font = 'bold ' + arrowSize + 'px monospace';
-            ctx.fillStyle = '#ff00ff';
+            ctx.fillStyle = ROOM_ARROW_COLOR;
             if (hasDown) {
                 ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
                 ctx.fillText('▾', rx + margin, ry + scaledSize - margin);

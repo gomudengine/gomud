@@ -11,8 +11,8 @@
  */
 /* jshint esversion: 11, browser: true */
 /* globals MapperTools, MapperState, MapperRender, MapperEvents,
-   BASE_STEP_2D,
-   ROOM_SIZE_2D, SYMBOL_FONT_SIZE_2D,
+   BASE_STEP_2D, ROOM_SIZE_2D, SYMBOL_FONT_SIZE_2D,
+   GHOST_CELL_BORDER, GHOST_CELL_FILL, GHOST_CELL_SYMBOL,
    ZOOM_STEP, ZOOM_MIN, ZOOM_MAX */
 'use strict';
 
@@ -87,16 +87,16 @@
             var scaledSize = rs.scaledSize;
             var ghalf = scaledSize / 2;
 
-            ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+            ctx.strokeStyle = GHOST_CELL_BORDER;
             ctx.lineWidth = Math.max(1, 1.5 * rs.zoomScale);
             ctx.setLineDash([Math.max(2, 4 * rs.zoomScale), Math.max(2, 4 * rs.zoomScale)]);
             ctx.strokeRect(gp.px - ghalf, gp.py - ghalf, scaledSize, scaledSize);
             ctx.setLineDash([]);
 
-            ctx.fillStyle = 'rgba(255,255,255,0.08)';
+            ctx.fillStyle = GHOST_CELL_FILL;
             ctx.fillRect(gp.px - ghalf, gp.py - ghalf, scaledSize, scaledSize);
 
-            ctx.fillStyle = 'rgba(255,255,255,0.25)';
+            ctx.fillStyle = GHOST_CELL_SYMBOL;
             ctx.font = 'bold ' + Math.max(10, rs.scaledFont * 0.8) + 'px monospace';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';

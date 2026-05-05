@@ -177,6 +177,41 @@
     }
     .mapper-info-panel .info-badge.secret { color: #d4a843; border-color: #d4a843; }
     .mapper-info-panel .info-badge.locked { color: #9ab0d4; border-color: #9ab0d4; }
+    .mapper-info-panel .info-sub-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 6px;
+        font-size: 0.72rem;
+        padding: 1px 0;
+    }
+    .mapper-info-panel .info-sub-label { color: var(--color-text); }
+    .mapper-info-panel .info-sub-val   { color: var(--color-text-dim); text-align: right; }
+    .mapper-info-panel .info-row-block {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+    .mapper-info-panel .info-spawn-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.72rem;
+        margin-top: 2px;
+    }
+    .mapper-info-panel .info-spawn-table th {
+        text-align: left;
+        color: var(--color-text-dim);
+        font-weight: normal;
+        padding: 1px 4px 3px 0;
+        border-bottom: 1px solid var(--color-border);
+    }
+    .mapper-info-panel .info-spawn-table td {
+        color: var(--color-text);
+        padding: 2px 4px 2px 0;
+        vertical-align: top;
+    }
+    .mapper-info-panel .info-spawn-table tr:nth-child(even) td {
+        background: rgba(255,255,255,0.03);
+    }
 
     #mapper-tooltip {
         position: fixed;

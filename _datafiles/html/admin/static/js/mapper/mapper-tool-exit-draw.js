@@ -13,6 +13,7 @@
 /* jshint esversion: 11, browser: true */
 /* globals MapperTools, MapperCtxMenu, MapperState, MapperRender,
    ROOM_SIZE_2D, CONNECTION_WIDTH_2D,
+   EXIT_DRAW_TARGET_HIGHLIGHT, EXIT_DRAW_LINE_COLOR,
    DIRECTION_DELTAS, DIRECTIONAL_EXITS, sign, escapeHtml */
 'use strict';
 
@@ -207,7 +208,7 @@
                     endX = tgtP.px;
                     endY = tgtP.py;
                     var hlHalf = rs.scaledSize / 2 + 3 * rs.zoomScale;
-                    ctx.strokeStyle = 'rgba(100,255,100,0.8)';
+                    ctx.strokeStyle = EXIT_DRAW_TARGET_HIGHLIGHT;
                     ctx.lineWidth = 2 * rs.zoomScale;
                     ctx.strokeRect(tgtP.px - hlHalf, tgtP.py - hlHalf, hlHalf * 2, hlHalf * 2);
                 }
@@ -217,7 +218,7 @@
             }
 
             if (endX !== undefined) {
-                ctx.strokeStyle = 'rgba(100,200,255,0.8)';
+                ctx.strokeStyle = EXIT_DRAW_LINE_COLOR;
                 ctx.lineWidth = Math.max(2, CONNECTION_WIDTH_2D * rs.zoomScale);
                 ctx.setLineDash([6 * rs.zoomScale, 4 * rs.zoomScale]);
                 ctx.beginPath();

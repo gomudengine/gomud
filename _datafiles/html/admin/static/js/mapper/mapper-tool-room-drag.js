@@ -21,6 +21,8 @@
 /* globals MapperTools, MapperState, MapperRender, MapperEvents,
    BASE_STEP_2D, ROOM_SIZE_2D, SYMBOL_FONT_SIZE_2D, ROOM_BORDER_WIDTH_2D,
    CONNECTION_WIDTH_2D,
+   DRAG_ORIGIN_MARKER, DRAG_SNAP_BLOCKED, DRAG_SNAP_BROKEN, DRAG_SNAP_CLEAN,
+   DRAG_CONSTRAINT_BROKEN, DRAG_CONSTRAINT_OK, DRAG_GHOST_BROKEN_FILL,
    SELECTED_ROOM_COLOR, SELECTED_ROOM_TEXT_COLOR, SYMBOL_TEXT_COLOR,
    buildDragConstraints, isExitConstraintSatisfied, darkenColor */
 'use strict';
@@ -231,7 +233,7 @@
             if (hasMoved) {
                 rd.group.forEach(function(start) {
                     var origP = rs.gridToCanvas2d(start.startGx, start.startGy);
-                    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+                    ctx.strokeStyle = DRAG_ORIGIN_MARKER;
                     ctx.lineWidth = Math.max(1, 1 * rs.zoomScale);
                     ctx.setLineDash([Math.max(2, 3 * rs.zoomScale), Math.max(2, 3 * rs.zoomScale)]);
                     ctx.strokeRect(origP.px - half, origP.py - half, scaledSize, scaledSize);
@@ -244,8 +246,8 @@
             if (hasMoved) {
                 rd.group.forEach(function(start) {
                     var snapP = rs.gridToCanvas2d(start.startGx + rd.deltaGx, start.startGy + rd.deltaGy);
-                    var snapColor = !rd.droppable ? 'rgba(255,80,80,0.5)' :
-                                    hasBroken ? 'rgba(255,180,60,0.5)' : 'rgba(100,200,255,0.5)';
+                    var snapColor = !rd.droppable ? DRAG_SNAP_BLOCKED :
+                                    hasBroken ? DRAG_SNAP_BROKEN : DRAG_SNAP_CLEAN;
                     ctx.strokeStyle = snapColor;
                     ctx.lineWidth = Math.max(1, 1.5 * rs.zoomScale);
                     ctx.setLineDash([Math.max(2, 4 * rs.zoomScale), Math.max(2, 4 * rs.zoomScale)]);
@@ -263,7 +265,7 @@
                     var isBroken = !isExitConstraintSatisfied(c, c.ownerGx + rd.deltaGx, c.ownerGy + rd.deltaGy);
                     var fromP = rs.gridToCanvas2d(c.ownerGx + rd.deltaGx, c.ownerGy + rd.deltaGy);
                     var toP = rs.gridToCanvas2d(c.refX, c.refY);
-                    ctx.strokeStyle = isBroken ? 'rgba(255,60,60,0.7)' : 'rgba(100,200,100,0.6)';
+                    ctx.strokeStyle = isBroken ? DRAG_CONSTRAINT_BROKEN : DRAG_CONSTRAINT_OK;
                     ctx.beginPath();
                     ctx.moveTo(fromP.px, fromP.py);
                     ctx.lineTo(toP.px, toP.py);
@@ -285,7 +287,7 @@
                 if (blocked) { ctx.globalAlpha = 1.0; }
 
                 if (rd.droppable && hasBroken) {
-                    ctx.fillStyle = 'rgba(255,180,60,0.2)';
+                    ctx.fillStyle = DRAG_GHOST_BROKEN_FILL;
                     ctx.fillRect(dragP.px - half, dragP.py - half, scaledSize, scaledSize);
                 }
             });

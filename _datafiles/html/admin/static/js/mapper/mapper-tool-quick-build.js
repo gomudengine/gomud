@@ -14,6 +14,7 @@
 /* jshint esversion: 11, browser: true */
 /* globals MapperTools, MapperCtxMenu, MapperState, MapperRender,
    ROOM_SIZE_2D, SYMBOL_FONT_SIZE_2D,
+   QB_COLOR, QB_OCCUPIED_COLOR,
    CARDINAL_OFFSETS, symbolForRoom, colorForSymbol, contrastColor */
 'use strict';
 
@@ -182,7 +183,7 @@
             var srcP = rs.gridToCanvas2d(qb.sourceGx, qb.sourceGy);
 
             // Highlight the current source room
-            ctx.strokeStyle = 'rgba(95,183,122,0.8)';
+            ctx.strokeStyle = 'rgba(' + QB_COLOR + ',0.8)';
             ctx.lineWidth = Math.max(2, 2.5 * rs.zoomScale);
             ctx.strokeRect(
                 srcP.px - half - 2 * rs.zoomScale,
@@ -201,19 +202,19 @@
                 var fade = fadeByDist[slot.dist - 1] || 0.3;
 
                 if (slot.occupied) {
-                    ctx.strokeStyle = 'rgba(255,255,255,' + (0.1 * fade) + ')';
+                    ctx.strokeStyle = 'rgba(' + QB_OCCUPIED_COLOR + ',' + (0.1 * fade) + ')';
                     ctx.lineWidth = Math.max(1, 1 * rs.zoomScale);
                     ctx.strokeRect(sp.px - half, sp.py - half, scaledSize, scaledSize);
                 } else {
                     var alpha = isHovered ? 0.9 : 0.4 * fade;
-                    ctx.strokeStyle = 'rgba(95,183,122,' + alpha + ')';
+                    ctx.strokeStyle = 'rgba(' + QB_COLOR + ',' + alpha + ')';
                     ctx.lineWidth = Math.max(1, 1.5 * rs.zoomScale);
                     ctx.setLineDash(isHovered ? [] : [Math.max(2, 4 * rs.zoomScale), Math.max(2, 4 * rs.zoomScale)]);
                     ctx.strokeRect(sp.px - half, sp.py - half, scaledSize, scaledSize);
                     ctx.setLineDash([]);
-                    ctx.fillStyle = 'rgba(95,183,122,' + (isHovered ? 0.15 : 0.05 * fade) + ')';
+                    ctx.fillStyle = 'rgba(' + QB_COLOR + ',' + (isHovered ? 0.15 : 0.05 * fade) + ')';
                     ctx.fillRect(sp.px - half, sp.py - half, scaledSize, scaledSize);
-                    ctx.fillStyle = 'rgba(95,183,122,' + alpha + ')';
+                    ctx.fillStyle = 'rgba(' + QB_COLOR + ',' + alpha + ')';
                     ctx.font = 'bold ' + Math.max(8, rs.scaledFont * 0.6) + 'px monospace';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
@@ -224,7 +225,7 @@
 
                 // Connection line from source to slot
                 var lineAlpha = slot.occupied ? 0.05 * fade : (isHovered ? 0.6 : 0.15 * fade);
-                ctx.strokeStyle = 'rgba(95,183,122,' + lineAlpha + ')';
+                ctx.strokeStyle = 'rgba(' + QB_COLOR + ',' + lineAlpha + ')';
                 ctx.lineWidth = Math.max(1, 2 * rs.zoomScale);
                 ctx.beginPath();
                 ctx.moveTo(srcP.px, srcP.py);

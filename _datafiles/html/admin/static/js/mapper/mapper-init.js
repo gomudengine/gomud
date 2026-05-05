@@ -16,7 +16,11 @@
  */
 /* jshint esversion: 11, browser: true */
 /* globals MapperState, MapperRender, MapperTools, MapperCtxMenu, MapperUI, MapperEvents, AdminAPI,
-   BASE_STEP_2D */
+   BASE_STEP_2D, ROOM_SIZE_2D, ROOM_BORDER_COLOR_2D, ROOM_BORDER_WIDTH_2D, SYMBOL_FONT_SIZE_2D,
+   MAP_BG_2D, CONNECTION_COLOR, ABNORMAL_CONNECTION_COLOR, SELECTED_ROOM_COLOR, SELECTED_ROOM_TEXT_COLOR,
+   SYMBOL_TEXT_COLOR, ROOM_BORDER_MOB_SPAWN, ROOM_BORDER_SCRIPT_GLOW, ROOM_ARROW_COLOR,
+   BADGE_SECRET_COLOR, BADGE_LOCK_COLOR, ZONE_BOX_COLOR, ZONE_BOX_COLOR_HOV, ZONE_BOX_BORDER,
+   ZONE_BOX_BORDER_HOV, ZONE_BOX_PADDING, computeZonePaddedBounds */
 'use strict';
 
 (function() {
@@ -364,6 +368,7 @@
     (async function() {
         await MapperState.loadBiomes();
         await MapperState.loadTags();
+        await MapperState.loadMobNames();
         await MapperState.loadAllRooms();
         MapperUI.populateZoneDropdown();
         MapperUI.switchTab('2d');

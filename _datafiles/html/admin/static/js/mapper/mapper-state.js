@@ -66,6 +66,7 @@ var MapperState = (function() {
     // --- Data Layer ---
 
     var tagDescriptions = {};  // tag -> module
+    var mobNames = {};          // mobId -> name
 
     var mapperData = {
         allZones: [],
@@ -508,6 +509,18 @@ var MapperState = (function() {
         }
     }
 
+    async function loadMobNames() {
+        var res = await AdminAPI.get('/admin/api/v1/mobs');
+        var list = res.ok && res.data ? res.data.data : null;
+        if (Array.isArray(list)) {
+            list.forEach(function(m) {
+                var id = m.MobId;
+                var name = m.Character && m.Character.Name ? m.Character.Name : null;
+                if (id && name) mobNames[id] = name;
+            });
+        }
+    }
+
     async function loadBiomes() {
         var res = await AdminAPI.get('/admin/api/v1/biomes');
         var biomeList = res.ok && res.data ? res.data.data : null;
@@ -639,6 +652,8 @@ var MapperState = (function() {
         toggleRoomSelection: toggleRoomSelection,
         loadBiomes: loadBiomes,
         loadTags: loadTags,
+        loadMobNames: loadMobNames,
+        mobNames: mobNames,
         tagDescriptions: tagDescriptions,
         loadAllRooms: loadAllRooms,
         buildCrossZoneGraph: null,
