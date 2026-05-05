@@ -16,3 +16,7 @@ exits:
 idlemessages:
 - A gust of wind sends a chill throgh the air.
 - A large wave crashes against the shore.
+mapx: 21
+mapy: 17
+mapz: 0
+hascoordinates: true

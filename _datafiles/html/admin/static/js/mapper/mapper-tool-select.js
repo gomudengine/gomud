@@ -87,6 +87,8 @@
                 });
             }
 
+            MapperUI.updateInfoPanel();
+
             // Suppress the click that would otherwise fire on the same mouseup
             document.getElementById('mapper-canvas').dataset.suppressClick = '1';
             MapperTools.activate('pan');

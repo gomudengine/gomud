@@ -162,6 +162,26 @@ var MapperUI = (function() {
     //  Info panel (single room detail or multi-select summary)
     // =====================================================================
 
+    function moveSelectedZ(deltaZ) {
+        var ids = Array.from(MapperState.selected);
+        var ok = MapperState.moveRoomsZLocally(ids, deltaZ);
+        if (!ok) {
+            MapperState.showToast('Cannot move — room collision detected');
+            return;
+        }
+        var newZ = null;
+        for (var i = 0; i < ids.length; i++) {
+            var r = MapperState.data.rooms.get(ids[i]);
+            if (r && r.HasCoordinates) { newZ = r.MapZ; break; }
+        }
+        if (newZ !== null) {
+            MapperState.camera.activeZ2d = newZ;
+            updateZButtons();
+        }
+        updateInfoPanel();
+        MapperRender.render();
+    }
+
     function updateInfoPanel() {
         if (!dom.infoEmptyEl || !dom.infoContentEl) return;
 
@@ -186,7 +206,14 @@ var MapperUI = (function() {
                 var title = r ? escapeHtml(r.Title) : '?';
                 html += '<div class="info-exit-row"><span class="info-exit-dir">#' + rid + '</span><span class="info-exit-id">' + title + '</span></div>';
             });
+            html += '<hr class="info-divider">';
+            html += '<div style="display:flex;gap:4px;margin-top:2px">';
+            html += '<button class="info-zlevel-btn" id="info-move-down">&#9660; Move Down</button>';
+            html += '<button class="info-zlevel-btn" id="info-move-up">&#9650; Move Up</button>';
+            html += '</div>';
             dom.infoContentEl.innerHTML = html;
+            document.getElementById('info-move-up').addEventListener('click', function() { moveSelectedZ(1); });
+            document.getElementById('info-move-down').addEventListener('click', function() { moveSelectedZ(-1); });
             return;
         }
 
@@ -259,8 +286,19 @@ var MapperUI = (function() {
 
         html += '<hr class="info-divider">';
         html += '<a class="info-link" href="/admin/rooms#' + selectedRoomId + '">Edit Room &rarr;</a>';
+        if (room.HasCoordinates) {
+            html += '<hr class="info-divider">';
+            html += '<div style="display:flex;gap:4px">';
+            html += '<button class="info-zlevel-btn" id="info-move-down">&#9660; Move Down</button>';
+            html += '<button class="info-zlevel-btn" id="info-move-up">&#9650; Move Up</button>';
+            html += '</div>';
+        }
 
         dom.infoContentEl.innerHTML = html;
+        var upBtn = document.getElementById('info-move-up');
+        var downBtn = document.getElementById('info-move-down');
+        if (upBtn) upBtn.addEventListener('click', function() { moveSelectedZ(1); });
+        if (downBtn) downBtn.addEventListener('click', function() { moveSelectedZ(-1); });
     }
 
     // =====================================================================

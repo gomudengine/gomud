@@ -255,6 +255,17 @@ var MapperState = (function() {
         }, 2900);
     }
 
+    function showToast(msg) {
+        if (!dom.toastContainerEl) return;
+        var el = document.createElement('div');
+        el.className = 'mapper-toast';
+        el.textContent = msg;
+        dom.toastContainerEl.appendChild(el);
+        setTimeout(function() {
+            if (el.parentNode) el.parentNode.removeChild(el);
+        }, 2900);
+    }
+
     function updateSaveButtons() {
         var d = isDirty();
         if (dom.saveCtrlEl) dom.saveCtrlEl.classList.toggle('visible', d);
@@ -484,6 +495,44 @@ var MapperState = (function() {
         });
     }
 
+    function moveRoomsZLocally(roomIds, deltaZ) {
+        var rooms = [];
+        for (var i = 0; i < roomIds.length; i++) {
+            var room = mapperData.rooms.get(roomIds[i]);
+            if (!room || !room.HasCoordinates) continue;
+            rooms.push({ id: roomIds[i], room: room });
+        }
+        var idSet = new Set(roomIds);
+        for (var j = 0; j < rooms.length; j++) {
+            var r = rooms[j];
+            var newZ = r.room.MapZ + deltaZ;
+            var key = r.room.MapX + ',' + r.room.MapY + ',' + newZ;
+            var occupant = mapperData.roomsByCoord.get(key);
+            if (occupant !== undefined && !idSet.has(occupant)) {
+                return false;
+            }
+        }
+        for (var k = 0; k < rooms.length; k++) {
+            var rm = rooms[k];
+            var wasTracked = dirty.movedRooms.has(rm.id);
+            if (!wasTracked) {
+                dirty.movedRooms.set(rm.id, { origGx: rm.room.MapX, origGy: rm.room.MapY, origGz: rm.room.MapZ });
+            }
+            var oldZ = rm.room.MapZ;
+            mapperData.roomsByCoord.delete(rm.room.MapX + ',' + rm.room.MapY + ',' + oldZ);
+            rm.room.MapZ = oldZ + deltaZ;
+            mapperData.roomsByCoord.set(rm.room.MapX + ',' + rm.room.MapY + ',' + rm.room.MapZ, rm.id);
+            logChange('cl-move', '<span class="cl-action">MOVE Z</span> ' + roomLabel(rm.id) + ' Z ' + oldZ + ' &rarr; ' + rm.room.MapZ);
+        }
+        var targetZ = rooms[0].room.MapZ;
+        if (!mapperData.zLevels.includes(targetZ)) {
+            mapperData.zLevels.push(targetZ);
+            mapperData.zLevels.sort(function(a, b) { return a - b; });
+        }
+        updateSaveButtons();
+        return true;
+    }
+
     // --- Selection ---
 
     function selectRoom(id) {
@@ -651,6 +700,8 @@ var MapperState = (function() {
         deleteRoomLocally: deleteRoomLocally,
         createRoomLocally: createRoomLocally,
         applyGroupMove: applyGroupMove,
+        moveRoomsZLocally: moveRoomsZLocally,
+        showToast: showToast,
         selectRoom: selectRoom,
         toggleRoomSelection: toggleRoomSelection,
         loadBiomes: loadBiomes,

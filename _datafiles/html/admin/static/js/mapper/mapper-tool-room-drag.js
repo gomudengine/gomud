@@ -210,8 +210,12 @@
 
             MapperEvents.emit('pan:suppressClick');
 
-            if (wasDroppable && (dGx !== 0 || dGy !== 0)) {
-                MapperState.applyGroupMove(groupCopy, dGx, dGy);
+            if (dGx !== 0 || dGy !== 0) {
+                if (wasDroppable) {
+                    MapperState.applyGroupMove(groupCopy, dGx, dGy);
+                } else {
+                    MapperState.showToast('Cannot move — room collision detected');
+                }
             }
 
             MapperTools.activate('pan');
