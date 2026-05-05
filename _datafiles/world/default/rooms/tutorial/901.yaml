@@ -13,5 +13,5 @@ exits:
     roomid: 900
 mapx: 1
 mapy: 0
-mapz: 0
+mapz: -102
 hascoordinates: true

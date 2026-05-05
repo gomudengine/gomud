@@ -428,28 +428,47 @@ var MapperUI = (function() {
             var name = input.value.trim();
             if (!name) { errorEl.textContent = 'Zone name is required.'; return; }
             if (name.length < 2) { errorEl.textContent = 'Zone name must be at least 2 characters.'; return; }
-            // Case-insensitive duplicate check against existing and pending zones
             var nameLower = name.toLowerCase();
-            var exists = MapperState.data.allZones.some(function(z) { return z.Name.toLowerCase() === nameLower; }) ||
-                         Array.from(MapperState.dirty.pendingZones).some(function(z) { return z.toLowerCase() === nameLower; });
+            var exists = MapperState.data.allZones.some(function(z) { return z.Name.toLowerCase() === nameLower; });
             if (exists) { errorEl.textContent = 'A zone with that name already exists.'; return; }
-            close();
 
-            // Register the new zone locally so bounding boxes and zone resolution work
-            MapperState.dirty.pendingZones.add(name);
-            MapperState.data.allZones.push({ Name: name, RoomCount: 0, RoomId: 0, DefaultBiome: '' });
-            populateZoneDropdown();
+            errorEl.textContent = '';
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Creating…';
 
-            // Create a local room assigned to the new zone at the chosen position
-            var tempId = MapperState.createRoomLocally(gx, gy, gz, name);
-            MapperState.selectRoom(tempId);
+            AdminAPI.post('/admin/api/v1/zones', { Name: name })
+                .then(function(res) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = 'Create Zone';
+                    if (!res.ok || !res.data || !res.data.data) {
+                        errorEl.textContent = (res.data && res.data.error) || 'Failed to create zone.';
+                        return;
+                    }
+                    var serverRootId = res.data.data.RoomId;
+                    close();
 
-            // Switch the zone dropdown to the new zone
-            if (dom.zoneSelect) {
-                dom.zoneSelect.value = name;
-                dom.zoneSelect.dispatchEvent(new Event('change'));
-            }
-            MapperRender.render();
+                    // Zone now exists on the server — register it in local state
+                    MapperState.data.allZones.push({ Name: name, RoomCount: 1, RoomId: serverRootId, DefaultBiome: '' });
+                    populateZoneDropdown();
+
+                    // Create a local room at the chosen position assigned to the new zone.
+                    // Then replace its temp ID with the server's root room ID so saves
+                    // patch the real room rather than creating a duplicate.
+                    var tempId = MapperState.createRoomLocally(gx, gy, gz, name);
+                    MapperState.replaceRoomId(tempId, serverRootId);
+                    MapperState.selectRoom(serverRootId);
+
+                    if (dom.zoneSelect) {
+                        dom.zoneSelect.value = name;
+                        dom.zoneSelect.dispatchEvent(new Event('change'));
+                    }
+                    MapperRender.render();
+                })
+                .catch(function() {
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = 'Create Zone';
+                    errorEl.textContent = 'Request failed.';
+                });
         }
 
         confirmBtn.onclick = submit;
@@ -502,25 +521,14 @@ var MapperUI = (function() {
         var dirty = MapperState.dirty;
         showLoading(true);
 
-        // 0. Create any pending new zones on the server first.
-        //    Capture the auto-created root room ID per zone so step 2 can
-        //    patch it to the correct position instead of creating a second room.
-        var zoneRootIds = {};  // zoneName -> server roomId
-        for (var zoneName of dirty.pendingZones) {
-            var zRes = await AdminAPI.post('/admin/api/v1/zones', { Name: zoneName });
-            if (zRes.ok && zRes.data && zRes.data.data) {
-                zoneRootIds[zoneName] = zRes.data.data.RoomId;
-            }
-        }
-
         // 1. Delete rooms on server
         for (var i = 0; i < dirty.deletedRooms.length; i++) {
             await AdminAPI.delete('/admin/api/v1/rooms/' + dirty.deletedRooms[i]);
         }
 
         // 2. Create new rooms on server and build a temp-to-real ID map.
-        //    For rooms belonging to a pending zone, reuse the zone's auto-created
-        //    root room rather than creating a second room.
+        //    Rooms whose IDs are already positive were pre-created (e.g. zone root
+        //    rooms) and only need a position patch, not a new POST.
         var tempToReal = new Map();
         for (var entry of dirty.createdRooms) {
             var tempId = entry[0], info = entry[1];
@@ -528,12 +536,8 @@ var MapperUI = (function() {
             var off = data.zoneOffsets.get(zone) || { dx: 0, dy: 0 };
             var serverX = info.gx - off.dx, serverY = info.gy - off.dy;
             var tempRoom = data.rooms.get(tempId);
-            var realId = null;
-            if (zoneRootIds[zone] !== undefined) {
-                // Reuse the root room the zone API already created
-                realId = zoneRootIds[zone];
-                delete zoneRootIds[zone];  // only consume it once
-            } else {
+            var realId = tempId > 0 ? tempId : null;
+            if (realId === null) {
                 var createRes = await AdminAPI.post('/admin/api/v1/rooms', { Zone: zone });
                 if (createRes.ok && createRes.data && createRes.data.data) {
                     realId = createRes.data.data.RoomId;

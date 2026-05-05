@@ -97,7 +97,6 @@ var MapperState = (function() {
         exitAdditions: [],          // [{ roomId, dir, targetRoomId }]
         deletedRooms: [],           // [roomId]
         createdRooms: new Map(),    // tempId -> { gx, gy, gz, zone }
-        pendingZones: new Set(),    // zone names to create on server before rooms
         nextTempId: -1
     };
 
@@ -231,7 +230,7 @@ var MapperState = (function() {
     function isDirty() {
         return dirty.movedRooms.size > 0 || dirty.exitRemovals.length > 0 ||
                dirty.exitAdditions.length > 0 || dirty.deletedRooms.length > 0 ||
-               dirty.createdRooms.size > 0 || dirty.pendingZones.size > 0;
+               dirty.createdRooms.size > 0;
     }
 
     var toastTimer = null;
@@ -296,7 +295,6 @@ var MapperState = (function() {
         dirty.exitAdditions = [];
         dirty.deletedRooms = [];
         dirty.createdRooms.clear();
-        dirty.pendingZones.clear();
         dirty.nextTempId = -1;
         if (dom.clEntriesEl) dom.clEntriesEl.innerHTML = '';
         if (dom.changelogEl) dom.changelogEl.classList.remove('visible');
@@ -310,6 +308,45 @@ var MapperState = (function() {
     // reflects changes before the server round-trip.  Each mutation also
     // records what changed in the `dirty` tracker so it can be persisted
     // later.
+
+    /**
+     * Replaces a temporary (negative) room ID with the real server-assigned ID.
+     * Updates rooms map, roomsByCoord, dirty.createdRooms, selection, and any
+     * exit references that point at the old temp ID.
+     */
+    function replaceRoomId(oldId, newId) {
+        var room = mapperData.rooms.get(oldId);
+        if (!room) return;
+
+        // Update the room object and re-key in rooms map
+        room.RoomId = newId;
+        mapperData.rooms.delete(oldId);
+        mapperData.rooms.set(newId, room);
+
+        // Update coord index
+        var coordKey = room.MapX + ',' + room.MapY + ',' + room.MapZ;
+        if (mapperData.roomsByCoord.get(coordKey) === oldId) {
+            mapperData.roomsByCoord.set(coordKey, newId);
+        }
+
+        // Update dirty.createdRooms
+        if (dirty.createdRooms.has(oldId)) {
+            var info = dirty.createdRooms.get(oldId);
+            dirty.createdRooms.delete(oldId);
+            dirty.createdRooms.set(newId, info);
+        }
+
+        // Update any exit references pointing at oldId
+        mapperData.rooms.forEach(function(r) {
+            if (!r.Exits) return;
+            for (var dir in r.Exits) {
+                if (r.Exits[dir].RoomId === oldId) r.Exits[dir].RoomId = newId;
+            }
+        });
+
+        // Update selection
+        if (selected.has(oldId)) { selected.delete(oldId); selected.add(newId); }
+    }
 
     function moveRoomLocally(roomId, newGx, newGy) {
         var room = mapperData.rooms.get(roomId);
@@ -706,6 +743,7 @@ var MapperState = (function() {
         roomLabel: roomLabel,
         clearDirty: clearDirty,
         moveRoomLocally: moveRoomLocally,
+        replaceRoomId: replaceRoomId,
         breakExitLocally: breakExitLocally,
         deleteAllExitsLocally: deleteAllExitsLocally,
         addExitLocally: addExitLocally,
