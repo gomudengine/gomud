@@ -573,9 +573,11 @@ var MapperUI = (function() {
             var room = data.rooms.get(roomId);
             if (room) {
                 var sc = toServerCoords(room);
-                await AdminAPI.patch('/admin/api/v1/rooms/' + roomId, {
-                    MapX: sc.x, MapY: sc.y, MapZ: sc.z, HasCoordinates: true
-                });
+                var moveData = {
+                    MapX: sc.x, MapY: sc.y, MapZ: sc.z, HasCoordinates: true,
+                    Exits: room.Exits || {}
+                };
+                await AdminAPI.patch('/admin/api/v1/rooms/' + roomId, moveData);
             }
         }
 

@@ -478,39 +478,6 @@ var MapperState = (function() {
             var newGy = start.startGy + deltaGy;
             moveRoomLocally(roomId, newGx, newGy);
         });
-
-        // Break exits that violate their directional constraints post-move
-        group.forEach(function(start, roomId) {
-            var room = mapperData.rooms.get(roomId);
-            if (!room) return;
-            var constraints = buildDragConstraints(roomId);
-            constraints.forEach(function(c) {
-                if (!isExitConstraintSatisfied(c, room.MapX, room.MapY)) {
-                    if (c.outgoing) {
-                        var neighborId = mapperData.roomsByCoord.get(c.refX + ',' + c.refY + ',' + room.MapZ);
-                        if (room.Exits) {
-                            for (var dir in room.Exits) {
-                                if (room.Exits[dir].RoomId === neighborId) {
-                                    breakExitLocally(roomId, dir);
-                                }
-                            }
-                        }
-                    } else {
-                        var neighborId2 = mapperData.roomsByCoord.get(c.refX + ',' + c.refY + ',' + room.MapZ);
-                        if (neighborId2 !== undefined) {
-                            var neighbor = mapperData.rooms.get(neighborId2);
-                            if (neighbor && neighbor.Exits) {
-                                for (var dir2 in neighbor.Exits) {
-                                    if (neighbor.Exits[dir2].RoomId === roomId) {
-                                        breakExitLocally(neighborId2, dir2);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        });
     }
 
     // --- Selection ---
