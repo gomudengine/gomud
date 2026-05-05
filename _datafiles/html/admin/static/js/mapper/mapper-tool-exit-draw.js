@@ -179,7 +179,7 @@
             edm.hoveredTargetId = (roomId !== null && roomId !== edm.sourceRoomId) ? roomId : null;
             edm._mouseCx = cx;
             edm._mouseCy = cy;
-            MapperRender.render();
+            MapperRender.scheduleRender();
         },
 
         onMouseUp: function() {},

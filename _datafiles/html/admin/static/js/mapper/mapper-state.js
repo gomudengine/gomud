@@ -1,5 +1,5 @@
 /* jshint esversion: 11, browser: true */
-/* globals MapperEvents, AdminAPI, symbolForRoom, colorForSymbol, contrastColor, escapeHtml, isDirectionalExit, DIRECTION_DELTAS, isExitConstraintSatisfied, buildDragConstraints, breakExitLocally, BIOME_SYMBOLS, biomeEnvMap */
+/* globals MapperEvents, AdminAPI, symbolForRoom, colorForSymbol, contrastColor, escapeHtml, isDirectionalExit, DIRECTION_DELTAS, isExitConstraintSatisfied, buildDragConstraints, breakExitLocally, BIOME_SYMBOLS, biomeEnvMap, invalidateZoneBoundsCache */
 'use strict';
 
 /**
@@ -145,9 +145,10 @@ var MapperState = (function() {
     var activeZ2d = 0;
     var spacingScale2d = (function() {
         var s = parseFloat(localStorage.getItem('mapper.spacing2d'));
-        return (isFinite(s) && s >= 0.75 && s <= 3.0) ? s : 1.0;
+        return (isFinite(s) && s >= 0.75 && s <= 3.0) ? s : 1.30;
     })();
     var showBounds = localStorage.getItem('mapper.showBounds') === 'true';
+    var selectedZoneOnly = localStorage.getItem('mapper.selectedZoneOnly') === 'true';
     var tooltipHideTimer = null;
 
     // --- Mouse State Primitives ---
@@ -207,6 +208,8 @@ var MapperState = (function() {
         set spacingScale2d(v) { spacingScale2d = v; },
         get showBounds() { return showBounds; },
         set showBounds(v) { showBounds = v; },
+        get selectedZoneOnly() { return selectedZoneOnly; },
+        set selectedZoneOnly(v) { selectedZoneOnly = v; },
         get tooltipHideTimer() { return tooltipHideTimer; },
         set tooltipHideTimer(v) { tooltipHideTimer = v; }
     };
@@ -246,6 +249,17 @@ var MapperState = (function() {
         var el = document.createElement('div');
         el.className = 'mapper-toast';
         el.textContent = parts.join(', ');
+        dom.toastContainerEl.appendChild(el);
+        setTimeout(function() {
+            if (el.parentNode) el.parentNode.removeChild(el);
+        }, 2900);
+    }
+
+    function showToast(msg) {
+        if (!dom.toastContainerEl) return;
+        var el = document.createElement('div');
+        el.className = 'mapper-toast';
+        el.textContent = msg;
         dom.toastContainerEl.appendChild(el);
         setTimeout(function() {
             if (el.parentNode) el.parentNode.removeChild(el);
@@ -363,6 +377,7 @@ var MapperState = (function() {
         room.HasCoordinates = true;
         mapperData.roomsByCoord.set(newGx + ',' + newGy + ',' + room.MapZ, roomId);
 
+        invalidateZoneBoundsCache();
         logChange('cl-move', '<span class="cl-action">MOVE</span> ' + roomLabel(roomId) + ' (' + oldGx + ',' + oldGy + ') &rarr; (' + newGx + ',' + newGy + ')');
         updateSaveButtons();
     }
@@ -432,6 +447,7 @@ var MapperState = (function() {
 
         mapperData.rooms.delete(roomId);
         selectedRoomIds.delete(roomId);
+        invalidateZoneBoundsCache();
         logChange('cl-delete', '<span class="cl-action">DELETE</span> ' + label);
         updateSaveButtons();
         _updateInfoPanel();
@@ -455,6 +471,7 @@ var MapperState = (function() {
 
         mapperData.rooms.set(tempId, tempRoom);
         mapperData.roomsByCoord.set(gx + ',' + gy + ',' + gz, tempId);
+        invalidateZoneBoundsCache();
 
         if (!mapperData.zLevels.includes(gz)) {
             mapperData.zLevels.push(gz);
@@ -479,6 +496,45 @@ var MapperState = (function() {
             var newGy = start.startGy + deltaGy;
             moveRoomLocally(roomId, newGx, newGy);
         });
+    }
+
+    function moveRoomsZLocally(roomIds, deltaZ) {
+        var rooms = [];
+        for (var i = 0; i < roomIds.length; i++) {
+            var room = mapperData.rooms.get(roomIds[i]);
+            if (!room || !room.HasCoordinates) continue;
+            rooms.push({ id: roomIds[i], room: room });
+        }
+        var idSet = new Set(roomIds);
+        for (var j = 0; j < rooms.length; j++) {
+            var r = rooms[j];
+            var newZ = r.room.MapZ + deltaZ;
+            var key = r.room.MapX + ',' + r.room.MapY + ',' + newZ;
+            var occupant = mapperData.roomsByCoord.get(key);
+            if (occupant !== undefined && !idSet.has(occupant)) {
+                return false;
+            }
+        }
+        for (var k = 0; k < rooms.length; k++) {
+            var rm = rooms[k];
+            var wasTracked = dirty.movedRooms.has(rm.id);
+            if (!wasTracked) {
+                dirty.movedRooms.set(rm.id, { origGx: rm.room.MapX, origGy: rm.room.MapY, origGz: rm.room.MapZ });
+            }
+            var oldZ = rm.room.MapZ;
+            mapperData.roomsByCoord.delete(rm.room.MapX + ',' + rm.room.MapY + ',' + oldZ);
+            rm.room.MapZ = oldZ + deltaZ;
+            mapperData.roomsByCoord.set(rm.room.MapX + ',' + rm.room.MapY + ',' + rm.room.MapZ, rm.id);
+            logChange('cl-move', '<span class="cl-action">MOVE Z</span> ' + roomLabel(rm.id) + ' Z ' + oldZ + ' &rarr; ' + rm.room.MapZ);
+        }
+        invalidateZoneBoundsCache();
+        var targetZ = rooms[0].room.MapZ;
+        if (!mapperData.zLevels.includes(targetZ)) {
+            mapperData.zLevels.push(targetZ);
+            mapperData.zLevels.sort(function(a, b) { return a - b; });
+        }
+        updateSaveButtons();
+        return true;
     }
 
     // --- Selection ---
@@ -555,6 +611,7 @@ var MapperState = (function() {
         // Populate all rooms directly by coordinates — no zone filtering or offsets
         mapperData.rooms.clear();
         mapperData.roomsByCoord.clear();
+        invalidateZoneBoundsCache();
         var zSet = new Set();
         mapperData.rawRooms.forEach(function(r) {
             mapperData.rooms.set(r.RoomId, r);
@@ -648,6 +705,8 @@ var MapperState = (function() {
         deleteRoomLocally: deleteRoomLocally,
         createRoomLocally: createRoomLocally,
         applyGroupMove: applyGroupMove,
+        moveRoomsZLocally: moveRoomsZLocally,
+        showToast: showToast,
         selectRoom: selectRoom,
         toggleRoomSelection: toggleRoomSelection,
         loadBiomes: loadBiomes,

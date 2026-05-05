@@ -20,11 +20,11 @@ var CENTER_EASE_DURATION = 0.2;   // seconds for the smooth-scroll to a room
 var ROOM_SIZE_2D         = 28;
 var ROOM_GAP_2D          = 14;
 var BASE_STEP_2D         = ROOM_SIZE_2D + ROOM_GAP_2D;  // grid pitch in px
-var CONNECTION_WIDTH_2D  = 4;
-var ROOM_BORDER_WIDTH_2D = 1.5;
+var CONNECTION_WIDTH_2D  = 5;
+var ROOM_BORDER_WIDTH_2D = 3;
 var SYMBOL_FONT_SIZE_2D  = 14;
 var MAP_BG_2D            = '#111';
-var ROOM_BORDER_COLOR_2D = '#000000';
+var ROOM_BORDER_COLOR_2D = '#d9d9d9';
 
 var ZONE_BOX_PADDING      = 0.6;                      // extra grid cells of padding around the zone bounding box
 var ZONE_BOX_COLOR        = 'rgba(180,180,220,0.06)';  // fill for non-hovered zones
@@ -42,7 +42,7 @@ var SYMBOL_TEXT_COLOR          = '#e0e0e0';
 var DEFAULT_ROOM_COLOR        = '#3a3a4a';
 
 // Room border indicators
-var ROOM_BORDER_MOB_SPAWN     = '#cc2222';  // border color when room has a mob spawn
+var ROOM_BORDER_MOB_SPAWN     = 'rgb(255, 90, 90)';  // border color when room has a mob spawn
 var ROOM_BORDER_SCRIPT_GLOW   = '#d4a843';  // script glow border color
 var ROOM_ARROW_COLOR          = '#ff00ff';  // up/down Z-arrow color
 

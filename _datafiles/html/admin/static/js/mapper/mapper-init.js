@@ -36,7 +36,9 @@
         canvas:            canvas,
         viewport:          viewport,
         spacingCtrlEl:     document.getElementById('spacing-controls'),
-        zButtonsEl:        document.getElementById('z-buttons'),
+        zSelectEl:         document.getElementById('z-select'),
+        zPrevBtn:          document.getElementById('z-prev'),
+        zNextBtn:          document.getElementById('z-next'),
         saveCtrlEl:        document.getElementById('save-controls'),
         toastContainerEl:  document.getElementById('mapper-toast-container'),
         changelogEl:       document.getElementById('mapper-changelog'),
@@ -67,6 +69,36 @@
     MapperRender.setCanvas(canvas);
     MapperCtxMenu.init(domRefs.ctxMenuEl);
     MapperUI.init(domRefs);
+
+    if (domRefs.zSelectEl) {
+        domRefs.zSelectEl.addEventListener('change', function() {
+            MapperState.camera.activeZ2d = parseInt(this.value, 10);
+            MapperUI.updateZButtons();
+            MapperRender.render();
+        });
+    }
+    if (domRefs.zPrevBtn) {
+        domRefs.zPrevBtn.addEventListener('click', function() {
+            var levels = MapperState.data.zLevels;
+            var idx = levels.indexOf(MapperState.camera.activeZ2d);
+            if (idx < levels.length - 1) {
+                MapperState.camera.activeZ2d = levels[idx + 1];
+                MapperUI.updateZButtons();
+                MapperRender.render();
+            }
+        });
+    }
+    if (domRefs.zNextBtn) {
+        domRefs.zNextBtn.addEventListener('click', function() {
+            var levels = MapperState.data.zLevels;
+            var idx = levels.indexOf(MapperState.camera.activeZ2d);
+            if (idx > 0) {
+                MapperState.camera.activeZ2d = levels[idx - 1];
+                MapperUI.updateZButtons();
+                MapperRender.render();
+            }
+        });
+    }
 
     MapperEvents.on('room:createAt', function(data) {
         MapperUI.createRoomAt(data.gx, data.gy, data.gz);
@@ -147,7 +179,7 @@
         var ghostChanged = (prevGhost === null) !== (MapperState.hoveredGridCell === null) ||
             (prevGhost && MapperState.hoveredGridCell &&
              (prevGhost.gx !== MapperState.hoveredGridCell.gx || prevGhost.gy !== MapperState.hoveredGridCell.gy));
-        if (ghostChanged) MapperRender.render();
+        if (ghostChanged) MapperRender.scheduleRender();
 
         // Cursor: tools with a custom cursor override the default room/empty logic
         var activeTool = MapperTools.getActive();
@@ -180,7 +212,7 @@
         if (tool && tool.name === 'select' && MapperState.selRect.active) {
             MapperState.selRect.active = false;
             canvas.style.cursor = '';
-            MapperRender.render();
+            MapperRender.scheduleRender();
         }
         if (MapperState.roomDrag.active) {
             MapperState.roomDrag.active = false;
@@ -189,7 +221,7 @@
             MapperState.roomDrag.brokenExits = [];
             MapperState.roomDrag.allConstraints = [];
             canvas.style.cursor = '';
-            MapperRender.render();
+            MapperRender.scheduleRender();
         }
         if (MapperState.camera.dragActive) {
             MapperState.camera.dragActive = false;
@@ -197,7 +229,7 @@
         }
         if (MapperState.hoveredGridCell) {
             MapperState.hoveredGridCell = null;
-            MapperRender.render();
+            MapperRender.scheduleRender();
         }
         MapperState.mouseState.mousedownRoomId = null;
     });
@@ -252,7 +284,7 @@
         var factor = Math.pow(1.25, e.deltaY * 0.002);
         var cam = MapperState.camera;
         cam.zoomScale = Math.min(5.0, Math.max(0.15, cam.zoomScale / factor));
-        MapperRender.render();
+        MapperRender.scheduleRender();
     }, { passive: false });
 
     // Close context menu when clicking outside it
@@ -291,7 +323,7 @@
             if (e.key === 'ArrowRight') cam.panOffsetX += gridStep;
             if (e.key === 'ArrowUp')    cam.panOffsetY -= gridStep;
             if (e.key === 'ArrowDown')  cam.panOffsetY += gridStep;
-            MapperRender.render();
+            MapperRender.scheduleRender();
             return;
         }
         if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -330,7 +362,6 @@
     //  Global handler exposure (for inline HTML onclick attributes)
     // =====================================================================
 
-    window.switchTab        = MapperUI.switchTab;
     window.zoomIn           = MapperUI.zoomIn;
     window.zoomOut          = MapperUI.zoomOut;
     window.centerCamera     = MapperUI.centerCamera;
@@ -345,6 +376,45 @@
             if (last) last.scrollIntoView({ block: 'nearest' });
         }
     };
+
+    window.searchRoom = function() {
+        var input = prompt('Enter a Room ID:');
+        if (!input) return;
+        var roomId = parseInt(input, 10);
+        if (isNaN(roomId)) return;
+        var room = MapperState.data.rooms.get(roomId);
+        if (!room) { alert('Room #' + roomId + ' not found.'); return; }
+        if (!room.HasCoordinates) { alert('Room #' + roomId + ' has no map coordinates.'); return; }
+        var cam = MapperState.camera;
+        cam.cameraX = room.MapX;
+        cam.cameraY = room.MapY;
+        cam.panOffsetX = 0;
+        cam.panOffsetY = 0;
+        cam.activeZ2d = room.MapZ;
+        MapperState.selected.clear();
+        MapperState.selected.add(roomId);
+        MapperUI.updateZButtons();
+        MapperUI.updateInfoPanel();
+        MapperRender.render();
+    };
+
+    window.toggleLegend = function() {
+        var el = document.getElementById('mapper-legend');
+        if (el) el.classList.toggle('visible');
+    };
+
+    window.addEventListener('beforeunload', function() {
+        var cam = MapperState.camera;
+        localStorage.setItem('mapper.cameraState', JSON.stringify({
+            zone: MapperState.data.currentZone,
+            zoomScale: cam.zoomScale,
+            cameraX: cam.cameraX,
+            cameraY: cam.cameraY,
+            panOffsetX: cam.panOffsetX,
+            panOffsetY: cam.panOffsetY,
+            activeZ2d: cam.activeZ2d
+        }));
+    });
 
     window.onSpacingSlider = function(val) {
         var v = Math.max(0.75, parseFloat(val));
@@ -361,6 +431,12 @@
         MapperRender.render();
     };
 
+    window.onSelectedZoneOnlyToggle = function(checked) {
+        MapperState.camera.selectedZoneOnly = checked;
+        localStorage.setItem('mapper.selectedZoneOnly', checked);
+        MapperRender.render();
+    };
+
     // =====================================================================
     //  Boot sequence
     // =====================================================================
@@ -371,7 +447,6 @@
         await MapperState.loadMobNames();
         await MapperState.loadAllRooms();
         MapperUI.populateZoneDropdown();
-        MapperUI.switchTab('2d');
         MapperRender.initResizeObserver();
 
         // Sync spacing slider to persisted value
@@ -386,6 +461,10 @@
         var boundsToggle = document.getElementById('show-bounds-toggle');
         if (boundsToggle) boundsToggle.checked = MapperState.camera.showBounds;
 
+        // Sync selected-zone-only toggle to persisted value
+        var zoneOnlyToggle = document.getElementById('selected-zone-only-toggle');
+        if (zoneOnlyToggle) zoneOnlyToggle.checked = MapperState.camera.selectedZoneOnly;
+
         // Restore last-used zone, falling back to the first available zone
         var lastZone = localStorage.getItem('mapper.lastZone');
         if (!lastZone || !MapperState.data.allZones.some(function(z) { return z.Name === lastZone; })) {
@@ -394,6 +473,25 @@
         if (lastZone) {
             domRefs.zoneSelect.value = lastZone;
             MapperState.centerOnZone(lastZone);
+        }
+
+        var savedCam = localStorage.getItem('mapper.cameraState');
+        if (savedCam) {
+            try {
+                var cs = JSON.parse(savedCam);
+                if (cs.zone === lastZone) {
+                    var cam = MapperState.camera;
+                    if (typeof cs.zoomScale === 'number') cam.zoomScale = cs.zoomScale;
+                    if (typeof cs.cameraX === 'number') cam.cameraX = cs.cameraX;
+                    if (typeof cs.cameraY === 'number') cam.cameraY = cs.cameraY;
+                    if (typeof cs.panOffsetX === 'number') cam.panOffsetX = cs.panOffsetX;
+                    if (typeof cs.panOffsetY === 'number') cam.panOffsetY = cs.panOffsetY;
+                    if (typeof cs.activeZ2d === 'number' && MapperState.data.zLevels.indexOf(cs.activeZ2d) !== -1) {
+                        cam.activeZ2d = cs.activeZ2d;
+                        MapperUI.updateZButtons();
+                    }
+                }
+            } catch(e) { /* ignore corrupt data */ }
         }
 
         MapperRender.resizeCanvas();

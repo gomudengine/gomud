@@ -80,6 +80,19 @@ function contrastColor(hex) {
 // Cache mapping biome IDs to their canonical environment name
 var biomeEnvMap = {};
 
+// --- Zone Bounds Cache ---
+// computeZonePaddedBounds is O(N*zones) and is called every render frame when
+// showBounds is enabled. Cache the result and invalidate it only when rooms
+// are added, removed, or moved -- camera pan/zoom does not affect grid bounds.
+
+var _zoneBoundsCache = null;
+var _zoneBoundsCacheZ = null;
+
+function invalidateZoneBoundsCache() {
+    _zoneBoundsCache = null;
+    _zoneBoundsCacheZ = null;
+}
+
 /**
  * Maps a biome identifier to its canonical environment name. Returns the
  * biomeId itself when it already matches an environment, otherwise falls
@@ -104,6 +117,15 @@ function biomeEnvName(biomeId) {
  *   { minX, maxX, minY, maxY }  (already padded, in grid units)
  */
 function computeZonePaddedBounds(rooms, activeZ) {
+    if (_zoneBoundsCache !== null && _zoneBoundsCacheZ === activeZ) {
+        return _zoneBoundsCache;
+    }
+    _zoneBoundsCacheZ = activeZ;
+    _zoneBoundsCache = _computeZonePaddedBounds(rooms, activeZ);
+    return _zoneBoundsCache;
+}
+
+function _computeZonePaddedBounds(rooms, activeZ) {
     var maxPad = ZONE_BOX_PADDING;
 
     // Collect raw (unpadded) grid bounds per zone

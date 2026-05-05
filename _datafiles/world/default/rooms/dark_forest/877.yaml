@@ -18,3 +18,7 @@ exits:
   waterfall:
     roomid: 878
     secret: true
+mapx: 40
+mapy: 3
+mapz: -1
+hascoordinates: true
