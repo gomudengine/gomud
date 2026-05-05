@@ -179,7 +179,7 @@
         var ghostChanged = (prevGhost === null) !== (MapperState.hoveredGridCell === null) ||
             (prevGhost && MapperState.hoveredGridCell &&
              (prevGhost.gx !== MapperState.hoveredGridCell.gx || prevGhost.gy !== MapperState.hoveredGridCell.gy));
-        if (ghostChanged) MapperRender.render();
+        if (ghostChanged) MapperRender.scheduleRender();
 
         // Cursor: tools with a custom cursor override the default room/empty logic
         var activeTool = MapperTools.getActive();
@@ -212,7 +212,7 @@
         if (tool && tool.name === 'select' && MapperState.selRect.active) {
             MapperState.selRect.active = false;
             canvas.style.cursor = '';
-            MapperRender.render();
+            MapperRender.scheduleRender();
         }
         if (MapperState.roomDrag.active) {
             MapperState.roomDrag.active = false;
@@ -221,7 +221,7 @@
             MapperState.roomDrag.brokenExits = [];
             MapperState.roomDrag.allConstraints = [];
             canvas.style.cursor = '';
-            MapperRender.render();
+            MapperRender.scheduleRender();
         }
         if (MapperState.camera.dragActive) {
             MapperState.camera.dragActive = false;
@@ -229,7 +229,7 @@
         }
         if (MapperState.hoveredGridCell) {
             MapperState.hoveredGridCell = null;
-            MapperRender.render();
+            MapperRender.scheduleRender();
         }
         MapperState.mouseState.mousedownRoomId = null;
     });
@@ -284,7 +284,7 @@
         var factor = Math.pow(1.25, e.deltaY * 0.002);
         var cam = MapperState.camera;
         cam.zoomScale = Math.min(5.0, Math.max(0.15, cam.zoomScale / factor));
-        MapperRender.render();
+        MapperRender.scheduleRender();
     }, { passive: false });
 
     // Close context menu when clicking outside it
@@ -323,7 +323,7 @@
             if (e.key === 'ArrowRight') cam.panOffsetX += gridStep;
             if (e.key === 'ArrowUp')    cam.panOffsetY -= gridStep;
             if (e.key === 'ArrowDown')  cam.panOffsetY += gridStep;
-            MapperRender.render();
+            MapperRender.scheduleRender();
             return;
         }
         if (e.key === 'Delete' || e.key === 'Backspace') {

@@ -135,7 +135,7 @@
                         rd.allConstraints = allC;
 
                         MapperTools.activate('room-drag');
-                        MapperRender.render();
+                        MapperRender.scheduleRender();
                         return;
                     }
                 }
@@ -182,7 +182,7 @@
                     rd.brokenExits = [];
                 }
             }
-            MapperRender.render();
+            MapperRender.scheduleRender();
         },
 
         onMouseUp: function(e, cx, cy) {

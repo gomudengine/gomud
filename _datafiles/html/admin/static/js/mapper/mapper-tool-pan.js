@@ -55,7 +55,7 @@
                 var step = BASE_STEP_2D * cam.zoomScale;
                 cam.panOffsetX = cam.dragStartPanX - (e.clientX - cam.dragStartPxX) / step;
                 cam.panOffsetY = cam.dragStartPanY - (e.clientY - cam.dragStartPxY) / step;
-                MapperRender.render();
+                MapperRender.scheduleRender();
                 return;
             }
         },

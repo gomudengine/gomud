@@ -1,5 +1,5 @@
 /* jshint esversion: 11, browser: true */
-/* globals MapperEvents, AdminAPI, symbolForRoom, colorForSymbol, contrastColor, escapeHtml, isDirectionalExit, DIRECTION_DELTAS, isExitConstraintSatisfied, buildDragConstraints, breakExitLocally, BIOME_SYMBOLS, biomeEnvMap */
+/* globals MapperEvents, AdminAPI, symbolForRoom, colorForSymbol, contrastColor, escapeHtml, isDirectionalExit, DIRECTION_DELTAS, isExitConstraintSatisfied, buildDragConstraints, breakExitLocally, BIOME_SYMBOLS, biomeEnvMap, invalidateZoneBoundsCache */
 'use strict';
 
 /**
@@ -377,6 +377,7 @@ var MapperState = (function() {
         room.HasCoordinates = true;
         mapperData.roomsByCoord.set(newGx + ',' + newGy + ',' + room.MapZ, roomId);
 
+        invalidateZoneBoundsCache();
         logChange('cl-move', '<span class="cl-action">MOVE</span> ' + roomLabel(roomId) + ' (' + oldGx + ',' + oldGy + ') &rarr; (' + newGx + ',' + newGy + ')');
         updateSaveButtons();
     }
@@ -446,6 +447,7 @@ var MapperState = (function() {
 
         mapperData.rooms.delete(roomId);
         selectedRoomIds.delete(roomId);
+        invalidateZoneBoundsCache();
         logChange('cl-delete', '<span class="cl-action">DELETE</span> ' + label);
         updateSaveButtons();
         _updateInfoPanel();
@@ -469,6 +471,7 @@ var MapperState = (function() {
 
         mapperData.rooms.set(tempId, tempRoom);
         mapperData.roomsByCoord.set(gx + ',' + gy + ',' + gz, tempId);
+        invalidateZoneBoundsCache();
 
         if (!mapperData.zLevels.includes(gz)) {
             mapperData.zLevels.push(gz);
@@ -524,6 +527,7 @@ var MapperState = (function() {
             mapperData.roomsByCoord.set(rm.room.MapX + ',' + rm.room.MapY + ',' + rm.room.MapZ, rm.id);
             logChange('cl-move', '<span class="cl-action">MOVE Z</span> ' + roomLabel(rm.id) + ' Z ' + oldZ + ' &rarr; ' + rm.room.MapZ);
         }
+        invalidateZoneBoundsCache();
         var targetZ = rooms[0].room.MapZ;
         if (!mapperData.zLevels.includes(targetZ)) {
             mapperData.zLevels.push(targetZ);
@@ -607,6 +611,7 @@ var MapperState = (function() {
         // Populate all rooms directly by coordinates — no zone filtering or offsets
         mapperData.rooms.clear();
         mapperData.roomsByCoord.clear();
+        invalidateZoneBoundsCache();
         var zSet = new Set();
         mapperData.rawRooms.forEach(function(r) {
             mapperData.rooms.set(r.RoomId, r);

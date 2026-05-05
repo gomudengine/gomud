@@ -67,16 +67,16 @@ var MapperRender = (function() {
     function roomAtPoint2d(cx, cy) {
         var cam = MapperState.camera;
         var half = (ROOM_SIZE_2D * cam.zoomScale) / 2;
-        var found = null;
-        MapperState.data.rooms.forEach(function(room, id) {
-            if (found !== null) return;
-            if (!room.HasCoordinates || room.MapZ !== cam.activeZ2d) return;
-            var p = gridToCanvas2d(room.MapX, room.MapY);
-            if (cx >= p.px - half && cx <= p.px + half && cy >= p.py - half && cy <= p.py + half) {
-                found = id;
-            }
-        });
-        return found;
+        var g = canvasToGrid2d(cx, cy);
+        var id = MapperState.data.roomsByCoord.get(g.gx + ',' + g.gy + ',' + cam.activeZ2d);
+        if (id === undefined) return null;
+        var room = MapperState.data.rooms.get(id);
+        if (!room || !room.HasCoordinates) return null;
+        var p = gridToCanvas2d(room.MapX, room.MapY);
+        if (cx >= p.px - half && cx <= p.px + half && cy >= p.py - half && cy <= p.py + half) {
+            return id;
+        }
+        return null;
     }
 
     // --- Current Z / Grid Occupancy ---
@@ -90,6 +90,68 @@ var MapperRender = (function() {
     }
 
     // --- 2D Drawing Primitives ---
+
+    /** Draws all deferred line badges in two batched passes (secret then key),
+     *  setting canvas state once per type instead of once per badge. */
+    function drawLineBadges2d(badges) {
+        var cam = MapperState.camera;
+        var sz = Math.max(7, Math.round(CONNECTION_WIDTH_2D * cam.zoomScale * 2.5));
+        var half = sz / 2;
+
+        // Partition by type
+        var secrets = [], keys = [];
+        for (var i = 0; i < badges.length; i++) {
+            if (badges[i].type === 'secret') secrets.push(badges[i]);
+            else keys.push(badges[i]);
+        }
+
+        // --- Secret badges ---
+        if (secrets.length > 0) {
+            ctx.save();
+            ctx.font = 'bold ' + Math.round(sz * 0.85) + 'px monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            for (var si = 0; si < secrets.length; si++) {
+                var s = secrets[si];
+                ctx.fillStyle = MAP_BG_2D;
+                ctx.fillRect(s.mx - half, s.my - half, sz, sz);
+                ctx.fillStyle = BADGE_SECRET_COLOR;
+                ctx.fillText('?', s.mx, s.my);
+            }
+            ctx.restore();
+        }
+
+        // --- Key (lock) badges ---
+        if (keys.length > 0) {
+            ctx.save();
+            var kc = BADGE_LOCK_COLOR;
+            var lw = Math.max(1, sz * 0.14);
+            ctx.strokeStyle = kc;
+            ctx.fillStyle = kc;
+            ctx.lineWidth = lw;
+            ctx.lineCap = 'round';
+            var bowR = sz * 0.22;
+            var bowOffX = -sz * 0.14;
+            var toothH = sz * 0.18;
+            for (var ki = 0; ki < keys.length; ki++) {
+                var k = keys[ki];
+                ctx.fillStyle = MAP_BG_2D;
+                ctx.fillRect(k.mx - half, k.my - half, sz, sz);
+                ctx.fillStyle = kc;
+                var bowCx = k.mx + bowOffX;
+                ctx.beginPath(); ctx.arc(bowCx, k.my, bowR, 0, Math.PI * 2); ctx.stroke();
+                var shaftX1 = bowCx + bowR, shaftX2 = k.mx + half * 0.82;
+                ctx.beginPath(); ctx.moveTo(shaftX1, k.my); ctx.lineTo(shaftX2, k.my); ctx.stroke();
+                var t1x = shaftX1 + (shaftX2 - shaftX1) * 0.45;
+                var t2x = shaftX1 + (shaftX2 - shaftX1) * 0.72;
+                ctx.beginPath();
+                ctx.moveTo(t1x, k.my); ctx.lineTo(t1x, k.my + toothH);
+                ctx.moveTo(t2x, k.my); ctx.lineTo(t2x, k.my + toothH);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+    }
 
     /** Draws a small badge (secret "?" or key icon) at the midpoint of a connection line. */
     function drawLineBadge2d(mx, my, type) {
@@ -154,7 +216,8 @@ var MapperRender = (function() {
             var glowColor = ROOM_BORDER_SCRIPT_GLOW;
             ctx.save();
             ctx.shadowColor = glowColor;
-            ctx.shadowBlur = Math.max(4, scaledSize * 0.35) * cam.zoomScale;
+            //Removing shadowBlue for performance reasons
+            //ctx.shadowBlur = Math.max(4, scaledSize * 0.35) * cam.zoomScale;
             ctx.strokeStyle = glowColor;
             ctx.lineWidth = scaledBorder//Math.max(1.5, scaledBorder * 1.5);
             ctx.strokeRect(rx - offset, ry - offset, scaledSize + offset * 2, scaledSize + offset * 2);
@@ -370,15 +433,25 @@ var MapperRender = (function() {
             drawRoom2d(gridToCanvas2d(room.MapX, room.MapY), room, id);
         });
 
-        for (var bi = 0; bi < deferredBadges.length; bi++) {
-            var b = deferredBadges[bi];
-            drawLineBadge2d(b.mx, b.my, b.type);
+        if (deferredBadges.length > 0) {
+            drawLineBadges2d(deferredBadges);
         }
 
         renderToolOverlays2d();
     }
 
     // --- Render Dispatch ---
+
+    var _renderScheduled = false;
+
+    function scheduleRender() {
+        if (_renderScheduled) return;
+        _renderScheduled = true;
+        requestAnimationFrame(function() {
+            _renderScheduled = false;
+            render();
+        });
+    }
 
     function render() {
         render2d();
@@ -401,7 +474,7 @@ var MapperRender = (function() {
         if (!canvas) return;
         viewport = canvas.parentElement;
         if (!viewport) return;
-        resizeObserver = new ResizeObserver(function() { resizeCanvas(); render(); });
+        resizeObserver = new ResizeObserver(function() { resizeCanvas(); scheduleRender(); });
         resizeObserver.observe(viewport);
     }
 
@@ -410,6 +483,7 @@ var MapperRender = (function() {
         initResizeObserver: initResizeObserver,
         resizeCanvas: resizeCanvas,
         render: render,
+        scheduleRender: scheduleRender,
         getRenderState: getRenderState,
         gridToCanvas2d: gridToCanvas2d,
         canvasToGrid2d: canvasToGrid2d,

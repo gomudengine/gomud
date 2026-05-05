@@ -56,7 +56,7 @@
             if (!sr.active) return;
             sr.endCx = cx;
             sr.endCy = cy;
-            MapperRender.render();
+            MapperRender.scheduleRender();
         },
 
         // -----------------------------------------------------------------
