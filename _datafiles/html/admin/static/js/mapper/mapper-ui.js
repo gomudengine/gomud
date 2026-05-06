@@ -9,7 +9,8 @@
  */
 /* jshint esversion: 11, browser: true */
 /* globals MapperState, MapperRender, MapperEvents, MapperCtxMenu, AdminAPI,
-   symbolForRoom, colorForSymbol, escapeHtml, smoothstep,
+   symbolForRoom, colorForSymbol, bgColorForBiome, contrastColor, escapeHtml, smoothstep,
+   Picker, PickerConfigs, QuestTokenPicker,
    getZonesAtPoint, closestZone,
    ZOOM_STEP, ZOOM_MIN, ZOOM_MAX, CENTER_EASE_DURATION, ROOM_SIZE_2D */
 'use strict';
@@ -239,6 +240,16 @@ var MapperUI = (function() {
             '<div class="info-row"><span class="info-label">Title</span><span class="info-value">' + escapeHtml(mapRoom.Title) + '</span></div>' +
             '<div class="info-empty" style="margin-top:8px">Loading details…</div>';
 
+        // Unsaved rooms (negative temp IDs) don't exist on the server yet.
+        if (selectedRoomId < 0) {
+            dom.infoContentEl.innerHTML =
+                '<div class="info-row"><span class="info-label">ID</span><span class="info-value">' + selectedRoomId + '</span></div>' +
+                '<div class="info-row"><span class="info-label">Title</span><span class="info-value">' + escapeHtml(mapRoom.Title) + '</span></div>' +
+                '<div class="info-empty" style="margin-top:8px">New room details cannot be edited until changes are saved.</div>';
+            _infoPanelFetchId = null;
+            return;
+        }
+
         // Tag this fetch so we can discard the result if the selection changes
         var fetchId = selectedRoomId;
         _infoPanelFetchId = fetchId;
@@ -253,16 +264,42 @@ var MapperUI = (function() {
                 return;
             }
 
+            // Overlay any unsaved local changes from the in-memory map room so
+            // the panel reflects planned edits rather than stale server state.
+            if (mapRoom) {
+                room.Title        = mapRoom.Title;
+                room.MapX         = mapRoom.MapX;
+                room.MapY         = mapRoom.MapY;
+                room.MapZ         = mapRoom.MapZ;
+                room.Biome        = mapRoom.Biome;
+                room.MapSymbol    = mapRoom.MapSymbol;
+                room.MapLegend    = mapRoom.MapLegend;
+                room.HasCoordinates = mapRoom.HasCoordinates;
+                // Merge local exit state: apply removals and additions tracked in dirty
+                var dirty = MapperState.dirty;
+                if (mapRoom.Exits) {
+                    // Start from a copy of the server exits then apply local removals/additions
+                    var mergedExits = Object.assign({}, room.Exits || {});
+                    dirty.exitRemovals.forEach(function(er) {
+                        if (er.roomId === selectedRoomId) delete mergedExits[er.dir];
+                    });
+                    dirty.exitAdditions.forEach(function(ea) {
+                        if (ea.roomId === selectedRoomId) mergedExits[ea.dir] = { RoomId: ea.targetRoomId };
+                    });
+                    room.Exits = mergedExits;
+                }
+            }
+
             var html = '';
             html += '<div class="info-row"><span class="info-label">ID</span><span class="info-value">' + room.RoomId + '</span></div>';
             html += '<div class="info-row"><span class="info-label">Title</span><span class="info-value info-desc-snippet" id="info-title-link">' + escapeHtml(room.Title || '') + '</span></div>';
             html += '<div class="info-row"><span class="info-label">Zone</span><span class="info-value">' + escapeHtml(room.Zone || '-') + '</span></div>';
-            html += '<div class="info-row"><span class="info-label">Biome</span><span class="info-value">' + escapeHtml(room.Biome || '-') + '</span></div>';
+            html += '<div class="info-row"><span class="info-label">Biome</span><span class="info-value info-desc-snippet" id="info-biome-link" title="Click to edit">' + escapeHtml(room.Biome || '-') + '</span></div>';
             if (mapRoom._symbol) {
-                html += '<div class="info-row"><span class="info-label">Symbol</span><span class="info-value">' + escapeHtml(mapRoom._symbol) + '</span></div>';
+                html += '<div class="info-row"><span class="info-label">Symbol</span><span class="info-value info-desc-snippet" id="info-symbol-link" title="Click to edit">' + escapeHtml(mapRoom._symbol) + '</span></div>';
             }
             if (room.MapLegend) {
-                html += '<div class="info-row"><span class="info-label">Legend</span><span class="info-value">' + escapeHtml(room.MapLegend) + '</span></div>';
+                html += '<div class="info-row"><span class="info-label">Legend</span><span class="info-value info-desc-snippet" id="info-legend-link" title="Click to edit">' + escapeHtml(room.MapLegend) + '</span></div>';
             }
             html += '<div class="info-row"><span class="info-label">Coords</span><span class="info-value">' + room.MapX + ', ' + room.MapY + ', ' + room.MapZ + '</span></div>';
 
@@ -340,15 +377,27 @@ var MapperUI = (function() {
             if (upBtn) upBtn.addEventListener('click', function() { moveSelectedZ(1); });
             if (downBtn) downBtn.addEventListener('click', function() { moveSelectedZ(-1); });
 
-            // Wire title and description snippet clicks -> room editor
-            var snippetEl = document.getElementById('info-desc-snippet');
+            // Wire title, description snippet, biome and symbol clicks -> room editor
+            var snippetEl  = document.getElementById('info-desc-snippet');
             var titleLinkEl = document.getElementById('info-title-link');
+            var biomeLinkEl = document.getElementById('info-biome-link');
+            var symbolLinkEl = document.getElementById('info-symbol-link');
+            var legendLinkEl = document.getElementById('info-legend-link');
             var openEditor = function() { openRoomEditor(room.RoomId, room); };
             if (snippetEl) {
                 (function(fn) { snippetEl.addEventListener('click', fn); })(openEditor);
             }
             if (titleLinkEl) {
                 (function(fn) { titleLinkEl.addEventListener('click', fn); })(openEditor);
+            }
+            if (biomeLinkEl) {
+                (function(fn) { biomeLinkEl.addEventListener('click', fn); })(openEditor);
+            }
+            if (symbolLinkEl) {
+                (function(fn) { symbolLinkEl.addEventListener('click', fn); })(openEditor);
+            }
+            if (legendLinkEl) {
+                (function(fn) { legendLinkEl.addEventListener('click', fn); })(openEditor);
             }
 
             // Back-fill mob names asynchronously
@@ -793,10 +842,12 @@ var MapperUI = (function() {
         var savedCamX = cam.cameraX, savedCamY = cam.cameraY;
         var savedPanX = cam.panOffsetX, savedPanY = cam.panOffsetY;
         var savedZ = cam.activeZ2d;
+        var savedZoom = cam.zoomScale;
         await MapperState.loadAllRooms();
         cam.cameraX = savedCamX; cam.cameraY = savedCamY;
         cam.panOffsetX = savedPanX; cam.panOffsetY = savedPanY;
         cam.activeZ2d = savedZ;
+        cam.zoomScale = savedZoom;
         showLoading(false);
         MapperState.selected.clear();
         updateInfoPanel();
@@ -804,9 +855,18 @@ var MapperUI = (function() {
     }
 
     async function discardChanges() {
+        var cam = MapperState.camera;
+        var savedCamX = cam.cameraX, savedCamY = cam.cameraY;
+        var savedPanX = cam.panOffsetX, savedPanY = cam.panOffsetY;
+        var savedZ = cam.activeZ2d;
+        var savedZoom = cam.zoomScale;
         MapperState.clearDirty();
         showLoading(true);
         await MapperState.loadAllRooms();
+        cam.cameraX = savedCamX; cam.cameraY = savedCamY;
+        cam.panOffsetX = savedPanX; cam.panOffsetY = savedPanY;
+        cam.activeZ2d = savedZ;
+        cam.zoomScale = savedZoom;
         showLoading(false);
         MapperState.selected.clear();
         updateInfoPanel();
@@ -1198,6 +1258,11 @@ var MapperUI = (function() {
         var idEl       = document.getElementById('room-editor-id');
         var titleEl    = document.getElementById('room-editor-title');
         var descEl     = document.getElementById('room-editor-desc');
+        var biomeEl    = document.getElementById('room-editor-biome');
+        var symbolEl   = document.getElementById('room-editor-mapsymbol');
+        var symbolPickBtn  = document.getElementById('room-editor-mapsymbol-pick');
+        var symbolClearBtn = document.getElementById('room-editor-mapsymbol-clear');
+        var legendEl   = document.getElementById('room-editor-maplegend');
         var nounRows   = document.getElementById('room-editor-noun-rows');
         var spawnList  = document.getElementById('room-editor-spawn-list');
         var errorEl    = document.getElementById('room-editor-error');
@@ -1214,6 +1279,75 @@ var MapperUI = (function() {
         errorEl.textContent = '';
         saveBtn.disabled  = false;
         saveBtn.textContent = 'Save Changes';
+
+        // Populate biome select
+        if (biomeEl) {
+            biomeEl.innerHTML = '<option value="">(default / inherit)</option>';
+            var allBiomes = MapperState.data.allBiomes || [];
+            allBiomes.forEach(function(b) {
+                var opt = document.createElement('option');
+                opt.value = b.BiomeId;
+                opt.textContent = b.Name || b.BiomeId;
+                biomeEl.appendChild(opt);
+            });
+            biomeEl.value = roomData.Biome || '';
+        }
+
+        // Populate symbol field
+        if (symbolEl) {
+            symbolEl.value = roomData.MapSymbol || '';
+        }
+
+        // Populate legend field
+        if (legendEl) {
+            legendEl.value = roomData.MapLegend || '';
+        }
+
+        // Wire symbol picker button (replace to avoid stacking)
+        if (symbolPickBtn) {
+            var newPickBtn = symbolPickBtn.cloneNode(true);
+            symbolPickBtn.parentNode.replaceChild(newPickBtn, symbolPickBtn);
+            newPickBtn.addEventListener('click', function() {
+                var biomeId = (biomeEl ? biomeEl.value : '') || '';
+                // Fall back to zone default biome if room has none
+                if (!biomeId) {
+                    var zoneInfo = (MapperState.data.allZones || []).find(function(z) { return z.Name === roomData.Zone; });
+                    if (zoneInfo) biomeId = zoneInfo.DefaultBiome || '';
+                }
+                biomeId = biomeId || 'default';
+                var allBiomes = MapperState.data.allBiomes || [];
+                var biome = allBiomes.find(function(b) { return b.BiomeId === biomeId; }) ||
+                            allBiomes.find(function(b) { return b.BiomeId === 'default'; });
+                if (!biome) return;
+                var symbols = [{ symbol: biome.Symbol, label: 'Default (' + biome.Symbol + ')', isDefault: true }];
+                var overrides = biome.SymbolOverrides || {};
+                Object.keys(overrides).sort().forEach(function(sym) {
+                    symbols.push({ symbol: sym, label: sym, isDefault: false });
+                });
+                Picker.open({
+                    title: 'Pick Map Symbol \u2014 ' + (biome.Name || biomeId),
+                    source: async function() { return symbols; },
+                    idKey: 'symbol',
+                    columns: [
+                        { key: 'symbol', label: 'Symbol', width: '6rem', render: function(v) { return v; } },
+                        { key: 'label',  label: 'Description', flex: true },
+                    ],
+                    searchKeys: ['symbol', 'label'],
+                    onSelect: function(item) {
+                        if (symbolEl) symbolEl.value = item.isDefault ? '' : item.symbol;
+                    },
+                });
+            });
+        }
+
+        // Wire symbol clear button
+        if (symbolClearBtn) {
+            var newClearBtn = symbolClearBtn.cloneNode(true);
+            symbolClearBtn.parentNode.replaceChild(newClearBtn, symbolClearBtn);
+            newClearBtn.addEventListener('click', function() {
+                if (symbolEl) symbolEl.value = '';
+            });
+        }
 
         // Populate noun rows
         nounRows.innerHTML = '';
@@ -1305,6 +1439,9 @@ var MapperUI = (function() {
             var patch = Object.assign({}, _roomEditorData, {
                 Title:       newTitle,
                 Description: newDesc,
+                Biome:       biomeEl ? biomeEl.value : (_roomEditorData.Biome || ''),
+                MapSymbol:   symbolEl ? symbolEl.value.trim() : (_roomEditorData.MapSymbol || ''),
+                MapLegend:   legendEl ? legendEl.value.trim() : (_roomEditorData.MapLegend || ''),
                 Nouns:       Object.keys(newNouns).length > 0 ? newNouns : null,
                 SpawnInfo:   newSpawns.length > 0 ? newSpawns : null
             });
@@ -1320,7 +1457,20 @@ var MapperUI = (function() {
 
             // Update the in-memory map room title so the panel and changelog reflect it
             var mapRoom = MapperState.data.rooms.get(_roomEditorRoomId);
-            if (mapRoom) mapRoom.Title = newTitle;
+            if (mapRoom) {
+                mapRoom.Title = newTitle;
+                if (biomeEl) mapRoom.Biome = biomeEl.value;
+                if (symbolEl) mapRoom.MapSymbol = symbolEl.value.trim();
+                if (legendEl) mapRoom.MapLegend = legendEl.value.trim();
+                // Recompute derived render fields so the canvas reflects the changes
+                var zoneInfo = (MapperState.data.allZones || []).find(function(z) { return z.Name === mapRoom.Zone; });
+                var effectiveBiome = mapRoom.Biome || (zoneInfo ? zoneInfo.DefaultBiome : '') || '';
+                mapRoom._effectiveBiome = effectiveBiome;
+                mapRoom._symbol = symbolForRoom(mapRoom);
+                mapRoom._color = colorForSymbol(mapRoom._symbol, effectiveBiome);
+                mapRoom._bgColor = bgColorForBiome(effectiveBiome, mapRoom._symbol) || null;
+                mapRoom._symbolColor = contrastColor(mapRoom._bgColor || mapRoom._color);
+            }
 
             // Update the cached room data with the server's response
             if (res.data && res.data.data) _roomEditorData = res.data.data;

@@ -200,6 +200,7 @@
             var dGx = rd.deltaGx;
             var dGy = rd.deltaGy;
             var groupCopy = new Map(rd.group);
+            var brokenCopy = rd.brokenExits.slice();
 
             rd.active = false;
             rd.anchorId = null;
@@ -212,7 +213,7 @@
 
             if (dGx !== 0 || dGy !== 0) {
                 if (wasDroppable) {
-                    MapperState.applyGroupMove(groupCopy, dGx, dGy);
+                    MapperState.applyGroupMove(groupCopy, dGx, dGy, brokenCopy);
                 } else {
                     MapperState.showToast('Cannot move — room collision detected');
                 }

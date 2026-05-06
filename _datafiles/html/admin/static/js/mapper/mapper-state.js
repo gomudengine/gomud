@@ -69,6 +69,7 @@ var MapperState = (function() {
 
     var mapperData = {
         allZones: [],
+        allBiomes: [],
         currentZone: null,
         rawRooms: [],
         rooms: new Map(),
@@ -95,7 +96,7 @@ var MapperState = (function() {
         exitAdditions: [],          // [{ roomId, dir, targetRoomId }]
         deletedRooms: [],           // [roomId]
         createdRooms: new Map(),    // tempId -> { gx, gy, gz, zone }
-        nextTempId: -1
+        nextTempId: -100000
     };
 
     // --- Exit Draw Mode ---
@@ -307,7 +308,7 @@ var MapperState = (function() {
         dirty.exitAdditions = [];
         dirty.deletedRooms = [];
         dirty.createdRooms.clear();
-        dirty.nextTempId = -1;
+        dirty.nextTempId = -100000;
         if (dom.clEntriesEl) dom.clEntriesEl.innerHTML = '';
         if (dom.changelogEl) dom.changelogEl.classList.remove('visible');
         if (dom.changelogBadgeEl) { dom.changelogBadgeEl.textContent = ''; dom.changelogBadgeEl.classList.remove('visible'); }
@@ -389,6 +390,24 @@ var MapperState = (function() {
             dirty.exitRemovals.push({ roomId: roomId, dir: dir });
             logChange('cl-exit-remove', '<span class="cl-action">REMOVE EXIT</span> "' + escapeHtml(dir) + '" from ' + roomLabel(roomId) + ' (was &rarr; #' + targetId + ')');
             updateSaveButtons();
+        }
+    }
+
+    // Removes an exit and its reciprocal return exit (if any).
+    function breakExitBothSides(roomId, dir) {
+        var room = mapperData.rooms.get(roomId);
+        if (!room || !room.Exits || !room.Exits[dir]) return;
+        var targetId = room.Exits[dir].RoomId;
+        breakExitLocally(roomId, dir);
+        // Remove any exit on the target that points back at roomId
+        var target = mapperData.rooms.get(targetId);
+        if (target && target.Exits) {
+            for (var retDir in target.Exits) {
+                if (target.Exits[retDir].RoomId === roomId) {
+                    breakExitLocally(targetId, retDir);
+                    break;
+                }
+            }
         }
     }
 
@@ -488,15 +507,57 @@ var MapperState = (function() {
     }
 
     // --- Group Move ---
-    // Relocates a set of rooms by a grid delta and automatically breaks any
-    // directional exits whose spatial constraints are no longer satisfied
-    // after the move.
+    // Relocates a set of rooms by a grid delta and breaks any directional
+    // exits whose spatial constraints are no longer satisfied after the move.
 
-    function applyGroupMove(group, deltaGx, deltaGy) {
+    function applyGroupMove(group, deltaGx, deltaGy, brokenConstraints) {
         group.forEach(function(start, roomId) {
             var newGx = start.startGx + deltaGx;
             var newGy = start.startGy + deltaGy;
             moveRoomLocally(roomId, newGx, newGy);
+        });
+
+        // Sever exits that are geometrically invalid at the new positions.
+        // brokenConstraints is the pre-computed list from the drag tool; fall
+        // back to recomputing from scratch when not provided.
+        var toBreak = brokenConstraints;
+        if (!toBreak) {
+            var groupSet = new Set(group.keys());
+            toBreak = [];
+            group.forEach(function(start, roomId) {
+                var room = mapperData.rooms.get(roomId);
+                if (!room) return;
+                buildDragConstraints(roomId, groupSet).forEach(function(c) {
+                    if (!isExitConstraintSatisfied(c, room.MapX, room.MapY)) toBreak.push(c);
+                });
+            });
+        }
+
+        toBreak.forEach(function(c) {
+            var owner = mapperData.rooms.get(c.ownerId);
+            if (!owner || !owner.Exits) return;
+            if (c.outgoing) {
+                // Remove the outgoing exit from the owner whose destination sits at (refX, refY)
+                for (var dir in owner.Exits) {
+                    var dest = mapperData.rooms.get(owner.Exits[dir].RoomId);
+                    if (dest && dest.MapX === c.refX && dest.MapY === c.refY) {
+                        breakExitBothSides(c.ownerId, dir);
+                        break;
+                    }
+                }
+            } else {
+                // Incoming: the neighbor at (refX, refY) has an exit pointing at the owner
+                mapperData.rooms.forEach(function(other, otherId) {
+                    if (!other.HasCoordinates || other.MapX !== c.refX || other.MapY !== c.refY) return;
+                    if (!other.Exits) return;
+                    for (var dir in other.Exits) {
+                        if (other.Exits[dir].RoomId === c.ownerId) {
+                            breakExitBothSides(otherId, dir);
+                            break;
+                        }
+                    }
+                });
+            }
         });
     }
 
@@ -571,6 +632,7 @@ var MapperState = (function() {
         var res = await AdminAPI.get('/admin/api/v1/biomes');
         var biomeList = res.ok && res.data ? res.data.data : null;
         if (Array.isArray(biomeList)) {
+            mapperData.allBiomes = biomeList;
             biomeList.forEach(function(b) {
                 var key = b.BiomeId || b.Name;
                 if (b.Name) biomeEnvMap[key] = b.Name;

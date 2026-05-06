@@ -359,7 +359,20 @@
         cursor: default;
     }
 
-    .mapper-save-controls {
+    .mapper-api-spinner {
+        display: none;
+        width: 18px;
+        height: 18px;
+        border: 2px solid var(--color-border);
+        border-top-color: var(--color-primary);
+        border-radius: 50%;
+        animation: mapper-spin 0.7s linear infinite;
+        flex-shrink: 0;
+    }
+    .mapper-api-spinner.visible { display: block; }
+    @keyframes mapper-spin {
+        to { transform: rotate(360deg); }
+    }
         display: none;
         gap: 4px;
         align-items: center;
@@ -1386,6 +1399,7 @@
             <span class="mapper-changelog-badge" id="changelog-badge"></span>
         </button>
     </div>
+    <div class="mapper-api-spinner" id="mapper-api-spinner"></div>
     <span class="mapper-stats" id="mapper-stats"></span>
 </div>
 
@@ -1544,6 +1558,24 @@
             <div class="room-editor-field">
                 <label class="room-editor-label" for="room-editor-desc">Description</label>
                 <textarea class="room-editor-textarea" id="room-editor-desc" rows="6"></textarea>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div class="room-editor-field">
+                    <label class="room-editor-label" for="room-editor-biome">Biome</label>
+                    <select class="room-editor-input" id="room-editor-biome"></select>
+                </div>
+                <div class="room-editor-field">
+                    <label class="room-editor-label">Map Symbol</label>
+                    <div style="display:flex;gap:6px;align-items:center">
+                        <input class="room-editor-input" type="text" id="room-editor-mapsymbol" maxlength="4" placeholder="(biome default)" style="flex:1;min-width:0" autocomplete="off">
+                        <button type="button" id="room-editor-mapsymbol-pick" style="flex-shrink:0;background:var(--color-surface-white);color:var(--color-text);border:1px solid var(--color-border);border-radius:4px;padding:6px 10px;font-family:monospace;font-size:0.8rem;cursor:pointer;white-space:nowrap">Pick&hellip;</button>
+                        <button type="button" id="room-editor-mapsymbol-clear" title="Clear" style="flex-shrink:0;background:none;border:1px solid var(--color-border);border-radius:4px;padding:6px 8px;font-family:monospace;font-size:0.8rem;cursor:pointer;color:var(--color-text-dim)">&times;</button>
+                    </div>
+                </div>
+                <div class="room-editor-field" style="grid-column:1 / -1">
+                    <label class="room-editor-label" for="room-editor-maplegend">Map Legend</label>
+                    <input class="room-editor-input" type="text" id="room-editor-maplegend" placeholder="One-word legend label (optional)" autocomplete="off">
+                </div>
             </div>
             <div class="room-editor-field">
                 <label class="room-editor-label">Nouns <span style="font-size:0.65rem;text-transform:none;letter-spacing:0;color:var(--color-text-dim);font-style:italic">(keyword &rarr; description shown when examined)</span></label>

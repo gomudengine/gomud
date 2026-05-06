@@ -71,6 +71,14 @@
     MapperCtxMenu.init(domRefs.ctxMenuEl);
     MapperUI.init(domRefs);
 
+    // Wire the API spinner to AdminAPI's busy/idle callbacks.
+    (function() {
+        var spinnerEl = document.getElementById('mapper-api-spinner');
+        if (!spinnerEl) return;
+        AdminAPI.onBusy(function()  { spinnerEl.classList.add('visible'); });
+        AdminAPI.onIdle(function()  { spinnerEl.classList.remove('visible'); });
+    })();
+
     if (domRefs.zSelectEl) {
         domRefs.zSelectEl.addEventListener('change', function() {
             MapperState.camera.activeZ2d = parseInt(this.value, 10);
