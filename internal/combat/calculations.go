@@ -17,6 +17,17 @@ import (
 // statDelta returns the fraction of the configured range that the attacker
 // earns over the defender, clamped to [0, 1].
 // Formula: clamp(max(0, atkStat - defStat), 0, 100) / 100
+// AKA "how much does the attacker exceed the defender"
+/*
+ atkSpd │ defSpd │ formula result │ hitChance (min=25, max=100)
+────────┼────────┼────────────────┼─────────────────────────────
+ 50     │ 50     │ 0.0            │ 25 (floor)
+ 75     │ 50     │ 0.25           │ 25
+ 100    │ 50     │ 0.5            │ 50
+ 150    │ 50     │ 1.0            │ 100
+ 50     │ 100    │ 0.0            │ 25 (floor)
+ 0      │ 100    │ 0.0            │ 25 (floor)
+*/
 func statDelta(atkStat, defStat int) float64 {
 	delta := float64(atkStat - defStat)
 	if delta < 0 {
@@ -26,6 +37,31 @@ func statDelta(atkStat, defStat int) float64 {
 		delta = 100
 	}
 	return delta / 100.0
+}
+
+// statDeltaProportional returns the fraction of the configured range that the attacker
+// earns over the defender
+// AKA "what fraction of the combined pool does the attacker hold"
+/*
+ atkSpd │ defSpd │ formula result │ hitChance (min=25, max=100)
+────────┼────────┼────────────────┼─────────────────────────────
+ 50     │ 50     │ 0.5            │ 50
+ 75     │ 50     │ 0.6            │ 60
+ 100    │ 50     │ 0.667          │ 66
+ 150    │ 50     │ 0.75           │ 75
+ 50     │ 100    │ 0.333          │ 33
+ 0      │ 100    │ 0.0            │ 25 (floor)
+*/
+func statDeltaProportional(atkStat, defStat int) float64 {
+
+	if atkStat == 0 && defStat == 0 {
+		return 0.5
+	}
+	if atkStat+defStat == 0 {
+		return 0.5
+	}
+
+	return float64(atkStat) / float64(atkStat+defStat)
 }
 
 // resolveAttackWeapons returns the candidate weapon list for a character,
@@ -47,6 +83,7 @@ func resolveAttackWeapons(char characters.Character) []items.Item {
 
 // damageBonus returns the flat bonus damage an attacker earns over a defender
 // based on the Strength stat delta and the configured bounds.
+// equal stats will result in 0% of max
 func damageBonus(atkStr, defStr int) int {
 	cfg := configs.GetCombatConfig()
 	minBonus := int(cfg.DamageBonusMin)
@@ -60,11 +97,12 @@ func damageBonus(atkStr, defStr int) int {
 
 // hitChance returns a hit probability in [ToHitMin, ToHitMax] based on the
 // Speed stat delta between attacker and defender.
+// equal stats will result in 50% of max
 func hitChance(atkSpd, defSpd int) int {
 	cfg := configs.GetCombatConfig()
 	minHit := int(cfg.ToHitMin)
 	maxHit := int(cfg.ToHitMax)
-	actual := int(math.Floor(statDelta(atkSpd, defSpd) * float64(maxHit)))
+	actual := int(math.Floor(statDeltaProportional(atkSpd, defSpd) * float64(maxHit)))
 	if actual < minHit {
 		actual = minHit
 	}
@@ -72,6 +110,7 @@ func hitChance(atkSpd, defSpd int) int {
 }
 
 // Hits returns whether an attack connects, incorporating an optional modifier.
+// equal stats will result in 0% of max
 func Hits(atkSpd, defSpd, hitModifier int) bool {
 	toHit := hitChance(atkSpd, defSpd)
 	toHit += hitModifier
@@ -93,6 +132,7 @@ func Hits(atkSpd, defSpd, hitModifier int) bool {
 
 // extraAttackCount returns the number of bonus attacks for weaponless/claws
 // combat based on the Speed stat delta and the configured bounds.
+// equal stats will result in 0% of max
 func extraAttackCount(atkSpd, defSpd int) int {
 	cfg := configs.GetCombatConfig()
 	minExtra := int(cfg.ExtraAttacksMin)
@@ -134,11 +174,12 @@ func combatAttackCount(sourceChar characters.Character, targetChar characters.Ch
 
 // critChance returns the integer crit probability in [CritChanceMin,
 // CritChanceMax] based on the Smarts stat delta. Buff flags are applied after.
+// equal stats will result in 50%
 func critChance(atkSmarts, defSmarts int, hasAccuracy, targetHasBlink bool) int {
 	cfg := configs.GetCombatConfig()
 	minChance := int(cfg.CritChanceMin)
 	maxChance := int(cfg.CritChanceMax)
-	actual := int(math.Floor(statDelta(atkSmarts, defSmarts) * float64(maxChance)))
+	actual := int(math.Floor(statDeltaProportional(atkSmarts, defSmarts) * float64(maxChance)))
 	if actual < minChance {
 		actual = minChance
 	}
@@ -171,12 +212,13 @@ func Crits(sourceChar characters.Character, targetChar characters.Character) boo
 }
 
 // critMultiplier returns the damage multiplier for a critical hit in
-// [CritMultMin, CritMultMax] based on the Perception stat delta.
+// [CritMultMin, CritMultMax] based on the Perception stat proportional delta.
+// equal stats will result in 50% of max
 func critMultiplier(atkPerc, defPerc int) float64 {
 	cfg := configs.GetCombatConfig()
 	minMult := float64(cfg.CritMultMin)
 	maxMult := float64(cfg.CritMultMax)
-	actual := statDelta(atkPerc, defPerc) * maxMult
+	actual := statDeltaProportional(atkPerc, defPerc) * maxMult
 	if actual < minMult {
 		actual = minMult
 	}
@@ -197,6 +239,7 @@ func critDamageBonus(dCount, dSides, dBonus, atkPerc, defPerc int) int {
 // dodgeChance returns the probability in [DodgeChanceMin, DodgeChanceMax] that
 // the defender dodges an incoming hit, based on the defender's Perception
 // advantage over the attacker.
+// equal stats will result in 0% of max
 func dodgeChance(defPerc, atkPerc int) int {
 	cfg := configs.GetCombatConfig()
 	minDodge := int(cfg.DodgeChanceMin)

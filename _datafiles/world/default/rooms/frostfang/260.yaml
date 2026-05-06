@@ -10,7 +10,6 @@ description: Within the district, the thoroughfares, layered in well-trodden cob
   create transient plumes in the frosty air with their breaths, their footfalls subtly
   betraying the existence of an intriguing, rarely visited residence nestled near
   the district's northern egress.
-biome: city
 exits:
   east:
     roomid: 261
@@ -20,3 +19,7 @@ exits:
     roomid: 611
   west:
     roomid: 259
+mapx: 3
+mapy: -2
+mapz: 0
+hascoordinates: true

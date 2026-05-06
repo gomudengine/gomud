@@ -7,7 +7,6 @@ description: The thieves' den, hidden in the labyrinthine backstreets of the cit
   outside world hold no sway. The air is thick with the smoke of cheap tobacco and
   the scent of stale ale, mingling with the underlying musk of unwashed bodies and
   damp stone.
-biome: city
 exits:
   west:
     roomid: 490
@@ -24,3 +23,7 @@ skilltraining:
   skulduggery:
     min: 1
     max: 4
+mapx: 3
+mapy: 11
+mapz: 0
+hascoordinates: true

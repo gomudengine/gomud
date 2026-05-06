@@ -14,3 +14,7 @@ exits:
 idlemessages:
 - A great stag appears at the forestline, and then quickly disappears back into the
   thick of the trees
+mapx: 17
+mapy: -1
+mapz: 0
+hascoordinates: true

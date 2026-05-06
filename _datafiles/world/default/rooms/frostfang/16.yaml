@@ -8,7 +8,6 @@ description: The cold wind of Frostfang whistles through the narrow, snow-dusted
   are mostly boarded up, but from some, faint glimmers of candlelight seep out, casting
   eerie shadows on the snow. A dark alley twists and turns to the east, a foreboding
   place.
-biome: city
 exits:
   east:
     roomid: 19
@@ -21,3 +20,7 @@ spawninfo:
   message: A rat scurries out from a dark hole and wiggles its whiskers.
   level: 1
   respawnrate: 1 real minutes
+mapx: 0
+mapy: 5
+mapz: 0
+hascoordinates: true

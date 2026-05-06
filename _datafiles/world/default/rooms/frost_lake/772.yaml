@@ -15,3 +15,7 @@ exits:
     roomid: 771
 idlemessages:
 - "304"
+mapx: 26
+mapy: 10
+mapz: 0
+hascoordinates: true

@@ -14,6 +14,10 @@ containers:
   chest:
     lock:
       difficulty: 3
+    items:
+    - itemid: 30002
+      uses: 1
+    gold: 75
 exits:
   south:
     roomid: 778
@@ -24,3 +28,7 @@ spawninfo:
   itemid: 30002
   gold: 75
   respawnrate: 1 real day
+mapx: -3
+mapy: -3
+mapz: 0
+hascoordinates: true

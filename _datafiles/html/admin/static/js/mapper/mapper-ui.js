@@ -1,0 +1,748 @@
+/**
+ * mapper-ui.js -- UI controls and panels for the map editor.
+ *
+ * Owns the tab bar, zoom/spacing controls, camera easing, Z-level buttons,
+ * room info panel, tooltip, stats line, zone dropdown, local room creation,
+ * coordinate conversion, and save/discard workflow. All DOM interaction
+ * funnels through a `dom` refs object set at init time so the module stays
+ * decoupled from specific element IDs.
+ */
+/* jshint esversion: 11, browser: true */
+/* globals MapperState, MapperRender, MapperEvents, MapperCtxMenu, AdminAPI,
+   symbolForRoom, colorForSymbol, escapeHtml, smoothstep,
+   getZonesAtPoint, closestZone,
+   ZOOM_STEP, ZOOM_MIN, ZOOM_MAX, CENTER_EASE_DURATION, ROOM_SIZE_2D */
+'use strict';
+
+var MapperUI = (function() {
+
+    // =====================================================================
+    //  DOM references (set via init)
+    // =====================================================================
+
+    var dom = {
+        viewport: null,
+        spacingCtrlEl: null,
+        zSelectEl: null,
+        zPrevBtn: null,
+        zNextBtn: null,
+        saveCtrlEl: null,
+        dirtyCountEl: null,
+        changelogEl: null,
+        clEntriesEl: null,
+        statsEl: null,
+        zoneSelect: null,
+        loadingEl: null,
+        infoEmptyEl: null,
+        infoContentEl: null,
+        tooltip: null
+    };
+
+    function init(domRefs) {
+        if (domRefs.viewport) dom.viewport = domRefs.viewport;
+        if (domRefs.spacingCtrlEl) dom.spacingCtrlEl = domRefs.spacingCtrlEl;
+        if (domRefs.zSelectEl) dom.zSelectEl = domRefs.zSelectEl;
+        if (domRefs.zPrevBtn) dom.zPrevBtn = domRefs.zPrevBtn;
+        if (domRefs.zNextBtn) dom.zNextBtn = domRefs.zNextBtn;
+        if (domRefs.saveCtrlEl) dom.saveCtrlEl = domRefs.saveCtrlEl;
+        if (domRefs.dirtyCountEl) dom.dirtyCountEl = domRefs.dirtyCountEl;
+        if (domRefs.changelogEl) dom.changelogEl = domRefs.changelogEl;
+        if (domRefs.clEntriesEl) dom.clEntriesEl = domRefs.clEntriesEl;
+        if (domRefs.statsEl) dom.statsEl = domRefs.statsEl;
+        if (domRefs.zoneSelect) dom.zoneSelect = domRefs.zoneSelect;
+        if (domRefs.loadingEl) dom.loadingEl = domRefs.loadingEl;
+        if (domRefs.infoEmptyEl) dom.infoEmptyEl = domRefs.infoEmptyEl;
+        if (domRefs.infoContentEl) dom.infoContentEl = domRefs.infoContentEl;
+        if (domRefs.tooltip) dom.tooltip = domRefs.tooltip;
+    }
+
+    // =====================================================================
+    //  Zoom / spacing controls
+    // =====================================================================
+
+    function zoomIn() {
+        MapperState.camera.zoomScale = Math.min(ZOOM_MAX, MapperState.camera.zoomScale * ZOOM_STEP);
+        MapperRender.render();
+    }
+
+    function zoomOut() {
+        MapperState.camera.zoomScale = Math.max(ZOOM_MIN, MapperState.camera.zoomScale / ZOOM_STEP);
+        MapperRender.render();
+    }
+
+    // =====================================================================
+    //  Camera centering and easing
+    // =====================================================================
+
+    function centerCamera() {
+        MapperState.camera.panOffsetX = 0;
+        MapperState.camera.panOffsetY = 0;
+        if (MapperState.data.currentZone) {
+            MapperState.centerOnZone(MapperState.data.currentZone);
+        } else if (MapperState.data.zLevels.length > 0) {
+            MapperState.camera.activeZ2d = MapperState.data.zLevels[0];
+            updateZButtons();
+            MapperRender.render();
+        }
+    }
+
+    /** Smoothly animate the camera to (tx, ty, tz) using requestAnimationFrame. */
+    function setCameraTarget(tx, ty, tz) {
+        var cam = MapperState.camera;
+        cam.panOffsetX = 0;
+        cam.panOffsetY = 0;
+        if (typeof tz === 'undefined') tz = cam.cameraZ;
+
+        // Skip animation when easing is disabled
+        if (CENTER_EASE_DURATION <= 0) {
+            cam.cameraX = tx; cam.cameraY = ty; cam.cameraZ = tz;
+            MapperRender.render();
+            return;
+        }
+
+        // Cancel any in-progress ease before starting a new one
+        if (cam.easeRafId !== null) { cancelAnimationFrame(cam.easeRafId); cam.easeRafId = null; }
+
+        cam.easeStartX = cam.cameraX; cam.easeStartY = cam.cameraY; cam.easeStartZ = cam.cameraZ;
+        cam.easeTargetX = tx; cam.easeTargetY = ty; cam.easeTargetZ = tz;
+        cam.easeStartTime = null;
+
+        function step(ts) {
+            if (cam.easeStartTime === null) cam.easeStartTime = ts;
+            var t = Math.min((ts - cam.easeStartTime) / 1000 / CENTER_EASE_DURATION, 1);
+            var s = smoothstep(t);
+            cam.cameraX = cam.easeStartX + (cam.easeTargetX - cam.easeStartX) * s;
+            cam.cameraY = cam.easeStartY + (cam.easeTargetY - cam.easeStartY) * s;
+            cam.cameraZ = cam.easeStartZ + (cam.easeTargetZ - cam.easeStartZ) * s;
+            MapperRender.render();
+            cam.easeRafId = t < 1 ? requestAnimationFrame(step) : null;
+        }
+        cam.easeRafId = requestAnimationFrame(step);
+    }
+
+    // =====================================================================
+    //  Z-level buttons
+    // =====================================================================
+
+    function updateZButtons() {
+        if (!dom.zSelectEl) return;
+        var levels = MapperState.data.zLevels;
+        var cam = MapperState.camera;
+        var current = cam.activeZ2d;
+
+        dom.zSelectEl.innerHTML = '';
+        levels.slice().reverse().forEach(function(z) {
+            var opt = document.createElement('option');
+            opt.value = z;
+            opt.textContent = z;
+            if (z === current) opt.selected = true;
+            dom.zSelectEl.appendChild(opt);
+        });
+
+        var idx = levels.indexOf(current);
+        if (dom.zPrevBtn) dom.zPrevBtn.disabled = (idx < 0 || idx >= levels.length - 1);
+        if (dom.zNextBtn) dom.zNextBtn.disabled = (idx <= 0);
+    }
+
+    // =====================================================================
+    //  Info panel (single room detail or multi-select summary)
+    // =====================================================================
+
+    function moveSelectedZ(deltaZ) {
+        var ids = Array.from(MapperState.selected);
+        var ok = MapperState.moveRoomsZLocally(ids, deltaZ);
+        if (!ok) {
+            MapperState.showToast('Cannot move — room collision detected');
+            return;
+        }
+        var newZ = null;
+        for (var i = 0; i < ids.length; i++) {
+            var r = MapperState.data.rooms.get(ids[i]);
+            if (r && r.HasCoordinates) { newZ = r.MapZ; break; }
+        }
+        if (newZ !== null) {
+            MapperState.camera.activeZ2d = newZ;
+            updateZButtons();
+        }
+        updateInfoPanel();
+        MapperRender.render();
+    }
+
+    function updateInfoPanel() {
+        if (!dom.infoEmptyEl || !dom.infoContentEl) return;
+
+        if (MapperState.selected.size === 0) {
+            dom.infoEmptyEl.style.display = '';
+            dom.infoContentEl.style.display = 'none';
+            return;
+        }
+
+        dom.infoEmptyEl.style.display = 'none';
+        dom.infoContentEl.style.display = '';
+
+        var html = '';
+
+        // --- Multi-select summary ---
+        if (MapperState.selected.size > 1) {
+            var ids = Array.from(MapperState.selected).sort(function(a, b) { return a - b; });
+            html = '<div class="info-row"><span class="info-label">Selected</span><span class="info-value">' + ids.length + ' rooms</span></div>';
+            html += '<hr class="info-divider">';
+            ids.forEach(function(rid) {
+                var r = MapperState.data.rooms.get(rid);
+                var title = r ? escapeHtml(r.Title) : '?';
+                html += '<div class="info-exit-row"><span class="info-exit-dir">#' + rid + '</span><span class="info-exit-id">' + title + '</span></div>';
+            });
+            html += '<hr class="info-divider">';
+            html += '<div style="display:flex;gap:4px;margin-top:2px">';
+            html += '<button class="info-zlevel-btn" id="info-move-down">&#9660; Move Down</button>';
+            html += '<button class="info-zlevel-btn" id="info-move-up">&#9650; Move Up</button>';
+            html += '</div>';
+            dom.infoContentEl.innerHTML = html;
+            document.getElementById('info-move-up').addEventListener('click', function() { moveSelectedZ(1); });
+            document.getElementById('info-move-down').addEventListener('click', function() { moveSelectedZ(-1); });
+            return;
+        }
+
+        // --- Single room detail ---
+        var selectedRoomId = Array.from(MapperState.selected)[0];
+        var room = MapperState.data.rooms.get(selectedRoomId);
+        if (!room) {
+            dom.infoEmptyEl.style.display = '';
+            dom.infoContentEl.style.display = 'none';
+            return;
+        }
+
+        html = '';
+        html += '<div class="info-row"><span class="info-label">ID</span><span class="info-value">' + selectedRoomId + '</span></div>';
+        html += '<div class="info-row"><span class="info-label">Title</span><span class="info-value">' + escapeHtml(room.Title) + '</span></div>';
+        html += '<div class="info-row"><span class="info-label">Biome</span><span class="info-value">' + escapeHtml(room.Biome || '-') + '</span></div>';
+        html += '<div class="info-row"><span class="info-label">Symbol</span><span class="info-value">' + escapeHtml(room._symbol || '-') + '</span></div>';
+        if (room.MapLegend) {
+            html += '<div class="info-row"><span class="info-label">Legend</span><span class="info-value">' + escapeHtml(room.MapLegend) + '</span></div>';
+        }
+        if (room.SpawnInfo && room.SpawnInfo.length > 0) {
+            var mobSpawns = room.SpawnInfo.filter(function(s) { return s.MobId > 0; });
+            if (mobSpawns.length > 0) {
+                html += '<div class="info-row info-row-block"><span class="info-label">Mob Spawns</span>' +
+                    '<table class="info-spawn-table">' +
+                    '<tbody>';
+                mobSpawns.forEach(function(s) {
+                    var name = MapperState.mobNames[+s.MobId] || ('Mob #' + s.MobId);
+                    html += '<tr><td>' + escapeHtml(name) + '</td></tr>';
+                });
+                html += '</tbody></table></div>';
+            }
+        }
+
+        if (room.Tags && room.Tags.length > 0) {
+            var tagBadges = room.Tags.map(function(t) {
+                var mod = MapperState.tagDescriptions[t];
+                var tipText = mod ? 'module: ' + mod : t;
+                return '<span class="info-badge" style="cursor:default" title="' + escapeHtml(tipText) + '">' + escapeHtml(t) + '</span>';
+            }).join(' ');
+            html += '<div class="info-row"><span class="info-label">Tags</span><span class="info-value info-badges">' + tagBadges + '</span></div>';
+        }
+        if (room.Nouns && Object.keys(room.Nouns).length > 0) {
+            var nounBadges = Object.keys(room.Nouns).sort().map(function(n) {
+                var desc = room.Nouns[n];
+                var tip = desc ? 'title="' + escapeHtml(desc) + '"' : '';
+                return '<span class="info-badge" style="cursor:default" ' + tip + '>' + escapeHtml(n) + '</span>';
+            }).join(' ');
+            html += '<div class="info-row"><span class="info-label">Nouns</span><span class="info-value info-badges">' + nounBadges + '</span></div>';
+        }
+        html += '<div class="info-row"><span class="info-label">Coords</span><span class="info-value">' + room.MapX + ', ' + room.MapY + ', ' + room.MapZ + '</span></div>';
+        html += '<div class="info-row"><span class="info-label">Has Coords</span><span class="info-value">' + (room.HasCoordinates ? 'yes' : 'no') + '</span></div>';
+
+        if (room.Exits && Object.keys(room.Exits).length > 0) {
+            html += '<hr class="info-divider">';
+            html += '<div class="info-exits">';
+            var dirs = Object.keys(room.Exits).sort();
+            dirs.forEach(function(dir) {
+                var ex = room.Exits[dir];
+                var badges = '';
+                if (ex.Secret) badges += '<span class="info-badge secret">secret</span> ';
+                if (ex.HasLock) badges += '<span class="info-badge locked">locked</span> ';
+                html += '<div class="info-exit-row">';
+                html += '<span class="info-exit-dir">' + escapeHtml(dir) + '</span>';
+                html += '<span class="info-exit-id">' + badges + '#' + ex.RoomId + '</span>';
+                html += '</div>';
+            });
+            html += '</div>';
+        }
+
+        html += '<hr class="info-divider">';
+        html += '<a class="info-link" href="/admin/rooms#' + selectedRoomId + '">Edit Room &rarr;</a>';
+        if (room.HasCoordinates) {
+            html += '<hr class="info-divider">';
+            html += '<div style="display:flex;gap:4px">';
+            html += '<button class="info-zlevel-btn" id="info-move-down">&#9660; Move Down</button>';
+            html += '<button class="info-zlevel-btn" id="info-move-up">&#9650; Move Up</button>';
+            html += '</div>';
+        }
+
+        dom.infoContentEl.innerHTML = html;
+        var upBtn = document.getElementById('info-move-up');
+        var downBtn = document.getElementById('info-move-down');
+        if (upBtn) upBtn.addEventListener('click', function() { moveSelectedZ(1); });
+        if (downBtn) downBtn.addEventListener('click', function() { moveSelectedZ(-1); });
+    }
+
+    // =====================================================================
+    //  Tooltip
+    // =====================================================================
+
+    function showTooltip(mx, my, room, id) {
+        if (!dom.tooltip) return;
+        var html = '<div class="tt-title">' + escapeHtml(room.Title || 'Unknown') + '</div>';
+        html += '<div class="tt-id">Room #' + id + '</div>';
+        html += '<hr class="tt-divider">';
+        if (room.Biome) html += '<div class="tt-row"><span class="tt-label">Biome</span><span class="tt-value">' + escapeHtml(room.Biome) + '</span></div>';
+        if (room._symbol) html += '<div class="tt-row"><span class="tt-label">Symbol</span><span class="tt-value">' + escapeHtml(room._symbol) + '</span></div>';
+        html += '<div class="tt-row"><span class="tt-label">Coords</span><span class="tt-value">' + room.MapX + ', ' + room.MapY + ', ' + room.MapZ + '</span></div>';
+        if (room.Exits) {
+            var dirs = Object.keys(room.Exits).sort();
+            if (dirs.length > 0) {
+                html += '<hr class="tt-divider">';
+                html += '<div class="tt-row"><span class="tt-label">Exits</span><span class="tt-value">' + dirs.join(', ') + '</span></div>';
+            }
+        }
+        dom.tooltip.innerHTML = html;
+        dom.tooltip.style.display = 'block';
+        positionTooltip(mx, my);
+    }
+
+    /** Keep the tooltip on-screen by flipping sides when it would overflow. */
+    function positionTooltip(mx, my) {
+        if (!dom.tooltip) return;
+        var ttW = dom.tooltip.offsetWidth, ttH = dom.tooltip.offsetHeight;
+        var vw = window.innerWidth, vh = window.innerHeight;
+        var left = mx + 14;
+        if (left + ttW > vw - 8) left = mx - ttW - 14;
+        left = Math.max(8, left);
+        var top = my - Math.floor(ttH / 2);
+        if (top + ttH > vh - 8) top = vh - ttH - 8;
+        top = Math.max(8, top);
+        dom.tooltip.style.left = left + 'px';
+        dom.tooltip.style.top  = top + 'px';
+    }
+
+    /** Brief delay before hiding prevents flicker when moving between rooms. */
+    function hideTooltip() {
+        if (!dom.tooltip) return;
+        var cam = MapperState.camera;
+        cam.tooltipHideTimer = setTimeout(function() {
+            dom.tooltip.style.display = 'none';
+        }, 80);
+    }
+
+    // =====================================================================
+    //  Loading indicator
+    // =====================================================================
+
+    function showLoading(show) {
+        if (!dom.loadingEl) return;
+        dom.loadingEl.classList.toggle('hidden', !show);
+    }
+
+    // =====================================================================
+    //  Stats display
+    // =====================================================================
+
+    function updateStats() {
+        if (!dom.statsEl) return;
+        var data = MapperState.data;
+        var total = data.rooms.size;
+        var coordinated = 0;
+        data.rooms.forEach(function(r) { if (r.HasCoordinates) coordinated++; });
+        var unmapped = total - coordinated;
+        dom.statsEl.innerHTML = '';
+        var prefix = document.createTextNode(total + ' rooms');
+        dom.statsEl.appendChild(prefix);
+        if (unmapped > 0) {
+            var link = document.createElement('span');
+            link.className = 'unmapped-link';
+            link.textContent = ' (' + unmapped + ' unmapped)';
+            link.title = 'Click to see unmapped rooms';
+            link.addEventListener('click', showUnmappedModal);
+            dom.statsEl.appendChild(link);
+        }
+        var suffix = document.createTextNode(
+            ' | ' + data.zLevels.length + ' z-level' + (data.zLevels.length !== 1 ? 's' : '') +
+            ' | ' + data.allZones.length + ' zones'
+        );
+        dom.statsEl.appendChild(suffix);
+    }
+
+    // =====================================================================
+    //  Unmapped rooms modal
+    // =====================================================================
+
+    function showUnmappedModal() {
+        var backdrop = document.getElementById('unmapped-backdrop');
+        var listEl = document.getElementById('unmapped-list');
+        var closeBtn = document.getElementById('unmapped-close');
+        if (!backdrop || !listEl) return;
+
+        var unmapped = [];
+        MapperState.data.rooms.forEach(function(room, id) {
+            if (!room.HasCoordinates) {
+                unmapped.push({ id: id, title: room.Title || '', zone: room.Zone || '' });
+            }
+        });
+        unmapped.sort(function(a, b) {
+            if (a.zone !== b.zone) return a.zone.localeCompare(b.zone);
+            return a.id - b.id;
+        });
+
+        var html = '<table><tr><th>ID</th><th>Title</th><th>Zone</th><th></th></tr>';
+        unmapped.forEach(function(r) {
+            html += '<tr>' +
+                '<td>' + r.id + '</td>' +
+                '<td>' + escapeHtml(r.title) + '</td>' +
+                '<td>' + escapeHtml(r.zone) + '</td>' +
+                '<td><a href="/admin/rooms#' + r.id + '">edit</a></td>' +
+                '</tr>';
+        });
+        html += '</table>';
+        listEl.innerHTML = html;
+
+        backdrop.classList.add('visible');
+
+        function close() {
+            backdrop.classList.remove('visible');
+            backdrop.removeEventListener('click', onBackdropClick);
+            closeBtn.removeEventListener('click', close);
+        }
+        function onBackdropClick(e) {
+            if (e.target === backdrop) close();
+        }
+        backdrop.addEventListener('click', onBackdropClick);
+        closeBtn.addEventListener('click', close);
+    }
+
+    // =====================================================================
+    //  Zone dropdown
+    // =====================================================================
+
+    function populateZoneDropdown() {
+        if (!dom.zoneSelect) return;
+        var current = dom.zoneSelect.value;
+        while (dom.zoneSelect.options.length > 1) dom.zoneSelect.remove(1);
+        MapperState.data.allZones.forEach(function(z) {
+            var opt = document.createElement('option');
+            opt.value = z.Name;
+            opt.textContent = z.Name + ' (' + z.RoomCount + ' rooms)';
+            dom.zoneSelect.appendChild(opt);
+        });
+        if (current) dom.zoneSelect.value = current;
+    }
+
+    // =====================================================================
+    //  Zone picker modal
+    // =====================================================================
+
+    var zonePickerCallback = null;
+
+    function showZonePicker(zones, callback) {
+        var backdrop = document.getElementById('zone-picker-backdrop');
+        var list = document.getElementById('zone-picker-list');
+        var cancelBtn = document.getElementById('zone-picker-cancel');
+        if (!backdrop || !list) { callback(zones[0]); return; }
+
+        list.innerHTML = '';
+        zones.forEach(function(zone) {
+            var btn = document.createElement('button');
+            btn.textContent = zone;
+            btn.addEventListener('click', function() {
+                hideZonePicker();
+                callback(zone);
+            });
+            list.appendChild(btn);
+        });
+
+        zonePickerCallback = null;
+        cancelBtn.onclick = hideZonePicker;
+        backdrop.classList.add('visible');
+    }
+
+    function hideZonePicker() {
+        var backdrop = document.getElementById('zone-picker-backdrop');
+        if (backdrop) backdrop.classList.remove('visible');
+        zonePickerCallback = null;
+    }
+
+    /**
+     * Resolves which zone a new room at (gx, gy, gz) should belong to.
+     * hintZone is used as a fallback (e.g. the source room's zone in quick-build).
+     * Calls callback(zoneName) asynchronously (immediately or after user picks).
+     */
+    function resolveZoneForRoom(gx, gy, gz, hintZone, callback) {
+        var candidates = getZonesAtPoint(gx, gy, gz);
+        if (candidates.length === 0) {
+            // Outside all bounding boxes — use hint or closest room
+            callback(hintZone || closestZone(gx, gy, gz, MapperState.data.currentZone || ''));
+        } else if (candidates.length === 1) {
+            callback(candidates[0]);
+        } else {
+            showZonePicker(candidates, callback);
+        }
+    }
+
+    // =====================================================================
+    //  Zone creation
+    // =====================================================================
+
+    function createZoneAt(gx, gy, gz) {
+        var backdrop  = document.getElementById('zone-name-backdrop');
+        var input     = document.getElementById('zone-name-input');
+        var errorEl   = document.getElementById('zone-name-error');
+        var confirmBtn = document.getElementById('zone-name-confirm');
+        var cancelBtn  = document.getElementById('zone-name-cancel');
+        if (!backdrop || !input) return;
+
+        input.value = '';
+        errorEl.textContent = '';
+        backdrop.classList.add('visible');
+        setTimeout(function() { input.focus(); }, 50);
+
+        function close() {
+            backdrop.classList.remove('visible');
+            confirmBtn.onclick = null;
+            cancelBtn.onclick = null;
+            input.onkeydown = null;
+        }
+
+        function submit() {
+            var name = input.value.trim();
+            if (!name) { errorEl.textContent = 'Zone name is required.'; return; }
+            if (name.length < 2) { errorEl.textContent = 'Zone name must be at least 2 characters.'; return; }
+            var nameLower = name.toLowerCase();
+            var exists = MapperState.data.allZones.some(function(z) { return z.Name.toLowerCase() === nameLower; });
+            if (exists) { errorEl.textContent = 'A zone with that name already exists.'; return; }
+
+            errorEl.textContent = '';
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Creating…';
+
+            AdminAPI.post('/admin/api/v1/zones', { Name: name })
+                .then(function(res) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = 'Create Zone';
+                    if (!res.ok || !res.data || !res.data.data) {
+                        errorEl.textContent = (res.data && res.data.error) || 'Failed to create zone.';
+                        return;
+                    }
+                    var serverRootId = res.data.data.RoomId;
+
+                    // Immediately patch the root room to the clicked coordinates
+                    // so the server state matches local state without requiring a save.
+                    AdminAPI.patch('/admin/api/v1/rooms/' + serverRootId, {
+                        MapX: gx, MapY: gy, MapZ: gz, HasCoordinates: true
+                    }).then(function() {
+                        close();
+
+                        // Zone now exists on the server — register it in local state
+                        MapperState.data.allZones.push({ Name: name, RoomCount: 1, RoomId: serverRootId, DefaultBiome: '' });
+                        populateZoneDropdown();
+
+                        // Create a local room at the chosen position assigned to the new zone.
+                        // Replace its temp ID with the server root room ID so saves patch
+                        // the real room rather than creating a duplicate.
+                        var tempId = MapperState.createRoomLocally(gx, gy, gz, name);
+                        MapperState.replaceRoomId(tempId, serverRootId);
+                        // The room is already saved at the correct position — remove it
+                        // from dirty.createdRooms so save doesn't patch it again.
+                        MapperState.dirty.createdRooms.delete(serverRootId);
+                        MapperState.selectRoom(serverRootId);
+
+                        if (dom.zoneSelect) {
+                            dom.zoneSelect.value = name;
+                            dom.zoneSelect.dispatchEvent(new Event('change'));
+                        }
+                        MapperRender.render();
+                    }).catch(function() {
+                        close();
+                        errorEl.textContent = 'Zone created but failed to set room coordinates.';
+                    });
+                })
+                .catch(function() {
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = 'Create Zone';
+                    errorEl.textContent = 'Request failed.';
+                });
+        }
+
+        confirmBtn.onclick = submit;
+        cancelBtn.onclick = close;
+        input.onkeydown = function(e) {
+            if (e.key === 'Enter') submit();
+            if (e.key === 'Escape') close();
+        };
+    }
+
+    // =====================================================================
+    //  Local room creation (deferred until save)
+    // =====================================================================
+
+    function createRoomAt(gx, gy, gz) {
+        if (!MapperState.data.currentZone && MapperState.data.rooms.size === 0) {
+            alert('Select a zone from the dropdown first to set which zone new rooms are created in.');
+            return;
+        }
+        resolveZoneForRoom(gx, gy, gz, MapperState.data.currentZone, function(zone) {
+            var tempId = MapperState.createRoomLocally(gx, gy, gz, zone);
+            MapperState.selectRoom(tempId);
+            MapperRender.render();
+        });
+    }
+
+    // =====================================================================
+    //  Server coordinate conversion
+    // =====================================================================
+
+    /**
+     * Translate world-space coordinates back to zone-relative server
+     * coordinates by subtracting the zone offset applied at load time.
+     */
+    function toServerCoords(room) {
+        if (!room) return { x: 0, y: 0, z: 0 };
+        return { x: room.MapX, y: room.MapY, z: room.MapZ };
+    }
+
+    // =====================================================================
+    //  Save / Discard
+    // =====================================================================
+
+    async function saveAllChanges() {
+        var data = MapperState.data;
+        var dirty = MapperState.dirty;
+        showLoading(true);
+
+        // 1. Delete rooms on server
+        for (var i = 0; i < dirty.deletedRooms.length; i++) {
+            await AdminAPI.delete('/admin/api/v1/rooms/' + dirty.deletedRooms[i]);
+        }
+
+        // 2. Create new rooms on server and build a temp-to-real ID map.
+        //    Rooms whose IDs are already positive were pre-created (e.g. zone root
+        //    rooms) and only need a position patch, not a new POST.
+        var tempToReal = new Map();
+        for (var entry of dirty.createdRooms) {
+            var tempId = entry[0], info = entry[1];
+            var zone = info.zone || data.currentZone || '';
+            var serverX = info.gx, serverY = info.gy;
+            var tempRoom = data.rooms.get(tempId);
+            var realId = tempId > 0 ? tempId : null;
+            if (realId === null) {
+                var createRes = await AdminAPI.post('/admin/api/v1/rooms', { Zone: zone });
+                if (createRes.ok && createRes.data && createRes.data.data) {
+                    realId = createRes.data.data.RoomId;
+                }
+            }
+            if (realId !== null) {
+                tempToReal.set(tempId, realId);
+                var patchData = {
+                    MapX: serverX, MapY: serverY, MapZ: info.gz, HasCoordinates: true
+                };
+                if (tempRoom) {
+                    if (tempRoom.Title && tempRoom.Title !== 'New Room') patchData.Title = tempRoom.Title;
+                    if (tempRoom.Biome) patchData.Biome = tempRoom.Biome;
+                    if (tempRoom.MapSymbol) patchData.MapSymbol = tempRoom.MapSymbol;
+                    if (tempRoom.MapLegend) patchData.MapLegend = tempRoom.MapLegend;
+                }
+                await AdminAPI.patch('/admin/api/v1/rooms/' + realId, patchData);
+            }
+        }
+
+        // 3. Move existing rooms on server
+        for (var entry2 of dirty.movedRooms) {
+            var roomId = entry2[0];
+            if (roomId < 0) continue;
+            var room = data.rooms.get(roomId);
+            if (room) {
+                var sc = toServerCoords(room);
+                var moveData = {
+                    MapX: sc.x, MapY: sc.y, MapZ: sc.z, HasCoordinates: true,
+                    Exits: room.Exits || {}
+                };
+                await AdminAPI.patch('/admin/api/v1/rooms/' + roomId, moveData);
+            }
+        }
+
+        // 4. Apply exit changes (grouped by room: removals then additions)
+        //    We merge against the server's current exit map so we don't
+        //    clobber exits that were not touched locally.
+        var exitChangesByRoom = new Map();
+        dirty.exitRemovals.forEach(function(er) {
+            var rId = er.roomId < 0 ? (tempToReal.get(er.roomId) || er.roomId) : er.roomId;
+            if (rId < 0) return;
+            if (!exitChangesByRoom.has(rId)) exitChangesByRoom.set(rId, { remove: new Set(), add: [] });
+            exitChangesByRoom.get(rId).remove.add(er.dir);
+        });
+        dirty.exitAdditions.forEach(function(ea) {
+            var rId = ea.roomId < 0 ? (tempToReal.get(ea.roomId) || ea.roomId) : ea.roomId;
+            var tId = ea.targetRoomId < 0 ? (tempToReal.get(ea.targetRoomId) || ea.targetRoomId) : ea.targetRoomId;
+            if (rId < 0 || tId < 0) return;
+            if (!exitChangesByRoom.has(rId)) exitChangesByRoom.set(rId, { remove: new Set(), add: [] });
+            exitChangesByRoom.get(rId).add.push({ dir: ea.dir, targetRoomId: tId });
+        });
+        for (var entry3 of exitChangesByRoom) {
+            var rId = entry3[0], changes = entry3[1];
+            var res = await AdminAPI.get('/admin/api/v1/rooms/' + rId);
+            if (res.ok && res.data && res.data.data) {
+                var fullRoom = res.data.data;
+                var mergedExits = {};
+                for (var d in (fullRoom.Exits || {})) {
+                    if (!changes.remove.has(d)) mergedExits[d] = fullRoom.Exits[d];
+                }
+                changes.add.forEach(function(a) { mergedExits[a.dir] = { RoomId: a.targetRoomId }; });
+                await AdminAPI.patch('/admin/api/v1/rooms/' + rId, { Exits: mergedExits });
+            }
+        }
+
+        MapperState.clearDirty();
+        var cam = MapperState.camera;
+        var savedCamX = cam.cameraX, savedCamY = cam.cameraY;
+        var savedPanX = cam.panOffsetX, savedPanY = cam.panOffsetY;
+        var savedZ = cam.activeZ2d;
+        await MapperState.loadAllRooms();
+        cam.cameraX = savedCamX; cam.cameraY = savedCamY;
+        cam.panOffsetX = savedPanX; cam.panOffsetY = savedPanY;
+        cam.activeZ2d = savedZ;
+        showLoading(false);
+        MapperState.selected.clear();
+        updateInfoPanel();
+        MapperRender.render();
+    }
+
+    async function discardChanges() {
+        MapperState.clearDirty();
+        showLoading(true);
+        await MapperState.loadAllRooms();
+        showLoading(false);
+        MapperState.selected.clear();
+        updateInfoPanel();
+        MapperRender.render();
+    }
+
+    // =====================================================================
+    //  Public API
+    // =====================================================================
+
+    return {
+        init: init,
+        zoomIn: zoomIn, zoomOut: zoomOut,
+        centerCamera: centerCamera, setCameraTarget: setCameraTarget,
+        updateZButtons: updateZButtons, updateInfoPanel: updateInfoPanel,
+        showTooltip: showTooltip, positionTooltip: positionTooltip, hideTooltip: hideTooltip,
+        showLoading: showLoading, updateStats: updateStats,
+        populateZoneDropdown: populateZoneDropdown,
+        createRoomAt: createRoomAt,
+        createZoneAt: createZoneAt,
+        resolveZoneForRoom: resolveZoneForRoom,
+        hideZonePicker: hideZonePicker,
+        toServerCoords: toServerCoords,
+        saveAllChanges: saveAllChanges, discardChanges: discardChanges
+    };
+
+})();

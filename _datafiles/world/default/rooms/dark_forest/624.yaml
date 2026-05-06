@@ -7,7 +7,6 @@ description: As you ascend the massive tree in the heart of the thicket, the bra
   despite the silk-draped surroundings. The moonlight filters through the dense canopy
   above, casting sporadic beams of ghostly light that dance upon the silken strands,
   creating a surreal, shimmering tapestry around you.
-biome: forest
 exits:
   east:
     roomid: 623
@@ -20,3 +19,7 @@ spawninfo:
 - mobid: 35
   message: A small spider hatches from a nearby egg.
   respawnrate: 7 real minutes
+mapx: 30
+mapy: -6
+mapz: 1
+hascoordinates: true

@@ -9,9 +9,12 @@ description: The Sanctuary of the Benevolent Heart stands as a solemn monument a
   golden light from countless candles illuminates the hallowed interior, and the ever-present
   scent of burning incense serves as a comforting reminder of hope and sanctuary in
   a world often devoid of both.
-biome: city
 exits:
   east:
     roomid: 18
   west:
     roomid: 14
+mapx: 1
+mapy: 3
+mapz: 0
+hascoordinates: true

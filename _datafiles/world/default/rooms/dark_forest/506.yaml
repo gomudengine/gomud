@@ -6,7 +6,6 @@ description: As you venture further along the old road, it leads you into the he
   shadowy realm is abrupt and palpable. The once-clear path is now obscured by gnarled,
   twisted branches that reach out like skeletal fingers from ancient trees, their
   bark as black as night.
-biome: forest
 exits:
   east:
     roomid: 503
@@ -19,3 +18,10 @@ spawninfo:
 - mobid: 32
   message: A fungal growth emerges from the ground.
   respawnrate: 9 real minutes
+mutators:
+- mutatorid: wildfire
+  spawnedround: 1596851
+mapx: 21
+mapy: -1
+mapz: 0
+hascoordinates: true

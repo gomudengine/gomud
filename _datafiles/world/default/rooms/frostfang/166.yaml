@@ -11,7 +11,6 @@ description: The bank of Frostfang stands as a bastion of security and order ami
   atmosphere.
 mapsymbol: ★
 maplegend: Bank
-biome: city
 exits:
   south:
     roomid: 8
@@ -31,3 +30,7 @@ spawninfo:
   - emote watches you carefully.
   levelmod: 10
   respawnrate: 10 real minutes
+mapx: -2
+mapy: -1
+mapz: 0
+hascoordinates: true

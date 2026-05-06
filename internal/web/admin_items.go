@@ -139,6 +139,10 @@ func adminPetsAPI(w http.ResponseWriter, r *http.Request) {
 	serveAdminTemplate(w, r, "pets-api.html", nil)
 }
 
+func adminPetsRanks(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "pets-ranks.html", nil)
+}
+
 func adminSpells(w http.ResponseWriter, r *http.Request) {
 	serveAdminTemplate(w, r, "spells.html", nil)
 }
@@ -153,6 +157,10 @@ func adminMutators(w http.ResponseWriter, r *http.Request) {
 
 func adminMutatorsAPI(w http.ResponseWriter, r *http.Request) {
 	serveAdminTemplate(w, r, "mutators-api.html", nil)
+}
+
+func adminMapper(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "mapper.html", nil)
 }
 
 func adminRooms(w http.ResponseWriter, r *http.Request) {
@@ -177,4 +185,12 @@ func adminConversations(w http.ResponseWriter, r *http.Request) {
 
 func adminConversationsAPI(w http.ResponseWriter, r *http.Request) {
 	serveAdminTemplate(w, r, "conversations-api.html", nil)
+}
+
+func adminGameTime(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "gametime.html", nil)
+}
+
+func adminGameTimeAPI(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "gametime-api.html", nil)
 }

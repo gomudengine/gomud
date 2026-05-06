@@ -9,3 +9,7 @@ description: At the south-most end of Lavender Walk, the pathway comes to an abr
 exits:
   north:
     roomid: 855
+mapx: 74
+mapy: 6
+mapz: 0
+hascoordinates: true

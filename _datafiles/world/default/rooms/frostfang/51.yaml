@@ -8,7 +8,6 @@ description: Hidden within the depths of Frostfang Castle, the storage closet is
   the wall, but doesn't appear to be in working order. As you step inside, faint murmurs,
   their origin unclear, seem to echo from the walls or perhaps beyond them, adding
   an air of mystery to the room's quiet seclusion.
-biome: city
 exits:
   east:
     roomid: 43
@@ -16,3 +15,7 @@ nouns:
   lantern: The lantern is old, and doesn't appear to be in working order. It's hanging
     on the wall, but the glass is cracked and the wick is missing.
   light: :lantern
+mapx: 1
+mapy: -7
+mapz: 0
+hascoordinates: true

@@ -5,6 +5,14 @@ import (
 )
 
 func registerAdminAPIRoutes(mux *http.ServeMux) {
+	// Scripting
+	mux.HandleFunc("GET /admin/api/v1/scripting/functions", RunWithMUDLocked(
+		doBasicAuth(apiV1GetScriptFunctions),
+	))
+	mux.HandleFunc("POST /admin/api/v1/scripting/validate", RunWithMUDLocked(
+		doBasicAuth(apiV1ValidateScript),
+	))
+
 	// Tags
 	mux.HandleFunc("GET /admin/api/v1/tags", RunWithMUDLocked(
 		doBasicAuth(apiV1GetTags),
@@ -200,6 +208,14 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 		doBasicAuth(apiV1DeleteBiome),
 	))
 
+	// Mapper
+	mux.HandleFunc("GET /admin/api/v1/mapper/rooms", RunWithMUDLocked(
+		doBasicAuth(apiV1GetMapperAllRooms),
+	))
+	mux.HandleFunc("GET /admin/api/v1/mapper/zone/{zonename}", RunWithMUDLocked(
+		doBasicAuth(apiV1GetMapperZone),
+	))
+
 	// Rooms - static sub-routes before wildcard {roomId}
 	mux.HandleFunc("GET /admin/api/v1/rooms/biomes", RunWithMUDLocked(
 		doBasicAuth(apiV1GetBiomes),
@@ -274,6 +290,9 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 	))
 
 	// Pets
+	mux.HandleFunc("GET /admin/api/v1/pets/ranks", RunWithMUDLocked(
+		doBasicAuth(apiV1GetPetRanks),
+	))
 	mux.HandleFunc("GET /admin/api/v1/pets", RunWithMUDLocked(
 		doBasicAuth(apiV1GetPets),
 	))
@@ -299,6 +318,23 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 	))
 	mux.HandleFunc("DELETE /admin/api/v1/conversations/{zone}/{mobId}", RunWithMUDLocked(
 		doBasicAuth(apiV1DeleteConversation),
+	))
+
+	// GameTime Calendars - static list route before wildcard {calendar}
+	mux.HandleFunc("GET /admin/api/v1/gametime", RunWithMUDLocked(
+		doBasicAuth(apiV1GetGameTime),
+	))
+	mux.HandleFunc("POST /admin/api/v1/gametime", RunWithMUDLocked(
+		doBasicAuth(apiV1CreateGameTimeCalendar),
+	))
+	mux.HandleFunc("GET /admin/api/v1/gametime/{calendar}", RunWithMUDLocked(
+		doBasicAuth(apiV1GetGameTimeCalendar),
+	))
+	mux.HandleFunc("PATCH /admin/api/v1/gametime/{calendar}", RunWithMUDLocked(
+		doBasicAuth(apiV1PatchGameTimeCalendar),
+	))
+	mux.HandleFunc("DELETE /admin/api/v1/gametime/{calendar}", RunWithMUDLocked(
+		doBasicAuth(apiV1DeleteGameTimeCalendar),
 	))
 
 	// Spells - script sub-route before wildcard {spellId}

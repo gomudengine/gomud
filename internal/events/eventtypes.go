@@ -261,6 +261,17 @@ type LevelUp struct {
 
 func (l LevelUp) Type() string { return `LevelUp` }
 
+type PetLevelChange struct {
+	UserId     int
+	PetName    string
+	OldLevel   int
+	NewLevel   int
+	OldAbility any
+	NewAbility any
+}
+
+func (p PetLevelChange) Type() string { return `PetLevelChange` }
+
 type PlayerDrop struct {
 	UserId int
 	RoomId int

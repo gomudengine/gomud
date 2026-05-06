@@ -16,3 +16,7 @@ exits:
     roomid: 175
 idlemessages:
 - The wind howls from every direction
+mapx: -13
+mapy: -2
+mapz: 0
+hascoordinates: true

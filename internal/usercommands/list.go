@@ -21,6 +21,24 @@ import (
 
 func List(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
+	shopTemplate := "tables/shoplist"
+	if opt := user.GetConfigOption(`shopstyle`); opt != nil {
+		if style, ok := opt.(string); ok {
+			switch style {
+			case "fancy":
+				shopTemplate = "tables/shoplist-fancy"
+			case "minimal":
+				shopTemplate = "tables/shoplist-minimal"
+			case "grid":
+				shopTemplate = "tables/shoplist-grid"
+			case "arcane":
+				shopTemplate = "tables/shoplist-arcane"
+			case "rugged":
+				shopTemplate = "tables/shoplist-rugged"
+			}
+		}
+	}
+
 	listedSomething := false
 
 	targetPlayerId := 0
@@ -152,7 +170,7 @@ func List(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 			})
 
 			saleItemsData := templates.GetTable(fmt.Sprintf(`%s by <ansi fg="mobname">%s</ansi>`, colorpatterns.ApplyColorPattern(`Items available`, `cyan`), mob.Character.Name), headers, rows)
-			tplTxt, _ := templates.Process("tables/shoplist", saleItemsData, user.UserId, user.UserId)
+			tplTxt, _ := templates.Process(shopTemplate, saleItemsData, user.UserId, user.UserId)
 			user.SendText(tplTxt)
 			user.SendText(fmt.Sprintf(`To buy something, type: <ansi fg="command">buy [name]</ansi>%s`, term.CRLFStr))
 		}
@@ -238,7 +256,7 @@ func List(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 			})
 
 			saleItemsData := templates.GetTable(fmt.Sprintf(`%s by <ansi fg="mobname">%s</ansi>`, colorpatterns.ApplyColorPattern(`Mercenaries for hire`, `flame`), mob.Character.Name), headers, rows)
-			tplTxt, _ := templates.Process("tables/shoplist", saleItemsData, user.UserId, user.UserId)
+			tplTxt, _ := templates.Process(shopTemplate, saleItemsData, user.UserId, user.UserId)
 			user.SendText(tplTxt)
 			user.SendText(fmt.Sprintf(`To Hire a merc, type: <ansi fg="command">hire [name]</ansi>%s`, term.CRLFStr))
 		}
@@ -311,7 +329,7 @@ func List(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 			})
 
 			saleItemsData := templates.GetTable(fmt.Sprintf(`%s by <ansi fg="mobname">%s</ansi>`, colorpatterns.ApplyColorPattern(`Enchantments`, `rainbow`), mob.Character.Name), headers, rows)
-			tplTxt, _ := templates.Process("tables/shoplist", saleItemsData, user.UserId, user.UserId)
+			tplTxt, _ := templates.Process(shopTemplate, saleItemsData, user.UserId, user.UserId)
 			user.SendText(tplTxt)
 			user.SendText(fmt.Sprintf(`To buy an enchantment, type: <ansi fg="command">buy [name]</ansi>%s`, term.CRLFStr))
 		}
@@ -390,7 +408,7 @@ func List(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 			})
 
 			saleItemsData := templates.GetTable(fmt.Sprintf(`%s by <ansi fg="mobname">%s</ansi>`, colorpatterns.ApplyColorPattern(`Pets`, `turquoise`), mob.Character.Name), headers, rows)
-			tplTxt, _ := templates.Process("tables/shoplist", saleItemsData, user.UserId, user.UserId)
+			tplTxt, _ := templates.Process(shopTemplate, saleItemsData, user.UserId, user.UserId)
 			user.SendText(tplTxt)
 			user.SendText(fmt.Sprintf(`To buy a pet, type: <ansi fg="command">buy [name]</ansi>%s`, term.CRLFStr))
 		}
@@ -516,7 +534,7 @@ func List(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 			})
 
 			saleItemsData := templates.GetTable(fmt.Sprintf(`%s by <ansi fg="username">%s</ansi>`, colorpatterns.ApplyColorPattern(`Items available`, `cyan`), shopUser.Character.Name), headers, rows)
-			tplTxt, _ := templates.Process("tables/shoplist", saleItemsData, user.UserId, user.UserId)
+			tplTxt, _ := templates.Process(shopTemplate, saleItemsData, user.UserId, user.UserId)
 			user.SendText(tplTxt)
 			user.SendText(fmt.Sprintf(`To buy something, type: <ansi fg="command">buy [name]</ansi>%s`, term.CRLFStr))
 		}
@@ -603,7 +621,7 @@ func List(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 			})
 
 			saleItemsData := templates.GetTable(fmt.Sprintf(`%s by <ansi fg="username">%s</ansi>`, colorpatterns.ApplyColorPattern(`Mercenaries for hire`, `flame`), shopUser.Character.Name), headers, rows)
-			tplTxt, _ := templates.Process("tables/shoplist", saleItemsData, user.UserId, user.UserId)
+			tplTxt, _ := templates.Process(shopTemplate, saleItemsData, user.UserId, user.UserId)
 			user.SendText(tplTxt)
 			user.SendText(fmt.Sprintf(`To Hire a merc, type: <ansi fg="command">hire [name]</ansi>%s`, term.CRLFStr))
 		}
@@ -676,7 +694,7 @@ func List(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 			})
 
 			saleItemsData := templates.GetTable(fmt.Sprintf(`%s by <ansi fg="username">%s</ansi>`, colorpatterns.ApplyColorPattern(`Enchantments`, `rainbow`), shopUser.Character.Name), headers, rows)
-			tplTxt, _ := templates.Process("tables/shoplist", saleItemsData, user.UserId, user.UserId)
+			tplTxt, _ := templates.Process(shopTemplate, saleItemsData, user.UserId, user.UserId)
 			user.SendText(tplTxt)
 			user.SendText(fmt.Sprintf(`To buy an enchantment, type: <ansi fg="command">buy [name]</ansi>%s`, term.CRLFStr))
 		}
@@ -756,7 +774,7 @@ func List(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 			})
 
 			saleItemsData := templates.GetTable(fmt.Sprintf(`%s by <ansi fg="username">%s</ansi>`, colorpatterns.ApplyColorPattern(`Pets`, `turquoise`), user.Character.Name), headers, rows)
-			tplTxt, _ := templates.Process("tables/shoplist", saleItemsData, user.UserId, user.UserId)
+			tplTxt, _ := templates.Process(shopTemplate, saleItemsData, user.UserId, user.UserId)
 			user.SendText(tplTxt)
 			user.SendText(fmt.Sprintf(`To buy a pet, type: <ansi fg="command">buy [name]</ansi>%s`, term.CRLFStr))
 		}

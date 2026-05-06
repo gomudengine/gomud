@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/gametime"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -371,7 +372,14 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 
 			room.SendText(fmt.Sprintf(`<ansi fg="username">%s</ansi> is looking at %s.`, user.Character.Name, petUser.Character.Pet.DisplayName()), user.UserId)
 
-			textOut, _ := templates.Process("character/pet", petUser, user.UserId)
+			petData := struct {
+				Character *characters.Character
+				IsOwner   bool
+			}{
+				Character: petUser.Character,
+				IsOwner:   petUser.UserId == user.UserId,
+			}
+			textOut, _ := templates.Process("character/pet", petData, user.UserId)
 			user.SendText(textOut)
 
 			return true, nil

@@ -10,7 +10,6 @@ description: The East Frostfang Gate stands as a formidable sentinel, marking th
   resilience and legacy of Frostfang.
 mapsymbol: G
 maplegend: East-Gate
-biome: city
 exits:
   east:
     roomid: 60
@@ -28,3 +27,7 @@ idlemessages:
 - You hear the wind howling outside the gate.
 - The wind whistles through the arrow slits in the watchtowers.
 - The gate creaks in the wind.
+mapx: 6
+mapy: 0
+mapz: 0
+hascoordinates: true

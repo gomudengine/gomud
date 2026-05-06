@@ -18,3 +18,7 @@ spawninfo:
   message: Bones scattered about come together to form an undead lich.
   levelmod: 8
   respawnrate: 30 real minutes
+mapx: -3
+mapy: -1
+mapz: -2
+hascoordinates: true

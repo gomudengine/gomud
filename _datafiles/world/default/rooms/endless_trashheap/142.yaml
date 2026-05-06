@@ -16,6 +16,7 @@ exits:
     roomid: 143
   west:
     roomid: 141
+gold: 3
 idlemessages:
 - the mountain of trash shifts slightly.
 - the trash heal trembles, threatening to collapse at any moment.
@@ -45,3 +46,7 @@ idlemessages:
 - a soft, sorrowful tune plays from a damaged music box before being crushed underfoot.
 - the treasure-laden ground seems to inhale deeply, and then a quiet pop as a bauble
   bursts from the pressure.
+mapx: 3
+mapy: 0
+mapz: -99
+hascoordinates: true

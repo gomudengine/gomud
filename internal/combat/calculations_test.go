@@ -102,7 +102,7 @@ func TestDamageBonus(t *testing.T) {
 	}
 }
 
-// TestHitChance verifies hit chance uses Speed delta and config bounds.
+// TestHitChance verifies hit chance uses Speed proportional delta and config bounds.
 // Default config: min=25, max=100.
 func TestHitChance(t *testing.T) {
 	tests := []struct {
@@ -110,10 +110,10 @@ func TestHitChance(t *testing.T) {
 		wantMin        int
 		wantMax        int
 	}{
-		{0, 0, 25, 25},     // equal -> min (25)
-		{100, 0, 100, 100}, // full advantage -> max (100)
-		{50, 0, 50, 50},    // half delta -> floor(0.5*100)=50
-		{0, 100, 25, 25},   // no advantage -> min (25)
+		{0, 0, 50, 50},     // equal -> proportional 0.5 -> 50
+		{100, 0, 100, 100}, // full proportional advantage -> 100
+		{50, 0, 100, 100},  // 50/(50+0)=1.0 -> 100
+		{0, 100, 25, 25},   // no advantage -> 0, clamped to min (25)
 	}
 	for _, tt := range tests {
 		got := hitChance(tt.atkSpd, tt.defSpd)
@@ -165,7 +165,7 @@ func TestWeaponlessAttackCount(t *testing.T) {
 	}
 }
 
-// TestCritChance verifies crit chance uses Smarts delta and config bounds.
+// TestCritChance verifies crit chance uses Smarts proportional delta and config bounds.
 // Default config: min=5, max=30.
 func TestCritChance(t *testing.T) {
 	tests := []struct {
@@ -175,18 +175,18 @@ func TestCritChance(t *testing.T) {
 		wantMin              int
 		wantMax              int
 	}{
-		{0, 0, false, false, 5, 5},     // equal -> min (5)
-		{100, 0, false, false, 30, 30}, // full delta -> max (30)
-		{50, 0, false, false, 15, 15},  // half delta -> floor(0.5*30)=15
-		{0, 100, false, false, 5, 5},   // no advantage -> min (5)
+		{0, 0, false, false, 15, 15},   // equal -> proportional 0.5 -> 15
+		{100, 0, false, false, 30, 30}, // full proportional advantage -> 30
+		{50, 0, false, false, 30, 30},  // 50/(50+0)=1.0 -> 30
+		{0, 100, false, false, 5, 5},   // no advantage -> 0, clamped to min (5)
 		// accuracy doubles, capped at 100
 		{100, 0, true, false, 60, 60},
 		// blink halves
 		{100, 0, false, true, 15, 15},
 		// both: 30*2/2 = 30
 		{100, 0, true, true, 30, 30},
-		// min enforced after blink
-		{0, 0, false, true, 5, 5},
+		// blink halves: 15/2=7, min enforced (max(5,7)=7)
+		{0, 0, false, true, 7, 7},
 	}
 	for _, tt := range tests {
 		got := critChance(tt.atkSmarts, tt.defSmarts, tt.hasAccuracy, tt.targetHasBlink)
@@ -197,7 +197,7 @@ func TestCritChance(t *testing.T) {
 	}
 }
 
-// TestCritMultiplier verifies crit multiplier uses Perception delta.
+// TestCritMultiplier verifies crit multiplier uses Perception proportional delta.
 // Default config: min=1.5, max=3.0.
 func TestCritMultiplier(t *testing.T) {
 	tests := []struct {
@@ -205,10 +205,10 @@ func TestCritMultiplier(t *testing.T) {
 		wantMin          float64
 		wantMax          float64
 	}{
-		{0, 0, 1.5, 1.5},   // equal -> min (1.5)
-		{100, 0, 3.0, 3.0}, // full delta -> max (3.0)
-		{50, 0, 1.5, 1.5},  // half delta -> 0.5*3=1.5 (equals min)
-		{0, 100, 1.5, 1.5}, // no advantage -> min (1.5)
+		{0, 0, 1.5, 1.5},   // equal -> proportional 0.5 -> 1.5 (equals min)
+		{100, 0, 3.0, 3.0}, // full proportional advantage -> max (3.0)
+		{50, 0, 3.0, 3.0},  // 50/(50+0)=1.0 -> 3.0
+		{0, 100, 1.5, 1.5}, // no advantage -> 0, clamped to min (1.5)
 	}
 	for _, tt := range tests {
 		got := critMultiplier(tt.atkPerc, tt.defPerc)

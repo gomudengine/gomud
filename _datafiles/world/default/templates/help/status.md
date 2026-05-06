@@ -10,6 +10,8 @@ When you level up, you gain *Stat Points* which you can spend to upgrade your st
 
   ~status train~ - Spend stat points on upgrades to base stats.
 
+  ~status bonuses~ - View all stat bonuses from equipment, buffs, and pets.
+
 ## Related Help:
 
   ~race~  

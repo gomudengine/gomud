@@ -7,9 +7,12 @@ description: As you ascend the massive tree in the heart of the thicket, the bra
   despite the silk-draped surroundings. The moonlight filters through the dense canopy
   above, casting sporadic beams of ghostly light that dance upon the silken strands,
   creating a surreal, shimmering tapestry around you.
-biome: forest
 exits:
   southeast:
     roomid: 626
   southwest:
     roomid: 624
+mapx: 31
+mapy: -7
+mapz: 1
+hascoordinates: true

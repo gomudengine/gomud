@@ -37,6 +37,12 @@ func init() {
 	mod.plug.Web.AdminPage("Config", "newbieguide-config", "html/admin/newbieguide-config.html", true, "Modules", "Newbie Guide", nil)
 	events.RegisterListener(events.RoomChange{}, mod.spawnGuide)
 	events.RegisterListener(events.LevelUp{}, mod.checkGuide)
+
+	// AltNameSearch: searches a user's alts for a character name match.
+	// Consumed by internal/users/users.go via users.GetExportedFunction.
+	mod.plug.ExportFunction(`PlayerGuideMobId`, func() int {
+		return mod.guideMobId()
+	})
 }
 
 func (m *newbieGuideModule) guideMobId() int {

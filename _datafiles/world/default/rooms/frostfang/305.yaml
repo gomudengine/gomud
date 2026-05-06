@@ -16,3 +16,7 @@ nouns:
   caravan: :wagons
   wagons: The caravan, long since destroyed, once belonged to the frostfire guild
     of magicians. There must have been some impressive artifacts carreid by them once.
+mapx: 16
+mapy: -2
+mapz: 0
+hascoordinates: true

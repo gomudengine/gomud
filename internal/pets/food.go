@@ -5,22 +5,18 @@ type Food int
 func (f Food) String() string {
 
 	if f <= 0 {
-		return `dying`
+		return `Starving`
 	}
 
 	if f == 1 {
-		return `starving`
+		return `Hungry`
 	}
 
 	if f == 2 {
-		return `hungry`
+		return `Satisfied`
 	}
 
-	if f == 3 {
-		return `well fed`
-	}
-
-	return `full`
+	return `Full`
 }
 
 func (f *Food) Add() {
@@ -30,8 +26,8 @@ func (f *Food) Add() {
 	if *f < 0 {
 		*f = 0
 	}
-	if *f > 4 {
-		*f = 4
+	if *f > 3 {
+		*f = 3
 	}
 }
 
@@ -42,7 +38,7 @@ func (f *Food) Remove() {
 	if *f < 0 {
 		*f = 0
 	}
-	if *f > 4 {
-		*f = 4
+	if *f > 3 {
+		*f = 3
 	}
 }

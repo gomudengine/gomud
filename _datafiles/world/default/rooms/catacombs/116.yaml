@@ -19,3 +19,7 @@ exits:
   west:
     roomid: 124
 gold: 3
+mapx: 3
+mapy: 0
+mapz: -1
+hascoordinates: true

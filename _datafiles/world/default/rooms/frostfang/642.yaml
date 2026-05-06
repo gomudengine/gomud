@@ -5,9 +5,12 @@ description: Inside this room, customers of the Bank of Frostfang can store away
   personal objects and retrieve them at a later date. A side-benefit of this service
   is that anywhere storage services can be found, these objects will be available
   at.
-biome: city
 exits:
   east:
     roomid: 166
 tags:
 - storage
+mapx: -3
+mapy: -1
+mapz: 0
+hascoordinates: true

@@ -11,7 +11,6 @@ description: 'Nestled among the snow-draped structures of Frostfang, the Icy Emp
   old woman with sparkling eyes, offers both goods and occasional tidbits of advice,
   making the Emporium a must-visit for those traversing Frostfang''s icy expanse.'
 mapsymbol: $
-biome: city
 exits:
   south:
     roomid: 57
@@ -20,3 +19,7 @@ spawninfo:
   message: Brynja Snowdeal enters from a back room.
   levelmod: 40
   respawnrate: 2 real minutes
+mapx: 4
+mapy: -1
+mapz: 0
+hascoordinates: true

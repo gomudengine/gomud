@@ -41,6 +41,16 @@ will immediately wake you up and execute that command normally.
   <ansi fg="command">zombie unset loot <name></ansi>
     Remove a loot target. Omit the name or use <ansi fg="command">all</ansi> to clear all loot targets.
 
+  <ansi fg="command">zombie waypoints</ansi>
+    Show your current waypoint list.
+
+  <ansi fg="command">zombie waypoints add</ansi>
+    Add your current room as the next waypoint. A valid path must exist
+    from the previous waypoint (if any) to the current room.
+
+  <ansi fg="command">zombie waypoints reset</ansi>
+    Clear all waypoints.
+
   <ansi fg="command">zombie save <name></ansi>
     Save your current configuration as a named profile.
 
@@ -56,5 +66,6 @@ will immediately wake you up and execute that command normally.
   2. Continue attacking current target
   3. Attack a matching mob in the room
   4. Loot matching items or gold from the floor
-  5. Roam to a random nearby room (within radius)
+  5. Follow waypoint path (if waypoints are defined)
+  5b. Roam to a random nearby room (if no waypoints, within radius)
   6. Idle - occasionally emote
