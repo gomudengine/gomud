@@ -293,6 +293,56 @@ func SaveZoneConfigForAdmin(name string, cfg *ZoneConfig) error {
 	return nil
 }
 
+// GetRoomInstanceRaw returns the raw YAML bytes of the instance file for
+// roomId. Returns nil, nil when the file does not exist.
+func GetRoomInstanceRaw(roomId int) ([]byte, error) {
+	filePath, ok := roomManager.roomIdToFileCache[roomId]
+	if !ok {
+		return nil, fmt.Errorf("room %d not found", roomId)
+	}
+	instancePath := util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), `/rooms.instances/`, filePath)
+	data, err := os.ReadFile(instancePath)
+	if os.IsNotExist(err) {
+		return nil, nil
+	}
+	return data, err
+}
+
+// SaveRoomInstanceRaw writes raw YAML bytes to the instance file for roomId.
+// The room template must exist. Passing empty or nil content deletes the file.
+func SaveRoomInstanceRaw(roomId int, content []byte) error {
+	if LoadRoomTemplate(roomId) == nil {
+		return fmt.Errorf("room %d not found", roomId)
+	}
+	if len(content) == 0 {
+		return DeleteRoomInstance(roomId)
+	}
+	filePath, ok := roomManager.roomIdToFileCache[roomId]
+	if !ok {
+		return fmt.Errorf("room %d not found", roomId)
+	}
+	instancePath := util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), `/rooms.instances/`, filePath)
+	dir := strings.TrimSuffix(instancePath, fmt.Sprintf("%d.yaml", roomId))
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("creating instance directory: %w", err)
+	}
+	return os.WriteFile(instancePath, content, 0644)
+}
+
+// DeleteRoomInstance removes the instance file for roomId. Returns nil when
+// the file does not exist.
+func DeleteRoomInstance(roomId int) error {
+	filePath, ok := roomManager.roomIdToFileCache[roomId]
+	if !ok {
+		return fmt.Errorf("room %d not found", roomId)
+	}
+	instancePath := util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), `/rooms.instances/`, filePath)
+	if err := os.Remove(instancePath); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("removing instance file: %w", err)
+	}
+	return nil
+}
+
 // SaveRoomScript writes (or overwrites) the JavaScript file for a room. If
 // content is empty the script file is deleted instead.
 func SaveRoomScript(roomId int, content string) error {
