@@ -41,10 +41,12 @@ jobs:
 
       - name: Compute release metadata
         id: meta
+        env:
+          REQUESTED_RELEASE_TAG: ${{ github.event.inputs.release_tag || '' }}
         run: |
           short_sha="$(printf '%s' "$GITHUB_SHA" | cut -c1-7)"
           timestamp="$(date -u +'%Y%m%d%H%M%S')"
-          requested_release_tag="${{ github.event.inputs.release_tag || '' }}"
+          requested_release_tag="$REQUESTED_RELEASE_TAG"
           binary_version="$(
             awk -F'"' '/^const VERSION = "/ { print $2; exit }' main.go
           )"
