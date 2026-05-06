@@ -56,14 +56,14 @@ jobs:
           fi
 
           if [ -n "$requested_release_tag" ]; then
-            if [ "$GITHUB_REF" != "refs/heads/master" ]; then
-              echo \
-                "release_tag may only be used when " \
-                "workflow_dispatch runs from master" \
-                >&2
-              exit 1
-            fi
             if [ "$requested_release_tag" = "latest" ]; then
+              if [ "$GITHUB_REF" != "refs/heads/master" ]; then
+                echo \
+                  "release_tag=latest may only be used when " \
+                  "workflow_dispatch runs from master" \
+                  >&2
+                exit 1
+              fi
               release_tag="$(
                 gh api "repos/${GITHUB_REPOSITORY}/releases/latest" \
                   --jq '.tag_name'
