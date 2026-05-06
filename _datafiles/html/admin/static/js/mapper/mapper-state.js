@@ -1,5 +1,5 @@
 /* jshint esversion: 11, browser: true */
-/* globals MapperEvents, AdminAPI, symbolForRoom, colorForSymbol, bgColorForBiome, contrastColor, escapeHtml, isDirectionalExit, DIRECTION_DELTAS, isExitConstraintSatisfied, buildDragConstraints, breakExitLocally, BIOME_SYMBOLS, BIOME_COLORS, BIOME_BG_COLORS, BIOME_SYMBOL_OVERRIDES, biomeEnvMap, invalidateZoneBoundsCache */
+/* globals MapperEvents, AdminAPI, symbolForRoom, colorForSymbol, bgColorForBiome, contrastColor, escapeHtml, isDirectionalExit, DIRECTION_DELTAS, isExitConstraintSatisfied, buildDragConstraints, breakExitLocally, ansi256ToHex, BIOME_SYMBOLS, BIOME_COLORS, BIOME_BG_COLORS, BIOME_SYMBOL_OVERRIDES, biomeEnvMap, invalidateZoneBoundsCache */
 'use strict';
 
 /**
@@ -358,7 +358,7 @@ var MapperState = (function() {
         });
 
         // Update selection
-        if (selected.has(oldId)) { selected.delete(oldId); selected.add(newId); }
+        if (selectedRoomIds.has(oldId)) { selectedRoomIds.delete(oldId); selectedRoomIds.add(newId); }
     }
 
     function moveRoomLocally(roomId, newGx, newGy) {

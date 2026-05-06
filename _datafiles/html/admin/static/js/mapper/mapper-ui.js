@@ -1496,7 +1496,7 @@ var MapperUI = (function() {
         backdrop.onclick = function(e) { if (e.target === backdrop) close(); };
 
         // Keyboard: Escape closes, Ctrl+Enter saves
-        backdrop._keyHandler && document.removeEventListener('keydown', backdrop._keyHandler);
+        if (backdrop._keyHandler) document.removeEventListener('keydown', backdrop._keyHandler);
         backdrop._keyHandler = function(e) {
             if (!backdrop.classList.contains('visible')) return;
             if (e.key === 'Escape') { e.stopPropagation(); close(); }

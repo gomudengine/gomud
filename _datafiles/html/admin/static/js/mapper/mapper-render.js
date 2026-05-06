@@ -423,7 +423,7 @@ var MapperRender = (function() {
         // Pass 2: abnormal edges (yellow dotted arcs)
         if (abnormalEdges.length > 0) {
             ctx.strokeStyle = ABNORMAL_CONNECTION_COLOR;
-            ctx.lineWidth = Math.max(1, CONNECTION_WIDTH_2D * cam.zoomScale * .5);
+            ctx.lineWidth = Math.max(1, CONNECTION_WIDTH_2D * cam.zoomScale * 0.5);
             ctx.setLineDash([Math.max(3, 4 * cam.zoomScale), Math.max(4, 5 * cam.zoomScale)]);
             abnormalEdges.forEach(function(ae) {
                 var pA = gridToCanvas2d(ae.room.MapX, ae.room.MapY);
