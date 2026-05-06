@@ -37,7 +37,10 @@ var (
 		"up":        struct{}{},
 	}
 
-	// TODO: Refactor this and remove string identifier from room data.
+	// posDeltas maps exit direction names to position deltas and connector runes.
+	// This table is still needed for: rooms that lack absolute coordinates (fallback
+	// path), exit connector arrow selection, GetReciprocalExit, GetDelta,
+	// IsValidExitDirection, and the admin build command.
 	posDeltas = map[string]positionDelta{
 		"north":     {0, -1, 0, '│'},
 		"south":     {0, 1, 0, '│'},
@@ -252,17 +255,19 @@ func (r *mapper) Start() {
 
 	r.crawlQueue = make([]crawlRoom, 0, 100) // pre-allocate 100 capacity
 
-	lowestRoomId := 0
-	//var lastNode *mapNode = nil
+	// Determine the root room's stored position (if any) so that rooms without
+	// absolute coordinates can be aligned to the same origin.
+	var rootStoredPos positionDelta
+	var rootHasStoredCoords bool
+	if rootRoom := rooms.LoadRoom(r.rootRoomId); rootRoom != nil && rootRoom.HasCoordinates && rootRoom.Zone == r.rootZone {
+		rootStoredPos = positionDelta{x: rootRoom.MapX, y: rootRoom.MapY, z: rootRoom.MapZ}
+		rootHasStoredCoords = true
+	}
+
 	r.crawlQueue = append(r.crawlQueue, crawlRoom{RoomId: r.rootRoomId, Pos: positionDelta{}})
 	for len(r.crawlQueue) > 0 {
 
 		roomNow := r.crawlQueue[0]
-
-		if lowestRoomId == 0 || roomNow.RoomId < lowestRoomId {
-			lowestRoomId = roomNow.RoomId
-		}
-
 		r.crawlQueue = r.crawlQueue[1:]
 
 		if _, ok := r.crawledRooms[roomNow.RoomId]; ok {
@@ -273,6 +278,9 @@ func (r *mapper) Start() {
 		if node == nil {
 			continue
 		}
+
+		// Absolute coordinates are authoritative. Only fall back to the
+		// crawl-derived position when a room has no stored coordinates.
 		if !node.HasStoredCoords {
 			node.Pos = roomNow.Pos
 		}
@@ -334,31 +342,51 @@ func (r *mapper) Start() {
 
 	r.crawlQueue = nil
 
-	hasAnyStoredCoords := false
-	for _, node := range r.crawledRooms {
-		if node.HasStoredCoords {
-			hasAnyStoredCoords = true
-			break
+	// Compute the offset to apply to rooms that lack stored coordinates.
+	// When the root room has stored coordinates, align the crawl-derived
+	// positions to that origin so both sets share the same grid space.
+	// When no stored coordinates exist at all, align to the lowest-ID room
+	// (legacy behaviour).
+	var xOffset, yOffset, zOffset int
+	if rootHasStoredCoords {
+		xOffset = rootStoredPos.x
+		yOffset = rootStoredPos.y
+		zOffset = rootStoredPos.z
+	}
+	// Adjust bounds by the offset so that stored-coord rooms (which are already
+	// at their absolute positions) are not shifted.
+	if xOffset != 0 || yOffset != 0 || zOffset != 0 {
+		for _, node := range r.crawledRooms {
+			if !node.HasStoredCoords {
+				node.Pos.x -= xOffset
+				node.Pos.y -= yOffset
+				node.Pos.z -= zOffset
+			}
+		}
+		// Recompute bounds from final positions.
+		minX, maxX, minY, maxY, minZ, maxZ = 0, 0, 0, 0, 0, 0
+		for _, node := range r.crawledRooms {
+			if node.Pos.x < minX {
+				minX = node.Pos.x
+			} else if node.Pos.x > maxX {
+				maxX = node.Pos.x
+			}
+			if node.Pos.y < minY {
+				minY = node.Pos.y
+			} else if node.Pos.y > maxY {
+				maxY = node.Pos.y
+			}
+			if node.Pos.z < minZ {
+				minZ = node.Pos.z
+			} else if node.Pos.z > maxZ {
+				maxZ = node.Pos.z
+			}
 		}
 	}
-
-	var xOffset, yOffset, zOffset = 0, 0, 0
-	if !hasAnyStoredCoords {
-		lowestRoom := r.crawledRooms[lowestRoomId]
-		if lowestRoom != nil {
-			xOffset, yOffset, zOffset = lowestRoom.Pos.x, lowestRoom.Pos.y, lowestRoom.Pos.z
-		}
-	}
-
-	minX, minY, minZ = minX-xOffset, minY-yOffset, minZ-zOffset
-	maxX, maxY, maxZ = maxX-xOffset, maxY-yOffset, maxZ-zOffset
 
 	r.roomGrid.initialize(minX, maxX, minY, maxY, minZ, maxZ)
 
 	for _, node := range r.crawledRooms {
-		if !hasAnyStoredCoords {
-			node.Pos.x, node.Pos.y, node.Pos.z = node.Pos.x-xOffset, node.Pos.y-yOffset, node.Pos.z-zOffset
-		}
 		r.roomGrid.addNode(node)
 	}
 }
@@ -549,6 +577,12 @@ func (r *mapper) GetLimitedMap(centerRoomId int, c Config) mapRender {
 		c.ZoomLevel = 0
 	}
 	c.ZoomLevel++
+	// Minimum effective zoom of 2 ensures that rooms 1 coordinate unit apart
+	// always have at least 1 connector cell between them, making rooms that are
+	// N units apart visually distinguishable from rooms that are 1 unit apart.
+	if c.ZoomLevel < 2 {
+		c.ZoomLevel = 2
+	}
 
 	out := newMapRender(c.Width, c.Height)
 
@@ -613,7 +647,6 @@ func (r *mapper) GetLimitedMap(centerRoomId int, c Config) mapRender {
 		if dstPos.z == 0 && dstPos.x >= 0 && dstPos.y >= 0 && dstPos.x < c.Width && dstPos.y < c.Height {
 			// Draw the room to the output
 			fg, bg := resolveNodeColors(node, symbol)
-			mudlog.Debug("TEST", "symbol", string(symbol), "fg", fg, "bg", bg)
 			out.Render[dstPos.y][dstPos.x] = MapCell{Symbol: symbol, FGColor: fg, BGColor: bg}
 			if _, ok := out.legend[symbol]; !ok {
 				out.legend[symbol] = legend
@@ -668,33 +701,38 @@ func (r *mapper) GetLimitedMap(centerRoomId int, c Config) mapRender {
 			// Dont' draw if z-plane has moved
 			if dstPos.z == 0 && exitInfo.Direction.z == 0 {
 
-				maxSteps := c.ZoomLevel
-
 				xStepDir := 0
 				if exitInfo.Direction.x < 0 {
-					if exitInfo.Direction.x < -1 {
-						maxSteps = c.ZoomLevel * -exitInfo.Direction.x
-					}
 					xStepDir = -1
 				} else if exitInfo.Direction.x > 0 {
-					if exitInfo.Direction.x > 1 {
-						maxSteps = c.ZoomLevel * exitInfo.Direction.x
-					}
 					xStepDir = 1
 				}
 
 				yStepDir := 0
 				if exitInfo.Direction.y < 0 {
-					if exitInfo.Direction.y < -1 {
-						maxSteps = c.ZoomLevel * -exitInfo.Direction.y
-					}
 					yStepDir = -1
 				} else if exitInfo.Direction.y > 0 {
-					if exitInfo.Direction.y > 1 {
-						maxSteps = c.ZoomLevel * exitInfo.Direction.y
-					}
 					yStepDir = 1
 				}
+
+				// Connector lines fill the gap between rooms. Canvas distance
+				// between two rooms is mag*ZoomLevel, so draw steps 1..(mag*ZoomLevel-1).
+				absDx := exitInfo.Direction.x
+				if absDx < 0 {
+					absDx = -absDx
+				}
+				absDy := exitInfo.Direction.y
+				if absDy < 0 {
+					absDy = -absDy
+				}
+				mag := absDx
+				if absDy > mag {
+					mag = absDy
+				}
+				if mag == 0 {
+					mag = 1
+				}
+				maxSteps := mag * c.ZoomLevel
 
 				for step := 1; step < maxSteps; step++ {
 
@@ -729,11 +767,22 @@ func (r *mapper) GetLimitedMap(centerRoomId int, c Config) mapRender {
 			if !skip {
 				newCrawl := crawlRoom{
 					RoomId: exitInfo.RoomId,
-					Pos:    dstPos,
 				}
 
-				for i := 0; i < c.ZoomLevel; i++ {
-					newCrawl.Pos = newCrawl.Pos.Combine(exitInfo.Direction)
+				neighbourNode := r.crawledRooms[exitInfo.RoomId]
+				if node.HasStoredCoords && neighbourNode != nil && neighbourNode.HasStoredCoords {
+					dx := neighbourNode.Pos.x - node.Pos.x
+					dy := neighbourNode.Pos.y - node.Pos.y
+					newCrawl.Pos = positionDelta{
+						x: dstPos.x + dx*c.ZoomLevel,
+						y: dstPos.y + dy*c.ZoomLevel,
+						z: dstPos.z,
+					}
+				} else {
+					newCrawl.Pos = dstPos
+					for i := 0; i < c.ZoomLevel; i++ {
+						newCrawl.Pos = newCrawl.Pos.Combine(exitInfo.Direction)
+					}
 				}
 
 				r.crawlQueue = append(r.crawlQueue, newCrawl)
@@ -753,6 +802,9 @@ func (r *mapper) GetFullMap(centerRoomId int, c Config) mapRender {
 		c.ZoomLevel = 0
 	}
 	c.ZoomLevel++
+	if c.ZoomLevel < 2 {
+		c.ZoomLevel = 2
+	}
 
 	out := newMapRender(c.Width, c.Height)
 
@@ -830,33 +882,38 @@ func (r *mapper) GetFullMap(centerRoomId int, c Config) mapRender {
 				xStart, yStart := dstPos.x+drawX, dstPos.y+drawY
 				for _, exitInfo := range node.Exits {
 
-					maxSteps := c.ZoomLevel
-
 					xStepDir := 0
 					if exitInfo.Direction.x < 0 {
-						if exitInfo.Direction.x < -1 {
-							maxSteps += 1
-						}
 						xStepDir = -1
 					} else if exitInfo.Direction.x > 0 {
-						if exitInfo.Direction.x > 1 {
-							maxSteps += 1
-						}
 						xStepDir = 1
 					}
 
 					yStepDir := 0
 					if exitInfo.Direction.y < 0 {
-						if exitInfo.Direction.y < -1 {
-							maxSteps += 1
-						}
 						yStepDir = -1
 					} else if exitInfo.Direction.y > 0 {
-						if exitInfo.Direction.y > 1 {
-							maxSteps += 1
-						}
 						yStepDir = 1
 					}
+
+					// Connector lines fill the gap between rooms. Canvas distance
+					// between two rooms is mag*ZoomLevel, so draw steps 1..(mag*ZoomLevel-1).
+					absDx := exitInfo.Direction.x
+					if absDx < 0 {
+						absDx = -absDx
+					}
+					absDy := exitInfo.Direction.y
+					if absDy < 0 {
+						absDy = -absDy
+					}
+					mag := absDx
+					if absDy > mag {
+						mag = absDy
+					}
+					if mag == 0 {
+						mag = 1
+					}
+					maxSteps := mag * c.ZoomLevel
 
 					drawX2, drawY2 := 0, 0
 					for step := 1; step < maxSteps; step++ {
@@ -903,7 +960,6 @@ func (r *mapper) GetFullMap(centerRoomId int, c Config) mapRender {
 func resolveNodeColors(node *mapNode, symbol rune) (fg, bg int) {
 	symStr := string(symbol)
 	if node.SymbolOverrides != nil {
-		mudlog.Debug("TEST", "symbol", symStr, "ALL", node.SymbolOverrides, "chosen", node.SymbolOverrides[symStr])
 		if ov, ok := node.SymbolOverrides[symStr]; ok {
 			fg = ov.FGColor
 			bg = ov.BGColor
@@ -918,6 +974,32 @@ func resolveNodeColors(node *mapNode, symbol rune) (fg, bg int) {
 		}
 	}
 	return node.Color.FGColor, node.Color.BGColor
+}
+
+// arrowForDelta returns the connector rune that best represents the direction
+// from one room to another given the raw coordinate delta between them.
+func arrowForDelta(dx, dy, dz int) rune {
+	if dz != 0 {
+		if dz > 0 {
+			return '^'
+		}
+		return 'v'
+	}
+	switch {
+	case dx == 0 && dy != 0:
+		return '│'
+	case dy == 0 && dx != 0:
+		return '─'
+	case dx > 0 && dy < 0:
+		return '╱'
+	case dx < 0 && dy > 0:
+		return '╱'
+	case dx > 0 && dy > 0:
+		return '╲'
+	case dx < 0 && dy < 0:
+		return '╲'
+	}
+	return '•'
 }
 
 func (r *mapper) getMapNode(roomId int) *mapNode {
@@ -974,12 +1056,27 @@ func (r *mapper) getMapNode(roomId int) *mapNode {
 			exitNode.LockId = fmt.Sprintf(`%d-%s`, room.RoomId, exitName)
 		}
 
-		if d, ok := posDeltas[exitInfo.MapDirection]; ok {
-			exitNode.Direction = d
-		} else if d, ok := posDeltas[exitName]; ok {
-			exitNode.Direction = d
-		} else {
-			continue
+		// Derive the connector direction from the actual coordinate delta when
+		// both rooms have stored coordinates in the same zone. This is always
+		// authoritative and eliminates any dependency on mapdirection magnitude.
+		dirSet := false
+		if useStoredCoords {
+			if targetRoom := rooms.LoadRoom(exitInfo.RoomId); targetRoom != nil && targetRoom.HasCoordinates && targetRoom.Zone == r.rootZone {
+				dx := targetRoom.MapX - room.MapX
+				dy := targetRoom.MapY - room.MapY
+				dz := targetRoom.MapZ - room.MapZ
+				exitNode.Direction = positionDelta{x: dx, y: dy, z: dz, arrow: arrowForDelta(dx, dy, dz)}
+				dirSet = true
+			}
+		}
+		if !dirSet {
+			// Fall back to exit-name delta only (never mapdirection) so the
+			// magnitude is always 1 unit and consistent with non-coordinate rooms.
+			if d, ok := posDeltas[exitName]; ok {
+				exitNode.Direction = d
+			} else {
+				continue
+			}
 		}
 
 		mNode.Exits[exitName] = exitNode
