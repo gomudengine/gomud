@@ -198,15 +198,16 @@
         </summary>
         <div class="api-body">
             <p>
-                Merges the supplied JSON fields into the existing <code>UserRecord</code> and
-                persists the result to disk. Only fields present in the request body are
-                applied. The <code>UserId</code> is always preserved from the URL and cannot
-                be changed.
+                Applies an allowlisted profile or character patch to the existing
+                <code>UserRecord</code> and persists the result to disk. Account identity
+                and security fields such as <code>UserId</code>, <code>Username</code>,
+                <code>Role</code>, and <code>Password</code> cannot be changed through
+                this endpoint.
             </p>
             <p>
-                To change a password use <code>SetPassword</code> via the in-game admin
-                commands; the <code>password</code> field written here is stored as-is and
-                must already be a valid bcrypt hash if you supply it.
+                To change a password use the dedicated password reset endpoint,
+                password reset tooling, or <code>SetPassword</code> via the in-game
+                admin commands.
             </p>
 
             <table class="params-table">
@@ -223,7 +224,7 @@
             <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
      <span class="flag">-X</span> PATCH \
      <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
-     <span class="flag">-d</span> <span class="str">'{"role":"admin","emailaddress":"newemail@example.com"}'</span> \
+     <span class="flag">-d</span> <span class="str">'{"EmailAddress":"newemail@example.com","Character":{"Gold":250}}'</span> \
      <span class="str">"http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/users/42"</span></div>
 
             <div class="response-examples">
@@ -235,7 +236,7 @@
   "success": true,
   "data": {
     "userid": 42,
-    "role": "admin",
+    "role": "user",
     "username": "alice",
     "emailaddress": "newemail@example.com",
     ...
@@ -253,6 +254,55 @@
                     <summary><span class="method resp-label status-err">404</span> <span class="resp-label">Not Found</span></summary>
                     <div class="resp-body">
                         <div class="curl-block">{"success":false,"error":"user not found"}</div>
+                    </div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-post">POST</span>
+            <span class="api-path">/admin/api/v1/users/{userid}/password</span>
+            <span class="api-desc">Reset a user password</span>
+        </summary>
+        <div class="api-body">
+            <p>
+                Sets a new password for the given user. The supplied plain-text password
+                is validated and stored with the same bcrypt hashing path used by user
+                creation.
+            </p>
+
+            <table class="params-table">
+                <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr>
+                        <td>Password <span class="required">required</span></td>
+                        <td>string</td>
+                        <td>New plain-text password. It is hashed before storage.</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="flag">-X</span> POST \
+     <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
+     <span class="flag">-d</span> <span class="str">'{"Password":"new-s3cr3t"}'</span> \
+     <span class="str">"http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/users/42/password"</span></div>
+
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body">
+                        <p>Returns the updated <code>UserRecord</code>.</p>
+                        <div class="curl-block">{"success":true,"data":{"userid":42,"username":"alice",...}}</div>
+                    </div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request</span></summary>
+                    <div class="resp-body">
+                        <p>Returned when the body is malformed or the password fails validation.</p>
+                        <div class="curl-block">{"success":false,"error":"Password is required"}</div>
                     </div>
                 </details>
             </div>
@@ -290,11 +340,6 @@
                         <td>Plain-text password. Hashed with bcrypt before storage. Optional - account will have no password if omitted.</td>
                     </tr>
                     <tr>
-                        <td>Role</td>
-                        <td>string</td>
-                        <td>Account role (<code>user</code>, <code>admin</code>, etc.). Defaults to <code>user</code> when omitted.</td>
-                    </tr>
-                    <tr>
                         <td>EmailAddress</td>
                         <td>string</td>
                         <td>Optional email address.</td>
@@ -305,7 +350,7 @@
             <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
      <span class="flag">-X</span> POST \
      <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
-     <span class="flag">-d</span> <span class="str">'{"Username":"bob","Password":"s3cr3t","Role":"user","EmailAddress":"bob@example.com"}'</span> \
+     <span class="flag">-d</span> <span class="str">'{"Username":"bob","Password":"s3cr3t","EmailAddress":"bob@example.com"}'</span> \
      <span class="str">"http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/users"</span></div>
 
             <div class="response-examples">
@@ -329,7 +374,7 @@
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request</span></summary>
                     <div class="resp-body">
-                        <p>Returned when the body is malformed, <code>Username</code> is missing, or the name fails validation.</p>
+                        <p>Returned when the body is malformed, <code>Username</code> is missing, <code>Role</code> is supplied, or the name fails validation.</p>
                         <div class="curl-block">{"success":false,"error":"Username is required"}</div>
                     </div>
                 </details>

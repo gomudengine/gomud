@@ -272,12 +272,12 @@
 
                 <div class="field">
                     <label>Username</label>
-                    <input type="text" id="f-username" placeholder="username" />
-                    <div class="field-hint">Changing the username does not update the login index - use with care.</div>
+                    <input type="text" id="f-username" placeholder="username" readonly />
+                    <div class="field-hint">Account identity changes are handled outside this editor.</div>
                 </div>
                 <div class="field">
                     <label>Role</label>
-                    <select id="f-role">
+                    <select id="f-role" disabled>
                         <option value="user">user</option>
                         <option value="admin">admin</option>
                         <option value="guest">guest</option>
@@ -291,7 +291,7 @@
                 <div class="field">
                     <label>New Password</label>
                     <input type="password" id="f-password" placeholder="leave blank to keep current" autocomplete="new-password" />
-                    <div class="field-hint">Will be bcrypt-hashed before saving. Leave blank to keep the existing password.</div>
+                    <div class="field-hint">Saved through the password reset endpoint. Leave blank to keep the existing password.</div>
                 </div>
 
                 <div class="field">
@@ -1172,8 +1172,6 @@
         }
 
         const payload = {
-            Username:     document.getElementById('f-username').value.trim(),
-            Role:         document.getElementById('f-role').value,
             EmailAddress: document.getElementById('f-email').value.trim(),
             Muted:        document.getElementById('f-muted').checked,
             ScreenReader: document.getElementById('f-screenreader').checked,
@@ -1216,18 +1214,25 @@
             },
         };
 
-        // Only include password if the admin typed a new one.
-        const pw = document.getElementById('f-password').value;
-        if (pw) payload.Password = pw;
-
         const res = await AdminAPI.patch('/admin/api/v1/users/' + currentUserId, payload);
 
-        btn.disabled = false; btn.textContent = 'Save User';
-
         if (!res.ok) {
+            btn.disabled = false; btn.textContent = 'Save User';
             showStatus('Save failed: ' + res.error, false);
             return;
         }
+
+        const pw = document.getElementById('f-password').value;
+        if (pw) {
+            const pwRes = await AdminAPI.post('/admin/api/v1/users/' + currentUserId + '/password', { Password: pw });
+            if (!pwRes.ok) {
+                btn.disabled = false; btn.textContent = 'Save User';
+                showStatus('User saved, but password reset failed: ' + pwRes.error, false);
+                return;
+            }
+        }
+
+        btn.disabled = false; btn.textContent = 'Save User';
 
         const saved = res.data.data;
 

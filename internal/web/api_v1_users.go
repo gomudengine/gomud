@@ -2,10 +2,13 @@ package web
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 
+	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
@@ -64,35 +67,15 @@ func apiV1PatchUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Capture the plaintext password from the request before decoding into the
-	// UserRecord, because UserRecord.Password stores a bcrypt hash and we need
-	// to call SetPassword to hash a new plaintext value.
-	var raw struct {
-		Password string `json:"Password"`
-	}
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		writeAPIError(w, http.StatusBadRequest, "failed to read request body: "+err.Error())
-		return
-	}
-	_ = json.Unmarshal(body, &raw)
+	updated := u.Clone()
 
-	updated := *u
-	if err := json.Unmarshal(body, &updated); err != nil {
+	if err := applyUserPatch(&updated, r.Body); err != nil {
 		writeAPIError(w, http.StatusBadRequest, "malformed request body: "+err.Error())
 		return
 	}
 
 	// Preserve the canonical ID; callers cannot change it via PATCH.
 	updated.UserId = userId
-
-	// If a plaintext password was supplied, hash it properly.
-	if raw.Password != "" && !isBcryptHash(raw.Password) {
-		if err := updated.SetPassword(raw.Password); err != nil {
-			writeAPIError(w, http.StatusBadRequest, "invalid password: "+err.Error())
-			return
-		}
-	}
 
 	if updated.Character.Gold < 0 {
 		updated.Character.Gold = 0
@@ -116,10 +99,175 @@ func apiV1PatchUser(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// isBcryptHash returns true when s already looks like a bcrypt hash so we do
-// not double-hash a value that was round-tripped through the API.
-func isBcryptHash(s string) bool {
-	return len(s) > 4 && (s[:4] == "$2a$" || s[:4] == "$2b$")
+// POST /admin/api/v1/users/{userid}/password
+func apiV1ResetUserPassword(w http.ResponseWriter, r *http.Request) {
+	userId := resolveUserId(w, r.PathValue("userid"))
+	if userId == 0 {
+		return
+	}
+
+	u := loadUserRecord(w, userId)
+	if u == nil {
+		return
+	}
+
+	var body struct {
+		Password string `json:"Password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeAPIError(w, http.StatusBadRequest, "malformed request body: "+err.Error())
+		return
+	}
+	if body.Password == "" {
+		writeAPIError(w, http.StatusBadRequest, "Password is required")
+		return
+	}
+
+	updated := u.Clone()
+	if err := updated.SetPassword(body.Password); err != nil {
+		writeAPIError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := users.SaveUser(updated); err != nil {
+		writeAPIError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	users.UpdateOnlineUser(updated)
+
+	writeJSON(w, http.StatusOK, APIResponse[*users.UserRecord]{
+		Success: true,
+		Data:    &updated,
+	})
+}
+
+func applyUserPatch(u *users.UserRecord, body io.Reader) error {
+	var fields map[string]json.RawMessage
+	if err := json.NewDecoder(body).Decode(&fields); err != nil {
+		return err
+	}
+
+	for key, raw := range fields {
+		switch strings.ToLower(key) {
+		case "emailaddress":
+			if err := json.Unmarshal(raw, &u.EmailAddress); err != nil {
+				return err
+			}
+		case "muted":
+			if err := json.Unmarshal(raw, &u.Muted); err != nil {
+				return err
+			}
+		case "screenreader":
+			if err := json.Unmarshal(raw, &u.ScreenReader); err != nil {
+				return err
+			}
+		case "character":
+			if err := applyCharacterPatch(u.Character, raw); err != nil {
+				return err
+			}
+		case "userid", "role", "username", "password", "joined", "macros", "aliases", "configoptions", "tipscomplete":
+			return jsonFieldError(key, "field cannot be changed through this endpoint")
+		default:
+			return jsonFieldError(key, "unsupported user patch field")
+		}
+	}
+
+	return nil
+}
+
+func applyCharacterPatch(c *characters.Character, body json.RawMessage) error {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(body, &fields); err != nil {
+		return err
+	}
+
+	for key, raw := range fields {
+		switch strings.ToLower(key) {
+		case "name":
+			var name string
+			if err := json.Unmarshal(raw, &name); err != nil {
+				return err
+			}
+			c.Name = name
+		case "description":
+			if err := json.Unmarshal(raw, &c.Description); err != nil {
+				return err
+			}
+		case "raceid":
+			if err := json.Unmarshal(raw, &c.RaceId); err != nil {
+				return err
+			}
+		case "experience":
+			if err := json.Unmarshal(raw, &c.Experience); err != nil {
+				return err
+			}
+		case "roomid":
+			if err := json.Unmarshal(raw, &c.RoomId); err != nil {
+				return err
+			}
+		case "alignment":
+			if err := json.Unmarshal(raw, &c.Alignment); err != nil {
+				return err
+			}
+		case "gold":
+			if err := json.Unmarshal(raw, &c.Gold); err != nil {
+				return err
+			}
+		case "bank":
+			if err := json.Unmarshal(raw, &c.Bank); err != nil {
+				return err
+			}
+		case "trainingpoints":
+			if err := json.Unmarshal(raw, &c.TrainingPoints); err != nil {
+				return err
+			}
+		case "statpoints":
+			if err := json.Unmarshal(raw, &c.StatPoints); err != nil {
+				return err
+			}
+		case "extralives":
+			if err := json.Unmarshal(raw, &c.ExtraLives); err != nil {
+				return err
+			}
+		case "stats":
+			if err := json.Unmarshal(raw, &c.Stats); err != nil {
+				return err
+			}
+		case "skills":
+			if err := json.Unmarshal(raw, &c.Skills); err != nil {
+				return err
+			}
+		case "equipment":
+			if err := json.Unmarshal(raw, &c.Equipment); err != nil {
+				return err
+			}
+		case "items":
+			if err := json.Unmarshal(raw, &c.Items); err != nil {
+				return err
+			}
+		case "shop":
+			if err := json.Unmarshal(raw, &c.Shop); err != nil {
+				return err
+			}
+		case "spellbook":
+			if err := json.Unmarshal(raw, &c.SpellBook); err != nil {
+				return err
+			}
+		case "pet":
+			if err := json.Unmarshal(raw, &c.Pet); err != nil {
+				return err
+			}
+		default:
+			return jsonFieldError("Character."+key, "unsupported character patch field")
+		}
+	}
+
+	return nil
+}
+
+func jsonFieldError(field string, reason string) error {
+	return fmt.Errorf("%s: %s", field, reason)
 }
 
 // POST /admin/api/v1/users
@@ -127,8 +275,8 @@ func apiV1CreateUser(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Username string `json:"Username"`
 		Password string `json:"Password"`
-		Role     string `json:"Role"`
 		Email    string `json:"EmailAddress"`
+		Role     string `json:"Role"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeAPIError(w, http.StatusBadRequest, "malformed request body: "+err.Error())
@@ -144,6 +292,10 @@ func apiV1CreateUser(w http.ResponseWriter, r *http.Request) {
 		writeAPIError(w, http.StatusConflict, "username already exists")
 		return
 	}
+	if body.Role != "" {
+		writeAPIError(w, http.StatusBadRequest, "Role cannot be set through this endpoint")
+		return
+	}
 
 	u := users.NewUserRecord(0, 0)
 	if err := u.SetUsername(body.Username); err != nil {
@@ -155,9 +307,6 @@ func apiV1CreateUser(w http.ResponseWriter, r *http.Request) {
 			writeAPIError(w, http.StatusBadRequest, err.Error())
 			return
 		}
-	}
-	if body.Role != "" {
-		u.Role = body.Role
 	}
 	if body.Email != "" {
 		u.EmailAddress = body.Email
