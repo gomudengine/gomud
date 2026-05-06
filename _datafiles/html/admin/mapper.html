@@ -1364,6 +1364,150 @@
         margin-top: 2px;
     }
     .re-spawn-add-btn:hover { color: var(--color-text); border-color: var(--color-text-dim); }
+
+    /* ------------------------------------------------------------------ */
+    /*  Tag editor (room editor modal)                                      */
+    /* ------------------------------------------------------------------ */
+    .re-tag-wrap {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        align-items: center;
+        min-height: 28px;
+    }
+    .re-tag-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        font-size: 0.72rem;
+        padding: 2px 6px;
+        border-radius: 10px;
+        background: var(--color-surface-white);
+        border: 1px solid var(--color-border);
+        color: var(--color-text);
+        font-family: monospace;
+    }
+    .re-tag-chip button {
+        background: none;
+        border: none;
+        color: var(--color-text-dim);
+        font-size: 0.85rem;
+        cursor: pointer;
+        padding: 0;
+        line-height: 1;
+    }
+    .re-tag-chip button:hover { color: #ff6b6b; }
+    .re-tag-picker-wrap { position: relative; display: inline-block; }
+    .re-tag-picker-dropdown {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        z-index: 1100;
+        background: var(--color-surface-white);
+        border: 1px solid var(--color-border);
+        border-radius: 6px;
+        min-width: 200px;
+        max-width: 320px;
+        max-height: 240px;
+        overflow-y: auto;
+        padding: 4px 0;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    }
+    .re-tag-picker-dropdown.open { display: block; }
+    .re-tag-picker-search {
+        width: calc(100% - 12px);
+        margin: 4px 6px;
+        padding: 4px 7px;
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        font-size: 0.8rem;
+        background: var(--color-surface);
+        color: var(--color-text);
+        font-family: monospace;
+        box-sizing: border-box;
+    }
+    .re-tag-picker-search:focus { outline: none; border-color: var(--color-primary); }
+    .re-tag-picker-group {
+        padding: 3px 8px 1px;
+        font-size: 0.68rem;
+        font-weight: 700;
+        color: var(--color-text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .re-tag-picker-item {
+        padding: 4px 10px;
+        cursor: pointer;
+        font-size: 0.8rem;
+        font-family: monospace;
+        color: var(--color-text);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .re-tag-picker-item:hover { background: var(--color-primary); color: #fff; }
+    .re-tag-picker-item.selected { color: var(--color-primary); font-weight: 600; }
+    .re-tag-picker-item.selected::before { content: "\2713"; font-size: 0.72rem; }
+    .re-tag-picker-item:not(.selected)::before { content: ""; display: inline-block; width: 0.9em; }
+    .re-tag-picker-empty { padding: 8px 10px; color: var(--color-text-dim); font-size: 0.78rem; font-family: monospace; }
+    .re-tag-custom-row {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+        margin-top: 4px;
+    }
+    .re-tag-custom-input {
+        flex: 1;
+        min-width: 0;
+        box-sizing: border-box;
+        background: var(--color-surface-white);
+        color: var(--color-text);
+        border: 1px solid var(--color-border);
+        border-radius: 3px;
+        padding: 4px 7px;
+        font-family: monospace;
+        font-size: 0.8rem;
+    }
+    .re-tag-custom-input:focus { outline: none; border-color: var(--color-primary); }
+    .re-tag-add-btn {
+        background: none;
+        border: 1px dashed var(--color-border);
+        color: var(--color-text-dim);
+        border-radius: 3px;
+        padding: 4px 10px;
+        font-family: monospace;
+        font-size: 0.75rem;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+    .re-tag-add-btn:hover { color: var(--color-text); border-color: var(--color-text-dim); }
+    /* Clickable tags row in info panel */
+    .info-tags-editable {
+        cursor: pointer;
+        border-radius: 3px;
+        padding: 1px 2px;
+        margin: -1px -2px;
+        transition: background 0.1s;
+    }
+    .info-tags-editable:hover { background: rgba(255,255,255,0.06); }
+    .info-tags-editable .info-badge::after {
+        content: ' \270E';
+        font-size: 0.6rem;
+        opacity: 0.5;
+        font-style: normal;
+    }
+    .info-tags-add {
+        font-size: 0.65rem;
+        padding: 1px 5px;
+        border-radius: 3px;
+        background: none;
+        border: 1px dashed var(--color-border);
+        color: var(--color-text-dim);
+        cursor: pointer;
+        font-family: monospace;
+    }
+    .info-tags-add:hover { color: var(--color-text); border-color: var(--color-text-dim); }
 </style>
 
 <h1>Zone Mapper</h1>
@@ -1575,6 +1719,22 @@
                 <div class="room-editor-field" style="grid-column:1 / -1">
                     <label class="room-editor-label" for="room-editor-maplegend">Map Legend</label>
                     <input class="room-editor-input" type="text" id="room-editor-maplegend" placeholder="One-word legend label (optional)" autocomplete="off">
+                </div>
+            </div>
+            <div class="room-editor-field">
+                <label class="room-editor-label">Tags</label>
+                <div class="re-tag-wrap" id="room-editor-tags"></div>
+                <div style="display:flex;gap:6px;align-items:center;margin-top:5px;flex-wrap:wrap">
+                    <div class="re-tag-picker-wrap">
+                        <button class="re-tag-add-btn" id="room-editor-tag-pick-btn">+ Pick Tag</button>
+                        <div class="re-tag-picker-dropdown" id="room-editor-tag-picker">
+                            <input type="search" class="re-tag-picker-search" id="room-editor-tag-search" placeholder="Filter tags...">
+                            <div id="room-editor-tag-picker-list"></div>
+                        </div>
+                    </div>
+                    <span style="font-size:0.72rem;color:var(--color-text-dim)">or custom:</span>
+                    <input type="text" class="re-tag-custom-input" id="room-editor-tag-custom" placeholder="custom tag..." autocomplete="off" style="width:140px">
+                    <button class="re-tag-add-btn" id="room-editor-tag-custom-add">+</button>
                 </div>
             </div>
             <div class="room-editor-field">

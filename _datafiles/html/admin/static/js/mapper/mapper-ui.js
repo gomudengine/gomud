@@ -315,9 +315,11 @@ var MapperUI = (function() {
                 var tagBadges = room.Tags.map(function(t) {
                     var mod = MapperState.tagDescriptions[t];
                     var tipText = mod ? 'module: ' + mod : t;
-                    return '<span class="info-badge" style="cursor:default" title="' + escapeHtml(tipText) + '">' + escapeHtml(t) + '</span>';
+                    return '<span class="info-badge" title="' + escapeHtml(tipText) + '">' + escapeHtml(t) + '</span>';
                 }).join(' ');
-                html += '<div class="info-row"><span class="info-label">Tags</span><span class="info-value info-badges">' + tagBadges + '</span></div>';
+                html += '<div class="info-row"><span class="info-label">Tags</span><span class="info-value info-badges info-tags-editable" id="info-tags-link" title="Click to edit tags">' + tagBadges + '</span></div>';
+            } else {
+                html += '<div class="info-row"><span class="info-label">Tags</span><span class="info-value"><button class="info-tags-add" id="info-tags-link">+ add tags</button></span></div>';
             }
 
             // Mob spawns: rendered as a placeholder first, then mob names filled in
@@ -398,6 +400,10 @@ var MapperUI = (function() {
             }
             if (legendLinkEl) {
                 (function(fn) { legendLinkEl.addEventListener('click', fn); })(openEditor);
+            }
+            var tagsLinkEl = document.getElementById('info-tags-link');
+            if (tagsLinkEl) {
+                (function(fn) { tagsLinkEl.addEventListener('click', fn); })(function() { openRoomEditor(room.RoomId, room, undefined, true); });
             }
 
             // Back-fill mob names asynchronously
@@ -1220,6 +1226,34 @@ var MapperUI = (function() {
     }
 
     // =====================================================================
+    //  Tag chip helpers (room editor)
+    // =====================================================================
+
+    function _reTagAppendChip(wrap, tag) {
+        var chip = document.createElement('span');
+        chip.className = 're-tag-chip';
+        chip.dataset.tag = tag;
+        chip.innerHTML = _reEsc(tag) + ' <button type="button" title="Remove tag">&times;</button>';
+        chip.querySelector('button').addEventListener('click', function() {
+            chip.remove();
+            // Update picker selected state if open
+            var list = document.getElementById('room-editor-tag-picker-list');
+            if (list) {
+                list.querySelectorAll('.re-tag-picker-item').forEach(function(item) {
+                    if (item.dataset.tag === tag) item.classList.remove('selected');
+                });
+            }
+        });
+        wrap.appendChild(chip);
+    }
+
+    function _reTagCollect() {
+        var wrap = document.getElementById('room-editor-tags');
+        if (!wrap) return [];
+        return Array.from(wrap.querySelectorAll('.re-tag-chip')).map(function(c) { return c.dataset.tag; }).filter(Boolean);
+    }
+
+    // =====================================================================
     //  Room editor modal
     // =====================================================================
 
@@ -1250,7 +1284,7 @@ var MapperUI = (function() {
         return row;
     }
 
-    function openRoomEditor(roomId, roomData, focusSpawnIdx) {
+    function openRoomEditor(roomId, roomData, focusSpawnIdx, focusTags) {
         _roomEditorRoomId = roomId;
         _roomEditorData   = roomData;
 
@@ -1270,6 +1304,12 @@ var MapperUI = (function() {
         var cancelBtn  = document.getElementById('room-editor-cancel');
         var closeBtn   = document.getElementById('room-editor-close');
         var addNounBtn = document.getElementById('room-editor-noun-add');
+        var tagsWrap   = document.getElementById('room-editor-tags');
+        var tagPickBtn = document.getElementById('room-editor-tag-pick-btn');
+        var tagSearch  = document.getElementById('room-editor-tag-search');
+        var tagPickerList = document.getElementById('room-editor-tag-picker-list');
+        var tagCustomInput = document.getElementById('room-editor-tag-custom');
+        var tagCustomAdd   = document.getElementById('room-editor-tag-custom-add');
         if (!backdrop) return;
 
         // Populate fields
@@ -1356,6 +1396,112 @@ var MapperUI = (function() {
             _roomEditorAddNounRow(nounRows, k, nouns[k]);
         });
 
+        // Populate tag chips
+        if (tagsWrap) {
+            tagsWrap.innerHTML = '';
+            (roomData.Tags || []).forEach(function(t) { _reTagAppendChip(tagsWrap, t); });
+        }
+
+        // Build tag picker list helper
+        function _reTagBuildPickerList(filter) {
+            if (!tagPickerList) return;
+            tagPickerList.innerHTML = '';
+            var allTagEntries = MapperState.allTagEntries || [];
+            var current = _reTagCollect();
+            var filterLc = (filter || '').toLowerCase();
+            if (allTagEntries.length === 0) {
+                tagPickerList.innerHTML = '<div class="re-tag-picker-empty">No registered tags found.</div>';
+                return;
+            }
+            var groups = {};
+            allTagEntries.forEach(function(e) {
+                if (filterLc && e.tag.toLowerCase().indexOf(filterLc) === -1 && e.module.toLowerCase().indexOf(filterLc) === -1) return;
+                if (!groups[e.module]) groups[e.module] = [];
+                groups[e.module].push(e.tag);
+            });
+            var anyItem = false;
+            Object.keys(groups).sort().forEach(function(mod) {
+                var grpEl = document.createElement('div');
+                grpEl.className = 're-tag-picker-group';
+                grpEl.textContent = mod;
+                tagPickerList.appendChild(grpEl);
+                groups[mod].forEach(function(tag) {
+                    anyItem = true;
+                    var item = document.createElement('div');
+                    item.className = 're-tag-picker-item' + (current.indexOf(tag) !== -1 ? ' selected' : '');
+                    item.dataset.tag = tag;
+                    item.textContent = tag;
+                    item.addEventListener('click', function() {
+                        var cur = _reTagCollect();
+                        if (cur.indexOf(tag) !== -1) {
+                            tagsWrap.querySelectorAll('.re-tag-chip').forEach(function(c) {
+                                if (c.dataset.tag === tag) c.remove();
+                            });
+                            item.classList.remove('selected');
+                        } else {
+                            _reTagAppendChip(tagsWrap, tag);
+                            item.classList.add('selected');
+                        }
+                    });
+                    tagPickerList.appendChild(item);
+                });
+            });
+            if (!anyItem) {
+                tagPickerList.innerHTML = '<div class="re-tag-picker-empty">No matching tags.</div>';
+            }
+        }
+
+        // Wire tag picker button
+        if (tagPickBtn) {
+            var newTagPickBtn = tagPickBtn.cloneNode(true);
+            tagPickBtn.parentNode.replaceChild(newTagPickBtn, tagPickBtn);
+            newTagPickBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var dd = document.getElementById('room-editor-tag-picker');
+                var isOpen = dd && dd.classList.contains('open');
+                if (dd) dd.classList.remove('open');
+                if (!isOpen && dd) {
+                    var searchEl = document.getElementById('room-editor-tag-search');
+                    if (searchEl) searchEl.value = '';
+                    _reTagBuildPickerList('');
+                    dd.classList.add('open');
+                    if (searchEl) setTimeout(function() { searchEl.focus(); }, 30);
+                }
+            });
+        }
+        if (tagSearch) {
+            var newTagSearch = tagSearch.cloneNode(true);
+            tagSearch.parentNode.replaceChild(newTagSearch, tagSearch);
+            newTagSearch.addEventListener('input', function() { _reTagBuildPickerList(this.value); });
+        }
+
+        // Wire custom tag add
+        function _reTagAddCustom() {
+            var val = (tagCustomInput ? tagCustomInput.value.trim().toLowerCase() : '');
+            if (!val) return;
+            if (_reTagCollect().indexOf(val) !== -1) { if (tagCustomInput) tagCustomInput.value = ''; return; }
+            _reTagAppendChip(tagsWrap, val);
+            if (tagCustomInput) tagCustomInput.value = '';
+            // Update picker state if open
+            if (tagPickerList) {
+                tagPickerList.querySelectorAll('.re-tag-picker-item').forEach(function(item) {
+                    if (item.dataset.tag === val) item.classList.add('selected');
+                });
+            }
+        }
+        if (tagCustomAdd) {
+            var newTagCustomAdd = tagCustomAdd.cloneNode(true);
+            tagCustomAdd.parentNode.replaceChild(newTagCustomAdd, tagCustomAdd);
+            newTagCustomAdd.addEventListener('click', _reTagAddCustom);
+        }
+        if (tagCustomInput) {
+            var newTagCustomInput = tagCustomInput.cloneNode(true);
+            tagCustomInput.parentNode.replaceChild(newTagCustomInput, tagCustomInput);
+            newTagCustomInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') { e.preventDefault(); _reTagAddCustom(); }
+            });
+        }
+
         // Populate spawn cards
         spawnList.innerHTML = '';
         (roomData.SpawnInfo || []).forEach(function(s) {
@@ -1377,6 +1523,12 @@ var MapperUI = (function() {
                     }
                     target.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
                 }
+            } else if (focusTags) {
+                var tagsEl = document.getElementById('room-editor-tags');
+                if (tagsEl) tagsEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                // Auto-open the tag picker
+                var pickBtnEl = document.getElementById('room-editor-tag-pick-btn');
+                if (pickBtnEl) pickBtnEl.click();
             } else {
                 titleEl.focus();
                 titleEl.select();
@@ -1406,6 +1558,7 @@ var MapperUI = (function() {
 
         function close() {
             backdrop.classList.remove('visible');
+            backdrop._tagPickerClickHandler && document.removeEventListener('click', backdrop._tagPickerClickHandler);
             _roomEditorRoomId = null;
             _roomEditorData   = null;
         }
@@ -1442,6 +1595,7 @@ var MapperUI = (function() {
                 Biome:       biomeEl ? biomeEl.value : (_roomEditorData.Biome || ''),
                 MapSymbol:   symbolEl ? symbolEl.value.trim() : (_roomEditorData.MapSymbol || ''),
                 MapLegend:   legendEl ? legendEl.value.trim() : (_roomEditorData.MapLegend || ''),
+                Tags:        _reTagCollect(),
                 Nouns:       Object.keys(newNouns).length > 0 ? newNouns : null,
                 SpawnInfo:   newSpawns.length > 0 ? newSpawns : null
             });
@@ -1493,7 +1647,14 @@ var MapperUI = (function() {
         rewire(document.getElementById('room-editor-close'),  close);
 
         // Close on backdrop click
-        backdrop.onclick = function(e) { if (e.target === backdrop) close(); };
+        backdrop.onclick = function(e) {
+            if (e.target === backdrop) close();
+            // Close tag picker if clicking outside it
+            if (!e.target.closest('.re-tag-picker-wrap')) {
+                var dd = document.getElementById('room-editor-tag-picker');
+                if (dd) dd.classList.remove('open');
+            }
+        };
 
         // Keyboard: Escape closes, Ctrl+Enter saves
         backdrop._keyHandler && document.removeEventListener('keydown', backdrop._keyHandler);
@@ -1503,6 +1664,17 @@ var MapperUI = (function() {
             if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); save(); }
         };
         document.addEventListener('keydown', backdrop._keyHandler);
+
+        // Close tag picker when clicking outside the picker wrap
+        backdrop._tagPickerClickHandler && document.removeEventListener('click', backdrop._tagPickerClickHandler);
+        backdrop._tagPickerClickHandler = function(e) {
+            if (!backdrop.classList.contains('visible')) return;
+            if (!e.target.closest('.re-tag-picker-wrap')) {
+                var dd = document.getElementById('room-editor-tag-picker');
+                if (dd) dd.classList.remove('open');
+            }
+        };
+        document.addEventListener('click', backdrop._tagPickerClickHandler);
     }
 
     // =====================================================================
