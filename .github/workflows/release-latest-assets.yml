@@ -9,7 +9,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   prep:
@@ -132,6 +132,8 @@ jobs:
 
   release:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
     needs:
       - prep
       - build
