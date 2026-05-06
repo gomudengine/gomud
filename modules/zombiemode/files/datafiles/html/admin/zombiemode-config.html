@@ -93,7 +93,7 @@
         if (!res.ok) { showStatus('Failed to load configuration: ' + res.error, false); return; }
         const all = res.data.data || {};
         for (const [fullKey, val] of Object.entries(all)) {
-            if (fullKey.startsWith(PREFIX)) {
+            if (fullKey.startsWith(PREFIX) && typeof val !== 'object') {
                 configData[fullKey.slice(PREFIX.length)] = String(val);
             }
         }
