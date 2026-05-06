@@ -33,7 +33,10 @@ runs:
         import os
 
         title = os.environ.get("PR_TITLE") or "Pull request notification"
-        description = os.environ.get("PR_BODY") or "No pull request description provided."
+        description = (
+            os.environ.get("PR_BODY") or
+            "No pull request description provided."
+        )
         url = os.environ.get("PR_URL") or ""
 
         print(json.dumps({
