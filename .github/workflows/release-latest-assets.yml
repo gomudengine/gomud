@@ -27,7 +27,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6.0.2
         with:
-          ref: master
+          ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Compute release metadata
@@ -75,7 +75,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6.0.2
         with:
-          ref: master
+          ref: ${{ github.sha }}
           persist-credentials: false
       - uses: ./.github/actions/setup-go
 
@@ -144,7 +144,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6.0.2
         with:
-          ref: master
+          ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Download builds
