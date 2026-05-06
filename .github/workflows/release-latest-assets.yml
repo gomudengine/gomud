@@ -230,6 +230,11 @@ jobs:
           )
 
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh api \
+              -X PATCH \
+              "repos/${GITHUB_REPOSITORY}/git/refs/tags/${RELEASE_TAG}" \
+              -f "sha=${GITHUB_SHA}" \
+              -F force=true
             gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
             gh release edit "$RELEASE_TAG" \
               --title "$RELEASE_TITLE" \
