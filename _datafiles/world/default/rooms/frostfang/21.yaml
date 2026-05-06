@@ -13,8 +13,8 @@ description: 'Adjacent to the Sanctuary of the Benevolent Heart, a narrow, shado
   hinting at the lives precariously balanced in this hidden enclave, a stone''s throw
   away from a place of worship and refuge.'
 exits:
-  south:
-    roomid: 22
+  east:
+    roomid: 24
   west:
     roomid: 20
 spawninfo:
@@ -31,6 +31,6 @@ spawninfo:
   level: 1
   respawnrate: 1 real minutes
 mapx: 2
-mapy: 4
+mapy: 5
 mapz: 0
 hascoordinates: true

@@ -12,7 +12,7 @@ description: In this secluded part of The Mirror Caves, you come across a chambe
 exits:
   south:
     roomid: 1019
-mapx: -16
+mapx: -17
 mapy: 9
-mapz: 0
+mapz: -1
 hascoordinates: true

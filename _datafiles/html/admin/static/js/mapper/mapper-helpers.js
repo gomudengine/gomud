@@ -3,8 +3,7 @@
  *
  * Pure utility functions shared across every mapper module. Nothing here
  * touches the DOM or carries state -- each function takes explicit inputs
- * and returns a deterministic result (except escapeHtml, which uses a
- * throwaway DOM node for correctness).
+ * and returns a deterministic result.
  */
 /* jshint esversion: 11, browser: true */
 /* globals DIRECTION_DELTAS, DIRECTIONAL_EXITS, BIOME_SYMBOLS, BIOME_COLORS, BIOME_BG_COLORS, BIOME_SYMBOL_OVERRIDES, DEFAULT_ROOM_COLOR, ZONE_BOX_PADDING, MapperState */
@@ -396,14 +395,17 @@ function computeBrokenExits(gx, gy, constraints) {
 
 // --- String Utilities ---
 
+// Persistent element reused across all escapeHtml calls to avoid allocating
+// a new DOM node on every invocation.
+var _escapeEl = document.createElement('div');
+
 /**
- * Escapes a string for safe insertion into HTML. Uses a throwaway DOM text
+ * Escapes a string for safe insertion into HTML. Uses a persistent DOM text
  * node so we get browser-native escaping without maintaining our own entity map.
  * @param  {string} s - Raw text.
  * @return {string} HTML-safe string.
  */
 function escapeHtml(s) {
-    var d = document.createElement('div');
-    d.textContent = s;
-    return d.innerHTML;
+    _escapeEl.textContent = s;
+    return _escapeEl.innerHTML;
 }

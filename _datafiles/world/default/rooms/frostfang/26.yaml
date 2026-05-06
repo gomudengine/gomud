@@ -18,11 +18,6 @@ exits:
     roomid: 27
   south:
     roomid: 25
-nouns:
-  bird: :raven
-  raven: Looking more closely, the eyes of the raven are made of onyx. They are clean
-    and clear, as if polished.
-  raven's eyes: :raven
 items:
 - itemid: 20001
 - itemid: 20011
@@ -40,6 +35,6 @@ spawninfo:
   level: 1
   respawnrate: 1 real minutes
 mapx: 4
-mapy: 3
+mapy: 4
 mapz: 0
 hascoordinates: true

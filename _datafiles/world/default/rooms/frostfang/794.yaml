@@ -13,8 +13,7 @@ exits:
     mapdirection: east-x2
   west:
     roomid: 793
-    mapdirection: west-x2
 mapx: -2
-mapy: -10
+mapy: -12
 mapz: 0
 hascoordinates: true

@@ -11,7 +11,7 @@ exits:
   north:
     roomid: 1
   south:
-    roomid: 13
+    roomid: 1062
 mapx: 0
 mapy: 1
 mapz: 0

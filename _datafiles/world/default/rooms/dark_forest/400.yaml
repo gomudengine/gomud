@@ -9,8 +9,6 @@ description: As you venture further along the old road, it leads you into the he
 exits:
   east:
     roomid: 401
-  south:
-    roomid: 414
   west:
     roomid: 399
 mapx: 28

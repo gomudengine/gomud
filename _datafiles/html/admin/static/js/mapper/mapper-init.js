@@ -127,6 +127,28 @@
     MapperTools.activate('pan');
 
     // =====================================================================
+    //  Canvas rect cache
+    // Calling getBoundingClientRect() on every mouse event forces a layout
+    // reflow. Cache it and invalidate only when the viewport resizes.
+    // =====================================================================
+
+    var _canvasRect = null;
+    function _getCanvasRect() {
+        if (!_canvasRect) _canvasRect = canvas.getBoundingClientRect();
+        return _canvasRect;
+    }
+
+    // Invalidate the cached rect whenever the canvas is resized so the next
+    // event picks up the new position automatically.
+    (function() {
+        var _origResizeCanvas = MapperRender.resizeCanvas;
+        MapperRender.resizeCanvas = function() {
+            _origResizeCanvas();
+            _canvasRect = null;
+        };
+    })();
+
+    // =====================================================================
     //  Canvas event dispatch
     // =====================================================================
 
@@ -135,7 +157,7 @@
         e.preventDefault();
         MapperCtxMenu.hide();
 
-        var rect = canvas.getBoundingClientRect();
+        var rect = _getCanvasRect();
         var cx = e.clientX - rect.left, cy = e.clientY - rect.top;
         var roomId = MapperRender.roomAtPoint(cx, cy);
         var gridCell = roomId === null ? MapperRender.canvasToGrid(cx, cy) : null;
@@ -160,7 +182,7 @@
     });
 
     canvas.addEventListener('mousemove', function(e) {
-        var rect = canvas.getBoundingClientRect();
+        var rect = _getCanvasRect();
         var cx = e.clientX - rect.left, cy = e.clientY - rect.top;
         var roomId = MapperRender.roomAtPoint(cx, cy);
         var gridCell = roomId === null ? MapperRender.canvasToGrid(cx, cy) : null;
@@ -177,18 +199,23 @@
             tool.onMouseMove(e, cx, cy, roomId, gridCell);
         }
 
-        // Update hover state for ghost cells and cursor style
+        // Update hover state for ghost cells and cursor style.
+        // Skip hoveredGridCell tracking while a room drag is active — the
+        // ghost cell is not visible during drag and the extra canvasToGrid
+        // call is wasted work.
         MapperState.hoveredRoomId = roomId;
-        var prevGhost = MapperState.hoveredGridCell;
-        if (roomId === null && MapperState.data.rooms.size > 0) {
-            MapperState.hoveredGridCell = MapperRender.canvasToGrid(cx, cy);
-        } else {
-            MapperState.hoveredGridCell = null;
+        if (!MapperState.roomDrag.active) {
+            var prevGhost = MapperState.hoveredGridCell;
+            if (roomId === null && MapperState.data.rooms.size > 0) {
+                MapperState.hoveredGridCell = MapperRender.canvasToGrid(cx, cy);
+            } else {
+                MapperState.hoveredGridCell = null;
+            }
+            var ghostChanged = (prevGhost === null) !== (MapperState.hoveredGridCell === null) ||
+                (prevGhost && MapperState.hoveredGridCell &&
+                 (prevGhost.gx !== MapperState.hoveredGridCell.gx || prevGhost.gy !== MapperState.hoveredGridCell.gy));
+            if (ghostChanged) MapperRender.scheduleRender();
         }
-        var ghostChanged = (prevGhost === null) !== (MapperState.hoveredGridCell === null) ||
-            (prevGhost && MapperState.hoveredGridCell &&
-             (prevGhost.gx !== MapperState.hoveredGridCell.gx || prevGhost.gy !== MapperState.hoveredGridCell.gy));
-        if (ghostChanged) MapperRender.scheduleRender();
 
         // Cursor: tools with a custom cursor override the default room/empty logic
         var activeTool = MapperTools.getActive();
@@ -201,7 +228,7 @@
     });
 
     canvas.addEventListener('mouseup', function(e) {
-        var rect = canvas.getBoundingClientRect();
+        var rect = _getCanvasRect();
         var cx = e.clientX - rect.left, cy = e.clientY - rect.top;
 
         // Room-drag may still be armed even though it is not the active tool
@@ -251,7 +278,7 @@
         if (activeTool && (activeTool.name === 'exit-draw' || activeTool.name === 'quick-build')) return;
 
         MapperCtxMenu.hide();
-        var rect = canvas.getBoundingClientRect();
+        var rect = _getCanvasRect();
         var cx = e.clientX - rect.left, cy = e.clientY - rect.top;
         var id = MapperRender.roomAtPoint(cx, cy);
 
@@ -288,12 +315,25 @@
         if (activeTool && activeTool.name === 'exit-draw') { MapperTools.activate('pan'); return; }
     });
 
+    // Wheel zoom: accumulate delta across rapid scroll events and apply once
+    // per animation frame so a fast trackpad doesn't queue dozens of
+    // individual Math.pow() calls and render passes.
+    var _wheelDelta = 0;
+    var _wheelScheduled = false;
     canvas.addEventListener('wheel', function(e) {
         e.preventDefault();
-        var factor = Math.pow(1.25, e.deltaY * 0.002);
-        var cam = MapperState.camera;
-        cam.zoomScale = Math.min(5.0, Math.max(0.15, cam.zoomScale / factor));
-        MapperRender.scheduleRender();
+        _wheelDelta += e.deltaY;
+        if (!_wheelScheduled) {
+            _wheelScheduled = true;
+            requestAnimationFrame(function() {
+                _wheelScheduled = false;
+                var factor = Math.pow(1.25, _wheelDelta * 0.002);
+                _wheelDelta = 0;
+                var cam = MapperState.camera;
+                cam.zoomScale = Math.min(5.0, Math.max(0.15, cam.zoomScale / factor));
+                MapperRender.scheduleRender();
+            });
+        }
     }, { passive: false });
 
     // Close context menu when clicking outside it

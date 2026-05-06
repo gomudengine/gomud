@@ -1,4 +1,4 @@
-roomid: 16
+roomid: 1062
 zone: Frostfang
 title: Beggars lane
 description: The cold wind of Frostfang whistles through the narrow, snow-dusted streets
@@ -6,21 +6,14 @@ description: The cold wind of Frostfang whistles through the narrow, snow-dusted
   a cautious endeavor. The buildings here are old, their wooden facades weathered
   and gray, bearing the scars of many harsh winters. The windows, few and far between,
   are mostly boarded up, but from some, faint glimmers of candlelight seep out, casting
-  eerie shadows on the snow. A dark alley twists and turns to the east, a foreboding
-  place.
+  eerie shadows on the snow.
+biome: city
 exits:
-  east:
-    roomid: 19
   north:
-    roomid: 15
+    roomid: 12
   south:
-    roomid: 439
-spawninfo:
-- mobid: 1
-  message: A rat scurries out from a dark hole and wiggles its whiskers.
-  level: 1
-  respawnrate: 1 real minutes
+    roomid: 13
 mapx: 0
-mapy: 5
+mapy: 2
 mapz: 0
 hascoordinates: true

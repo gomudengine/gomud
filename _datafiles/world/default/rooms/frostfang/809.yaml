@@ -13,7 +13,6 @@ exits:
     mapdirection: north-x2
   south:
     roomid: 810
-    mapdirection: south-x2
 mapx: 7
 mapy: 9
 mapz: 0

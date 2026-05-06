@@ -11,11 +11,7 @@ description: Hidden within the depths of Frostfang Castle, the storage closet is
 exits:
   east:
     roomid: 43
-nouns:
-  lantern: The lantern is old, and doesn't appear to be in working order. It's hanging
-    on the wall, but the glass is cracked and the wick is missing.
-  light: :lantern
 mapx: 1
-mapy: -7
+mapy: -9
 mapz: 0
 hascoordinates: true

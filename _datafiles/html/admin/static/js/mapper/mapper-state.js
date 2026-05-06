@@ -66,6 +66,7 @@ var MapperState = (function() {
     // --- Data Layer ---
 
     var tagDescriptions = {};  // tag -> module
+    var allTagEntries   = [];  // [{tag, module}, ...]
 
     var mapperData = {
         allZones: [],
@@ -622,7 +623,9 @@ var MapperState = (function() {
         var res = await AdminAPI.get('/admin/api/v1/tags');
         var list = res.ok && res.data ? res.data.data : null;
         if (Array.isArray(list)) {
+            allTagEntries.length = 0;
             list.forEach(function(t) {
+                allTagEntries.push(t);
                 tagDescriptions[t.tag] = t.module;
             });
         }
@@ -795,6 +798,7 @@ var MapperState = (function() {
         loadBiomes: loadBiomes,
         loadTags: loadTags,
         tagDescriptions: tagDescriptions,
+        allTagEntries: allTagEntries,
         loadAllRooms: loadAllRooms,
         buildCrossZoneGraph: null,
         applyZoneLayout: applyZoneLayout,
