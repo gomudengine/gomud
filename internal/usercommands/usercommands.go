@@ -84,6 +84,7 @@ var (
 		`enchant`:     {Enchant, false, false},
 		`experience`:  {Experience, true, false},
 		`equip`:       {Equip, false, false},
+		`feed`:        {Feed, false, false},
 		`flee`:        {Flee, false, false},
 		`formset`:     {FormSet, false, true}, // Admin only
 		`gearup`:      {Gearup, false, false},
@@ -325,6 +326,13 @@ func TryCommand(cmd string, rest string, userId int, flags events.EventFlag) (bo
 		}
 
 		userDisabled = user.Character.IsDisabled()
+
+		for _, b := range user.Character.Buffs.List {
+			handled, err := scripting.TryBuffCommand(cmd, rest, user.UserId, 0, b.BuffId)
+			if handled { // For this event, handled represents whether to reject the move.
+				return handled, err
+			}
+		}
 
 		// Check if the "rest" is an item the character has
 		matchingItem, found := user.Character.FindInBackpack(rest)

@@ -10,7 +10,6 @@ description: The air here carries the mingled scent of pipe smoke, spilled wine,
   turned away in living memory. From somewhere deeper inside comes the rhythmic clatter
   of dice, the mechanical thunk of levers being pulled, and the occasional sharp cry
   of someone whose luck has just changed - in one direction or the other.
-biome: city
 exits:
   east:
     roomid: 440
@@ -18,3 +17,7 @@ exits:
     roomid: 1006
   west:
     roomid: 1007
+mapx: -3
+mapy: 8
+mapz: 0
+hascoordinates: true

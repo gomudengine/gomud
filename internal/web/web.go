@@ -1,6 +1,7 @@
 package web
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -170,7 +172,7 @@ func (reg *moduleAdminRegistrarImpl) RegisterAdminPage(
 				return
 			}
 		}
-		// Parent not found yet — add as top-level with the sub-item.
+		// Parent not found yet - add as top-level with the sub-item.
 		reg.navItems = append(reg.navItems, WebNavItem{
 			Name:   navParent,
 			Target: "",
@@ -217,7 +219,7 @@ func (reg *moduleAdminRegistrarImpl) RegisterAdminPage(
 			return
 		}
 	}
-	// Sub-menu for navParent not found yet — create it.
+	// Sub-menu for navParent not found yet - create it.
 	reg.navItems[groupIdx].SubMenus = append(reg.navItems[groupIdx].SubMenus, WebNavItem{
 		Name: navParent,
 		SubItems: []WebNavSub{
@@ -264,6 +266,16 @@ func serveTemplate(w http.ResponseWriter, r *http.Request) {
 	// Build the full file path.
 	fullPath := filepath.Join(httpRoot, reqPath)
 
+	fileExt := filepath.Ext(fullPath)
+	fileBase := filepath.Base(fullPath)
+
+	// Limit files for now
+	if fileBase == "_all.css" || fileBase == "_all.js" {
+		if serveConcatenated(w, r, filepath.Dir(fullPath), fileExt) {
+			return
+		}
+	}
+
 	// If the path is a directory, look for an index.html.
 	info, err := os.Stat(fullPath)
 	if err != nil {
@@ -274,8 +286,8 @@ func serveTemplate(w http.ResponseWriter, r *http.Request) {
 		fullPath = filepath.Join(fullPath, "index.html")
 	}
 
-	fileExt := filepath.Ext(fullPath)
-	fileBase := filepath.Base(fullPath)
+	fileExt = filepath.Ext(fullPath)
+	fileBase = filepath.Base(fullPath)
 
 	// All template files to load from the filesystem
 	templateFiles := []string{}
@@ -338,7 +350,7 @@ func serveTemplate(w http.ResponseWriter, r *http.Request) {
 		"NAV": []WebNav{
 			{`Home`, `/`},
 			{`Who's Online`, `/online`},
-			{`Web Client`, `/webclient`},
+			{`Web Client`, `/webclient-pure`},
 			{`See Configuration`, `/viewconfig`},
 		},
 	}
@@ -752,12 +764,82 @@ func Shutdown() {
 	}
 }
 
+func serveConcatenated(w http.ResponseWriter, r *http.Request, dir string, suffix string) bool {
+	var names []string
+
+	if raw := r.URL.RawQuery; raw != "" {
+		seen := map[string]bool{}
+		for _, name := range strings.Split(raw, ",") {
+
+			if strings.ContainsAny(name, `/\`) || name != filepath.Base(name) {
+				continue
+			}
+
+			if name == "" || name == "." || strings.HasPrefix(name, "_all.") || !strings.HasSuffix(name, suffix) {
+				continue
+			}
+			if seen[name] {
+				continue
+			}
+			if _, err := os.Stat(filepath.Join(dir, name)); err != nil {
+				continue
+			}
+			seen[name] = true
+			names = append(names, name)
+		}
+	} else {
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			return false
+		}
+		for _, e := range entries {
+			if !e.IsDir() && strings.HasSuffix(e.Name(), suffix) && !strings.HasPrefix(e.Name(), "_all.") {
+				names = append(names, e.Name())
+			}
+		}
+		sort.Strings(names)
+	}
+
+	if len(names) == 0 {
+		return false
+	}
+
+	var buf bytes.Buffer
+	for _, name := range names {
+		data, err := os.ReadFile(filepath.Join(dir, name))
+		if err != nil {
+			continue
+		}
+		buf.Write(data)
+		buf.WriteByte('\n')
+	}
+
+	if suffix == ".js" {
+		w.Header().Set("Content-Type", "application/javascript")
+	} else if suffix == ".css" {
+		w.Header().Set("Content-Type", "text/css")
+	}
+
+	w.Write(buf.Bytes())
+	return true
+}
+
 // serveAdminStaticFile serves static assets from the admin HTML directory.
 // The full URL path relative to /admin/ is preserved so subdirectories work.
 func serveAdminStaticFile(w http.ResponseWriter, r *http.Request) {
 	adminRoot := filepath.Clean(configs.GetFilePathsConfig().AdminHtml.String())
 	rel := strings.TrimPrefix(r.URL.Path, "/admin")
 	fullPath := filepath.Join(adminRoot, filepath.Clean(rel))
+
+	fileExt := filepath.Ext(fullPath)
+	fileBase := filepath.Base(fullPath)
+
+	if fileBase == "_all.css" || fileBase == "_all.js" {
+		if serveConcatenated(w, r, filepath.Dir(fullPath), fileExt) {
+			return
+		}
+	}
+
 	http.ServeFile(w, r, fullPath)
 }
 

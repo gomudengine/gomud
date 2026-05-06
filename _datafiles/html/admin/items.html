@@ -2,87 +2,102 @@
 
 <style>
     h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
-    .subtitle { color: #555; margin-bottom: 1.5rem; font-size: 0.9rem; }
+    .subtitle { color: var(--color-text-muted); margin-bottom: 1.5rem; font-size: 0.9rem; }
 
     /* layout */
     .page-layout { display: grid; grid-template-columns: 300px 1fr; gap: 1.25rem; align-items: start; }
     @media (max-width: 860px) { .page-layout { grid-template-columns: 1fr; } }
 
     /* sidebar */
-    .sidebar { background: #fff; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; }
-    .sidebar-header { padding: 0.75rem 0.9rem; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 0.5rem; }
-    .sidebar-header input[type="search"] { flex: 1; padding: 0.35rem 0.6rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; }
-    .sidebar-header select { padding: 0.35rem 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.82rem; background: #fff; max-width: 110px; }
+    .sidebar { background: var(--color-surface-white); border: 1px solid var(--color-border); border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; }
+    .sidebar-header { padding: 0.75rem 0.9rem; border-bottom: 1px solid var(--color-border-light); display: flex; align-items: center; gap: 0.5rem; }
+    .sidebar-header input[type="search"] { flex: 1; padding: 0.35rem 0.6rem; border: 1px solid var(--color-border-medium); border-radius: 4px; font-size: 0.85rem; }
+    .sidebar-header select { padding: 0.35rem 0.5rem; border: 1px solid var(--color-border-medium); border-radius: 4px; font-size: 0.82rem; background: var(--color-surface-white); max-width: 110px; }
     .item-list { overflow-y: auto; max-height: 72vh; }
     .item-row {
-        padding: 0.55rem 0.9rem; cursor: pointer; border-bottom: 1px solid #f0f0f0;
+        padding: 0.55rem 0.9rem; cursor: pointer; border-bottom: 1px solid var(--color-border-faint);
         display: flex; align-items: baseline; gap: 0.5rem; font-size: 0.875rem;
     }
     .item-row:last-child { border-bottom: none; }
-    .item-row:hover { background: #f5f7ff; }
-    .item-row.active { background: #1a1a2e; color: #fff; }
-    .item-row.active .item-id { color: #8899cc; }
-    .item-id { font-size: 0.75rem; color: #999; font-family: monospace; flex-shrink: 0; }
+    .item-row:hover { background: var(--color-row-hover); }
+    .item-row.active { background: var(--color-primary); color: var(--color-surface-white); }
+    .item-row.active .item-id { color: var(--color-active-id); }
+    .item-id { font-size: 0.75rem; color: var(--color-text-secondary); font-family: monospace; flex-shrink: 0; }
     .item-type-badge {
         font-size: 0.68rem; padding: 0.1rem 0.35rem; border-radius: 3px;
-        background: #e8eaf6; color: #3949ab; flex-shrink: 0; margin-left: auto;
+        background: var(--color-chip-bg); color: var(--color-chip-text); flex-shrink: 0; margin-left: auto;
     }
-    .item-row.active .item-type-badge { background: #3949ab; color: #fff; }
+    .item-row.active .item-type-badge { background: var(--color-chip-text); color: var(--color-surface-white); }
     .item-script-badge {
         font-size: 0.65rem; padding: 0.1rem 0.35rem; border-radius: 3px;
-        background: #fff3e0; color: #8a4a00; flex-shrink: 0;
+        background: var(--color-warning-bg); color: var(--color-warning-text); flex-shrink: 0;
     }
-    .item-row.active .item-script-badge { background: #8a4a00; color: #fff; }
-    .no-items { padding: 1.5rem; text-align: center; color: #888; font-size: 0.85rem; }
+    .item-row.active .item-script-badge { background: var(--color-warning-text); color: var(--color-surface-white); }
+    .item-quest-badge {
+        font-size: 0.65rem; padding: 0.1rem 0.35rem; border-radius: 3px;
+        background: var(--color-success-bg); color: var(--color-success-text); flex-shrink: 0;
+    }
+    .item-row.active .item-quest-badge { background: var(--color-success-text); color: var(--color-surface-white); }
+    .item-buff-badge {
+        font-size: 0.65rem; padding: 0.1rem 0.35rem; border-radius: 3px;
+        background: var(--color-info-bg); color: var(--color-info-text); flex-shrink: 0;
+    }
+    .item-row.active .item-buff-badge { background: var(--color-info-text); color: var(--color-surface-white); }
+    .item-row.cursed { color: var(--color-error-text); }
+    .item-row.cursed .item-id { color: var(--color-danger); }
+    .item-row.active.cursed { background: var(--color-error-bg); color: var(--color-error-text); }
+    .item-row.active.cursed .item-id { color: var(--color-error-text); }
+    .item-row.active.cursed .item-type-badge { background: var(--color-error-text); color: var(--color-surface-white); }
+    .no-items { padding: 1.5rem; text-align: center; color: var(--color-text-faint); font-size: 0.85rem; }
 
     /* new item btn */
     .btn-new {
         margin: 0.6rem 0.9rem; padding: 0.4rem 0.9rem; border: none; border-radius: 4px;
-        background: #1e6e34; color: #fff; font-size: 0.85rem; font-weight: 600;
+        background: var(--color-success-text); color: var(--color-surface-white); font-size: 0.85rem; font-weight: 600;
         cursor: pointer; text-align: center;
     }
-    .btn-new:hover { background: #145728; }
+    .btn-new:hover { background: var(--color-btn-new-hover); }
 
     /* editor panel */
-    .editor-panel { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 1.25rem; }
-    .editor-placeholder { color: #aaa; text-align: center; padding: 4rem 1rem; font-size: 0.9rem; }
+    .editor-panel { background: var(--color-surface-white); border: 1px solid var(--color-border); border-radius: 6px; padding: 1.25rem; }
+    .editor-placeholder { color: var(--color-text-placeholder); text-align: center; padding: 4rem 1rem; font-size: 0.9rem; }
 
     /* status */
     .status-bar {
         display: none; padding: 0.55rem 0.9rem; border-radius: 4px;
         font-size: 0.85rem; margin-bottom: 1rem;
     }
-    .status-bar.success { background: #e6f4ea; color: #1e6e34; display: block; }
-    .status-bar.error   { background: #fde8e8; color: #8a0000; display: block; }
+    .status-bar.success { background: var(--color-success-bg); color: var(--color-success-text); display: block; }
+    .status-bar.error   { background: var(--color-error-bg); color: var(--color-error-text); display: block; }
 
     /* form */
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem 1.25rem; }
     .form-grid .span2 { grid-column: 1 / -1; }
-    .field label { display: block; font-size: 0.78rem; font-weight: 600; color: #555; margin-bottom: 0.25rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .field label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--color-text-muted); margin-bottom: 0.25rem; text-transform: uppercase; letter-spacing: 0.03em; }
     .field input[type="text"],
     .field input[type="number"],
     .field select,
     .field textarea {
-        width: 100%; padding: 0.4rem 0.6rem; border: 1px solid #ccc; border-radius: 4px;
-        font-size: 0.875rem; font-family: inherit; background: #fff;
+        width: 100%; padding: 0.4rem 0.6rem; border: 1px solid var(--color-border-medium); border-radius: 4px;
+        font-size: 0.875rem; font-family: inherit; background: var(--color-surface-white);
     }
-    .field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid #1a1a2e; outline-offset: 1px; border-color: transparent; }
+    .field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid var(--color-primary); outline-offset: 1px; border-color: transparent; }
     .field textarea { resize: vertical; min-height: 80px; }
-    .field-hint { font-size: 0.75rem; color: #888; margin-top: 0.2rem; }
+    .field-hint { font-size: 0.75rem; color: var(--color-text-faint); margin-top: 0.2rem; }
     .field-with-btn { display: flex; gap: 0.4rem; align-items: center; }
     .field-with-btn input { flex: 1; }
     .btn-search {
-        padding: 0.35rem 0.55rem; border: 1px solid #ccc; border-radius: 4px;
-        background: #f5f5f5; cursor: pointer; font-size: 0.95rem; line-height: 1;
+        padding: 0.35rem 0.55rem; border: 1px solid var(--color-border-medium); border-radius: 4px;
+        background: var(--color-page-bg); cursor: pointer; font-size: 0.95rem; line-height: 1;
         flex-shrink: 0;
     }
-    .btn-search:hover { background: #e8eaff; border-color: #7986cb; }
+    .btn-search:hover { background: var(--color-hover-tint); border-color: var(--color-hover-tint-border); }
 
     /* section headings inside editor */
     .section-title {
         font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
-        letter-spacing: 0.06em; color: #666; padding: 0.5rem 0 0.4rem;
-        border-bottom: 1px solid #eee; margin-bottom: 0.75rem; grid-column: 1 / -1;
+        letter-spacing: 0.06em; color: var(--color-text-subtle); padding: 0.5rem 0 0.4rem;
+        border-bottom: 1px solid var(--color-border-light); margin-bottom: 0.75rem; grid-column: 1 / -1;
     }
 
     /* stat mods editor */
@@ -92,29 +107,29 @@
     .statmod-row input[type="number"] { width: 80px; }
     .btn-icon {
         background: none; border: none; cursor: pointer; font-size: 1rem;
-        color: #888; padding: 0 0.2rem; line-height: 1;
+        color: var(--color-text-faint); padding: 0 0.2rem; line-height: 1;
     }
-    .btn-icon:hover { color: #c00; }
+    .btn-icon:hover { color: var(--color-danger); }
     .btn-add-sm {
-        font-size: 0.8rem; padding: 0.3rem 0.7rem; border: 1px dashed #aaa;
-        background: none; border-radius: 4px; cursor: pointer; color: #555; margin-top: 0.25rem;
+        font-size: 0.8rem; padding: 0.3rem 0.7rem; border: 1px dashed var(--color-text-placeholder);
+        background: none; border-radius: 4px; cursor: pointer; color: var(--color-text-muted); margin-top: 0.25rem;
     }
-    .btn-add-sm:hover { border-color: #1a1a2e; color: #1a1a2e; }
+    .btn-add-sm:hover { border-color: var(--color-primary); color: var(--color-primary); }
 
     /* buff ids */
     .buff-ids-wrap { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
     .buff-chip {
         display: inline-flex; align-items: center; gap: 0.3rem;
-        background: #e8eaf6; color: #3949ab; border-radius: 12px;
+        background: var(--color-chip-bg); color: var(--color-chip-text); border-radius: 12px;
         padding: 0.2rem 0.6rem; font-size: 0.8rem;
     }
-    .buff-chip button { background: none; border: none; cursor: pointer; color: #3949ab; font-size: 0.85rem; line-height: 1; padding: 0; }
-    .buff-chip button:hover { color: #c00; }
+    .buff-chip button { background: none; border: none; cursor: pointer; color: var(--color-chip-text); font-size: 0.85rem; line-height: 1; padding: 0; }
+    .buff-chip button:hover { color: var(--color-danger); }
 
     /* script editor */
     .script-toggle {
         display: flex; align-items: center; gap: 0.6rem; cursor: pointer;
-        font-size: 0.85rem; color: #1a1a2e; font-weight: 600; padding: 0.5rem 0;
+        font-size: 0.85rem; color: var(--color-primary); font-weight: 600; padding: 0.5rem 0;
         user-select: none;
     }
     .script-toggle::before { content: "\25B6"; font-size: 0.65rem; transition: transform 0.15s; }
@@ -125,28 +140,28 @@
     .script-area.open { display: block; }
     .script-area textarea {
         width: 100%; min-height: 660px; font-family: monospace; font-size: 0.82rem;
-        padding: 0.6rem 0.75rem; border: 1px solid #ccc; border-radius: 4px;
-        resize: vertical; background: #1a1a2e; color: #c9d1d9; line-height: 1.55;
+        padding: 0.6rem 0.75rem; border: 1px solid var(--color-border-medium); border-radius: 4px;
+        resize: vertical; background: var(--color-primary); color: var(--color-code-text); line-height: 1.55;
     }
-    .script-area textarea:focus { outline: 2px solid #4a6fa5; outline-offset: 1px; }
-    .script-hint { font-size: 0.75rem; color: #888; margin-top: 0.3rem; }
+    .script-area textarea:focus { outline: 2px solid var(--color-accent-link); outline-offset: 1px; }
+    .script-hint { font-size: 0.75rem; color: var(--color-text-faint); margin-top: 0.3rem; }
 
     /* action bar */
     .action-bar { display: flex; gap: 0.6rem; margin-top: 1.25rem; align-items: center; flex-wrap: wrap; }
     .btn { padding: 0.45rem 1.1rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.875rem; font-weight: 600; }
-    .btn-primary { background: #1a1a2e; color: #fff; }
-    .btn-primary:hover { background: #2d2d4e; }
-    .btn-primary:disabled { background: #999; cursor: default; }
-    .btn-danger { background: #c0392b; color: #fff; }
-    .btn-danger:hover { background: #a93226; }
-    .btn-secondary { background: #eee; color: #333; }
-    .btn-secondary:hover { background: #ddd; }
-    .item-id-display { font-family: monospace; font-size: 0.82rem; color: #888; margin-left: auto; }
+    .btn-primary { background: var(--color-primary); color: var(--color-surface-white); }
+    .btn-primary:hover { background: var(--color-primary-hover); }
+    .btn-primary:disabled { background: var(--color-text-secondary); cursor: default; }
+    .btn-danger { background: var(--color-btn-danger-bg); color: var(--color-surface-white); }
+    .btn-danger:hover { background: var(--color-btn-danger-hover); }
+    .btn-secondary { background: var(--color-border-light); color: var(--color-text-strong); }
+    .btn-secondary:hover { background: var(--color-border); }
+    .item-id-display { font-family: monospace; font-size: 0.82rem; color: var(--color-text-faint); margin-left: auto; }
 
     /* editor header */
     .editor-header { display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 1rem; }
     .editor-header h2 { font-size: 1.1rem; flex: 1; }
-    .editor-header .badge { font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 3px; background: #e8eaf6; color: #3949ab; }
+    .editor-header .badge { font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 3px; background: var(--color-chip-bg); color: var(--color-chip-text); }
 </style>
 
 <h1>Items</h1>
@@ -244,7 +259,7 @@
                 <div id="weapon-section" style="display:none; grid-column:1/-1;">
                     <div class="form-grid">
                         <div class="section-title">Weapon</div>
-                        <div class="field">
+                        <div class="field span2">
                             <label>Damage Dice Roll</label>
                             <input type="text" id="f-diceroll" placeholder="e.g. 1d6+2" />
                             <div class="field-hint">Format: [attacks@]NdS[+bonus][#critBuffId,...]</div>
@@ -289,7 +304,7 @@
                 <div class="field">
                     <label>Quest Token</label>
                     <div class="field-with-btn">
-                        <span id="f-questtoken-display" style="flex:1; padding:0.4rem 0.6rem; border:1px solid #ccc; border-radius:4px; font-size:0.875rem; background:#fff; color:#aaa; font-style:italic; min-height:2rem; display:flex; align-items:center;">none</span>
+                        <span id="f-questtoken-display" style="flex:1; padding:0.4rem 0.6rem; border:1px solid var(--color-border-medium); border-radius:4px; font-size:0.875rem; background:var(--color-surface-white); color:var(--color-empty-text); font-style:italic; min-height:2rem; display:flex; align-items:center;">none</span>
                         <button class="btn-search" onclick="pickQuestToken()" title="Browse quests">&#x1F50D;</button>
                         <button class="btn-search" onclick="clearQuestToken()" title="Clear" style="font-size:0.85rem;">&times;</button>
                     </div>
@@ -300,7 +315,7 @@
                     <label>Cursed</label>
                     <select id="f-cursed">
                         <option value="false">No</option>
-                        <option value="true">Yes — cannot be removed once equipped</option>
+                        <option value="true">Yes - cannot be removed once equipped</option>
                     </select>
                 </div>
 
@@ -326,10 +341,14 @@
             </div>
 
             <!-- Script editor -->
-            <div style="margin-top:1.25rem; border-top: 1px solid #eee; padding-top: 1rem;">
+            <div style="margin-top:1.25rem; border-top: 1px solid var(--color-border-light); padding-top: 1rem;">
                 <div class="script-toggle" id="script-toggle" onclick="toggleScript()">Script</div>
                 <div class="script-area" id="script-area">
+                    <div style="display:flex;justify-content:flex-end;margin-bottom:0.4rem;">
+                        <button class="btn btn-secondary" style="font-size:0.78rem;padding:0.25rem 0.7rem;" onclick="openScriptWizard()">+ Add Function</button>
+                    </div>
                     <textarea id="f-script" spellcheck="false" placeholder="// JavaScript for this item's events (onFound, onLost, onUse, onPurchase)&#10;// Leave blank to delete the script file."></textarea>
+                    <div id="script-error" class="script-error"></div>
                     <div class="script-hint">Saved as a .js file alongside the item's YAML. Clear the field and save to delete the script.</div>
                 </div>
             </div>
@@ -378,6 +397,7 @@
         populateTypeSelects();
         renderList(allItems);
         scriptSync = ScriptEditor.init('f-script');
+        DiceRollHelper.attach(document.getElementById('f-diceroll'));
         const hashId = parseInt(location.hash.slice(1), 10);
         if (hashId) loadItem(hashId);
     }
@@ -407,12 +427,16 @@
         list.innerHTML = '';
         for (const item of items) {
             const row = document.createElement('div');
-            row.className = 'item-row' + (item.ItemId === currentItemId ? ' active' : '');
+            const isCursed = item.Cursed === true;
+            const isActive = item.ItemId === currentItemId;
+            row.className = 'item-row' + (isActive ? ' active' : '') + (isCursed ? ' cursed' : '');
             row.dataset.id = item.ItemId;
             row.innerHTML = `
                 <span class="item-id">#${item.ItemId}</span>
                 <span>${esc(item.Name)}</span>
                 ${item.HasScript ? '<span class="item-script-badge">JS</span>' : ''}
+                ${item.QuestToken ? '<span class="item-quest-badge">Q</span>' : ''}
+                ${item.BuffCount ? '<span class="item-buff-badge">B' + item.BuffCount + '</span>' : ''}
                 <span class="item-type-badge">${esc(item.Type || '')}</span>`;
             row.onclick = () => loadItem(item.ItemId);
             list.appendChild(row);
@@ -516,11 +540,11 @@
         const qtDisplay = document.getElementById('f-questtoken-display');
         if (item.QuestToken) {
             qtDisplay.textContent = item.QuestToken;
-            qtDisplay.style.color = '#333';
+            qtDisplay.style.color = 'var(--color-text-strong)';
             qtDisplay.style.fontStyle = 'normal';
         } else {
             qtDisplay.textContent = 'none';
-            qtDisplay.style.color = '#aaa';
+            qtDisplay.style.color = 'var(--color-empty-text)';
             qtDisplay.style.fontStyle = 'italic';
         }
         setVal('f-cursed', item.Cursed ? 'true' : 'false');
@@ -681,6 +705,14 @@
 
         const scriptContent = document.getElementById('f-script').value;
 
+        if (scriptContent.trim().length > 0) {
+            var check = await ScriptWizard.validateScript(scriptContent);
+            if (!check.valid) {
+                btn.disabled = false; btn.textContent = 'Save Item';
+                return;
+            }
+        }
+
         let itemRes;
         if (isNew) {
             itemRes = await AdminAPI.post('/admin/api/v1/items', payload);
@@ -751,6 +783,10 @@
         area.classList.toggle('open');
     };
 
+    window.openScriptWizard = function () {
+        ScriptWizard.open({ scriptType: 'item', textareaId: 'f-script', syncFn: scriptSync });
+    };
+
     // -------------------------------------------------------------------------
     // Status
     // -------------------------------------------------------------------------
@@ -773,6 +809,7 @@
         } else {
             el.value = val;
         }
+        el.dispatchEvent(new Event('change'));
     }
 
     function esc(s) {
@@ -784,7 +821,7 @@
             document.getElementById('f-questtoken').value = token;
             const display = document.getElementById('f-questtoken-display');
             display.textContent = label;
-            display.style.color = '#333';
+            display.style.color = 'var(--color-text-strong)';
             display.style.fontStyle = 'normal';
         });
     };
@@ -793,7 +830,7 @@
         document.getElementById('f-questtoken').value = '';
         const display = document.getElementById('f-questtoken-display');
         display.textContent = 'none';
-        display.style.color = '#aaa';
+        display.style.color = 'var(--color-empty-text)';
         display.style.fontStyle = 'italic';
     };
 

@@ -92,6 +92,32 @@ const AdminAPI = (() => {
      */
 
     /**
+     * In-flight request counter. Incremented before each network fetch,
+     * decremented when it settles. Calls registered callbacks on transitions
+     * between 0 and >0 so the UI can show/hide a loading indicator.
+     */
+    let _inflightCount = 0;
+    const _onBusyCallbacks  = [];
+    const _onIdleCallbacks  = [];
+
+    function _incInflight() {
+        _inflightCount++;
+        if (_inflightCount === 1) _onBusyCallbacks.forEach(fn => fn());
+    }
+
+    function _decInflight() {
+        if (_inflightCount > 0) _inflightCount--;
+        if (_inflightCount === 0) _onIdleCallbacks.forEach(fn => fn());
+    }
+
+    /**
+     * Register a callback fired when the first request starts (busy) or
+     * the last request settles (idle).
+     */
+    function onBusy(fn)  { _onBusyCallbacks.push(fn); }
+    function onIdle(fn)  { _onIdleCallbacks.push(fn); }
+
+    /**
      * Core fetch wrapper. Returns a resolved APIResult regardless of outcome so
      * callers never need to catch network errors themselves.
      *
@@ -115,6 +141,7 @@ const AdminAPI = (() => {
         let data = null;
         let error = '';
 
+        _incInflight();
         try {
             const response = await fetch(path, init);
             status = response.status;
@@ -133,6 +160,8 @@ const AdminAPI = (() => {
             }
         } catch (networkError) {
             error = networkError.message || 'Network error';
+        } finally {
+            _decInflight();
         }
 
         return { ok: status >= 200 && status < 300, status, data, error };
@@ -212,7 +241,7 @@ const AdminAPI = (() => {
 
     /**
      * Wait for all provided request promises to settle, then return their results
-     * in the same order. Never rejects — failed requests are represented as
+     * in the same order. Never rejects - failed requests are represented as
      * APIResult objects with ok=false.
      *
      * @param {Array<Promise<APIResult>>} promises
@@ -291,5 +320,17 @@ const AdminAPI = (() => {
         return q;
     }
 
-    return { get, post, put, patch, delete: del, all, queue, request };
+    /**
+     * Removes all cached API responses from sessionStorage.
+     * @returns {number} the number of entries cleared
+     */
+    function clearCache() {
+        const keys = _cacheKeys();
+        for (const key of keys) {
+            _cacheDelete(key);
+        }
+        return keys.length;
+    }
+
+    return { get, post, put, patch, delete: del, all, queue, request, clearCache, onBusy, onIdle };
 })();

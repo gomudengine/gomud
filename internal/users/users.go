@@ -280,21 +280,29 @@ func SetLinkDeadUser(userId int) {
 		u.Character.RemoveBuff(0)
 		u.Character.SetAdjective(`zombie`, true)
 
-		// Prevent guide mob dupes
-		for _, miid := range u.Character.CharmedMobs {
-			if m := mobs.GetInstance(miid); m != nil {
-				if m.MobId == 38 {
-					m.Character.Charmed.RoundsRemaining = 0
+		// Special case for `newbieguide` module exported function check
+		// If module was loaded, this function should exist.
+		if fn, ok := GetExportedFunction(`PlayerGuideMobId`); ok {
+			guideMobId := 0
+			if guideMobIdFn, ok := fn.(func() int); ok {
+				guideMobId = guideMobIdFn()
+			}
+
+			// Prevent guide mob dupes
+			for _, miid := range u.Character.CharmedMobs {
+				if m := mobs.GetInstance(miid); m != nil {
+					if m.MobId == mobs.MobId(guideMobId) && m.Character.Charmed != nil {
+						m.Character.Charmed.RoundsRemaining = 0
+					}
 				}
 			}
 		}
 
-		if _, ok := userManager.LinkDeadConnections[u.connectionId]; ok {
-			return
+		if _, ok := userManager.LinkDeadConnections[u.connectionId]; !ok {
+			u.isLinkDead = true
+			userManager.LinkDeadConnections[u.connectionId] = util.GetTurnCount()
 		}
 
-		u.isLinkDead = true
-		userManager.LinkDeadConnections[u.connectionId] = util.GetTurnCount()
 	}
 
 }
@@ -325,7 +333,7 @@ func LogOutUserByConnectionId(connectionId connections.ConnectionId) error {
 			delete(userManager.Connections, u.connectionId)
 			delete(userManager.UserConnections, u.UserId)
 		} else {
-			// Connection exists but user record is missing — clean up the connection entry
+			// Connection exists but user record is missing - clean up the connection entry
 			delete(userManager.Connections, connectionId)
 		}
 
@@ -529,6 +537,30 @@ func CharacterNameSearch(nameToFind string) (foundUserId int, foundUserName stri
 	})
 
 	return foundUserId, foundUserName
+}
+
+// UpdateOnlineUser applies updated exported fields to the in-memory user
+// record if the user is currently online. Connection state and other
+// runtime-only fields are preserved from the live record.
+func UpdateOnlineUser(updated UserRecord) {
+	u, ok := userManager.Users[updated.UserId]
+	if !ok {
+		return
+	}
+
+	updated.connectionId = u.connectionId
+	updated.unsentText = u.unsentText
+	updated.suggestText = u.suggestText
+	updated.connectionTime = u.connectionTime
+	updated.lastInputRound = u.lastInputRound
+	updated.tempDataStore = u.tempDataStore
+	updated.activePrompt = u.activePrompt
+	updated.isLinkDead = u.isLinkDead
+	updated.inputBlocked = u.inputBlocked
+	updated.EventLog = u.EventLog
+	updated.LastMusic = u.LastMusic
+
+	*u = updated
 }
 
 func SaveUser(u UserRecord, isAutoSave ...bool) error {

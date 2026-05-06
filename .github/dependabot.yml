@@ -19,7 +19,7 @@ updates:
       - "go"
     commit-message:
       prefix: "deps"
-    ignore: # ignore golang updates for now, as go 1.24 is desired
+    ignore:  # ignore golang updates for now, as go 1.24 is desired
       - dependency-name: "golang"
     groups:
       go-minor-patch:

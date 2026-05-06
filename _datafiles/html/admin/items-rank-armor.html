@@ -1,0 +1,460 @@
+{{template "header" .}}
+
+<style>
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--color-text-muted); margin-bottom: 1.5rem; font-size: 0.9rem; }
+    .subtitle a { color: var(--color-primary); }
+
+    /* toolbar */
+    .toolbar { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .btn { padding: 0.4rem 1rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.875rem; font-weight: 600; }
+    .btn-primary { background: var(--color-primary); color: var(--color-surface-white); }
+    .btn-primary:hover { background: var(--color-primary-hover); }
+    .btn-primary:disabled { background: var(--color-text-secondary); cursor: default; }
+    .last-updated { font-size: 0.78rem; color: var(--color-text-placeholder); margin-left: auto; }
+
+    /* status */
+    .status-bar { display: none; padding: 0.5rem 0.85rem; border-radius: 4px; font-size: 0.85rem; margin-bottom: 1rem; }
+    .status-bar.error { background: var(--color-error-bg); color: var(--color-error-text); display: block; }
+
+    /* view tabs */
+    .view-tabs { display: flex; gap: 0; margin-bottom: 1.5rem; border: 1px solid var(--color-border); border-radius: 6px; overflow: hidden; }
+    .view-tab {
+        flex: 1; padding: 0.55rem 0.5rem; border: none; background: var(--color-page-bg);
+        cursor: pointer; font-size: 0.82rem; font-weight: 600; color: var(--color-text-muted);
+        border-right: 1px solid var(--color-border); transition: background 0.1s, color 0.1s;
+        text-align: center; line-height: 1.3;
+    }
+    .view-tab:last-child { border-right: none; }
+    .view-tab:hover { background: var(--color-border-strong); color: var(--color-primary); }
+    .view-tab.active { background: var(--color-primary); color: var(--color-surface-white); }
+    .view-tab .tab-title { display: block; }
+    .view-tab .tab-hint { display: block; font-size: 0.72rem; font-weight: 400; opacity: 0.75; margin-top: 0.1rem; }
+
+    /* filter bar */
+    .filter-bar { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .filter-bar label { font-size: 0.82rem; color: var(--color-text-muted); white-space: nowrap; }
+    .filter-bar select, .filter-bar input[type="text"] {
+        padding: 0.3rem 0.6rem; border: 1px solid var(--color-border-medium); border-radius: 4px;
+        font-size: 0.82rem; background: var(--color-surface-white);
+    }
+    .filter-bar select:focus, .filter-bar input[type="text"]:focus { outline: 2px solid var(--color-primary); }
+
+    /* rank table */
+    .rank-table-wrap { background: var(--color-surface-white); border: 1px solid var(--color-border); border-radius: 6px; overflow: hidden; }
+    .rank-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    .rank-table th {
+        background: var(--color-primary); color: var(--color-code-text);
+        padding: 0.5rem 0.85rem; text-align: left;
+        font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em;
+        font-weight: 600; white-space: nowrap;
+    }
+    .rank-table th.sortable { cursor: pointer; user-select: none; }
+    .rank-table th.sortable:hover { color: var(--color-surface-white); }
+    .rank-table th .sort-arrow { margin-left: 0.3rem; font-size: 0.65rem; opacity: 0.5; }
+    .rank-table th.sorted-asc .sort-arrow::after  { content: " ▲"; opacity: 1; }
+    .rank-table th.sorted-desc .sort-arrow::after { content: " ▼"; opacity: 1; }
+    .rank-table th:not(.sorted-asc):not(.sorted-desc) .sort-arrow::after { content: " ⇅"; }
+    .rank-table td { padding: 0.5rem 0.85rem; border-bottom: 1px solid var(--color-border-faint); vertical-align: middle; }
+    .rank-table tr:last-child td { border-bottom: none; }
+    .rank-table tr:hover td { background: var(--color-row-hover); }
+    .rank-table tr.row-cursed:hover td { background: var(--color-error-bg); }
+
+    /* item name + link */
+    .item-name { font-weight: 600; color: var(--color-primary); }
+    .item-name a { color: inherit; text-decoration: none; }
+    .item-name a:hover { text-decoration: underline; }
+    .row-cursed .item-name, .row-cursed .item-name a { color: var(--color-error-text); }
+
+    /* slot pill */
+    .slot-pill {
+        display: inline-block; padding: 0.15rem 0.5rem; border-radius: 10px;
+        font-size: 0.72rem; font-weight: 600; white-space: nowrap;
+    }
+    .slot-offhand { background: var(--color-info-bg); color: var(--color-info-text); }
+    .slot-head    { background: var(--color-method-put-bg); color: var(--color-method-put-text); }
+    .slot-neck    { background: var(--color-success-bg); color: var(--color-success-text); }
+    .slot-body    { background: var(--color-warning-bg); color: var(--color-warning-text); }
+    .slot-belt    { background: var(--color-badge-hostile-bg); color: var(--color-badge-hostile-text); }
+    .slot-gloves  { background: var(--color-chip-bg); color: var(--color-chip-text); }
+    .slot-ring    { background: var(--color-badge-script-bg); color: var(--color-badge-script-text); }
+    .slot-legs    { background: var(--color-success-bg); color: var(--color-success-text); }
+    .slot-feet    { background: var(--color-error-bg); color: var(--color-error-text); }
+
+    /* cursed badge */
+    .cursed-badge {
+        display: inline-block; padding: 0.1rem 0.4rem; border-radius: 3px;
+        font-size: 0.7rem; font-weight: 700; background: var(--color-error-bg); color: var(--color-error-text);
+    }
+
+    /* score bar */
+    .score-cell { white-space: nowrap; display: flex; align-items: center; gap: 0.5rem; }
+    .score-cell[data-row-tip] { cursor: help; }
+    .score-val { font-family: monospace; font-weight: 700; color: var(--color-primary); flex: 1; }
+    .score-bar-track { display: inline-block; vertical-align: middle; width: 80px; height: 8px; background: var(--color-border-light); border-radius: 3px; overflow: hidden; flex-shrink: 0; margin-left: auto; }
+    .score-bar-fill  { display: block; height: 8px; border-radius: 3px; background: var(--color-accent-link); transition: width 0.3s ease; }
+    .score-bar-fill.top { background: var(--color-danger); }
+
+    /* id cell */
+    .item-id { font-family: monospace; font-size: 0.78rem; color: var(--color-text-placeholder); }
+
+    /* stat / buff cells */
+    .stat-bonus { font-family: monospace; font-size: 0.85rem; }
+    .stat-positive { color: var(--color-success-text); }
+    .stat-negative { color: var(--color-error-text); }
+    .stat-zero     { color: var(--color-text-placeholder); }
+
+    /* loading skeleton */
+    .skeleton-row td { padding: 0.55rem 0.85rem; }
+    .skel { background: var(--color-border-light); border-radius: 3px; height: 14px; animation: pulse 1.2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* empty state */
+    .empty-state { padding: 3rem; text-align: center; color: var(--color-text-placeholder); font-size: 0.9rem; }
+
+    /* legend */
+    .legend { display: flex; gap: 1.5rem; flex-wrap: wrap; font-size: 0.78rem; color: var(--color-text-muted); margin-bottom: 1rem; }
+    .legend-item { display: flex; align-items: center; gap: 0.4rem; }
+
+    /* tooltip */
+    .th-tip-icon {
+        display: inline-block; margin-left: 0.3rem;
+        width: 1rem; height: 1rem; line-height: 1rem;
+        border-radius: 50%; background: rgba(255,255,255,0.15);
+        color: var(--color-code-text); font-size: 0.65rem; font-weight: 700;
+        text-align: center; cursor: help; vertical-align: middle;
+        user-select: none; flex-shrink: 0;
+    }
+    .rank-table th:hover .th-tip-icon { background: rgba(255,255,255,0.25); }
+    .tip {
+        display: none; position: fixed; z-index: 200;
+        background: var(--color-primary); color: var(--color-border-strong);
+        font-size: 0.78rem; font-family: system-ui, sans-serif; font-weight: 400;
+        text-transform: none; letter-spacing: normal;
+        line-height: 1.5; max-width: 240px;
+        padding: 0.5rem 0.75rem; border-radius: 5px;
+        box-shadow: 0 3px 10px var(--color-shadow);
+        pointer-events: none; white-space: normal;
+    }
+</style>
+
+<h1>Armor Rankings</h1>
+<p class="subtitle">
+    Rankings for all loaded armor and wearable items.
+    Scores are computed from defense rating, stat bonuses, and worn buff values.
+</p>
+
+<div id="statusBar" class="status-bar"></div>
+
+<div class="toolbar">
+    <button class="btn btn-primary" onclick="loadRankings()">Refresh</button>
+    <span id="lastUpdated" class="last-updated"></span>
+</div>
+
+<div class="view-tabs">
+    <button class="view-tab active" id="tab-defense"    onclick="switchView('defense')">
+        <span class="tab-title">Defense</span>
+        <span class="tab-hint">Raw damage reduction %</span>
+    </button>
+    <button class="view-tab" id="tab-adjdefense" onclick="switchView('adjdefense')">
+        <span class="tab-title">Adj. Defense</span>
+        <span class="tab-hint">Shield ×1.5 multiplier</span>
+    </button>
+    <button class="view-tab" id="tab-value"      onclick="switchView('value')">
+        <span class="tab-title">Score</span>
+        <span class="tab-hint">eHP-equivalent</span>
+    </button>
+</div>
+
+<div class="filter-bar">
+    <label for="filterSlot">Slot:</label>
+    <select id="filterSlot" onchange="renderTable()">
+        <option value="">All</option>
+        <option value="offhand">Offhand</option>
+        <option value="head">Head</option>
+        <option value="neck">Neck</option>
+        <option value="body">Body</option>
+        <option value="belt">Belt</option>
+        <option value="gloves">Gloves</option>
+        <option value="ring">Ring</option>
+        <option value="legs">Legs</option>
+        <option value="feet">Feet</option>
+    </select>
+    <label for="filterCursed">Cursed:</label>
+    <select id="filterCursed" onchange="renderTable()">
+        <option value="">All</option>
+        <option value="no">Not cursed</option>
+        <option value="yes">Cursed only</option>
+    </select>
+    <label for="filterSearch">Search:</label>
+    <input type="text" id="filterSearch" placeholder="item name…" oninput="renderTable()">
+</div>
+
+<div class="legend">
+    <span class="legend-item"><span class="cursed-badge">cursed</span> Cannot be removed once equipped</span>
+    <span class="legend-item"><span class="slot-pill slot-offhand">offhand</span> Shields receive ×1.5 defense bonus</span>
+</div>
+
+<div class="rank-table-wrap">
+    <table class="rank-table" id="rankTable">
+        <thead>
+            <tr>
+                <th style="width:4rem" class="sortable" data-key="ItemId" onclick="sortBy('ItemId')" data-tip="Numeric item ID. Armor items use the 20000–29999 range.">ID<span class="sort-arrow"></span></th>
+                <th class="sortable" data-key="Name" onclick="sortBy('Name')" data-tip="The item's display name. Click to open it in the item editor.">Name<span class="sort-arrow"></span></th>
+                <th class="sortable" data-key="Slot" onclick="sortBy('Slot')" data-tip="Equipment slot this item occupies.">Slot<span class="sort-arrow"></span></th>
+                <th class="sortable" data-key="Defense" onclick="sortBy('Defense')" data-tip="Raw DamageReduction value. A random fraction of this is subtracted from each incoming hit.">Defense<span class="sort-arrow"></span></th>
+                <th class="sortable" data-key="StatBonus" onclick="sortBy('StatBonus')" data-tip="Sum of all stat mod values on the item. Positive means net stat gains; negative means net penalties.">Stats<span class="sort-arrow"></span></th>
+                <th class="sortable" data-key="BuffCount" onclick="sortBy('BuffCount')" data-tip="Number of passive buffs active while this item is equipped (WornBuffIds).">Buffs<span class="sort-arrow"></span></th>
+                <th class="sortable" id="scoreHeader" data-key="Defense" onclick="sortBy('Defense')" data-tip=""><span id="scoreLabel">Score</span><span class="sort-arrow"></span></th>
+            </tr>
+        </thead>
+        <tbody id="rankBody">
+            <tr class="skeleton-row"><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:140px"></div></td><td><div class="skel" style="width:70px"></div></td><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:100px"></div></td></tr>
+            <tr class="skeleton-row"><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:110px"></div></td><td><div class="skel" style="width:70px"></div></td><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:100px"></div></td></tr>
+            <tr class="skeleton-row"><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:160px"></div></td><td><div class="skel" style="width:70px"></div></td><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:100px"></div></td></tr>
+        </tbody>
+    </table>
+</div>
+
+<div id="tooltip" class="tip"></div>
+
+<script>
+(function() {
+    // --- state ---
+    var allData   = { by_defense: [], by_adj_defense: [], by_score: [] };
+    var view      = 'defense';
+    var sortKey   = null;
+    var sortAsc   = true;
+
+    // --- bootstrap ---
+    window.loadRankings = loadRankings;
+    window.switchView   = switchView;
+    window.renderTable  = renderTable;
+    window.sortBy       = sortBy;
+
+    loadRankings();
+
+    // --- data loading ---
+    async function loadRankings() {
+        const result = await AdminAPI.get('/admin/api/v1/items/ranks/armor', true);
+        if (!result.ok || !result.data || !result.data.success) {
+            showError((result.data && result.data.error) || result.error || 'Unknown error');
+            return;
+        }
+        allData = result.data.data;
+        sortKey = null;
+        renderTable();
+        document.getElementById('lastUpdated').textContent =
+            'Updated ' + new Date().toLocaleTimeString();
+        hideError();
+    }
+
+    // --- view switching ---
+    function switchView(v) {
+        view = v;
+        sortKey = null;
+        ['defense','adjdefense','value'].forEach(function(id) {
+            document.getElementById('tab-' + id).classList.toggle('active', id === v);
+        });
+        var header = document.getElementById('scoreHeader');
+        var keyMap = { defense: 'Defense', adjdefense: 'AdjDefense', value: 'Score' };
+        header.dataset.key = keyMap[v];
+        header.onclick = function() { sortBy(keyMap[v]); };
+        var labelMap = { defense: 'Defense', adjdefense: 'Adj Defense', value: 'Score' };
+        document.getElementById('scoreLabel').textContent = labelMap[v];
+        var tipMap = {
+            defense:    'Raw DamageReduction value. A random fraction of this is subtracted from each incoming hit.',
+            adjdefense: 'Defense adjusted for slot multiplier. Offhand shields receive ×1.5 inside the defense calculation.',
+            value:      'Unified eHP-equivalent score: (AdjDefense/200)×100 + per-stat weighted sum + BuffValue/10. Stat weights are derived from the combat engine range constants.'
+        };
+        header.dataset.tip = tipMap[v];
+        renderTable();
+    }
+
+    // --- sorting ---
+    function sortBy(key) {
+        if (sortKey === key) {
+            sortAsc = !sortAsc;
+        } else {
+            sortKey = key;
+            sortAsc = (key === 'Name' || key === 'Slot');
+        }
+        renderTable();
+    }
+
+    // --- rendering ---
+    function renderTable() {
+        var rows = currentRows();
+        rows = applyFilters(rows);
+        if (sortKey) rows = applySort(rows, sortKey, sortAsc);
+
+        updateSortHeaders();
+
+        var scoreKey = { defense: 'Defense', adjdefense: 'AdjDefense', value: 'Score' }[view];
+        var maxScore = 0;
+        rows.forEach(function(r) { var s = r[scoreKey]; if (s > maxScore) maxScore = s; });
+
+        var tbody = document.getElementById('rankBody');
+        if (rows.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No items match the current filters.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = rows.map(function(r) {
+            var score = r[scoreKey];
+            if (score === undefined || score === null) return '';
+
+            var scoreFmt;
+            if (scoreKey === 'Defense') {
+                scoreFmt = score + '%';
+            } else if (scoreKey === 'AdjDefense') {
+                scoreFmt = score.toFixed(1) + '%';
+            } else {
+                scoreFmt = score.toFixed(2);
+            }
+
+            var pct   = maxScore > 0 ? Math.max(0, score / maxScore * 100).toFixed(1) : 0;
+            var isTop = pct > 85;
+
+            var rowTip = '';
+            if (scoreKey === 'Score') {
+                rowTip = 'Defense: ' + r.Defense + '%, AdjDefense: ' + (r.AdjDefense || 0).toFixed(1) + '%, StatBonus: ' + r.StatBonus + ', BuffValue: ' + (r.BuffValue || 0);
+            }
+
+            var statCls = r.StatBonus > 0 ? 'stat-positive' : (r.StatBonus < 0 ? 'stat-negative' : 'stat-zero');
+            var statFmt = r.StatBonus > 0 ? '+' + r.StatBonus : String(r.StatBonus);
+
+            return '<tr class="' + (r.Cursed ? 'row-cursed' : '') + '">' +
+                '<td class="item-id">' + r.ItemId + '</td>' +
+                '<td class="item-name">' +
+                    '<a href="/admin/items#' + r.ItemId + '">' + escHtml(r.Name) + '</a>' +
+                    (r.Cursed ? ' <span class="cursed-badge">cursed</span>' : '') +
+                '</td>' +
+                '<td>' + slotPill(r.Slot) + '</td>' +
+                '<td>' + r.Defense + '%</td>' +
+                '<td class="stat-bonus ' + statCls + '">' + statFmt + '</td>' +
+                '<td>' + (r.BuffCount || 0) + '</td>' +
+                '<td class="score-cell"' + (rowTip ? ' data-row-tip="' + escHtml(rowTip) + '"' : '') + '>' +
+                    '<span class="score-val">' + scoreFmt + '</span>' +
+                    '<span class="score-bar-track"><span class="score-bar-fill' + (isTop ? ' top' : '') + '" style="width:' + pct + '%"></span></span>' +
+                '</td>' +
+            '</tr>';
+        }).join('');
+    }
+
+    function currentRows() {
+        var map = { defense: 'by_defense', adjdefense: 'by_adj_defense', value: 'by_score' };
+        return (allData[map[view]] || []).slice();
+    }
+
+    function applyFilters(rows) {
+        var slot   = document.getElementById('filterSlot').value;
+        var cursed = document.getElementById('filterCursed').value;
+        var search = document.getElementById('filterSearch').value.toLowerCase().trim();
+        return rows.filter(function(r) {
+            if (slot   && r.Slot !== slot) return false;
+            if (cursed === 'yes' && !r.Cursed) return false;
+            if (cursed === 'no'  &&  r.Cursed) return false;
+            if (search && r.Name.toLowerCase().indexOf(search) === -1) return false;
+            return true;
+        });
+    }
+
+    function applySort(rows, key, asc) {
+        return rows.slice().sort(function(a, b) {
+            var av = a[key], bv = b[key];
+            if (typeof av === 'string') av = av.toLowerCase();
+            if (typeof bv === 'string') bv = bv.toLowerCase();
+            if (av < bv) return asc ? -1 :  1;
+            if (av > bv) return asc ?  1 : -1;
+            return 0;
+        });
+    }
+
+    function updateSortHeaders() {
+        document.querySelectorAll('.rank-table th.sortable').forEach(function(th) {
+            var k = th.dataset.key;
+            th.classList.toggle('sorted-asc',  sortKey === k &&  sortAsc);
+            th.classList.toggle('sorted-desc', sortKey === k && !sortAsc);
+        });
+    }
+
+    // --- badge helpers ---
+    function slotPill(slot) {
+        var cls = 'slot-' + (slot || 'body').toLowerCase();
+        return '<span class="slot-pill ' + cls + '">' + escHtml(slot || '') + '</span>';
+    }
+
+    // --- status helpers ---
+    function showError(msg) {
+        var bar = document.getElementById('statusBar');
+        bar.textContent = msg;
+        bar.className = 'status-bar error';
+    }
+    function hideError() {
+        document.getElementById('statusBar').className = 'status-bar';
+    }
+
+    function escHtml(s) {
+        return String(s)
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // --- tooltip engine ---
+    (function() {
+        var tip = document.getElementById('tooltip');
+        var SCORE_TIPS = {
+            defense:    'Raw DamageReduction value. A random fraction of this is subtracted from each incoming hit.',
+            adjdefense: 'Defense adjusted for slot multiplier. Offhand shields receive ×1.5 inside the defense calculation.',
+            value:      'Unified eHP-equivalent score: (AdjDefense/200)×100 + per-stat weighted sum + BuffValue/10. Stat weights are derived from the combat engine range constants.'
+        };
+
+        document.getElementById('scoreHeader').dataset.tip = SCORE_TIPS['defense'];
+
+        document.querySelectorAll('.rank-table th[data-tip]').forEach(function(th) {
+            th.addEventListener('mouseenter', function(e) {
+                var text = th.dataset.tip;
+                if (!text) return;
+                tip.textContent = text;
+                tip.style.display = 'block';
+                positionTip(e);
+            });
+            th.addEventListener('mousemove', positionTip);
+            th.addEventListener('mouseleave', hideTip);
+        });
+
+        var tbody = document.getElementById('rankBody');
+        tbody.addEventListener('mouseover', function(e) {
+            var td = e.target.closest('td[data-row-tip]');
+            if (!td) { hideTip(); return; }
+            tip.textContent = td.dataset.rowTip;
+            tip.style.display = 'block';
+            positionTip(e);
+        });
+        tbody.addEventListener('mousemove', function(e) {
+            if (tip.style.display === 'block') positionTip(e);
+        });
+        tbody.addEventListener('mouseout', function(e) {
+            var td = e.target.closest('td[data-row-tip]');
+            if (td && !td.contains(e.relatedTarget)) hideTip();
+        });
+
+        function hideTip() { tip.style.display = 'none'; }
+
+        function positionTip(e) {
+            var pad = 12;
+            var tw  = tip.offsetWidth;
+            var th2 = tip.offsetHeight;
+            var x   = e.clientX + pad;
+            var y   = e.clientY + pad;
+            if (x + tw > window.innerWidth  - pad) x = e.clientX - tw - pad;
+            if (y + th2 > window.innerHeight - pad) y = e.clientY - th2 - pad;
+            tip.style.left = x + 'px';
+            tip.style.top  = y + 'px';
+        }
+    })();
+})();
+</script>
+
+{{template "footer" .}}

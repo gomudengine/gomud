@@ -29,6 +29,23 @@ func buildAdminNav() []WebNavItem {
 					},
 				},
 				{
+					Name:   "Conversations",
+					Target: "/admin/conversations",
+					SubItems: []WebNavSub{
+						{Label: "View / Edit", Target: "/admin/conversations"},
+						{Label: "API Docs", Target: "/admin/conversations-api"},
+					},
+				},
+				{
+					Name:   "Pets",
+					Target: "/admin/pets",
+					SubItems: []WebNavSub{
+						{Label: "View / Edit", Target: "/admin/pets"},
+						{Label: "Rankings", Target: "/admin/pets-ranks"},
+						{Label: "API Docs", Target: "/admin/pets-api"},
+					},
+				},
+				{
 					Name:   "Races",
 					Target: "/admin/races",
 					SubItems: []WebNavSub{
@@ -51,6 +68,14 @@ func buildAdminNav() []WebNavItem {
 					},
 				},
 				{
+					Name:   "Item Ranks",
+					Target: "/admin/items-rank-weapons",
+					SubItems: []WebNavSub{
+						{Label: "Weapons", Target: "/admin/items-rank-weapons"},
+						{Label: "Armor", Target: "/admin/items-rank-armor"},
+					},
+				},
+				{
 					Name:   "Attack Messages",
 					Target: "/admin/items-attack-messages",
 					SubItems: []WebNavSub{
@@ -63,6 +88,10 @@ func buildAdminNav() []WebNavItem {
 		{
 			Name: "Rooms",
 			SubMenus: []WebNavItem{
+				{
+					Name:   "Mapper",
+					Target: "/admin/mapper",
+				},
 				{
 					Name:   "Rooms",
 					Target: "/admin/rooms",
@@ -77,6 +106,14 @@ func buildAdminNav() []WebNavItem {
 					SubItems: []WebNavSub{
 						{Label: "View / Edit", Target: "/admin/mutators"},
 						{Label: "API Docs", Target: "/admin/mutators-api"},
+					},
+				},
+				{
+					Name:   "Biomes",
+					Target: "/admin/biomes",
+					SubItems: []WebNavSub{
+						{Label: "View / Edit", Target: "/admin/biomes"},
+						{Label: "API Docs", Target: "/admin/biomes-api"},
 					},
 				},
 			},
@@ -150,6 +187,14 @@ func buildAdminNav() []WebNavItem {
 					},
 				},
 				{
+					Name:   "GameTime",
+					Target: "/admin/gametime",
+					SubItems: []WebNavSub{
+						{Label: "View / Edit", Target: "/admin/gametime"},
+						{Label: "API Docs", Target: "/admin/gametime-api"},
+					},
+				},
+				{
 					Name:   "Stats",
 					Target: "/admin/stats",
 					SubItems: []WebNavSub{
@@ -163,6 +208,13 @@ func buildAdminNav() []WebNavItem {
 					SubItems: []WebNavSub{
 						{Label: "View / Edit", Target: "/admin/audio"},
 						{Label: "API Docs", Target: "/admin/audio-api"},
+					},
+				},
+				{
+					Name:   "Scripting",
+					Target: "/admin/scripting-api",
+					SubItems: []WebNavSub{
+						{Label: "API Docs", Target: "/admin/scripting-api"},
 					},
 				},
 			},

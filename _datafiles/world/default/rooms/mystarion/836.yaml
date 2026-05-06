@@ -11,3 +11,7 @@ description: Opal Street is a radiant avenue where the air shimmers with the pri
 exits:
   north:
     roomid: 727
+mapx: 80
+mapy: 4
+mapz: 0
+hascoordinates: true

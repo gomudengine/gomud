@@ -11,9 +11,12 @@ description: The north wing operates at a different frequency than the rest of t
   exhales slowly and turns a card. The room absorbs the result without comment. Whatever
   happens here happens quietly, which somehow makes it feel more consequential than
   the noise next door.
-biome: city
 exits:
   south:
     roomid: 1005
 tags:
 - claw machine
+mapx: -3
+mapy: 7
+mapz: 0
+hascoordinates: true

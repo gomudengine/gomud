@@ -24,3 +24,7 @@ skilltraining:
   scribe:
     min: 1
     max: 4
+mapx: -7
+mapy: 1
+mapz: -1
+hascoordinates: true

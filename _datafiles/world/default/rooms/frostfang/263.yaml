@@ -9,7 +9,6 @@ description: The streets, paved with cobblestone smoothed by countless footsteps
   in furs and thick cloaks, these inhabitants form fleeting clouds with their breath
   in the cold air, their steps hinting at a less frequented yet intriguing dwelling
   located discreetly near the north exit of the district.
-biome: city
 exits:
   north:
     roomid: 265
@@ -17,3 +16,7 @@ exits:
     roomid: 264
   west:
     roomid: 262
+mapx: 6
+mapy: -2
+mapz: 0
+hascoordinates: true

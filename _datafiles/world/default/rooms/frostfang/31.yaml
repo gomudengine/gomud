@@ -8,7 +8,6 @@ description: 'The air is cool and slightly damp, with walls of rough-hewn stone 
   at forgotten rituals or hidden histories of Frostfang. The room''s very existence
   suggests a dual purpose: a safe haven for those in need from the alley and a repository
   for the temple''s most sacred and guarded treasures.'
-biome: city
 exits:
   down:
     roomid: 32
@@ -16,3 +15,7 @@ exits:
     roomid: 26
   west:
     roomid: 18
+mapx: 3
+mapy: 4
+mapz: 0
+hascoordinates: true

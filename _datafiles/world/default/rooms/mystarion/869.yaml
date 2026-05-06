@@ -16,3 +16,7 @@ spawninfo:
 - mobid: 48
   message: The gardener enters the shop.
   respawnrate: 2 real minutes
+mapx: 75
+mapy: -2
+mapz: 0
+hascoordinates: true

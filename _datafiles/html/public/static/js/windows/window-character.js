@@ -1,23 +1,23 @@
 /**
  * window-character.js
  *
- * Virtual window: Character — left dock, tabbed.
+ * Virtual window: Character - left dock, tabbed.
  *
  * Tabs:
- *   Overview — name, race/class, level, alignment, stats grid, point badges
- *   Quests   — in-progress quest log, click to expand
- *   Skills   — learned skills with levels and max indicator
- *   Jobs     — profession completion and proficiency
- *   Effects  — active buffs/debuffs with duration bars
+ *   Overview - name, race/class, level, alignment, stats grid, point badges
+ *   Quests   - in-progress quest log, click to expand
+ *   Skills   - learned skills with levels and max indicator
+ *   Jobs     - profession completion and proficiency
+ *   Effects  - active buffs/debuffs with duration bars
  *
  * Responds to GMCP namespaces:
- *   Char         — full character update
- *   Char.Info    — name, race, class, level, alignment, skill/training points
- *   Char.Stats   — six core stats
- *   Char.Quests  — quest progress
- *   Char.Skills  — skill names, levels, max flag
- *   Char.Jobs    — profession completion and proficiency
- *   Char.Affects — active buffs/debuffs
+ *   Char         - full character update
+ *   Char.Info    - name, race, class, level, alignment, skill/training points
+ *   Char.Stats   - six core stats
+ *   Char.Quests  - quest progress
+ *   Char.Skills  - skill names, levels, max flag
+ *   Char.Jobs    - profession completion and proficiency
+ *   Char.Affects - active buffs/debuffs
  *
  * Reads:
  *   Client.GMCPStructs.Char.Info

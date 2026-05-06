@@ -9,10 +9,7 @@ description: 'Tucked away in the heart of Frostfang''s sprawling slums, a dimly 
   with remnants of daily life: discarded meal bones, worn-out shoes, and glimmers
   from shattered glass. Muffled whispers and subtle movements hint at the precarious
   lives within, hidden deep in the slums, yet a stone''s throw from a place of refuge.'
-biome: city
 exits:
-  east:
-    roomid: 443
   south:
     roomid: 453
   west:
@@ -23,3 +20,7 @@ spawninfo:
   forcehostile: true
   maxwander: -1
   respawnrate: 5 real minutes
+mapx: -1
+mapy: 9
+mapz: 0
+hascoordinates: true

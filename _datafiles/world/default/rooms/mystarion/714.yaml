@@ -8,3 +8,7 @@ description: Outside of Mysterion you can now see how rough the farmers have it.
 exits:
   west:
     roomid: 713
+mapx: 87
+mapy: 3
+mapz: 0
+hascoordinates: true

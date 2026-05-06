@@ -1,6 +1,6 @@
 roomid: 6
 zone: Frostfang
-title: The Castle Gates
+title: Cobblestone Way
 description: Standing at the castle gates of Frostfang, Cobblestone Way concludes
   its winding journey. The towering doors loom above you, their dark wood and iron
   bindings covered in a layer of frost. Torchlight flickers from the walls, casting
@@ -10,7 +10,7 @@ description: Standing at the castle gates of Frostfang, Cobblestone Way conclude
 biome: city
 exits:
   north:
-    roomid: 36
+    roomid: 1065
   south:
     roomid: 5
 spawninfo:
@@ -26,3 +26,7 @@ spawninfo:
   message: A guard has returned from his break.
   levelmod: 10
   respawnrate: 5 real minutes
+mapx: 0
+mapy: -5
+mapz: 0
+hascoordinates: true

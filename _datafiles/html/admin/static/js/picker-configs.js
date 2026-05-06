@@ -28,7 +28,7 @@ const PickerConfigs = {
         ],
         searchKeys: ['BuffId', 'Name'],
         sort: (a, b) => a.BuffId - b.BuffId,
-        // buffs API returns { data: { specs: { ... } } } — unwrap via source fn
+        // buffs API returns { data: { specs: { ... } } } - unwrap via source fn
         source: async () => {
             const res = await AdminAPI.get('/admin/api/v1/buffs');
             if (!res.ok) throw new Error(res.error || 'Failed to load buffs');
@@ -64,16 +64,23 @@ const PickerConfigs = {
 
     mobs: {
         title:   'Select Mob',
-        source:  '/admin/api/v1/mobs',
         idKey:   'MobId',
         columns: [
             { key: 'MobId', label: '#',    width: '4rem', mono: true },
-            { key: 'Name',  label: 'Name', flex: true,
-              render: (_, item) => (item.Character && item.Character.Name) || '(unnamed)' },
+            { key: '_name', label: 'Name', flex: true },
             { key: 'Zone',  label: 'Zone', width: '10rem' },
         ],
-        searchKeys: ['MobId', 'Zone'],
+        searchKeys: ['MobId', '_name', 'Zone'],
         sort: (a, b) => a.MobId - b.MobId,
+        source: async () => {
+            const res = await AdminAPI.get('/admin/api/v1/mobs');
+            if (!res.ok) throw new Error(res.error || 'Failed to load mobs');
+            const items = (res.data && res.data.data) || [];
+            return items.map(m => ({
+                ...m,
+                _name: (m.Character && m.Character.Name) || '(unnamed)',
+            }));
+        },
     },
 
     spells: {
@@ -105,7 +112,7 @@ const PickerConfigs = {
 
 };
 
-// buffName(id) — synchronously resolves a buff name from the AdminAPI cache.
+// buffName(id) - synchronously resolves a buff name from the AdminAPI cache.
 // Returns '#ID Name' if the cache is warm (i.e. the buffs API has already been
 // fetched this session), or '#ID' if it hasn't been fetched yet.
 PickerConfigs.buffName = function (id) {
@@ -133,7 +140,7 @@ AdminAPI.get('/admin/api/v1/buffs').then(res => {
 // Usage:
 //   QuestTokenPicker.pick((token, label) => {
 //     // token: e.g. "1001-start"
-//     // label: e.g. "#1001 The Lost Artifact — start"
+//     // label: e.g. "#1001 The Lost Artifact - start"
 //   });
 //
 // Optional: pass excludeQuestId to filter out the quest currently being edited
@@ -151,14 +158,14 @@ const QuestTokenPicker = (() => {
             onSelect: (quest) => {
                 const steps = (quest.Steps || []);
 
-                // Build step items — always include start/end even if Steps is sparse
+                // Build step items - always include start/end even if Steps is sparse
                 const stepItems = steps.map(s => ({
                     Id:          s.Id,
                     Description: s.Description || '',
                 }));
 
                 Picker.open({
-                    title:   'Select Step — #' + quest.QuestId + ' ' + quest.Name,
+                    title:   'Select Step - #' + quest.QuestId + ' ' + quest.Name,
                     source:  async () => stepItems,
                     idKey:   'Id',
                     columns: [
@@ -179,7 +186,7 @@ const QuestTokenPicker = (() => {
     return { pick };
 })();
 
-// UserPicker — search-driven user picker backed by /admin/api/v1/users/search.
+// UserPicker - search-driven user picker backed by /admin/api/v1/users/search.
 //
 // Unlike Picker, this modal does not pre-load all users. Instead it fires a
 // debounced search request as the user types and renders live results.
@@ -203,63 +210,65 @@ const UserPicker = (() => {
         style.id = 'user-picker-styles';
         style.textContent = `
             .up-overlay {
-                position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+                position: fixed; inset: 0; background: var(--color-overlay);
                 display: flex; align-items: center; justify-content: center;
                 z-index: 9999;
             }
             .up-modal {
-                background: #fff; border-radius: 8px; box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+                background: var(--color-surface); border-radius: 8px; box-shadow: 0 8px 32px var(--color-shadow);
                 width: 520px; max-width: 96vw; max-height: 80vh;
                 display: flex; flex-direction: column; overflow: hidden;
             }
             .up-header {
-                padding: 0.85rem 1rem 0.7rem; border-bottom: 1px solid #e5e5e5;
+                padding: 0.85rem 1rem 0.7rem; border-bottom: 1px solid var(--color-border);
                 display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
             }
-            .up-title { font-size: 1rem; font-weight: 700; color: #1a1a2e; }
+            .up-title { font-size: 1rem; font-weight: 700; color: var(--color-text); }
             .up-close {
                 background: none; border: none; font-size: 1.25rem; cursor: pointer;
-                color: #888; line-height: 1; padding: 0 0.2rem;
+                color: var(--color-text-faint); line-height: 1; padding: 0 0.2rem;
             }
-            .up-close:hover { color: #333; }
-            .up-search-wrap { padding: 0.6rem 1rem; border-bottom: 1px solid #eee; flex-shrink: 0; }
+            .up-close:hover { color: var(--color-text); }
+            .up-search-wrap { padding: 0.6rem 1rem; border-bottom: 1px solid var(--color-border-light); flex-shrink: 0; }
             .up-search {
-                width: 100%; padding: 0.4rem 0.65rem; border: 1px solid #ccc;
+                width: 100%; padding: 0.4rem 0.65rem; border: 1px solid var(--color-border-medium);
                 border-radius: 4px; font-size: 0.875rem;
+                background: var(--color-surface-raised); color: var(--color-text);
             }
-            .up-search:focus { outline: 2px solid #1a1a2e; outline-offset: 1px; border-color: transparent; }
-            .up-hint { font-size: 0.75rem; color: #aaa; margin-top: 0.3rem; }
-            .up-table-wrap { overflow-y: auto; flex: 1; }
+            .up-search:focus { outline: 2px solid var(--color-focus); outline-offset: 1px; border-color: transparent; }
+            .up-hint { font-size: 0.75rem; color: var(--color-text-placeholder); margin-top: 0.3rem; }
+            .up-table-wrap { overflow-y: auto; flex: 1; background: var(--color-surface); }
             .up-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-            .up-table thead { position: sticky; top: 0; background: #f5f5f5; z-index: 1; }
+            .up-table thead { position: sticky; top: 0; background: var(--color-page-bg); z-index: 1; }
             .up-table th {
                 padding: 0.4rem 0.75rem; text-align: left; font-size: 0.72rem;
                 font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
-                color: #666; border-bottom: 1px solid #e0e0e0; white-space: nowrap;
+                color: var(--color-text-subtle); border-bottom: 1px solid var(--color-border-strong); white-space: nowrap;
             }
-            .up-table td { padding: 0.45rem 0.75rem; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+            .up-table td { padding: 0.45rem 0.75rem; border-bottom: 1px solid var(--color-border-faint); vertical-align: middle; color: var(--color-text); }
             .up-table tr:last-child td { border-bottom: none; }
             .up-table tbody tr { cursor: pointer; }
-            .up-table tbody tr:hover { background: #f5f7ff; }
-            .up-table tbody tr.up-highlighted { background: #eef0ff; }
+            .up-table tbody tr:hover { background: var(--color-row-hover); }
+            .up-table tbody tr.up-highlighted { background: var(--color-row-hover); }
             .up-role-badge {
                 display: inline-block; font-size: 0.7rem; padding: 0.1rem 0.4rem;
-                border-radius: 3px; background: #e8eaf6; color: #3949ab;
+                border-radius: 3px; background: var(--color-chip-bg); color: var(--color-chip-text);
                 font-weight: 600; text-transform: uppercase;
             }
-            .up-role-badge.up-role-admin { background: #fde8e8; color: #8a0000; }
-            .up-empty { padding: 2rem 1rem; text-align: center; color: #aaa; font-size: 0.875rem; }
-            .up-loading { padding: 2rem 1rem; text-align: center; color: #888; font-size: 0.875rem; }
+            .up-role-badge.up-role-admin { background: var(--color-badge-hostile-bg); color: var(--color-badge-hostile-text); }
+            .up-empty { padding: 2rem 1rem; text-align: center; color: var(--color-text-placeholder); font-size: 0.875rem; }
+            .up-loading { padding: 2rem 1rem; text-align: center; color: var(--color-text-faint); font-size: 0.875rem; }
             .up-footer {
-                padding: 0.65rem 1rem; border-top: 1px solid #eee;
+                padding: 0.65rem 1rem; border-top: 1px solid var(--color-border-light);
                 display: flex; justify-content: flex-end; flex-shrink: 0;
+                background: var(--color-surface);
             }
             .up-btn-cancel {
                 padding: 0.4rem 1rem; border-radius: 4px; font-size: 0.85rem;
-                font-weight: 600; cursor: pointer; background: #f0f0f0;
-                color: #444; border: 1px solid #ccc;
+                font-weight: 600; cursor: pointer; background: var(--color-btn-cancel-bg);
+                color: var(--color-btn-cancel-text); border: 1px solid var(--color-border-medium);
             }
-            .up-btn-cancel:hover { background: #e5e5e5; }
+            .up-btn-cancel:hover { background: var(--color-btn-cancel-hover); }
         `;
         document.head.appendChild(style);
     }
@@ -311,7 +320,7 @@ const UserPicker = (() => {
         searchInput.setAttribute('aria-label', 'Search users');
         const hint = document.createElement('div');
         hint.className = 'up-hint';
-        hint.textContent = 'Type at least 2 characters. Returns exact and prefix matches.';
+        hint.textContent = 'Type a username (min 2 chars) or a numeric user ID to search.';
         searchWrap.appendChild(searchInput);
         searchWrap.appendChild(hint);
 
@@ -360,7 +369,7 @@ const UserPicker = (() => {
                 tr.innerHTML =
                     '<td style="font-family:monospace">' + escHtml(String(u.user_id)) + '</td>' +
                     '<td><strong>' + escHtml(u.username || '') + '</strong>' +
-                    (u.email ? '<br><span style="font-size:0.78rem;color:#888">' + escHtml(u.email) + '</span>' : '') +
+                    (u.email ? '<br><span style="font-size:0.78rem;color:var(--color-text-faint)">' + escHtml(u.email) + '</span>' : '') +
                     '</td>' +
                     '<td><span class="up-role-badge' + roleClass + '">' + escHtml(u.role || 'user') + '</span></td>';
                 tr.addEventListener('click', () => { close(); onSelect(u); });
@@ -383,7 +392,9 @@ const UserPicker = (() => {
         }
 
         async function doSearch(q) {
-            if (q.trim().length < 2) {
+            const trimmed = q.trim();
+            const isNumeric = /^\d+$/.test(trimmed);
+            if (trimmed.length < 2 && !isNumeric) {
                 tableWrap.innerHTML = '<div class="up-empty">Start typing to search for a user.</div>';
                 visibleUsers = [];
                 return;

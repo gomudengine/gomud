@@ -1,0 +1,1809 @@
+{{template "header" .}}
+
+<style>
+    main {
+        max-width: none;
+        padding: 0 1rem 1rem 1rem;
+        margin-top: 1rem;
+    }
+    h1 { margin-bottom: 0.25rem; }
+    .subtitle { color: var(--color-text-dim); font-size: 0.85rem; margin-bottom: 0.75rem; }
+    .subtitle a { color: var(--color-link); }
+
+    .mapper-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 8px;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        margin-bottom: 6px;
+        flex-wrap: wrap;
+    }
+    .mapper-toolbar select {
+        padding: 4px 6px;
+        font-size: 0.82rem;
+        font-family: monospace;
+        background: var(--color-surface-white);
+        color: var(--color-text);
+        border: 1px solid var(--color-border);
+        border-radius: 3px;
+        min-width: 160px;
+    }
+    .mapper-toolbar .sep {
+        width: 1px;
+        height: 20px;
+        background: var(--color-border);
+    }
+    .mapper-tabs { display: flex; gap: 2px; }
+    .mapper-tabs button {
+        padding: 3px 10px;
+        font-size: 0.78rem;
+        font-family: monospace;
+        background: var(--color-surface-white);
+        color: var(--color-text-dim);
+        border: 1px solid var(--color-border);
+        border-radius: 3px;
+        cursor: pointer;
+    }
+    .mapper-tabs button:hover { color: var(--color-text); }
+    .mapper-tabs button.active {
+        background: var(--color-primary);
+        color: #fff;
+        border-color: var(--color-primary);
+    }
+    .mapper-controls { display: flex; gap: 2px; align-items: center; }
+    .mapper-controls button {
+        width: 24px; height: 24px;
+        padding: 0;
+        font-size: 14px; line-height: 1;
+        font-family: monospace;
+        background: var(--color-surface-white);
+        color: var(--color-text-dim);
+        border: 1px solid var(--color-border);
+        border-radius: 3px;
+        cursor: pointer;
+    }
+    .mapper-controls button:hover { color: var(--color-text); background: var(--color-surface); }
+    .mapper-controls button.active {
+        background: var(--color-primary);
+        color: #fff;
+        border-color: var(--color-primary);
+    }
+    .mapper-controls .ctrl-sep {
+        width: 1px; height: 16px;
+        background: var(--color-border);
+        margin: 0 3px;
+    }
+    .mapper-z-controls { display: flex; gap: 4px; align-items: center; }
+    .mapper-z-controls span { font-size: 0.72rem; color: var(--color-text-dim); font-family: monospace; }
+    .mapper-z-controls select {
+        padding: 2px 4px;
+        font-size: 0.75rem;
+        font-family: monospace;
+        background: var(--color-surface-white);
+        color: var(--color-text);
+        border: 1px solid var(--color-border);
+        border-radius: 3px;
+        min-width: 48px;
+        text-align: center;
+    }
+    .z-nav-btn {
+        width: 22px; height: 22px;
+        padding: 0;
+        font-size: 10px; line-height: 1;
+        font-family: monospace;
+        background: var(--color-surface-white);
+        color: var(--color-text-dim);
+        border: 1px solid var(--color-border);
+        border-radius: 3px;
+        cursor: pointer;
+    }
+    .z-nav-btn:hover { color: var(--color-text); background: var(--color-surface); }
+    .z-nav-btn:disabled { opacity: 0.3; cursor: default; }
+
+    .mapper-body {
+        display: flex;
+        gap: 0;
+        height: calc(100vh - 180px);
+        min-height: 400px;
+    }
+    .mapper-viewport {
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+        background: #111;
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        margin-right: 3px;
+    }
+    .mapper-viewport canvas {
+        display: block;
+        position: absolute;
+        top: 0; left: 0;
+        cursor: grab;
+    }
+
+    .mapper-info-panel {
+        width: 260px;
+        flex-shrink: 0;
+        min-width: 160px;
+        margin-left: 3px;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        padding: 8px 10px;
+        overflow-y: auto;
+        font-size: 0.8rem;
+        font-family: monospace;
+    }
+    .mapper-info-panel h3 {
+        margin: 0 0 6px 0;
+        font-size: 0.85rem;
+        color: var(--color-text);
+    }
+    .mapper-info-panel .info-empty {
+        color: var(--color-text-dim);
+        font-style: italic;
+    }
+    .mapper-info-panel .info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 8px;
+        line-height: 1.8;
+    }
+    .mapper-info-panel .info-label {
+        color: var(--color-text-dim);
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        flex-shrink: 0;
+    }
+    .mapper-info-panel .info-value {
+        color: var(--color-text);
+        text-align: right;
+        word-break: break-word;
+    }
+    .mapper-info-panel .info-divider {
+        border: none;
+        border-top: 1px solid var(--color-border);
+        margin: 6px 0;
+    }
+    .mapper-info-panel .info-link {
+        display: inline-block;
+        margin-top: 6px;
+        font-size: 0.78rem;
+        color: var(--color-link);
+    }
+    .mapper-info-panel .info-exits {
+        margin-top: 4px;
+    }
+    .mapper-info-panel .info-exit-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 6px;
+        line-height: 1.6;
+        font-size: 0.75rem;
+    }
+    .mapper-info-panel .info-exit-dir { color: var(--color-text-dim); }
+    .mapper-info-panel .info-exit-id { color: var(--color-text); }
+    .mapper-info-panel .info-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 3px;
+        margin-top: 4px;
+    }
+    .mapper-info-panel .info-badge {
+        font-size: 0.65rem;
+        padding: 1px 4px;
+        border-radius: 3px;
+        background: var(--color-surface-white);
+        color: var(--color-text-dim);
+        border: 1px solid var(--color-border);
+    }
+    .mapper-info-panel .info-badge.secret { color: #d4a843; border-color: #d4a843; }
+    .mapper-info-panel .info-badge.locked { color: #9ab0d4; border-color: #9ab0d4; }
+    .mapper-info-panel .info-sub-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 6px;
+        font-size: 0.72rem;
+        padding: 1px 0;
+    }
+    .mapper-info-panel .info-sub-label { color: var(--color-text); }
+    .mapper-info-panel .info-sub-val   { color: var(--color-text-dim); text-align: right; }
+    .info-zlevel-btn {
+        flex: 1;
+        padding: 4px 6px;
+        font-size: 0.72rem;
+        font-family: monospace;
+        background: var(--color-surface-white);
+        color: var(--color-text-dim);
+        border: 1px solid var(--color-border);
+        border-radius: 3px;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+    .info-zlevel-btn:hover { color: var(--color-text); background: var(--color-surface); }
+    .mapper-info-panel .info-row-block {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+    .mapper-info-panel .info-spawn-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.72rem;
+        margin-top: 2px;
+    }
+    .mapper-info-panel .info-spawn-table th {
+        text-align: left;
+        color: var(--color-text-dim);
+        font-weight: normal;
+        padding: 1px 4px 3px 0;
+        border-bottom: 1px solid var(--color-border);
+    }
+    .mapper-info-panel .info-spawn-table td {
+        color: var(--color-text);
+        padding: 2px 4px 2px 0;
+        vertical-align: top;
+    }
+    .mapper-info-panel .info-spawn-table tr:nth-child(even) td {
+        background: rgba(255,255,255,0.03);
+    }
+
+    .mapper-resizer {
+        width: 5px;
+        flex-shrink: 0;
+        cursor: col-resize;
+        background: var(--color-border);
+        border-radius: 3px;
+        transition: background 0.15s;
+        position: relative;
+    }
+    .mapper-resizer:hover,
+    .mapper-resizer.dragging {
+        background: var(--color-primary);
+    }
+
+    #toolbar-tooltip {
+        position: fixed;
+        z-index: 100000;
+        pointer-events: none;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.45);
+        padding: 5px 9px;
+        max-width: 220px;
+        display: none;
+        font-family: monospace;
+        font-size: 0.75rem;
+        color: var(--color-text);
+        line-height: 1.45;
+        white-space: normal;
+    }
+
+    #mapper-tooltip {
+        position: fixed;
+        z-index: 99999;
+        pointer-events: none;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 6px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+        padding: 8px 10px;
+        min-width: 140px;
+        max-width: 260px;
+        display: none;
+        font-family: monospace;
+        font-size: 0.78rem;
+    }
+    #mapper-tooltip .tt-title { font-weight: bold; color: var(--color-text); margin-bottom: 2px; }
+    #mapper-tooltip .tt-id { color: var(--color-text-dim); font-size: 0.7rem; }
+    #mapper-tooltip .tt-row { display: flex; justify-content: space-between; gap: 8px; line-height: 1.6; }
+    #mapper-tooltip .tt-label { color: var(--color-text-dim); font-size: 0.72rem; text-transform: uppercase; }
+    #mapper-tooltip .tt-value { color: var(--color-text); }
+    #mapper-tooltip .tt-divider { border: none; border-top: 1px solid var(--color-border); margin: 4px 0; }
+
+    .mapper-ctx-menu {
+        position: fixed;
+        z-index: 99998;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+        min-width: 160px;
+        padding: 4px 0;
+        font-family: monospace;
+        font-size: 0.8rem;
+        display: none;
+    }
+    .mapper-ctx-menu .ctx-header {
+        padding: 4px 10px;
+        color: var(--color-text-dim);
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        border-bottom: 1px solid var(--color-border);
+        margin-bottom: 2px;
+    }
+    .mapper-ctx-menu .ctx-item {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        width: 100%;
+        padding: 5px 10px;
+        background: none;
+        border: none;
+        color: var(--color-text);
+        font-family: monospace;
+        font-size: 0.8rem;
+        text-align: left;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+    .mapper-ctx-menu .ctx-icon {
+        width: 1.1em;
+        text-align: center;
+        flex-shrink: 0;
+    }
+    .mapper-ctx-menu .ctx-item:hover:not(:disabled) {
+        background: var(--color-primary);
+        color: #fff;
+    }
+    .mapper-ctx-menu .ctx-item:disabled {
+        color: var(--color-text-dim);
+        opacity: 0.4;
+        cursor: default;
+    }
+
+    .mapper-api-spinner {
+        display: none;
+        width: 18px;
+        height: 18px;
+        border: 2px solid var(--color-border);
+        border-top-color: var(--color-primary);
+        border-radius: 50%;
+        animation: mapper-spin 0.7s linear infinite;
+        flex-shrink: 0;
+    }
+    .mapper-api-spinner.visible { display: block; }
+    @keyframes mapper-spin {
+        to { transform: rotate(360deg); }
+    }
+        display: none;
+        gap: 4px;
+        align-items: center;
+    }
+    .mapper-save-controls.visible { display: flex; }
+    .mapper-save-controls button {
+        padding: 3px 10px;
+        font-size: 0.78rem;
+        font-family: monospace;
+        border: 1px solid var(--color-border);
+        border-radius: 3px;
+        cursor: pointer;
+    }
+    .mapper-save-controls .btn-save {
+        background: #2a7a2a;
+        color: #fff;
+        border-color: #2a7a2a;
+    }
+    .mapper-save-controls .btn-save:hover { background: #35953a; }
+    .mapper-save-controls .btn-discard {
+        background: var(--color-surface-white);
+        color: var(--color-text-dim);
+    }
+    .mapper-save-controls .btn-discard:hover { color: var(--color-text); }
+    .mapper-toast-container {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 6px;
+        pointer-events: none;
+    }
+    .mapper-toast {
+        background: rgba(30,30,40,0.92);
+        color: #d4a843;
+        font-family: monospace;
+        font-size: 0.78rem;
+        padding: 6px 16px;
+        border-radius: 20px;
+        border: 1px solid rgba(212,168,67,0.4);
+        white-space: nowrap;
+        animation: mapper-toast-fly 2.8s ease-in forwards;
+    }
+    @keyframes mapper-toast-fly {
+        0%   { opacity: 0; transform: translateX(12px); }
+        12%  { opacity: 1; transform: translateX(0); }
+        70%  { opacity: 1; transform: translateX(0); }
+        100% { opacity: 0; transform: translateX(80px); }
+    }
+
+    .mapper-changelog-btn {
+        position: relative;
+        width: 24px; height: 24px;
+        padding: 0;
+        font-size: 14px; line-height: 1;
+        font-family: monospace;
+        background: var(--color-surface-white);
+        color: var(--color-text-dim);
+        border: 1px solid var(--color-border);
+        border-radius: 3px;
+        cursor: pointer;
+    }
+    .mapper-changelog-btn:hover { color: var(--color-text); background: var(--color-surface); }
+    .mapper-changelog-btn.has-entries { color: #d4a843; border-color: #d4a843; }
+    .mapper-changelog-badge {
+        position: absolute;
+        top: -6px; right: -6px;
+        background: #d4a843;
+        color: #000;
+        font-size: 0.55rem;
+        font-family: monospace;
+        font-weight: bold;
+        min-width: 14px;
+        height: 14px;
+        border-radius: 7px;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 0 3px;
+        pointer-events: none;
+    }
+    .mapper-changelog-badge.visible { display: flex; }
+    .mapper-changelog-overlay {
+        position: absolute;
+        top: 8px; left: 8px;
+        z-index: 10;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        padding: 6px 10px;
+        max-height: 260px;
+        width: 680px;
+        overflow-y: auto;
+        font-family: monospace;
+        font-size: 0.75rem;
+        line-height: 1.5;
+        display: none;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    }
+    .mapper-changelog-overlay.visible { display: block; }
+    .mapper-changelog-overlay .cl-overlay-header {
+        border-bottom: 1px solid var(--color-border);
+        padding-bottom: 6px;
+        margin-bottom: 4px;
+    }
+    .mapper-changelog-overlay .cl-spacing-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .mapper-changelog-overlay .cl-overlay-label {
+        font-size: 0.72rem;
+        color: var(--color-text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        white-space: nowrap;
+    }
+    .mapper-changelog-overlay .cl-spacing-val {
+        font-size: 0.72rem;
+        color: var(--color-text-dim);
+        min-width: 28px;
+        text-align: right;
+    }
+    .mapper-changelog-overlay .cl-title {
+        font-size: 0.72rem;
+        color: var(--color-text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 4px;
+    }
+
+    .mapper-changelog-overlay .cl-entry { color: var(--color-text); }
+    .mapper-changelog-overlay .cl-entry .cl-action { color: var(--color-text-dim); }
+    .mapper-changelog-overlay .cl-entry.cl-move .cl-action { color: #6aacf0; }
+    .mapper-changelog-overlay .cl-entry.cl-create .cl-action { color: #5fb77a; }
+    .mapper-changelog-overlay .cl-entry.cl-delete .cl-action { color: #ff6b6b; }
+    .mapper-changelog-overlay .cl-entry.cl-exit-add .cl-action { color: #a8d86e; }
+    .mapper-changelog-overlay .cl-entry.cl-exit-remove .cl-action { color: #d4a843; }
+
+    .mapper-legend-btn {
+        position: absolute;
+        top: 8px; left: 8px;
+        z-index: 8;
+        width: 26px; height: 26px;
+        padding: 0;
+        font-size: 15px; line-height: 1;
+        font-family: monospace;
+        font-weight: bold;
+        background: var(--color-surface);
+        color: var(--color-text-dim);
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        cursor: pointer;
+        opacity: 0.7;
+    }
+    .mapper-legend-btn:hover { opacity: 1; color: var(--color-text); }
+
+    .mapper-legend-overlay {
+        position: absolute;
+        top: 42px; left: 8px;
+        z-index: 9;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        padding: 0;
+        width: 260px;
+        max-height: calc(100% - 56px);
+        display: none;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+        font-family: monospace;
+        font-size: 0.75rem;
+        overflow: hidden;
+        flex-direction: column;
+    }
+    .mapper-legend-overlay.visible { display: flex; }
+    .legend-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 10px;
+        border-bottom: 1px solid var(--color-border);
+        flex-shrink: 0;
+    }
+    .legend-title {
+        font-size: 0.72rem;
+        color: var(--color-text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+    .legend-close {
+        background: none;
+        border: none;
+        color: var(--color-text-dim);
+        font-size: 1.1rem;
+        cursor: pointer;
+        padding: 0 2px;
+        line-height: 1;
+    }
+    .legend-close:hover { color: var(--color-text); }
+    .legend-body {
+        padding: 6px 10px 10px;
+        overflow-y: auto;
+    }
+    .legend-section {
+        font-size: 0.68rem;
+        color: var(--color-text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin: 8px 0 4px 0;
+        padding-bottom: 2px;
+        border-bottom: 1px solid var(--color-border);
+    }
+    .legend-section:first-child { margin-top: 0; }
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 2px 0;
+        color: var(--color-text);
+        font-size: 0.74rem;
+        line-height: 1.5;
+    }
+    .legend-swatch {
+        width: 18px; height: 18px;
+        flex-shrink: 0;
+        border-radius: 2px;
+        box-sizing: border-box;
+    }
+    .legend-swatch-text {
+        width: 18px;
+        flex-shrink: 0;
+        text-align: center;
+        font-size: 14px;
+        font-weight: bold;
+        line-height: 18px;
+    }
+    .legend-line {
+        width: 18px; height: 4px;
+        flex-shrink: 0;
+        border-radius: 2px;
+    }
+
+    .toggle-switch {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.72rem;
+        color: var(--color-text-dim);
+        font-family: monospace;
+        cursor: pointer;
+        user-select: none;
+        white-space: nowrap;
+    }
+    .toggle-switch input[type=checkbox] { display: none; }
+    .toggle-track {
+        width: 28px; height: 14px;
+        background: var(--color-border);
+        border-radius: 7px;
+        position: relative;
+        transition: background 0.15s;
+        flex-shrink: 0;
+    }
+    .toggle-track::after {
+        content: '';
+        position: absolute;
+        left: 2px; top: 2px;
+        width: 10px; height: 10px;
+        background: var(--color-text-dim);
+        border-radius: 50%;
+        transition: left 0.15s, background 0.15s;
+    }
+    .toggle-switch input:checked + .toggle-track { background: var(--color-primary); }
+    .toggle-switch input:checked + .toggle-track::after { left: 16px; background: #fff; }
+
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--color-text-dim);
+        font-family: monospace;
+        font-size: 0.85rem;
+        background: rgba(0,0,0,0.6);
+        z-index: 5;
+    }
+    .mapper-loading.hidden { display: none; }
+
+    .zone-picker-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.55);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+    }
+    .zone-picker-backdrop.visible { display: flex; }
+    .zone-picker-modal {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 6px;
+        padding: 20px 24px;
+        min-width: 260px;
+        max-width: 380px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    }
+    .zone-picker-modal h3 {
+        margin: 0 0 6px 0;
+        font-size: 0.9rem;
+        color: var(--color-text);
+    }
+    .zone-picker-modal p {
+        margin: 0 0 14px 0;
+        font-size: 0.75rem;
+        color: var(--color-text-dim);
+    }
+    .zone-picker-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 14px;
+    }
+    .zone-picker-list button {
+        background: var(--color-surface-white);
+        color: var(--color-text);
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        padding: 7px 12px;
+        font-family: monospace;
+        font-size: 0.8rem;
+        cursor: pointer;
+        text-align: left;
+    }
+    .zone-picker-list button:hover { background: var(--color-surface); border-color: var(--color-primary); color: var(--color-primary); }
+    .zone-picker-cancel {
+        font-size: 0.72rem;
+        color: var(--color-text-dim);
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        font-family: monospace;
+    }
+    .zone-picker-cancel:hover { color: var(--color-text); }
+
+    .zone-name-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.55);
+        z-index: 1001;
+        align-items: center;
+        justify-content: center;
+    }
+    .zone-name-backdrop.visible { display: flex; }
+    .zone-name-modal {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 6px;
+        padding: 20px 24px;
+        min-width: 280px;
+        max-width: 400px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    }
+    .zone-name-modal h3 {
+        margin: 0 0 6px 0;
+        font-size: 0.9rem;
+        color: var(--color-text);
+    }
+    .zone-name-modal p {
+        margin: 0 0 10px 0;
+        font-size: 0.75rem;
+        color: var(--color-text-dim);
+    }
+    .zone-name-modal input[type=text] {
+        width: 100%;
+        box-sizing: border-box;
+        background: var(--color-surface-white);
+        color: var(--color-text);
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        padding: 7px 10px;
+        font-family: monospace;
+        font-size: 0.85rem;
+        margin-bottom: 12px;
+    }
+    .zone-name-modal input[type=text]:focus { outline: none; border-color: var(--color-primary); }
+    .zone-name-modal .zone-name-error {
+        font-size: 0.72rem;
+        color: #ff6b6b;
+        margin: -8px 0 10px 0;
+        min-height: 1em;
+    }
+    .zone-name-actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+    }
+    .zone-name-actions .btn-confirm {
+        background: var(--color-primary);
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        padding: 6px 16px;
+        font-family: monospace;
+        font-size: 0.8rem;
+        cursor: pointer;
+    }
+    .zone-name-actions .btn-confirm:hover { opacity: 0.85; }
+    .zone-name-actions .btn-cancel-sm {
+        background: none;
+        color: var(--color-text-dim);
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        padding: 6px 12px;
+        font-family: monospace;
+        font-size: 0.8rem;
+        cursor: pointer;
+    }
+    .zone-name-actions .btn-cancel-sm:hover { color: var(--color-text); }
+
+    .mapper-stats {
+        font-size: 0.72rem;
+        color: var(--color-text-dim);
+        font-family: monospace;
+        margin-left: auto;
+    }
+    .room-search-btn {
+        width: 26px; height: 26px;
+        padding: 0;
+        font-size: 13px; line-height: 1;
+        background: var(--color-surface-white);
+        color: var(--color-text-dim);
+        border: 1px solid var(--color-border);
+        border-radius: 3px;
+        cursor: pointer;
+    }
+    .room-search-btn:hover { color: var(--color-text); background: var(--color-surface); }
+
+    .mapper-stats .unmapped-link {
+        color: #d4a843;
+        cursor: pointer;
+        text-decoration: underline;
+        text-decoration-style: dotted;
+    }
+    .mapper-stats .unmapped-link:hover { color: #e8c060; }
+
+    .unmapped-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.55);
+        z-index: 1002;
+        align-items: center;
+        justify-content: center;
+    }
+    .unmapped-backdrop.visible { display: flex; }
+    .unmapped-modal {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 6px;
+        padding: 16px 20px;
+        min-width: 340px;
+        max-width: 520px;
+        max-height: 70vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    }
+    .unmapped-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .unmapped-header h3 { margin: 0; font-size: 0.9rem; color: var(--color-text); }
+    .unmapped-close {
+        background: none;
+        border: none;
+        color: var(--color-text-dim);
+        font-size: 1.2rem;
+        cursor: pointer;
+        padding: 0 4px;
+        line-height: 1;
+    }
+    .unmapped-close:hover { color: var(--color-text); }
+    .unmapped-modal p {
+        margin: 4px 0 10px 0;
+        font-size: 0.75rem;
+        color: var(--color-text-dim);
+    }
+    .unmapped-list {
+        overflow-y: auto;
+        font-family: monospace;
+        font-size: 0.78rem;
+    }
+    .unmapped-list table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .unmapped-list th {
+        text-align: left;
+        color: var(--color-text-dim);
+        font-weight: normal;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        padding: 3px 8px 5px 0;
+        border-bottom: 1px solid var(--color-border);
+        position: sticky;
+        top: 0;
+        background: var(--color-surface);
+    }
+    .unmapped-list td {
+        padding: 4px 8px 4px 0;
+        color: var(--color-text);
+        vertical-align: top;
+    }
+    .unmapped-list tr:nth-child(even) td { background: rgba(255,255,255,0.03); }
+    .unmapped-list a { color: var(--color-link); font-size: 0.72rem; }
+
+    .mapper-settings-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.55);
+        z-index: 1003;
+        align-items: center;
+        justify-content: center;
+    }
+    .mapper-settings-backdrop.visible { display: flex; }
+    .mapper-settings-modal {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 6px;
+        min-width: 300px;
+        max-width: 400px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+        font-family: monospace;
+        overflow: hidden;
+    }
+    .mapper-settings-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--color-border);
+    }
+    .mapper-settings-title {
+        font-size: 0.82rem;
+        color: var(--color-text);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+    .mapper-settings-close {
+        background: none;
+        border: none;
+        color: var(--color-text-dim);
+        font-size: 1.2rem;
+        cursor: pointer;
+        padding: 0 4px;
+        line-height: 1;
+    }
+    .mapper-settings-close:hover { color: var(--color-text); }
+    .mapper-settings-body {
+        padding: 10px 14px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    .mapper-settings-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+    .mapper-settings-label {
+        font-size: 0.78rem;
+        color: var(--color-text-dim);
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .mapper-settings-control {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .mapper-settings-control input[type=range] {
+        width: 130px;
+        cursor: pointer;
+    }
+    .mapper-settings-val {
+        font-size: 0.72rem;
+        color: var(--color-text-dim);
+        min-width: 28px;
+        text-align: right;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /*  Room editor modal                                                   */
+    /* ------------------------------------------------------------------ */
+    .room-editor-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.6);
+        z-index: 1010;
+        align-items: center;
+        justify-content: center;
+    }
+    .room-editor-backdrop.visible { display: flex; }
+    .room-editor-modal {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 6px;
+        width: min(680px, 96vw);
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 8px 40px rgba(0,0,0,0.7);
+        font-family: monospace;
+    }
+    .room-editor-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--color-border);
+        flex-shrink: 0;
+    }
+    .room-editor-header-id {
+        font-size: 0.72rem;
+        color: var(--color-text-dim);
+        margin-left: 2px;
+    }
+    .room-editor-title-text {
+        font-size: 0.85rem;
+        color: var(--color-text);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        flex: 1;
+    }
+    .room-editor-close {
+        background: none;
+        border: none;
+        color: var(--color-text-dim);
+        font-size: 1.3rem;
+        cursor: pointer;
+        padding: 0 4px;
+        line-height: 1;
+        flex-shrink: 0;
+    }
+    .room-editor-close:hover { color: var(--color-text); }
+    .room-editor-body {
+        padding: 14px 16px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        flex: 1;
+    }
+    .room-editor-field {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+    .room-editor-label {
+        font-size: 0.72rem;
+        color: var(--color-text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+    .room-editor-input {
+        width: 100%;
+        box-sizing: border-box;
+        background: var(--color-surface-white);
+        color: var(--color-text);
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        padding: 7px 10px;
+        font-family: monospace;
+        font-size: 0.85rem;
+    }
+    .room-editor-input:focus { outline: none; border-color: var(--color-primary); }
+    .room-editor-textarea {
+        width: 100%;
+        box-sizing: border-box;
+        background: var(--color-surface-white);
+        color: var(--color-text);
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        padding: 8px 10px;
+        font-family: monospace;
+        font-size: 0.82rem;
+        line-height: 1.55;
+        resize: vertical;
+        min-height: 100px;
+    }
+    .room-editor-textarea:focus { outline: none; border-color: var(--color-primary); }
+    /* Nouns table */
+    .room-editor-nouns {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .room-editor-noun-row {
+        display: grid;
+        grid-template-columns: 1fr 2fr auto;
+        gap: 6px;
+        align-items: center;
+    }
+    .room-editor-noun-input {
+        box-sizing: border-box;
+        background: var(--color-surface-white);
+        color: var(--color-text);
+        border: 1px solid var(--color-border);
+        border-radius: 3px;
+        padding: 5px 8px;
+        font-family: monospace;
+        font-size: 0.8rem;
+        width: 100%;
+    }
+    .room-editor-noun-input:focus { outline: none; border-color: var(--color-primary); }
+    .room-editor-noun-del {
+        background: none;
+        border: none;
+        color: var(--color-text-dim);
+        font-size: 1rem;
+        cursor: pointer;
+        padding: 2px 5px;
+        line-height: 1;
+        border-radius: 3px;
+        flex-shrink: 0;
+    }
+    .room-editor-noun-del:hover { color: #ff6b6b; background: rgba(255,107,107,0.1); }
+    .room-editor-noun-add {
+        background: none;
+        border: 1px dashed var(--color-border);
+        color: var(--color-text-dim);
+        border-radius: 3px;
+        padding: 4px 10px;
+        font-family: monospace;
+        font-size: 0.75rem;
+        cursor: pointer;
+        margin-top: 2px;
+        width: 100%;
+        text-align: left;
+    }
+    .room-editor-noun-add:hover { color: var(--color-text); border-color: var(--color-text-dim); }
+    .room-editor-noun-header {
+        display: grid;
+        grid-template-columns: 1fr 2fr auto;
+        gap: 6px;
+        font-size: 0.68rem;
+        color: var(--color-text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        padding: 0 0 2px 0;
+        border-bottom: 1px solid var(--color-border);
+        margin-bottom: 2px;
+    }
+    /* Footer */
+    .room-editor-footer {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 10px 14px;
+        border-top: 1px solid var(--color-border);
+        flex-shrink: 0;
+    }
+    .room-editor-error {
+        flex: 1;
+        font-size: 0.75rem;
+        color: #ff6b6b;
+        font-family: monospace;
+    }
+    .room-editor-save {
+        background: var(--color-primary);
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        padding: 6px 20px;
+        font-family: monospace;
+        font-size: 0.82rem;
+        cursor: pointer;
+    }
+    .room-editor-save:hover { opacity: 0.85; }
+    .room-editor-save:disabled { opacity: 0.45; cursor: default; }
+    .room-editor-cancel {
+        background: none;
+        color: var(--color-text-dim);
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        padding: 6px 14px;
+        font-family: monospace;
+        font-size: 0.82rem;
+        cursor: pointer;
+    }
+    .room-editor-cancel:hover { color: var(--color-text); }
+    /* Truncated description click target in info panel */
+    .info-desc-snippet {
+        color: var(--color-text-dim);
+        font-size: 0.75rem;
+        font-style: italic;
+        cursor: pointer;
+        line-height: 1.45;
+        border-radius: 3px;
+        padding: 2px 0;
+        transition: color 0.1s;
+        word-break: break-word;
+    }
+    .info-desc-snippet:hover { color: var(--color-text); }
+    .info-desc-snippet::after {
+        content: ' \270E';
+        font-style: normal;
+        font-size: 0.7rem;
+        opacity: 0.5;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /*  Spawn cards (room editor modal)                                     */
+    /* ------------------------------------------------------------------ */
+    .re-spawn-card {
+        border: 1px solid var(--color-border);
+        border-radius: 5px;
+        margin-bottom: 6px;
+        background: var(--color-surface-white);
+        overflow: hidden;
+    }
+    .re-spawn-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 8px;
+        background: rgba(255,255,255,0.04);
+        cursor: pointer;
+        user-select: none;
+        font-size: 0.8rem;
+        font-family: monospace;
+    }
+    .re-spawn-header::before {
+        content: '\25B6';
+        font-size: 0.5rem;
+        transition: transform 0.15s;
+        flex-shrink: 0;
+        color: var(--color-text-dim);
+    }
+    .re-spawn-header.open::before { transform: rotate(90deg); }
+    .re-spawn-body { display: none; padding: 8px 10px; }
+    .re-spawn-body.open { display: block; }
+    .re-spawn-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px 10px;
+    }
+    .re-spawn-grid .span2 { grid-column: 1 / -1; }
+    .re-spawn-field label {
+        display: block;
+        font-size: 0.68rem;
+        font-weight: 600;
+        color: var(--color-text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        margin-bottom: 3px;
+    }
+    .re-spawn-field .field-hint {
+        font-size: 0.68rem;
+        color: var(--color-text-dim);
+        margin-top: 2px;
+    }
+    .re-spawn-field input[type="text"],
+    .re-spawn-field input[type="number"],
+    .re-spawn-field textarea {
+        width: 100%;
+        box-sizing: border-box;
+        background: var(--color-surface);
+        color: var(--color-text);
+        border: 1px solid var(--color-border);
+        border-radius: 3px;
+        padding: 4px 7px;
+        font-family: monospace;
+        font-size: 0.8rem;
+    }
+    .re-spawn-field input:focus,
+    .re-spawn-field textarea:focus {
+        outline: none;
+        border-color: var(--color-primary);
+    }
+    .re-spawn-picker-wrap { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
+    .re-spawn-picker-display {
+        font-family: monospace;
+        padding: 4px 7px;
+        border: 1px solid var(--color-border);
+        border-radius: 3px;
+        font-size: 0.8rem;
+        background: var(--color-surface);
+        min-height: 28px;
+        display: flex;
+        align-items: center;
+        flex: 1;
+    }
+    .re-spawn-picker-display.empty { color: var(--color-text-dim); font-style: italic; }
+    .re-spawn-badge {
+        font-size: 0.62rem;
+        padding: 1px 5px;
+        border-radius: 3px;
+        font-weight: 600;
+        text-transform: uppercase;
+        flex-shrink: 0;
+    }
+    .re-spawn-badge-mob  { background: var(--color-info-bg,  #1a3a5c); color: var(--color-info-text,  #7ab8f5); }
+    .re-spawn-badge-item { background: var(--color-success-bg, #1a3a1a); color: var(--color-success-text, #7abf7a); }
+    .re-spawn-del {
+        background: none;
+        border: none;
+        color: var(--color-text-dim);
+        font-size: 1rem;
+        cursor: pointer;
+        padding: 0 4px;
+        line-height: 1;
+        margin-left: auto;
+    }
+    .re-spawn-del:hover { color: #ff6b6b; }
+    .re-spawn-summary { flex: 1; color: var(--color-text); font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .re-spawn-toggle-wrap { display: flex; align-items: center; gap: 6px; }
+    .re-spawn-toggle {
+        position: relative;
+        display: inline-block;
+        width: 28px;
+        height: 14px;
+        flex-shrink: 0;
+    }
+    .re-spawn-toggle input { opacity: 0; width: 0; height: 0; }
+    .re-spawn-toggle-track {
+        position: absolute;
+        inset: 0;
+        background: var(--color-border);
+        border-radius: 7px;
+        transition: background 0.15s;
+        cursor: pointer;
+    }
+    .re-spawn-toggle-track::after {
+        content: '';
+        position: absolute;
+        left: 2px; top: 2px;
+        width: 10px; height: 10px;
+        background: var(--color-text-dim);
+        border-radius: 50%;
+        transition: left 0.15s, background 0.15s;
+    }
+    .re-spawn-toggle input:checked + .re-spawn-toggle-track { background: var(--color-primary); }
+    .re-spawn-toggle input:checked + .re-spawn-toggle-track::after { left: 16px; background: #fff; }
+    .re-spawn-toggle-label { font-size: 0.78rem; color: var(--color-text-dim); cursor: pointer; }
+    .re-buff-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        font-size: 0.72rem;
+        padding: 1px 5px;
+        border-radius: 3px;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        color: var(--color-text);
+        font-family: monospace;
+        margin: 2px 2px 2px 0;
+    }
+    .re-buff-chip button {
+        background: none;
+        border: none;
+        color: var(--color-text-dim);
+        font-size: 0.85rem;
+        cursor: pointer;
+        padding: 0;
+        line-height: 1;
+    }
+    .re-buff-chip button:hover { color: #ff6b6b; }
+    .re-spawn-add-btn {
+        background: none;
+        border: 1px dashed var(--color-border);
+        color: var(--color-text-dim);
+        border-radius: 3px;
+        padding: 4px 10px;
+        font-family: monospace;
+        font-size: 0.75rem;
+        cursor: pointer;
+        width: 100%;
+        text-align: left;
+        margin-top: 2px;
+    }
+    .re-spawn-add-btn:hover { color: var(--color-text); border-color: var(--color-text-dim); }
+
+    /* ------------------------------------------------------------------ */
+    /*  Tag editor (room editor modal)                                      */
+    /* ------------------------------------------------------------------ */
+    .re-tag-wrap {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        align-items: center;
+        min-height: 28px;
+    }
+    .re-tag-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        font-size: 0.72rem;
+        padding: 2px 6px;
+        border-radius: 10px;
+        background: var(--color-surface-white);
+        border: 1px solid var(--color-border);
+        color: var(--color-text);
+        font-family: monospace;
+    }
+    .re-tag-chip button {
+        background: none;
+        border: none;
+        color: var(--color-text-dim);
+        font-size: 0.85rem;
+        cursor: pointer;
+        padding: 0;
+        line-height: 1;
+    }
+    .re-tag-chip button:hover { color: #ff6b6b; }
+    .re-tag-picker-wrap { position: relative; display: inline-block; }
+    .re-tag-picker-dropdown {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        z-index: 1100;
+        background: var(--color-surface-white);
+        border: 1px solid var(--color-border);
+        border-radius: 6px;
+        min-width: 200px;
+        max-width: 320px;
+        max-height: 240px;
+        overflow-y: auto;
+        padding: 4px 0;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    }
+    .re-tag-picker-dropdown.open { display: block; }
+    .re-tag-picker-search {
+        width: calc(100% - 12px);
+        margin: 4px 6px;
+        padding: 4px 7px;
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        font-size: 0.8rem;
+        background: var(--color-surface);
+        color: var(--color-text);
+        font-family: monospace;
+        box-sizing: border-box;
+    }
+    .re-tag-picker-search:focus { outline: none; border-color: var(--color-primary); }
+    .re-tag-picker-group {
+        padding: 3px 8px 1px;
+        font-size: 0.68rem;
+        font-weight: 700;
+        color: var(--color-text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .re-tag-picker-item {
+        padding: 4px 10px;
+        cursor: pointer;
+        font-size: 0.8rem;
+        font-family: monospace;
+        color: var(--color-text);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .re-tag-picker-item:hover { background: var(--color-primary); color: #fff; }
+    .re-tag-picker-item.selected { color: var(--color-primary); font-weight: 600; }
+    .re-tag-picker-item.selected::before { content: "\2713"; font-size: 0.72rem; }
+    .re-tag-picker-item:not(.selected)::before { content: ""; display: inline-block; width: 0.9em; }
+    .re-tag-picker-empty { padding: 8px 10px; color: var(--color-text-dim); font-size: 0.78rem; font-family: monospace; }
+    .re-tag-custom-row {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+        margin-top: 4px;
+    }
+    .re-tag-custom-input {
+        flex: 1;
+        min-width: 0;
+        box-sizing: border-box;
+        background: var(--color-surface-white);
+        color: var(--color-text);
+        border: 1px solid var(--color-border);
+        border-radius: 3px;
+        padding: 4px 7px;
+        font-family: monospace;
+        font-size: 0.8rem;
+    }
+    .re-tag-custom-input:focus { outline: none; border-color: var(--color-primary); }
+    .re-tag-add-btn {
+        background: none;
+        border: 1px dashed var(--color-border);
+        color: var(--color-text-dim);
+        border-radius: 3px;
+        padding: 4px 10px;
+        font-family: monospace;
+        font-size: 0.75rem;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+    .re-tag-add-btn:hover { color: var(--color-text); border-color: var(--color-text-dim); }
+    /* Clickable tags row in info panel */
+    .info-tags-editable {
+        cursor: pointer;
+        border-radius: 3px;
+        padding: 1px 2px;
+        margin: -1px -2px;
+        transition: background 0.1s;
+    }
+    .info-tags-editable:hover { background: rgba(255,255,255,0.06); }
+    .info-tags-editable .info-badge::after {
+        content: ' \270E';
+        font-size: 0.6rem;
+        opacity: 0.5;
+        font-style: normal;
+    }
+    .info-tags-add {
+        font-size: 0.65rem;
+        padding: 1px 5px;
+        border-radius: 3px;
+        background: none;
+        border: 1px dashed var(--color-border);
+        color: var(--color-text-dim);
+        cursor: pointer;
+        font-family: monospace;
+    }
+    .info-tags-add:hover { color: var(--color-text); border-color: var(--color-text-dim); }
+</style>
+
+<h1>Zone Mapper</h1>
+
+<div class="mapper-toolbar">
+    <select id="zone-select" data-tip="Select a zone to view and edit on the map"><option value="">-- select zone --</option></select>
+    <button class="room-search-btn" onclick="searchRoom()" data-tip="Jump to a specific room by its numeric ID">&#128269;</button>
+    <span class="sep"></span>
+    <div class="mapper-controls">
+        <button onclick="zoomOut()" data-tip="Zoom out">&minus;</button>
+        <button onclick="zoomIn()" data-tip="Zoom in">+</button>
+        <span class="ctrl-sep"></span>
+        <button onclick="centerCamera()" data-tip="Re-center the view on the zone's root room">&#8982;</button>
+    </div>
+    <div class="mapper-controls">
+        <span class="ctrl-sep"></span>
+        <button onclick="toggleMapperSettings()" data-tip="Open map display settings (spacing, connection width, color, and visibility options)">&#9881;</button>
+    </div>
+    <div class="mapper-z-controls" id="z-controls">
+        <span class="ctrl-sep"></span>
+        <span>Z:</span>
+        <button class="z-nav-btn" id="z-prev" data-tip="Move up one Z-level">&#9650;</button>
+        <select id="z-select" data-tip="Jump directly to a Z-level"></select>
+        <button class="z-nav-btn" id="z-next" data-tip="Move down one Z-level">&#9660;</button>
+    </div>
+    <div class="mapper-save-controls" id="save-controls">
+        <span class="sep"></span>
+        <button class="btn-save" onclick="saveAllChanges()" data-tip="Commit all pending room and exit changes to the server">Save Changes</button>
+        <button class="btn-discard" onclick="discardChanges()" data-tip="Discard all pending changes and revert to the last saved state">Discard</button>
+    </div>
+    <div class="mapper-controls" style="margin-left:4px">
+        <button class="mapper-changelog-btn" id="changelog-btn" onclick="toggleChangelog()" data-tip="Show or hide the list of pending unsaved changes">!
+            <span class="mapper-changelog-badge" id="changelog-badge"></span>
+        </button>
+    </div>
+    <div class="mapper-api-spinner" id="mapper-api-spinner"></div>
+    <span class="mapper-stats" id="mapper-stats"></span>
+</div>
+
+<div class="mapper-body" id="mapper-body">
+    <div class="mapper-viewport" id="mapper-viewport">
+        <canvas id="mapper-canvas"></canvas>
+        <div class="mapper-loading hidden" id="mapper-loading">Loading zone data...</div>
+        <div class="mapper-changelog-overlay" id="mapper-changelog">
+            <div class="cl-title">Pending Changes</div>
+            <div id="changelog-entries"></div>
+        </div>
+        <div class="mapper-toast-container" id="mapper-toast-container"></div>
+        <button class="mapper-legend-btn" id="mapper-legend-btn" onclick="toggleLegend()" title="Map legend">?</button>
+        <div class="mapper-legend-overlay" id="mapper-legend">
+            <div class="legend-header">
+                <span class="legend-title">Map Legend</span>
+                <button class="legend-close" onclick="toggleLegend()">&times;</button>
+            </div>
+            <div class="legend-body">
+                <div class="legend-section">Rooms</div>
+                <div class="legend-item"><span class="legend-swatch" style="background:#3a3a4a;border:2px solid #d9d9d9"></span> Standard room</div>
+                <div class="legend-item"><span class="legend-swatch" style="background:#1a6abf;border:2px solid #1a6abf"></span> Selected room</div>
+                <div class="legend-item"><span class="legend-swatch" style="background:#3a3a4a;border:2px solid #d9d9d9;box-shadow:0 0 6px #d4a843,inset 0 0 0 1px #d4a843"></span> Room with script</div>
+                <div class="legend-item"><span class="legend-swatch" style="background:#3a3a4a;border:2px solid rgb(255,90,90)"></span> Room with mob spawn</div>
+                <div class="legend-item"><span class="legend-swatch-text" style="color:#ff00ff">&#9652;</span> Exit goes up a Z-level</div>
+                <div class="legend-item"><span class="legend-swatch-text" style="color:#ff00ff">&#9662;</span> Exit goes down a Z-level</div>
+
+                <div class="legend-section">Connections</div>
+                <div class="legend-item"><span class="legend-line" style="background:#7a4a1a"></span> Standard exit</div>
+                <div class="legend-item"><span class="legend-line dashed" style="background:repeating-linear-gradient(90deg,#d4c050 0 4px,transparent 4px 8px)"></span> Non-directional / named exit</div>
+                <div class="legend-item"><span class="legend-swatch-text" style="color:#d4a843;font-weight:bold">?</span> Secret exit</div>
+                <div class="legend-item"><span class="legend-swatch-text" style="color:#9ab0d4">&#9919;</span> Locked exit</div>
+
+                <div class="legend-section">Biomes / Environments</div>
+                <div class="legend-item"><span class="legend-swatch-text" style="color:#1a6b1a">&clubs;</span> Forest</div>
+                <div class="legend-item"><span class="legend-swatch-text" style="color:#4a6b20">&#9832;</span> Swamp</div>
+                <div class="legend-item"><span class="legend-swatch-text" style="color:#b8d8f0">&#10052;</span> Snow</div>
+                <div class="legend-item"><span class="legend-swatch-text" style="color:#5a4a38">&#9004;</span> Cave / Dungeon</div>
+                <div class="legend-item"><span class="legend-swatch-text" style="color:#7a6a50">&#10837;</span> Mountains</div>
+                <div class="legend-item"><span class="legend-swatch-text" style="color:#8a7a5a">&#9660;</span> Cliffs</div>
+                <div class="legend-item"><span class="legend-swatch-text" style="color:#8a6a3a">&#8962;</span> House</div>
+                <div class="legend-item"><span class="legend-swatch-text" style="color:#d4aa55">*</span> Desert</div>
+                <div class="legend-item"><span class="legend-swatch-text" style="color:#6a8a30">'</span> Farmland</div>
+                <div class="legend-item"><span class="legend-swatch-text" style="color:#a07840">=</span> Road</div>
+                <div class="legend-item"><span class="legend-swatch-text" style="color:#2a53f7">~</span> Shore / Water</div>
+                <div class="legend-item"><span class="legend-swatch-text" style="color:#0033cd">&asymp;</span> Deep Water</div>
+            </div>
+        </div>
+    </div>
+    <div class="mapper-resizer" id="mapper-resizer"></div>
+    <div class="mapper-info-panel" id="mapper-info-panel">
+        <h3>Room Info</h3>
+        <div class="info-empty" id="info-empty">Click a room to see details</div>
+        <div id="info-content" style="display:none"></div>
+    </div>
+</div>
+
+<div class="zone-picker-backdrop" id="zone-picker-backdrop">
+    <div class="zone-picker-modal">
+        <h3>Select Zone</h3>
+        <p>The new room overlaps multiple zones. Choose which zone it belongs to:</p>
+        <div class="zone-picker-list" id="zone-picker-list"></div>
+        <button class="zone-picker-cancel" id="zone-picker-cancel">Cancel</button>
+    </div>
+</div>
+
+<div class="zone-name-backdrop" id="zone-name-backdrop">
+    <div class="zone-name-modal">
+        <h3>Create New Zone</h3>
+        <p>Enter a name for the new zone. A root room will be created at the selected location.</p>
+        <input type="text" id="zone-name-input" placeholder="Zone name..." autocomplete="off">
+        <div class="zone-name-error" id="zone-name-error"></div>
+        <div class="zone-name-actions">
+            <button class="btn-cancel-sm" id="zone-name-cancel">Cancel</button>
+            <button class="btn-confirm" id="zone-name-confirm">Create Zone</button>
+        </div>
+    </div>
+</div>
+
+<div class="unmapped-backdrop" id="unmapped-backdrop">
+    <div class="unmapped-modal">
+        <div class="unmapped-header">
+            <h3>Unmapped Rooms</h3>
+            <button class="unmapped-close" id="unmapped-close">&times;</button>
+        </div>
+        <p>These rooms have no map coordinates assigned. This may be intentional.</p>
+        <div class="unmapped-list" id="unmapped-list"></div>
+    </div>
+</div>
+
+<div class="mapper-settings-backdrop" id="mapper-settings-backdrop">
+    <div class="mapper-settings-modal">
+        <div class="mapper-settings-header">
+            <span class="mapper-settings-title">Map Settings</span>
+            <button class="mapper-settings-close" onclick="toggleMapperSettings()">&times;</button>
+        </div>
+        <div class="mapper-settings-body">
+            <div class="mapper-settings-row">
+                <label class="mapper-settings-label" for="spacing-slider">Room Spacing</label>
+                <div class="mapper-settings-control">
+                    <input type="range" id="spacing-slider" min="1.00" max="3.0" step="0.1"
+                        oninput="onSpacingSlider(this.value)">
+                    <span id="spacing-val" class="mapper-settings-val"></span>
+                </div>
+            </div>
+            <div class="mapper-settings-row">
+                <label class="mapper-settings-label" for="conn-width-slider">Connection Width</label>
+                <div class="mapper-settings-control">
+                    <input type="range" id="conn-width-slider" min="1" max="28" step="1"
+                        oninput="onConnectionWidthSlider(this.value)">
+                    <span id="conn-width-val" class="mapper-settings-val"></span>
+                    <input type="color" id="conn-color-picker" title="Connection line color"
+                        oninput="onConnectionColorPicker(this.value)"
+                        style="width:28px;height:22px;padding:1px 2px;border:1px solid var(--color-border);border-radius:3px;background:var(--color-surface-white);cursor:pointer;">
+                </div>
+            </div>
+            <div class="mapper-settings-row">
+                <label class="mapper-settings-label">Show Bounds</label>
+                <div class="mapper-settings-control">
+                    <label class="toggle-switch" title="Show zone bounding boxes">
+                        <input type="checkbox" id="show-bounds-toggle" onchange="onShowBoundsToggle(this.checked)">
+                        <span class="toggle-track"></span>
+                    </label>
+                </div>
+            </div>
+            <div class="mapper-settings-row">
+                <label class="mapper-settings-label">Selected Zone Only</label>
+                <div class="mapper-settings-control">
+                    <label class="toggle-switch" title="Only render rooms in the selected zone">
+                        <input type="checkbox" id="selected-zone-only-toggle" onchange="onSelectedZoneOnlyToggle(this.checked)">
+                        <span class="toggle-track"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="mapper-tooltip"></div>
+<div id="toolbar-tooltip"></div>
+<div id="mapper-ctx-menu" class="mapper-ctx-menu"></div>
+
+<!-- Room editor modal -->
+<div class="room-editor-backdrop" id="room-editor-backdrop">
+    <div class="room-editor-modal">
+        <div class="room-editor-header">
+            <span class="room-editor-title-text">Edit Room</span>
+            <span class="room-editor-header-id" id="room-editor-id"></span>
+            <button class="room-editor-close" id="room-editor-close">&times;</button>
+        </div>
+        <div class="room-editor-body">
+            <div class="room-editor-field">
+                <label class="room-editor-label" for="room-editor-title">Title</label>
+                <input class="room-editor-input" type="text" id="room-editor-title" autocomplete="off">
+            </div>
+            <div class="room-editor-field">
+                <label class="room-editor-label" for="room-editor-desc">Description</label>
+                <textarea class="room-editor-textarea" id="room-editor-desc" rows="6"></textarea>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div class="room-editor-field">
+                    <label class="room-editor-label" for="room-editor-biome">Biome</label>
+                    <select class="room-editor-input" id="room-editor-biome"></select>
+                </div>
+                <div class="room-editor-field">
+                    <label class="room-editor-label">Map Symbol</label>
+                    <div style="display:flex;gap:6px;align-items:center">
+                        <input class="room-editor-input" type="text" id="room-editor-mapsymbol" maxlength="4" placeholder="(biome default)" style="flex:1;min-width:0" autocomplete="off">
+                        <button type="button" id="room-editor-mapsymbol-pick" style="flex-shrink:0;background:var(--color-surface-white);color:var(--color-text);border:1px solid var(--color-border);border-radius:4px;padding:6px 10px;font-family:monospace;font-size:0.8rem;cursor:pointer;white-space:nowrap">Pick&hellip;</button>
+                        <button type="button" id="room-editor-mapsymbol-clear" title="Clear" style="flex-shrink:0;background:none;border:1px solid var(--color-border);border-radius:4px;padding:6px 8px;font-family:monospace;font-size:0.8rem;cursor:pointer;color:var(--color-text-dim)">&times;</button>
+                    </div>
+                </div>
+                <div class="room-editor-field" style="grid-column:1 / -1">
+                    <label class="room-editor-label" for="room-editor-maplegend">Map Legend</label>
+                    <input class="room-editor-input" type="text" id="room-editor-maplegend" placeholder="One-word legend label (optional)" autocomplete="off">
+                </div>
+            </div>
+            <div class="room-editor-field">
+                <label class="room-editor-label">Tags</label>
+                <div class="re-tag-wrap" id="room-editor-tags"></div>
+                <div style="display:flex;gap:6px;align-items:center;margin-top:5px;flex-wrap:wrap">
+                    <div class="re-tag-picker-wrap">
+                        <button class="re-tag-add-btn" id="room-editor-tag-pick-btn">+ Pick Tag</button>
+                        <div class="re-tag-picker-dropdown" id="room-editor-tag-picker">
+                            <input type="search" class="re-tag-picker-search" id="room-editor-tag-search" placeholder="Filter tags...">
+                            <div id="room-editor-tag-picker-list"></div>
+                        </div>
+                    </div>
+                    <span style="font-size:0.72rem;color:var(--color-text-dim)">or custom:</span>
+                    <input type="text" class="re-tag-custom-input" id="room-editor-tag-custom" placeholder="custom tag..." autocomplete="off" style="width:140px">
+                    <button class="re-tag-add-btn" id="room-editor-tag-custom-add">+</button>
+                </div>
+            </div>
+            <div class="room-editor-field">
+                <label class="room-editor-label">Nouns <span style="font-size:0.65rem;text-transform:none;letter-spacing:0;color:var(--color-text-dim);font-style:italic">(keyword &rarr; description shown when examined)</span></label>
+                <div class="room-editor-nouns">
+                    <div class="room-editor-noun-header">
+                        <span>Keyword</span><span>Description</span><span></span>
+                    </div>
+                    <div id="room-editor-noun-rows"></div>
+                    <button class="room-editor-noun-add" id="room-editor-noun-add">+ Add noun</button>
+                </div>
+            </div>
+            <div class="room-editor-field">
+                <label class="room-editor-label">Spawn Info</label>
+                <div id="room-editor-spawn-list"></div>
+                <div style="display:flex;gap:6px;margin-top:2px">
+                    <button class="re-spawn-add-btn" id="re-spawn-add-mob">+ Mob Spawn</button>
+                    <button class="re-spawn-add-btn" id="re-spawn-add-item">+ Item / Gold Spawn</button>
+                </div>
+            </div>
+        </div>
+        <div class="room-editor-footer">
+            <span class="room-editor-error" id="room-editor-error"></span>
+            <button class="room-editor-cancel" id="room-editor-cancel">Cancel</button>
+            <button class="room-editor-save" id="room-editor-save">Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const resizer = document.getElementById('mapper-resizer');
+    const infoPanel = document.getElementById('mapper-info-panel');
+    const body = document.getElementById('mapper-body');
+
+    const MIN_PANEL = 160;
+    const MAX_PANEL = 600;
+
+    let startX = 0;
+    let startWidth = 0;
+
+    resizer.addEventListener('mousedown', function (e) {
+        e.preventDefault();
+        startX = e.clientX;
+        startWidth = infoPanel.offsetWidth;
+        resizer.classList.add('dragging');
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+
+        function onMouseMove(e) {
+            const delta = startX - e.clientX;
+            const newWidth = Math.min(MAX_PANEL, Math.max(MIN_PANEL, startWidth + delta));
+            infoPanel.style.width = newWidth + 'px';
+        }
+
+        function onMouseUp() {
+            resizer.classList.remove('dragging');
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        }
+
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    });
+})();
+</script>
+
+<script src="/admin/static/js/mapper/_all.js?mapper-constants.js,mapper-events.js,mapper-helpers.js,mapper-state.js,mapper-render.js,mapper-tools.js,mapper-ctx-menu.js,mapper-ui.js,mapper-tool-pan.js,mapper-tool-room-drag.js,mapper-tool-exit-draw.js,mapper-tool-quick-build.js,mapper-tool-select.js,mapper-init.js"></script>
+
+{{template "footer" .}}

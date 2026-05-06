@@ -12,9 +12,12 @@ description: The west wing hits you before you fully enter it. The noise arrives
   themselves from the rest of the world. Near the far wall, a claw machine stands
   apart from the rest, its glass cabinet glowing a cool blue, prizes visible inside
   like fish in an illuminated tank.
-biome: city
 exits:
   east:
     roomid: 1005
 tags:
 - slot machine
+mapx: -4
+mapy: 8
+mapz: 0
+hascoordinates: true

@@ -11,7 +11,6 @@ description: The North Hallway serves as the vital artery connecting the East an
   views of the castle's outer grounds. The ambient sound of whispered conversations
   from adjoining rooms and the occasional echo of footsteps serve as a reminder of
   the hallway's significance in bridging the castle's two distinct wings.
-biome: city
 exits:
   east:
     roomid: 45
@@ -19,3 +18,7 @@ exits:
     roomid: 52
   west:
     roomid: 47
+mapx: 0
+mapy: -10
+mapz: 0
+hascoordinates: true

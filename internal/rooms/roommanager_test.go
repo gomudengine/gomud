@@ -22,7 +22,7 @@ func TestMoveToRoom_NilUser_DoesNotPanic(t *testing.T) {
 	roomManager.rooms[100] = targetRoom
 
 	// Call with a userId that does not exist in userManager
-	// users.GetByUserId(99999) returns nil — this should not panic
+	// users.GetByUserId(99999) returns nil - this should not panic
 	require.NotPanics(t, func() {
 		err := MoveToRoom(99999, 100)
 		require.Error(t, err)

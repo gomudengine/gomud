@@ -37,7 +37,10 @@ var (
 		"up":        struct{}{},
 	}
 
-	// TODO: Refactor this and remove string identifier from room data.
+	// posDeltas maps exit direction names to position deltas and connector runes.
+	// This table is still needed for: rooms that lack absolute coordinates (fallback
+	// path), exit connector arrow selection, GetReciprocalExit, GetDelta,
+	// IsValidExitDirection, and the admin build command.
 	posDeltas = map[string]positionDelta{
 		"north":     {0, -1, 0, '│'},
 		"south":     {0, 1, 0, '│'},
@@ -202,6 +205,7 @@ func (r *RoomGrid) addNode(n *mapNode) {
 
 type mapper struct {
 	rootRoomId   int              // The room the crawler starts from
+	rootZone     string           // The zone of the root room
 	crawlQueue   []crawlRoom      // A stack of rooms to crawl
 	crawledRooms map[int]*mapNode // A look up table of rooms already crawled
 
@@ -209,8 +213,13 @@ type mapper struct {
 }
 
 func NewMapper(rootRoomId int) *mapper {
+	rootZone := ""
+	if room := rooms.LoadRoom(rootRoomId); room != nil {
+		rootZone = room.Zone
+	}
 	return &mapper{
 		rootRoomId:   rootRoomId,
+		rootZone:     rootZone,
 		crawledRooms: make(map[int]*mapNode, 100), // pre-allocate 100
 		roomGrid: RoomGrid{
 			rooms: [][][]*mapNode{},
@@ -246,17 +255,19 @@ func (r *mapper) Start() {
 
 	r.crawlQueue = make([]crawlRoom, 0, 100) // pre-allocate 100 capacity
 
-	lowestRoomId := 0
-	//var lastNode *mapNode = nil
+	// Determine the root room's stored position (if any) so that rooms without
+	// absolute coordinates can be aligned to the same origin.
+	var rootStoredPos positionDelta
+	var rootHasStoredCoords bool
+	if rootRoom := rooms.LoadRoom(r.rootRoomId); rootRoom != nil && rootRoom.HasCoordinates && rootRoom.Zone == r.rootZone {
+		rootStoredPos = positionDelta{x: rootRoom.MapX, y: rootRoom.MapY, z: rootRoom.MapZ}
+		rootHasStoredCoords = true
+	}
+
 	r.crawlQueue = append(r.crawlQueue, crawlRoom{RoomId: r.rootRoomId, Pos: positionDelta{}})
 	for len(r.crawlQueue) > 0 {
 
 		roomNow := r.crawlQueue[0]
-
-		if lowestRoomId == 0 || roomNow.RoomId < lowestRoomId {
-			lowestRoomId = roomNow.RoomId
-		}
-
 		r.crawlQueue = r.crawlQueue[1:]
 
 		if _, ok := r.crawledRooms[roomNow.RoomId]; ok {
@@ -267,10 +278,33 @@ func (r *mapper) Start() {
 		if node == nil {
 			continue
 		}
-		node.Pos = roomNow.Pos
+
+		// Absolute coordinates are authoritative. Only fall back to the
+		// crawl-derived position when a room has no stored coordinates.
+		if !node.HasStoredCoords {
+			node.Pos = roomNow.Pos
+		}
+
+		if node.Pos.x < minX {
+			minX = node.Pos.x
+		} else if node.Pos.x > maxX {
+			maxX = node.Pos.x
+		}
+		if node.Pos.y < minY {
+			minY = node.Pos.y
+		} else if node.Pos.y > maxY {
+			maxY = node.Pos.y
+		}
+		if node.Pos.z < minZ {
+			minZ = node.Pos.z
+		} else if node.Pos.z > maxZ {
+			maxZ = node.Pos.z
+		}
 
 		// Add to crawled list so we don't revisit it
 		r.crawledRooms[node.RoomId] = node
+
+		nodePos := node.Pos
 
 		// Now process it
 		for _, exitInfo := range node.Exits {
@@ -280,7 +314,7 @@ func (r *mapper) Start() {
 
 			newCrawl := crawlRoom{
 				RoomId: exitInfo.RoomId,
-				Pos:    roomNow.Pos.Combine(exitInfo.Direction),
+				Pos:    nodePos.Combine(exitInfo.Direction),
 			}
 
 			if newCrawl.Pos.x < minX {
@@ -308,21 +342,51 @@ func (r *mapper) Start() {
 
 	r.crawlQueue = nil
 
-	var xOffset, yOffset, zOffset = 0, 0, 0
-	lowestRoom := r.crawledRooms[lowestRoomId]
-	if lowestRoom != nil {
-		xOffset, yOffset, zOffset = lowestRoom.Pos.x, lowestRoom.Pos.y, lowestRoom.Pos.z
+	// Compute the offset to apply to rooms that lack stored coordinates.
+	// When the root room has stored coordinates, align the crawl-derived
+	// positions to that origin so both sets share the same grid space.
+	// When no stored coordinates exist at all, align to the lowest-ID room
+	// (legacy behaviour).
+	var xOffset, yOffset, zOffset int
+	if rootHasStoredCoords {
+		xOffset = rootStoredPos.x
+		yOffset = rootStoredPos.y
+		zOffset = rootStoredPos.z
 	}
-
-	// calculate the final array length.
-
-	minX, minY, minZ = minX-xOffset, minY-yOffset, minZ-zOffset
-	maxX, maxY, maxZ = maxX-xOffset, maxY-yOffset, maxZ-zOffset
+	// Adjust bounds by the offset so that stored-coord rooms (which are already
+	// at their absolute positions) are not shifted.
+	if xOffset != 0 || yOffset != 0 || zOffset != 0 {
+		for _, node := range r.crawledRooms {
+			if !node.HasStoredCoords {
+				node.Pos.x -= xOffset
+				node.Pos.y -= yOffset
+				node.Pos.z -= zOffset
+			}
+		}
+		// Recompute bounds from final positions.
+		minX, maxX, minY, maxY, minZ, maxZ = 0, 0, 0, 0, 0, 0
+		for _, node := range r.crawledRooms {
+			if node.Pos.x < minX {
+				minX = node.Pos.x
+			} else if node.Pos.x > maxX {
+				maxX = node.Pos.x
+			}
+			if node.Pos.y < minY {
+				minY = node.Pos.y
+			} else if node.Pos.y > maxY {
+				maxY = node.Pos.y
+			}
+			if node.Pos.z < minZ {
+				minZ = node.Pos.z
+			} else if node.Pos.z > maxZ {
+				maxZ = node.Pos.z
+			}
+		}
+	}
 
 	r.roomGrid.initialize(minX, maxX, minY, maxY, minZ, maxZ)
 
 	for _, node := range r.crawledRooms {
-		node.Pos.x, node.Pos.y, node.Pos.z = node.Pos.x-xOffset, node.Pos.y-yOffset, node.Pos.z-zOffset
 		r.roomGrid.addNode(node)
 	}
 }
@@ -513,6 +577,12 @@ func (r *mapper) GetLimitedMap(centerRoomId int, c Config) mapRender {
 		c.ZoomLevel = 0
 	}
 	c.ZoomLevel++
+	// Minimum effective zoom of 2 ensures that rooms 1 coordinate unit apart
+	// always have at least 1 connector cell between them, making rooms that are
+	// N units apart visually distinguishable from rooms that are 1 unit apart.
+	if c.ZoomLevel < 2 {
+		c.ZoomLevel = 2
+	}
 
 	out := newMapRender(c.Width, c.Height)
 
@@ -576,7 +646,8 @@ func (r *mapper) GetLimitedMap(centerRoomId int, c Config) mapRender {
 
 		if dstPos.z == 0 && dstPos.x >= 0 && dstPos.y >= 0 && dstPos.x < c.Width && dstPos.y < c.Height {
 			// Draw the room to the output
-			out.Render[dstPos.y][dstPos.x] = symbol
+			fg, bg := resolveNodeColors(node, symbol)
+			out.Render[dstPos.y][dstPos.x] = MapCell{Symbol: symbol, FGColor: fg, BGColor: bg}
 			if _, ok := out.legend[symbol]; !ok {
 				out.legend[symbol] = legend
 			}
@@ -630,33 +701,38 @@ func (r *mapper) GetLimitedMap(centerRoomId int, c Config) mapRender {
 			// Dont' draw if z-plane has moved
 			if dstPos.z == 0 && exitInfo.Direction.z == 0 {
 
-				maxSteps := c.ZoomLevel
-
 				xStepDir := 0
 				if exitInfo.Direction.x < 0 {
-					if exitInfo.Direction.x < -1 {
-						maxSteps = c.ZoomLevel * -exitInfo.Direction.x
-					}
 					xStepDir = -1
 				} else if exitInfo.Direction.x > 0 {
-					if exitInfo.Direction.x > 1 {
-						maxSteps = c.ZoomLevel * exitInfo.Direction.x
-					}
 					xStepDir = 1
 				}
 
 				yStepDir := 0
 				if exitInfo.Direction.y < 0 {
-					if exitInfo.Direction.y < -1 {
-						maxSteps = c.ZoomLevel * -exitInfo.Direction.y
-					}
 					yStepDir = -1
 				} else if exitInfo.Direction.y > 0 {
-					if exitInfo.Direction.y > 1 {
-						maxSteps = c.ZoomLevel * exitInfo.Direction.y
-					}
 					yStepDir = 1
 				}
+
+				// Connector lines fill the gap between rooms. Canvas distance
+				// between two rooms is mag*ZoomLevel, so draw steps 1..(mag*ZoomLevel-1).
+				absDx := exitInfo.Direction.x
+				if absDx < 0 {
+					absDx = -absDx
+				}
+				absDy := exitInfo.Direction.y
+				if absDy < 0 {
+					absDy = -absDy
+				}
+				mag := absDx
+				if absDy > mag {
+					mag = absDy
+				}
+				if mag == 0 {
+					mag = 1
+				}
+				maxSteps := mag * c.ZoomLevel
 
 				for step := 1; step < maxSteps; step++ {
 
@@ -666,12 +742,12 @@ func (r *mapper) GetLimitedMap(centerRoomId int, c Config) mapRender {
 					if drawX >= 0 && drawY >= 0 && drawX < c.Width && drawY < c.Height {
 
 						if exitInfo.Secret {
-							out.Render[drawY][drawX] = SecretSymbol
+							out.Render[drawY][drawX] = MapCell{Symbol: SecretSymbol}
 							if _, ok := out.legend[SecretSymbol]; !ok {
 								out.legend[SecretSymbol] = `Secret`
 							}
 						} else if exitInfo.LockDifficulty > 0 {
-							out.Render[drawY][drawX] = LockedSymbol
+							out.Render[drawY][drawX] = MapCell{Symbol: LockedSymbol}
 							if _, ok := out.legend[LockedSymbol]; !ok {
 								out.legend[LockedSymbol] = `Locked`
 							}
@@ -680,7 +756,7 @@ func (r *mapper) GetLimitedMap(centerRoomId int, c Config) mapRender {
 								break
 							}
 						} else {
-							out.Render[drawY][drawX] = exitInfo.Direction.arrow
+							out.Render[drawY][drawX] = MapCell{Symbol: exitInfo.Direction.arrow}
 						}
 
 					}
@@ -691,11 +767,22 @@ func (r *mapper) GetLimitedMap(centerRoomId int, c Config) mapRender {
 			if !skip {
 				newCrawl := crawlRoom{
 					RoomId: exitInfo.RoomId,
-					Pos:    dstPos,
 				}
 
-				for i := 0; i < c.ZoomLevel; i++ {
-					newCrawl.Pos = newCrawl.Pos.Combine(exitInfo.Direction)
+				neighbourNode := r.crawledRooms[exitInfo.RoomId]
+				if node.HasStoredCoords && neighbourNode != nil && neighbourNode.HasStoredCoords {
+					dx := neighbourNode.Pos.x - node.Pos.x
+					dy := neighbourNode.Pos.y - node.Pos.y
+					newCrawl.Pos = positionDelta{
+						x: dstPos.x + dx*c.ZoomLevel,
+						y: dstPos.y + dy*c.ZoomLevel,
+						z: dstPos.z,
+					}
+				} else {
+					newCrawl.Pos = dstPos
+					for i := 0; i < c.ZoomLevel; i++ {
+						newCrawl.Pos = newCrawl.Pos.Combine(exitInfo.Direction)
+					}
 				}
 
 				r.crawlQueue = append(r.crawlQueue, newCrawl)
@@ -715,6 +802,9 @@ func (r *mapper) GetFullMap(centerRoomId int, c Config) mapRender {
 		c.ZoomLevel = 0
 	}
 	c.ZoomLevel++
+	if c.ZoomLevel < 2 {
+		c.ZoomLevel = 2
+	}
 
 	out := newMapRender(c.Width, c.Height)
 
@@ -781,7 +871,8 @@ func (r *mapper) GetFullMap(centerRoomId int, c Config) mapRender {
 					}
 				}
 
-				out.Render[dstPos.y+drawY][dstPos.x+drawX] = symbol
+				fg2, bg2 := resolveNodeColors(node, symbol)
+				out.Render[dstPos.y+drawY][dstPos.x+drawX] = MapCell{Symbol: symbol, FGColor: fg2, BGColor: bg2}
 
 				if _, ok := out.legend[symbol]; !ok {
 					out.legend[symbol] = legend
@@ -791,33 +882,38 @@ func (r *mapper) GetFullMap(centerRoomId int, c Config) mapRender {
 				xStart, yStart := dstPos.x+drawX, dstPos.y+drawY
 				for _, exitInfo := range node.Exits {
 
-					maxSteps := c.ZoomLevel
-
 					xStepDir := 0
 					if exitInfo.Direction.x < 0 {
-						if exitInfo.Direction.x < -1 {
-							maxSteps += 1
-						}
 						xStepDir = -1
 					} else if exitInfo.Direction.x > 0 {
-						if exitInfo.Direction.x > 1 {
-							maxSteps += 1
-						}
 						xStepDir = 1
 					}
 
 					yStepDir := 0
 					if exitInfo.Direction.y < 0 {
-						if exitInfo.Direction.y < -1 {
-							maxSteps += 1
-						}
 						yStepDir = -1
 					} else if exitInfo.Direction.y > 0 {
-						if exitInfo.Direction.y > 1 {
-							maxSteps += 1
-						}
 						yStepDir = 1
 					}
+
+					// Connector lines fill the gap between rooms. Canvas distance
+					// between two rooms is mag*ZoomLevel, so draw steps 1..(mag*ZoomLevel-1).
+					absDx := exitInfo.Direction.x
+					if absDx < 0 {
+						absDx = -absDx
+					}
+					absDy := exitInfo.Direction.y
+					if absDy < 0 {
+						absDy = -absDy
+					}
+					mag := absDx
+					if absDy > mag {
+						mag = absDy
+					}
+					if mag == 0 {
+						mag = 1
+					}
+					maxSteps := mag * c.ZoomLevel
 
 					drawX2, drawY2 := 0, 0
 					for step := 1; step < maxSteps; step++ {
@@ -833,17 +929,17 @@ func (r *mapper) GetFullMap(centerRoomId int, c Config) mapRender {
 						}
 
 						if exitInfo.Secret {
-							out.Render[drawY2][drawX2] = SecretSymbol
+							out.Render[drawY2][drawX2] = MapCell{Symbol: SecretSymbol}
 							if _, ok := out.legend[SecretSymbol]; !ok {
 								out.legend[SecretSymbol] = `Secret`
 							}
 						} else if exitInfo.LockDifficulty > 0 {
-							out.Render[drawY2][drawX2] = LockedSymbol
+							out.Render[drawY2][drawX2] = MapCell{Symbol: LockedSymbol}
 							if _, ok := out.legend[LockedSymbol]; !ok {
 								out.legend[LockedSymbol] = `Locked`
 							}
 						} else {
-							out.Render[drawY2][drawX2] = exitInfo.Direction.arrow
+							out.Render[drawY2][drawX2] = MapCell{Symbol: exitInfo.Direction.arrow}
 						}
 
 					}
@@ -859,6 +955,53 @@ func (r *mapper) GetFullMap(centerRoomId int, c Config) mapRender {
 	return out
 }
 
+// resolveNodeColors returns the fg/bg ANSI color codes for a node+symbol,
+// applying per-symbol biome overrides before falling back to the biome default.
+func resolveNodeColors(node *mapNode, symbol rune) (fg, bg int) {
+	symStr := string(symbol)
+	if node.SymbolOverrides != nil {
+		if ov, ok := node.SymbolOverrides[symStr]; ok {
+			fg = ov.FGColor
+			bg = ov.BGColor
+			// Fill in biome default where override is zero
+			if fg == 0 {
+				fg = node.Color.FGColor
+			}
+			if bg == 0 {
+				bg = node.Color.BGColor
+			}
+			return fg, bg
+		}
+	}
+	return node.Color.FGColor, node.Color.BGColor
+}
+
+// arrowForDelta returns the connector rune that best represents the direction
+// from one room to another given the raw coordinate delta between them.
+func arrowForDelta(dx, dy, dz int) rune {
+	if dz != 0 {
+		if dz > 0 {
+			return '^'
+		}
+		return 'v'
+	}
+	switch {
+	case dx == 0 && dy != 0:
+		return '│'
+	case dy == 0 && dx != 0:
+		return '─'
+	case dx > 0 && dy < 0:
+		return '╱'
+	case dx < 0 && dy > 0:
+		return '╱'
+	case dx > 0 && dy > 0:
+		return '╲'
+	case dx < 0 && dy < 0:
+		return '╲'
+	}
+	return '•'
+}
+
 func (r *mapper) getMapNode(roomId int) *mapNode {
 
 	if r, ok := r.crawledRooms[roomId]; ok {
@@ -870,27 +1013,36 @@ func (r *mapper) getMapNode(roomId int) *mapNode {
 		return nil
 	}
 
+	useStoredCoords := room.HasCoordinates && room.Zone == r.rootZone
+
 	mNode := &mapNode{
-		RoomId:      room.RoomId,
-		Exits:       make(map[string]nodeExit, 2), // assume there will be on average 2 exits per room
-		SecretExits: make(map[string]struct{}),
+		RoomId:          room.RoomId,
+		Exits:           make(map[string]nodeExit, 2), // assume there will be on average 2 exits per room
+		SecretExits:     make(map[string]struct{}),
+		HasStoredCoords: useStoredCoords,
 	}
 
+	if useStoredCoords {
+		mNode.Pos = positionDelta{x: room.MapX, y: room.MapY, z: room.MapZ}
+	}
+
+	b := room.GetBiome()
 	if room.MapSymbol != `` {
 		mNode.Symbol = []rune(room.MapSymbol)[0]
 		if room.MapLegend != `` {
 			mNode.Legend = room.MapLegend
 		}
 	} else {
-		b := room.GetBiome()
 		if b != nil && b.GetSymbol() != 0 {
 			mNode.Symbol = b.GetSymbol()
+			mNode.Legend = b.Name
 		} else {
 			mNode.Symbol = defaultMapSymbol
 		}
-		if b != nil && b.Name != `` {
-			mNode.Legend = b.Name
-		}
+	}
+	if b != nil {
+		mNode.Color = b.Color
+		mNode.SymbolOverrides = b.SymbolOverrides
 	}
 
 	for exitName, exitInfo := range room.Exits {
@@ -904,12 +1056,27 @@ func (r *mapper) getMapNode(roomId int) *mapNode {
 			exitNode.LockId = fmt.Sprintf(`%d-%s`, room.RoomId, exitName)
 		}
 
-		if d, ok := posDeltas[exitInfo.MapDirection]; ok {
-			exitNode.Direction = d
-		} else if d, ok := posDeltas[exitName]; ok {
-			exitNode.Direction = d
-		} else {
-			continue
+		// Derive the connector direction from the actual coordinate delta when
+		// both rooms have stored coordinates in the same zone. This is always
+		// authoritative and eliminates any dependency on mapdirection magnitude.
+		dirSet := false
+		if useStoredCoords {
+			if targetRoom := rooms.LoadRoom(exitInfo.RoomId); targetRoom != nil && targetRoom.HasCoordinates && targetRoom.Zone == r.rootZone {
+				dx := targetRoom.MapX - room.MapX
+				dy := targetRoom.MapY - room.MapY
+				dz := targetRoom.MapZ - room.MapZ
+				exitNode.Direction = positionDelta{x: dx, y: dy, z: dz, arrow: arrowForDelta(dx, dy, dz)}
+				dirSet = true
+			}
+		}
+		if !dirSet {
+			// Fall back to exit-name delta only (never mapdirection) so the
+			// magnitude is always 1 unit and consistent with non-coordinate rooms.
+			if d, ok := posDeltas[exitName]; ok {
+				exitNode.Direction = d
+			} else {
+				continue
+			}
 		}
 
 		mNode.Exits[exitName] = exitNode
@@ -1176,4 +1343,60 @@ func (m *mapper) OverrideRoomIds(replacements map[int]int) {
 		m.crawledRooms[newRoomId] = currentNode
 	}
 
+}
+
+func MigrateCoordinates(force bool) (migrated int, conflicts []string, unreachable []int) {
+	for _, zoneName := range rooms.GetAllZoneNames() {
+		rootRoomId, err := rooms.GetZoneRoot(zoneName)
+		if err != nil {
+			continue
+		}
+
+		m := NewMapper(rootRoomId)
+		m.Start()
+
+		zoneRoomIds := rooms.GetAllZoneRoomsIds(zoneName)
+		crawledSet := make(map[int]struct{}, len(m.crawledRooms))
+		for rid := range m.crawledRooms {
+			crawledSet[rid] = struct{}{}
+		}
+
+		for _, rid := range zoneRoomIds {
+			if _, found := crawledSet[rid]; !found {
+				unreachable = append(unreachable, rid)
+			}
+		}
+
+		for roomId, node := range m.crawledRooms {
+			room := rooms.LoadRoom(roomId)
+			if room == nil {
+				continue
+			}
+
+			if room.Zone != zoneName {
+				continue
+			}
+
+			if room.HasCoordinates && !force {
+				continue
+			}
+
+			x, y, z := node.Pos.x, node.Pos.y, node.Pos.z
+
+			if !rooms.IsCoordinateAvailable(zoneName, x, y, z, roomId) {
+				occupyingId, _ := rooms.GetRoomAtCoordinate(zoneName, x, y, z)
+				conflicts = append(conflicts, fmt.Sprintf("room %d and room %d both at (%d, %d, %d) in zone %s", roomId, occupyingId, x, y, z, zoneName))
+				continue
+			}
+
+			if room.HasCoordinates {
+				rooms.UnregisterCoordinate(zoneName, roomId)
+			}
+			room.SetCoordinates(x, y, z)
+			rooms.RegisterCoordinate(zoneName, roomId, x, y, z)
+			rooms.SaveRoomTemplate(*room)
+			migrated++
+		}
+	}
+	return
 }

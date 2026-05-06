@@ -22,3 +22,7 @@ spawninfo:
 - mobid: 19
   message: The webs hum as a spider descends into the room.
   respawnrate: 5 real minutes
+mapx: 6
+mapy: -1
+mapz: -1
+hascoordinates: true

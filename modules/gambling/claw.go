@@ -195,7 +195,7 @@ func (g *GamblingModule) playClaw(user *users.UserRecord, room *rooms.Room) {
 
 	if !user.Character.StoreItem(prize) {
 		user.SendText(fmt.Sprintf(
-			`<ansi fg="cyan">The claw snatches up a <ansi fg="item">%s</ansi>!</ansi> <ansi fg="214">But your backpack is full — it tumbles to the floor.</ansi>`,
+			`<ansi fg="cyan">The claw snatches up a <ansi fg="item">%s</ansi>!</ansi> <ansi fg="214">But your backpack is full - it tumbles to the floor.</ansi>`,
 			selected.name,
 		))
 

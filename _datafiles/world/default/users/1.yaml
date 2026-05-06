@@ -23,7 +23,7 @@ character:
   raceid: 2
   stats:
     strength:
-      training: 6
+      training: 9
     speed:
       training: 28
       base: 1
@@ -37,13 +37,13 @@ character:
       base: 2
     perception:
       training: 2
-  level: 5
-  experience: 17682
-  trainingpoints: 44
-  statpoints: 6
-  health: 60
-  mana: 32
-  actionpoints: 202
+  level: 7
+  experience: 37692
+  trainingpoints: 46
+  statpoints: 8
+  health: 30
+  mana: 44
+  actionpoints: 203
   alignment: -1
   gold: 9950
   bank: 0
@@ -53,25 +53,27 @@ character:
     healall: 1
     illum: 1
     mm: 1
+    poly: 4
   items:
-  - itemid: 10006
-    uncursed: true
   - itemid: 30002
     uses: 1
   - itemid: 10012
   - itemid: 10001
+  - itemid: 10006
+    uncursed: true
+  - itemid: 30002
+    uses: 1
+  - itemid: 30004
+    uses: 3
   buffs:
     list:
-    - buffid: 28
-      permabuff: true
-      roundcounter: 18
-      triggersleft: 1000000000
     - buffid: 29
       permabuff: true
-      roundcounter: 41
+      roundcounter: 4
       triggersleft: 1000000000
-    - buffid: 39
+    - buffid: 28
       permabuff: true
+      roundcounter: 5
       triggersleft: 1000000000
   equipment:
     weapon:
@@ -131,18 +133,31 @@ character:
       55: 40
   pet:
     name: fisher
+    namestyle: :mute-dblue
     type: mule
-    food: 4
-    damage:
-      attacks: 1
-      diceroll: 2d4
-      dicecount: 2
-      sidecount: 4
-    statmods:
-      strength: 5
-    buffids:
-    - 39
-    capacity: 5
+    food: 3
+    level: 10
+    abilities:
+    - levelgranted: 1
+      capacity: 1
+    - levelgranted: 2
+      capacity: 2
+    - levelgranted: 3
+      capacity: 3
+    - levelgranted: 4
+      capacity: 4
+    - levelgranted: 5
+      capacity: 5
+    - levelgranted: 6
+      capacity: 6
+    - levelgranted: 7
+      capacity: 7
+    - levelgranted: 8
+      capacity: 8
+    - levelgranted: 9
+      capacity: 9
+    - levelgranted: 10
+      capacity: 10
     items:
     - itemid: 30002
       uses: 1
@@ -212,8 +227,7 @@ character:
       "2": "0xFFFFFF0000000000"
       "3": "0x0000000003FFFFFF"
       "13": "0x0000008000000000"
-itemstorage:
-  items:
-  - itemid: 20011
 configoptions:
   tinymap: true
+tipscomplete:
+  status train: true

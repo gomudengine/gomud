@@ -186,7 +186,7 @@ func SaveRoomTemplate(roomTpl Room) error {
 
 	// Copy container contents (if new vs. old room container names match)
 	if roomBeingReplaced == nil {
-		// Room not in memory (new room or cache cleared) — skip container copy
+		// Room not in memory (new room or cache cleared) - skip container copy
 		roomManager.rooms[roomTpl.RoomId] = &roomTpl
 		return nil
 	}
@@ -444,6 +444,10 @@ func loadAllRoomZones() error {
 			Title: loadedRoom.Title,
 			Zone:  loadedRoom.Zone,
 			Biome: loadedRoom.Biome,
+		}
+
+		if loadedRoom.HasCoordinates {
+			RegisterCoordinate(loadedRoom.Zone, loadedRoom.RoomId, loadedRoom.MapX, loadedRoom.MapY, loadedRoom.MapZ)
 		}
 	}
 

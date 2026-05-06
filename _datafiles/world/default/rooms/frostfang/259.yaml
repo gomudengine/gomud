@@ -9,7 +9,6 @@ description: The district's roads, blanketed with cobblestones shaped by myriad 
   Garbed in thick fur coats and heavy cloaks, these citizens emit ephemeral puffs
   of breath in the cold atmosphere, their strides discreetly revealing a captivating,
   infrequently visited home tucked away near the district's northern exit.
-biome: city
 exits:
   east:
     roomid: 260
@@ -17,3 +16,7 @@ exits:
     roomid: 269
   west:
     roomid: 258
+mapx: 2
+mapy: -2
+mapz: 0
+hascoordinates: true

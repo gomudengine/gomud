@@ -37,6 +37,12 @@ func init() {
 	mod.plug.Web.AdminPage("Config", "newbieguide-config", "html/admin/newbieguide-config.html", true, "Modules", "Newbie Guide", nil)
 	events.RegisterListener(events.RoomChange{}, mod.spawnGuide)
 	events.RegisterListener(events.LevelUp{}, mod.checkGuide)
+
+	// AltNameSearch: searches a user's alts for a character name match.
+	// Consumed by internal/users/users.go via users.GetExportedFunction.
+	mod.plug.ExportFunction(`PlayerGuideMobId`, func() int {
+		return mod.guideMobId()
+	})
 }
 
 func (m *newbieGuideModule) guideMobId() int {
@@ -44,6 +50,13 @@ func (m *newbieGuideModule) guideMobId() int {
 		return v
 	}
 	return defaultGuideMobId
+}
+
+func (m *newbieGuideModule) maximumPlayerLevel() int {
+	if v, ok := m.plug.Config.Get(`MaximumPlayerLevel`).(int); ok && v > 0 {
+		return v
+	}
+	return 5
 }
 
 func (m *newbieGuideModule) spawnGuide(e events.Event) events.ListenerReturn {
@@ -59,7 +72,7 @@ func (m *newbieGuideModule) spawnGuide(e events.Event) events.ListenerReturn {
 	}
 
 	user := users.GetByUserId(evt.UserId)
-	if user.Character.Level > 5 {
+	if user.Character.Level > m.maximumPlayerLevel() {
 		return events.Continue
 	}
 
@@ -110,7 +123,7 @@ func (m *newbieGuideModule) spawnGuide(e events.Event) events.ListenerReturn {
 	guideMob.Command(`sayto ` + user.ShorthandId() + ` I'll be here to help protect you while you learn the ropes.`)
 	guideMob.Command(`sayto ` + user.ShorthandId() + ` I can create a portal to take us back to Town Square any time. Just <ansi fg="command">ask</ansi> me about it.`)
 
-	user.SendText(`<ansi fg="alert-3">Your guide will try and stick around until you reach level 5.</ansi>`)
+	user.SendText(fmt.Sprintf(`<ansi fg="alert-3">Your guide will try and stick around until you reach level %d.</ansi>`, m.maximumPlayerLevel()))
 
 	user.SetTempData(`lastGuideRound`, roundNow)
 
@@ -128,7 +141,7 @@ func (m *newbieGuideModule) checkGuide(e events.Event) events.ListenerReturn {
 
 	guideMobId := m.guideMobId()
 
-	if user.Character.Level >= 5 {
+	if user.Character.Level >= m.maximumPlayerLevel() {
 		for _, mobInstanceId := range user.Character.CharmedMobs {
 			if mob := mobs.GetInstance(mobInstanceId); mob != nil {
 				if mob.MobId == mobs.MobId(guideMobId) {

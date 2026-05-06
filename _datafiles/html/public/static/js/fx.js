@@ -1,7 +1,7 @@
 const FX = {
 
     // -----------------------------------------------------------------------
-    // Confetti — coloured squares fall from above.
+    // Confetti - coloured squares fall from above.
     // duration: seconds the animation runs.
     // -----------------------------------------------------------------------
     Confetti(duration = 1.5) {
@@ -54,7 +54,7 @@ const FX = {
     },
 
     // -----------------------------------------------------------------------
-    // Flash — a brief full-screen colour overlay that fades out.
+    // Flash - a brief full-screen colour overlay that fades out.
     // color:    CSS colour string, e.g. 'rgba(255,0,0,0.45)' for damage,
     //           'rgba(80,255,80,0.35)' for healing, 'rgba(255,220,0,0.4)' for
     //           level-up.
@@ -74,7 +74,7 @@ const FX = {
     },
 
     // -----------------------------------------------------------------------
-    // Shake — briefly shakes the #main-container (or the whole body).
+    // Shake - briefly shakes the #main-container (or the whole body).
     // intensity: max pixel offset.
     // duration:  total shake time in seconds.
     // -----------------------------------------------------------------------
@@ -100,7 +100,7 @@ const FX = {
     },
 
     // -----------------------------------------------------------------------
-    // Sparks — golden particles burst upward from the bottom of the screen.
+    // Sparks - golden particles burst upward from the bottom of the screen.
     // Useful for kill blows, treasure, or level-up moments.
     // count:    number of spark particles.
     // duration: seconds before the canvas is removed.
@@ -159,7 +159,7 @@ const FX = {
     },
 
     // -----------------------------------------------------------------------
-    // Rain — streaks fall from the top of the screen.
+    // Rain - streaks fall from the top of the screen.
     // color:    streak colour, e.g. '#66aaff' for rain, '#aaffaa' for acid.
     // duration: seconds the effect runs.
     // -----------------------------------------------------------------------
@@ -212,7 +212,7 @@ const FX = {
     },
 
     // -----------------------------------------------------------------------
-    // Ripple — concentric rings expand outward from the center of the screen.
+    // Ripple - concentric rings expand outward from the center of the screen.
     // Useful for magic casts, area-of-effect spells, or tremors.
     // color:    ring colour.
     // rings:    how many rings to emit.
@@ -268,7 +268,7 @@ const FX = {
     },
 
     // -----------------------------------------------------------------------
-    // Snow — white flakes drift down with gentle sideways sway.
+    // Snow - white flakes drift down with gentle sideways sway.
     // count:    number of flakes.
     // duration: seconds the effect runs.
     // -----------------------------------------------------------------------
@@ -320,7 +320,7 @@ const FX = {
     },
 
     // -----------------------------------------------------------------------
-    // Embers — slow-rising glowing particles, good for fire rooms or forges.
+    // Embers - slow-rising glowing particles, good for fire rooms or forges.
     // count:    number of ember particles.
     // duration: seconds the effect runs.
     // -----------------------------------------------------------------------
@@ -376,7 +376,7 @@ const FX = {
     },
 
     // -----------------------------------------------------------------------
-    // Fireflies — soft glowing dots that drift and pulse, good for forests.
+    // Fireflies - soft glowing dots that drift and pulse, good for forests.
     // count:    number of fireflies.
     // duration: seconds the effect runs.
     // -----------------------------------------------------------------------
@@ -436,7 +436,7 @@ const FX = {
     },
 
     // -----------------------------------------------------------------------
-    // Bubbles — slow-rising translucent circles, good for underwater rooms.
+    // Bubbles - slow-rising translucent circles, good for underwater rooms.
     // count:    number of bubbles.
     // duration: seconds the effect runs.
     // -----------------------------------------------------------------------
@@ -491,7 +491,7 @@ const FX = {
     },
 
     // -----------------------------------------------------------------------
-    // Shockwave — a single fast-expanding ring bursts from the screen center.
+    // Shockwave - a single fast-expanding ring bursts from the screen center.
     // color:    ring colour.
     // duration: seconds for the ring to expand and fade.
     // -----------------------------------------------------------------------
@@ -537,7 +537,7 @@ const FX = {
     },
 
     // -----------------------------------------------------------------------
-    // Pulse — #main-container breathes out and back once, like a heartbeat.
+    // Pulse - #main-container breathes out and back once, like a heartbeat.
     // scale:    peak scale factor.
     // duration: total animation time in seconds.
     // -----------------------------------------------------------------------

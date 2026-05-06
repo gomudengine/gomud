@@ -72,7 +72,7 @@ type Room struct {
 	Description       string                            `yaml:"description"`                         // Description shown to the user
 	MapSymbol         string                            `yaml:"mapsymbol,omitempty"`                 // The symbol to use when generating a map of the zone
 	MapLegend         string                            `yaml:"maplegend,omitempty"`                 // The text to display in the legend for this room. Should be one word.
-	Biome             string                            `yaml:"biome,omitempty"`                     // The biome of the room. Used for weather generation.
+	Biome             string                            `yaml:"biome,omitempty" instance:"skip"`     // The biome of the room. Used for weather generation.
 	Containers        map[string]Container              `yaml:"containers,omitempty"`                // If this room has a chest, what is in it?
 	Exits             map[string]exit.RoomExit          `yaml:"exits"`                               // Exits to other rooms
 	ExitsTemp         map[string]exit.TemporaryRoomExit `yaml:"-"`                                   // Temporary exits that will be removed after a certain time. Don't bother saving on sever shutting down.
@@ -90,6 +90,10 @@ type Room struct {
 	Mutators          mutators.MutatorList              `yaml:"mutators,omitempty"`                  // mutators this room spawns with.
 	Pvp               bool                              `yaml:"pvp,omitempty"`                       // if config pvp is set to `limited`, uses this value
 	Tags              []string                          `yaml:"tags,omitempty"`                      // short tags that can be added to rooms for any purpose (modules, scripting, etc)
+	MapX              int                               `yaml:"mapx"`
+	MapY              int                               `yaml:"mapy"`
+	MapZ              int                               `yaml:"mapz"`
+	HasCoordinates    bool                              `yaml:"hascoordinates,omitempty"`
 	// Unexported/private
 	players       []int                          // list of user IDs currently in the room
 	mobs          []int                          // list of mob instance IDs currently in the room. Does not get saved.
@@ -132,6 +136,20 @@ func NewEmptyRoom() *Room {
 		tempDataStore: make(map[string]any),
 	}
 	return r
+}
+
+func (r *Room) SetCoordinates(x, y, z int) {
+	r.MapX = x
+	r.MapY = y
+	r.MapZ = z
+	r.HasCoordinates = true
+}
+
+func (r *Room) ClearCoordinates() {
+	r.MapX = 0
+	r.MapY = 0
+	r.MapZ = 0
+	r.HasCoordinates = false
 }
 
 func (r *Room) IsEphemeral() bool {
@@ -401,6 +419,18 @@ func (r *Room) GetScript() string {
 	}
 
 	return ``
+}
+
+func (r *Room) HasScript() bool {
+
+	scriptPath := r.GetScriptPath()
+
+	// Load the script into a string
+	if _, err := os.Stat(scriptPath); err == nil {
+		return true
+	}
+
+	return false
 }
 
 func (r *Room) GetScriptPath() string {
@@ -2325,11 +2355,11 @@ func (r *Room) CanPvp(attUser *users.UserRecord, defUser *users.UserRecord) erro
 		return errors.New(`Fighting is not allowed here.`)
 	}
 
-	c := configs.GetGamePlayConfig()
+	c := configs.GetPVPConfig()
 
 	// Possible settings are `enabled`, `disabled`, `limited`
-	pvpSetting := string(c.PVP)
-	minLevel := int(c.PVPMinimumLevel)
+	pvpSetting := string(c.Enabled)
+	minLevel := int(c.MinimumLevel)
 
 	if pvpSetting == configs.PVPDisabled {
 		return errors.New(`PVP is disabled.`)

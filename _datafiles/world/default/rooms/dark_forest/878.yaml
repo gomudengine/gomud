@@ -13,7 +13,6 @@ description: Behind the cascading waterfall lies a hidden cave, its entrance shr
   that is both invigorating and mysterious.
 mapsymbol: B
 maplegend: Bridge
-biome: forest
 containers:
   ornate chest:
     lock:
@@ -26,3 +25,7 @@ spawninfo:
   itemid: 25
   gold: 1
   respawnrate: 1 real day
+mapx: 40
+mapy: 2
+mapz: -1
+hascoordinates: true

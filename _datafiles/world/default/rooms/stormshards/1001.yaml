@@ -8,3 +8,7 @@ biome: mountains
 exits:
   road:
     roomid: 593
+mapx: 58
+mapy: -1
+mapz: 0
+hascoordinates: true

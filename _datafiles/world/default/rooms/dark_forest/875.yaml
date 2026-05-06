@@ -12,7 +12,6 @@ description: At the bottom of the chasm, the light barely penetrates, casting lo
   creating an unsettling symphony that sets your nerves on edge.
 mapsymbol: B
 maplegend: Bridge
-biome: forest
 exits:
   east:
     roomid: 872
@@ -20,3 +19,7 @@ exits:
     roomid: 877
   south:
     roomid: 876
+mapx: 41
+mapy: 4
+mapz: -1
+hascoordinates: true

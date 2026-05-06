@@ -1,0 +1,215 @@
+{{template "header" .}}
+
+<style>
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--color-text-muted); margin-bottom: 2rem; font-size: 0.9rem; }
+    .api-list { display: flex; flex-direction: column; gap: 0.5rem; }
+    .api-entry { background: var(--color-surface-white); border: 1px solid var(--color-border); border-radius: 6px; overflow: hidden; }
+    .api-entry summary { display: flex; align-items: baseline; gap: 0.75rem; padding: 0.65rem 1rem; cursor: pointer; user-select: none; list-style: none; }
+    .api-entry summary::-webkit-details-marker { display: none; }
+    .api-entry summary::before { content: "\25B6"; font-size: 0.65rem; color: var(--color-text-faint); transition: transform 0.15s; flex-shrink: 0; }
+    .api-entry[open] summary::before { transform: rotate(90deg); }
+    .api-entry summary:hover { background: var(--color-surface-alt); }
+    .method { font-family: monospace; font-size: 0.8rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 3px; flex-shrink: 0; }
+    .method-get    { background: var(--color-success-bg); color: var(--color-success-text); }
+    .method-post   { background: var(--color-info-bg); color: var(--color-info-text); }
+    .method-patch  { background: var(--color-warning-bg); color: var(--color-warning-text); }
+    .method-delete { background: var(--color-error-bg); color: var(--color-error-text); }
+    .api-path { font-family: monospace; font-size: 0.9rem; color: var(--color-primary); }
+    .api-desc { font-size: 0.85rem; color: var(--color-text-muted); margin-left: auto; text-align: right; }
+    .api-body { padding: 0.75rem 1rem 1rem; border-top: 1px solid var(--color-border-light); background: var(--color-surface-alt); }
+    .api-body p { font-size: 0.85rem; color: var(--color-text-tertiary); margin-bottom: 0.5rem; }
+    .curl-block { background: var(--color-code-bg); color: var(--color-code-text); font-family: monospace; font-size: 0.82rem; padding: 0.85rem 1rem; border-radius: 5px; white-space: pre; overflow-x: auto; line-height: 1.6; margin-bottom: 0.5rem; }
+    .curl-block .kw   { color: var(--color-api-kw); }
+    .curl-block .str  { color: var(--color-api-str); }
+    .curl-block .flag { color: var(--color-api-flag); }
+    .response-examples { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
+    .resp-entry { border: 1px solid var(--color-border); border-radius: 4px; overflow: hidden; }
+    .resp-entry summary { display: flex; align-items: baseline; gap: 0.6rem; padding: 0.45rem 0.75rem; cursor: pointer; user-select: none; list-style: none; background: var(--color-page-bg); font-size: 0.82rem; }
+    .resp-entry summary::-webkit-details-marker { display: none; }
+    .resp-entry summary::before { content: "\25B6"; font-size: 0.6rem; color: var(--color-text-faint); transition: transform 0.15s; flex-shrink: 0; }
+    .resp-entry[open] summary::before { transform: rotate(90deg); }
+    .resp-entry summary:hover { background: var(--color-api-summary-hover); }
+    .resp-body { padding: 0.6rem 0.75rem 0.75rem; border-top: 1px solid var(--color-border-light); background: var(--color-surface-alt); }
+    .resp-body p { font-size: 0.82rem; color: var(--color-text-tertiary); margin-bottom: 0.4rem; }
+    .status-ok  { background: var(--color-success-bg); color: var(--color-success-text); }
+    .status-err { background: var(--color-error-bg); color: var(--color-error-text); }
+    .resp-label { font-size: 0.8rem; color: var(--color-text-tertiary); }
+    code { background: var(--color-border-faint); padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.85em; }
+
+    .params-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-bottom: 0.75rem; }
+    .params-table th { background: var(--color-border-faint); padding: 0.4rem 0.6rem; text-align: left; font-weight: 600; border: 1px solid var(--color-border); }
+    .params-table td { padding: 0.4rem 0.6rem; border: 1px solid var(--color-border); vertical-align: top; }
+    .params-table td:first-child { font-family: monospace; color: var(--color-primary); }
+    .required { color: var(--color-error-text); font-size: 0.75rem; font-weight: 600; }
+</style>
+
+<h1>Pets API Reference</h1>
+<p class="subtitle">REST endpoints for listing, creating, updating, and deleting pet type definitions. <a href="/admin/pets">View / Edit</a></p>
+
+<div class="api-list">
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-get">GET</span>
+            <span class="api-path">/admin/api/v1/pets</span>
+            <span class="api-desc">Return all pet type definitions</span>
+        </summary>
+        <div class="api-body">
+            <p>Returns a map of <code>petType</code> &rarr; Pet object for every loaded pet type.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/pets</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{
+  "success": true,
+  "data": {
+    "wolf": {
+      "type": "wolf",
+      "name": "Wolf",
+      "capacity": 0,
+      "damage": { "diceroll": "1d6", "attacks": 1 },
+      "statmods": { "strength": 2 },
+      "buffids": [12]
+    },
+    "mule": {
+      "type": "mule",
+      "name": "Mule",
+      "capacity": 5,
+      "damage": null,
+      "statmods": null,
+      "buffids": null
+    }
+  }
+}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-post">POST</span>
+            <span class="api-path">/admin/api/v1/pets</span>
+            <span class="api-desc">Create a new pet type</span>
+        </summary>
+        <div class="api-body">
+            <p>Creates a new pet type definition. The <code>type</code> field is the unique identifier and is lowercased automatically. Returns <code>409</code> if the type already exists.</p>
+
+            <table class="params-table">
+                <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td>type <span class="required">required</span></td><td>string</td><td>Unique pet type identifier (e.g. <code>wolf</code>). Lowercased on save.</td></tr>
+                    <tr><td>name</td><td>string</td><td>Display name shown when the player has not named their pet.</td></tr>
+                    <tr><td>namestyle</td><td>string</td><td>Optional color pattern applied to the pet name (e.g. <code>:rainbow</code>).</td></tr>
+                    <tr><td>capacity</td><td>int</td><td>Number of items the pet can carry. 0 = cannot carry items.</td></tr>
+                    <tr><td>damage</td><td>object</td><td>Combat stats. Fields: <code>diceroll</code> (string, e.g. <code>"1d6"</code>), <code>attacks</code> (int).</td></tr>
+                    <tr><td>statmods</td><td>object</td><td>Map of stat name &rarr; integer modifier granted to the owner (e.g. <code>{"strength": 2}</code>).</td></tr>
+                    <tr><td>buffids</td><td>int[]</td><td>Buff IDs permanently applied to the owner while this pet is active.</td></tr>
+                </tbody>
+            </table>
+
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> <span class="flag">-X</span> POST \
+     <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
+     <span class="flag">-d</span> <span class="str">'{
+  "type": "wolf",
+  "name": "Wolf",
+  "capacity": 0,
+  "damage": { "diceroll": "1d6", "attacks": 1 },
+  "statmods": { "strength": 2 },
+  "buffids": [12]
+}'</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/pets</span></div>
+
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">201</span> <span class="resp-label">Created</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"type":"wolf","name":"Wolf","capacity":0,...}}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"type is required"}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Conflict - type already exists</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"pet type \"wolf\" already exists"}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-patch">PATCH</span>
+            <span class="api-path">/admin/api/v1/pets/{petname}</span>
+            <span class="api-desc">Update a pet type</span>
+        </summary>
+        <div class="api-body">
+            <p><code>{petname}</code> is the pet type identifier (e.g. <code>wolf</code>). Fields in the request body overwrite the existing definition. The <code>type</code> is always preserved from the URL.</p>
+
+            <table class="params-table">
+                <thead><tr><th>Parameter</th><th>In</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td>petname <span class="required">required</span></td><td>path</td><td>Pet type identifier.</td></tr>
+                </tbody>
+            </table>
+
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> <span class="flag">-X</span> PATCH \
+     <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
+     <span class="flag">-d</span> <span class="str">'{
+  "name": "Dire Wolf",
+  "capacity": 2,
+  "damage": { "diceroll": "2d6", "attacks": 2 },
+  "statmods": { "strength": 4, "speed": 2 }
+}'</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/pets/wolf</span></div>
+
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"type":"wolf","name":"Dire Wolf","capacity":2,...}}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">404</span> <span class="resp-label">Not Found</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"pet type \"wolf\" not found"}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-delete">DELETE</span>
+            <span class="api-path">/admin/api/v1/pets/{petname}</span>
+            <span class="api-desc">Delete a pet type</span>
+        </summary>
+        <div class="api-body">
+            <p><code>{petname}</code> is the pet type identifier. Removes the YAML file from disk and unregisters the type from memory.</p>
+
+            <table class="params-table">
+                <thead><tr><th>Parameter</th><th>In</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td>petname <span class="required">required</span></td><td>path</td><td>Pet type identifier.</td></tr>
+                </tbody>
+            </table>
+
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> <span class="flag">-X</span> DELETE \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/pets/wolf</span></div>
+
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">404</span> <span class="resp-label">Not Found</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"pet type \"wolf\" not found"}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+</div>
+
+{{template "footer" .}}

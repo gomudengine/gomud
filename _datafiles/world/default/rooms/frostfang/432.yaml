@@ -12,7 +12,6 @@ description: The dim glow of a crackling hearth in one corner bathes the wooden 
   from the cold and a peaceful night's rest in the heart of Frostfang.
 mapsymbol: I
 maplegend: Inn
-biome: city
 nouns:
   metal rod: a crowbar leans against the hearth. It must be used as a fire poker.
 exits:
@@ -20,3 +19,7 @@ exits:
     roomid: 61
     exitmessage: You gather your belongings and head back towards the main room of
       the Inn.
+mapx: 4
+mapy: 1
+mapz: 1
+hascoordinates: true

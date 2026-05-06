@@ -7,7 +7,6 @@ description: The island's surface is covered in a soft blanket of snow, untouche
   crystal chandeliers in the gentle breeze.
 mapsymbol: "~"
 maplegend: Shore
-biome: shore
 exits:
   northwest:
     roomid: 366
@@ -15,3 +14,7 @@ exits:
     roomid: 364
   west:
     roomid: 376
+mapx: 28
+mapy: 13
+mapz: 0
+hascoordinates: true

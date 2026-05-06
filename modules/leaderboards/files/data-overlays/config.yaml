@@ -4,24 +4,20 @@
 #
 # Modules:
 #   leaderboards:
-#     Size: 10
-#     ExperienceEnabled: true
-#     GoldEnabled: true
-#     KillsEnabled: true
-#     ExplorationEnabled: true
+#     ExperienceLBSize: 10
+#     GoldLBSize: 10
+#     KillsLBSize: 10
+#     ExplorationLBSize: 10
 ################################################################################
-# - Size -
-#   Maximum size of each leaderboard. 0 to disable.
-Size: 10
-# - ExperienceEnabled -
-# Enable leaderboard for character with the most experience points
-ExperienceEnabled: true
-# - GoldEnabled -
-# Enable leaderboard for character with the most gold in-bank+on-hand
-GoldEnabled: true
-# - KillsEnabled -
-# Enable leaderboard for character with the most total kills
-KillsEnabled: true
-# - ExplorationEnabled -
-# Enable leaderboard for character with the most rooms explored
-ExplorationEnabled: true
+# - ExperienceLBSize -
+#   Maximum entries on the Experience leaderboard. 0 disables it.
+ExperienceLBSize: 10
+# - GoldLBSize -
+#   Maximum entries on the Gold leaderboard. 0 disables it.
+GoldLBSize: 10
+# - KillsLBSize -
+#   Maximum entries on the Kills leaderboard. 0 disables it.
+KillsLBSize: 10
+# - ExplorationLBSize -
+#   Maximum entries on the Exploration leaderboard. 0 disables it.
+ExplorationLBSize: 10

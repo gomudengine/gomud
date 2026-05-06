@@ -10,7 +10,6 @@ description: The West Gate of Frostfang stands as a formidable sentinel at the t
   wilderness that lies just beyond Frostfang's protective walls.
 mapsymbol: G
 maplegend: West-Gate
-biome: city
 exits:
   east:
     roomid: 11
@@ -49,3 +48,7 @@ idlemessages:
 - The wind whistles through the arrow slits in the watchtowers.
 - The gate creaks in the wind.
 - The eyes of the two statues seem to glow briefly... or maybe it was just your imagination.
+mapx: -6
+mapy: 0
+mapz: 0
+hascoordinates: true

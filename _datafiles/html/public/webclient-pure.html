@@ -36,7 +36,7 @@
             display: flex;
             flex-direction: row;
             overflow: hidden;
-            background-color: var(--t-bg-deep);
+            background-color: #000000;
         }
 
         #terminal {
@@ -1166,28 +1166,10 @@
     <link rel="stylesheet" href="{{ .ASSET_BASE_URL }}/static/css/xterm.css" />
     <link rel="stylesheet" href="{{ .ASSET_BASE_URL }}/static/css/windows.css" />
 
-    <script src="{{ .ASSET_BASE_URL }}/static/js/xterm.4.19.0.js"></script>
-    <script src="{{ .ASSET_BASE_URL }}/static/js/xterm-addon-fit.js"></script>
-    <script src="{{ .ASSET_BASE_URL }}/static/js/mp3.js"></script>
-    <script src="{{ .ASSET_BASE_URL }}/static/js/fx.js"></script>
-    <script src="{{ .ASSET_BASE_URL }}/static/js/winbox.bundle.min.js"></script>
-    <script src="{{ .ASSET_BASE_URL }}/static/js/webclient-core.js"></script>
-    <script src="{{ .ASSET_BASE_URL }}/static/js/triggers.js"></script>
-    <!-- Left dock -->
-     <script src="{{ .ASSET_BASE_URL }}/static/js/windows/window-gametime.js"></script>
-    <script src="{{ .ASSET_BASE_URL }}/static/js/windows/window-character.js"></script>
-    <script src="{{ .ASSET_BASE_URL }}/static/js/windows/window-gear.js"></script>
-    <script src="{{ .ASSET_BASE_URL }}/static/js/windows/window-vitals.js"></script>
-    <script src="{{ .ASSET_BASE_URL }}/static/js/windows/window-status.js"></script>
-    <script src="{{ .ASSET_BASE_URL }}/static/js/windows/window-party.js"></script>
-    <!-- Right dock -->
-    <script src="{{ .ASSET_BASE_URL }}/static/js/windows/window-map.js"></script>
-    <script src="{{ .ASSET_BASE_URL }}/static/js/windows/window-room.js"></script>
-    <script src="{{ .ASSET_BASE_URL }}/static/js/windows/window-online.js"></script>
-    <script src="{{ .ASSET_BASE_URL }}/static/js/windows/window-killstats.js"></script>
-    <script src="{{ .ASSET_BASE_URL }}/static/js/windows/window-comm.js"></script>
-    <script src="{{ .ASSET_BASE_URL }}/static/js/windows/window-modal.js"></script>
-
+    <script src="{{ .ASSET_BASE_URL }}/static/js/xterm/xterm.4.19.0.js"></script>
+    <script src="{{ .ASSET_BASE_URL }}/static/js/xterm/xterm-addon-fit.js"></script>
+    <script src="{{ .ASSET_BASE_URL }}/static/js/_all.js?mp3.js,fx.js,vwin.js,webclient-core.js,triggers.js"></script>
+    <script src="{{ .ASSET_BASE_URL }}/static/js/windows/_all.js"></script>
 
 </head>
 <body onload="init()">
@@ -1234,9 +1216,16 @@
                     <div class="settings-section">
                         <div class="settings-section-title">Layout</div>
                         <div class="win-toggle-row">
-                            <span>Auto-hide window docks</span>
+                            <span>Auto-hide left window dock</span>
                             <label class="toggle-switch">
-                                <input type="checkbox" id="dock-autohide-checkbox" onchange="toggleDockAutoHide(this.checked)">
+                                <input type="checkbox" id="dock-autohide-left-checkbox" onchange="toggleDockAutoHide('left', this.checked)">
+                                <span class="toggle-track"></span>
+                            </label>
+                        </div>
+                        <div class="win-toggle-row">
+                            <span>Auto-hide right window dock</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="dock-autohide-right-checkbox" onchange="toggleDockAutoHide('right', this.checked)">
                                 <span class="toggle-track"></span>
                             </label>
                         </div>
@@ -1618,7 +1607,7 @@
         function toggleMenu()            { Client.toggleMenu(); }
         function toggleMuteAll()         { Client.toggleMuteAll(); }
         function resetLayout()           { Client.resetLayout(); }
-        function toggleDockAutoHide(v)   { Client.toggleDockAutoHide(v); }
+        function toggleDockAutoHide(s,v)  { Client.toggleDockAutoHide(s,v); }
         function resetVolumeControls()   { Client.resetVolumeControls(); }
 
         // ---------------------------------------------------------------
@@ -2200,7 +2189,7 @@
         }
 
         function _fmtRate(b, sec) {
-            return sec > 0 ? _fmtBytes(b / sec) + '/s' : '—';
+            return sec > 0 ? _fmtBytes(b / sec) + '/s' : '-';
         }
 
         function _fmtUptime(ms) {
@@ -2265,7 +2254,7 @@
             var nsList  = Object.keys(st.gmcpInBytes).sort();
             var total   = nsList.reduce(function(s, k) { return s + st.gmcpInBytes[k]; }, 0);
 
-            // Build the whole section as a plain string — no grid, no display:contents.
+            // Build the whole section as a plain string - no grid, no display:contents.
             // Each row is a simple flex div. Namespace rows get onclick attributes so
             // there is zero ambiguity about what receives the click.
             var h = '';

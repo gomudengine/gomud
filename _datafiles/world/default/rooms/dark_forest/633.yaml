@@ -6,7 +6,6 @@ description: The Hatchery is a surreal and haunting expanse of darkness and silk
   and ceiling are obscured by layer upon layer of glistening webbing. Moonlight, filtered
   through the silk, casts eerie, shifting shadows that dance like specters on the
   chamber's walls.
-biome: forest
 exits:
   down:
     roomid: 632
@@ -39,3 +38,7 @@ spawninfo:
 - mobid: 35
   message: A small spider hatches from a nearby egg.
   respawnrate: 2 real minutes
+mapx: 32
+mapy: -7
+mapz: 4
+hascoordinates: true

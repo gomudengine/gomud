@@ -11,3 +11,7 @@ description: Mosswood Avenue is a lush, verdant street where ancient trees with 
 exits:
   north:
     roomid: 724
+mapx: 83
+mapy: 4
+mapz: 0
+hascoordinates: true

@@ -39,6 +39,10 @@ func serveAdminTemplate(w http.ResponseWriter, r *http.Request, filename string,
 	}
 }
 
+func adminItemsRankWeapons(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "items-rank-weapons.html", nil)
+}
+
 func adminItems(w http.ResponseWriter, r *http.Request) {
 	serveAdminTemplate(w, r, "items.html", nil)
 }
@@ -53,6 +57,10 @@ func adminItemsAttackMessages(w http.ResponseWriter, r *http.Request) {
 
 func adminItemsAttackMessagesAPI(w http.ResponseWriter, r *http.Request) {
 	serveAdminTemplate(w, r, "items-attack-messages-api.html", nil)
+}
+
+func adminItemsRankArmor(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "items-rank-armor.html", nil)
 }
 
 func adminBuffs(w http.ResponseWriter, r *http.Request) {
@@ -123,6 +131,18 @@ func adminMobsAPI(w http.ResponseWriter, r *http.Request) {
 	serveAdminTemplate(w, r, "mobs-api.html", nil)
 }
 
+func adminPets(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "pets.html", nil)
+}
+
+func adminPetsAPI(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "pets-api.html", nil)
+}
+
+func adminPetsRanks(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "pets-ranks.html", nil)
+}
+
 func adminSpells(w http.ResponseWriter, r *http.Request) {
 	serveAdminTemplate(w, r, "spells.html", nil)
 }
@@ -139,10 +159,38 @@ func adminMutatorsAPI(w http.ResponseWriter, r *http.Request) {
 	serveAdminTemplate(w, r, "mutators-api.html", nil)
 }
 
+func adminMapper(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "mapper.html", nil)
+}
+
 func adminRooms(w http.ResponseWriter, r *http.Request) {
 	serveAdminTemplate(w, r, "rooms.html", nil)
 }
 
 func adminRoomsAPI(w http.ResponseWriter, r *http.Request) {
 	serveAdminTemplate(w, r, "rooms-api.html", nil)
+}
+
+func adminBiomes(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "biomes.html", nil)
+}
+
+func adminBiomesAPI(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "biomes-api.html", nil)
+}
+
+func adminConversations(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "conversations.html", nil)
+}
+
+func adminConversationsAPI(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "conversations-api.html", nil)
+}
+
+func adminGameTime(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "gametime.html", nil)
+}
+
+func adminGameTimeAPI(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "gametime-api.html", nil)
 }

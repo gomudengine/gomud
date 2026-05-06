@@ -50,7 +50,7 @@ func apiV1CreateColorPattern(w http.ResponseWriter, r *http.Request) {
 }
 
 // PATCH /admin/api/v1/colorpatterns
-// Body: {"patternName": [1,2,3], ...}  — updates or creates each named pattern.
+// Body: {"patternName": [1,2,3], ...}  - updates or creates each named pattern.
 func apiV1PatchColorPatterns(w http.ResponseWriter, r *http.Request) {
 	var patches map[string][]int
 	if err := json.NewDecoder(r.Body).Decode(&patches); err != nil {

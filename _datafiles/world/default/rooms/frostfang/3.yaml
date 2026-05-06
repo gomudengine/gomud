@@ -11,7 +11,6 @@ description: As you continue along Cobblestone Way, the stone walls on either si
   once a distant silhouette, now stands larger and more defined against the snowy
   backdrop, its stone walls and turrets standing as silent witnesses to the city's
   storied past.
-biome: city
 exits:
   east:
     roomid: 258
@@ -21,3 +20,7 @@ exits:
     roomid: 2
   west:
     roomid: 776
+mapx: 0
+mapy: -2
+mapz: 0
+hascoordinates: true

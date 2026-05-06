@@ -9,7 +9,6 @@ description: Eastwind Promenade is the bustling artery that stretches directly t
   sounds, and scents. As travelers make their way to and from the gate, merchants
   hawk their wares, creating a lively tapestry of commerce and community that embodies
   the spirit of Frostfang.
-biome: city
 exits:
   east:
     roomid: 58
@@ -19,3 +18,7 @@ exits:
     roomid: 61
   west:
     roomid: 56
+mapx: 4
+mapy: 0
+mapz: 0
+hascoordinates: true

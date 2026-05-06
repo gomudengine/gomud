@@ -2,39 +2,39 @@
 
 <style>
     h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
-    .subtitle { color: #555; margin-bottom: 2rem; font-size: 0.9rem; }
+    .subtitle { color: var(--color-text-muted); margin-bottom: 2rem; font-size: 0.9rem; }
     .api-list { display: flex; flex-direction: column; gap: 0.5rem; }
-    .api-entry { background: #fff; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; }
+    .api-entry { background: var(--color-surface-white); border: 1px solid var(--color-border); border-radius: 6px; overflow: hidden; }
     .api-entry summary { display: flex; align-items: baseline; gap: 0.75rem; padding: 0.65rem 1rem; cursor: pointer; user-select: none; list-style: none; }
     .api-entry summary::-webkit-details-marker { display: none; }
-    .api-entry summary::before { content: "\25B6"; font-size: 0.65rem; color: #888; transition: transform 0.15s; flex-shrink: 0; }
+    .api-entry summary::before { content: "\25B6"; font-size: 0.65rem; color: var(--color-text-faint); transition: transform 0.15s; flex-shrink: 0; }
     .api-entry[open] summary::before { transform: rotate(90deg); }
-    .api-entry summary:hover { background: #fafafa; }
+    .api-entry summary:hover { background: var(--color-surface-alt); }
     .method { font-family: monospace; font-size: 0.8rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 3px; flex-shrink: 0; }
-    .method-get    { background: #e6f4ea; color: #1e6e34; }
-    .method-delete { background: #fde8e8; color: #8a0000; }
-    .api-path { font-family: monospace; font-size: 0.9rem; color: #1a1a2e; }
-    .api-desc { font-size: 0.85rem; color: #555; margin-left: auto; text-align: right; }
-    .api-body { padding: 0.75rem 1rem 1rem; border-top: 1px solid #eee; background: #fafafa; }
-    .api-body p { font-size: 0.85rem; color: #444; margin-bottom: 0.5rem; }
-    .api-body ul { font-size: 0.85rem; color: #444; margin: 0.25rem 0 0.5rem 1.25rem; }
-    .curl-block { background: #1a1a2e; color: #c9d1d9; font-family: monospace; font-size: 0.82rem; padding: 0.85rem 1rem; border-radius: 5px; white-space: pre; overflow-x: auto; line-height: 1.6; }
+    .method-get    { background: var(--color-success-bg); color: var(--color-success-text); }
+    .method-delete { background: var(--color-error-bg); color: var(--color-error-text); }
+    .api-path { font-family: monospace; font-size: 0.9rem; color: var(--color-primary); }
+    .api-desc { font-size: 0.85rem; color: var(--color-text-muted); margin-left: auto; text-align: right; }
+    .api-body { padding: 0.75rem 1rem 1rem; border-top: 1px solid var(--color-border-light); background: var(--color-surface-alt); }
+    .api-body p { font-size: 0.85rem; color: var(--color-text-tertiary); margin-bottom: 0.5rem; }
+    .api-body ul { font-size: 0.85rem; color: var(--color-text-tertiary); margin: 0.25rem 0 0.5rem 1.25rem; }
+    .curl-block { background: var(--color-primary); color: #c9d1d9; font-family: monospace; font-size: 0.82rem; padding: 0.85rem 1rem; border-radius: 5px; white-space: pre; overflow-x: auto; line-height: 1.6; }
     .curl-block .kw   { color: #79c0ff; }
     .curl-block .str  { color: #a5d6ff; }
     .curl-block .flag { color: #d2a8ff; }
     .response-examples { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
-    .resp-entry { border: 1px solid #ddd; border-radius: 4px; overflow: hidden; }
-    .resp-entry summary { display: flex; align-items: baseline; gap: 0.6rem; padding: 0.45rem 0.75rem; cursor: pointer; user-select: none; list-style: none; background: #f5f5f5; font-size: 0.82rem; }
+    .resp-entry { border: 1px solid var(--color-border); border-radius: 4px; overflow: hidden; }
+    .resp-entry summary { display: flex; align-items: baseline; gap: 0.6rem; padding: 0.45rem 0.75rem; cursor: pointer; user-select: none; list-style: none; background: var(--color-page-bg); font-size: 0.82rem; }
     .resp-entry summary::-webkit-details-marker { display: none; }
-    .resp-entry summary::before { content: "\25B6"; font-size: 0.6rem; color: #888; transition: transform 0.15s; flex-shrink: 0; }
+    .resp-entry summary::before { content: "\25B6"; font-size: 0.6rem; color: var(--color-text-faint); transition: transform 0.15s; flex-shrink: 0; }
     .resp-entry[open] summary::before { transform: rotate(90deg); }
-    .resp-entry summary:hover { background: #efefef; }
-    .resp-body { padding: 0.6rem 0.75rem 0.75rem; border-top: 1px solid #eee; background: #fafafa; }
-    .resp-body p { font-size: 0.82rem; color: #444; margin-bottom: 0.4rem; }
-    .status-ok  { background: #e6f4ea; color: #1e6e34; }
-    .status-err { background: #fde8e8; color: #8a0000; }
-    .resp-label { font-size: 0.8rem; color: #444; }
-    code { background: #f0f0f0; padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.85em; }
+    .resp-entry summary:hover { background: var(--color-api-summary-hover); }
+    .resp-body { padding: 0.6rem 0.75rem 0.75rem; border-top: 1px solid var(--color-border-light); background: var(--color-surface-alt); }
+    .resp-body p { font-size: 0.82rem; color: var(--color-text-tertiary); margin-bottom: 0.4rem; }
+    .status-ok  { background: var(--color-success-bg); color: var(--color-success-text); }
+    .status-err { background: var(--color-error-bg); color: var(--color-error-text); }
+    .resp-label { font-size: 0.8rem; color: var(--color-text-tertiary); }
+    code { background: var(--color-border-faint); padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.85em; }
 </style>
 
 <h1>Storage API Reference</h1>
@@ -53,7 +53,7 @@
             <p>Returns all items currently in the specified user's storage. The <code>user_id</code> query parameter is required. Works for both online and offline players.</p>
             <p>Query parameters:</p>
             <ul>
-                <li><code>user_id</code> <strong>(required)</strong> &mdash; the user's ID</li>
+                <li><code>user_id</code> <strong>(required)</strong> - the user's ID</li>
             </ul>
             <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
      <span class="str">"http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/storage?user_id=42"</span></div>
@@ -63,10 +63,10 @@
                     <div class="resp-body">
                         <p>Returns <code>user_id</code>, <code>username</code>, and an <code>items</code> array. Each item contains:</p>
                         <ul>
-                            <li><code>index</code> &mdash; 1-based position (matches in-game storage numbering)</li>
-                            <li><code>item_id</code> &mdash; the item spec ID</li>
-                            <li><code>name</code> &mdash; display name</li>
-                            <li><code>short_id</code> &mdash; unique instance identifier (used for deletion)</li>
+                            <li><code>index</code> - 1-based position (matches in-game storage numbering)</li>
+                            <li><code>item_id</code> - the item spec ID</li>
+                            <li><code>name</code> - display name</li>
+                            <li><code>short_id</code> - unique instance identifier (used for deletion)</li>
                         </ul>
                         <div class="curl-block">{&#10;  "success": true,&#10;  "data": {&#10;    "user_id": 42,&#10;    "username": "alice",&#10;    "items": [&#10;      {&#10;        "index": 1,&#10;        "item_id": 10001,&#10;        "name": "steel sword",&#10;        "short_id": "abc123"&#10;      }&#10;    ]&#10;  }&#10;}</div>
                     </div>
@@ -105,8 +105,8 @@
             <p>Permanently removes the item with the matching <code>short_id</code> from the user's storage. The item is destroyed and cannot be recovered. Works for both online and offline players.</p>
             <p>Query parameters:</p>
             <ul>
-                <li><code>user_id</code> <strong>(required)</strong> &mdash; the user's ID</li>
-                <li><code>short_id</code> <strong>(required)</strong> &mdash; the item's unique instance identifier (from the <code>short_id</code> field in the GET response)</li>
+                <li><code>user_id</code> <strong>(required)</strong> - the user's ID</li>
+                <li><code>short_id</code> <strong>(required)</strong> - the item's unique instance identifier (from the <code>short_id</code> field in the GET response)</li>
             </ul>
             <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
      <span class="flag">-X</span> DELETE \

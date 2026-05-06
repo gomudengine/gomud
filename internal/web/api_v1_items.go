@@ -5,8 +5,42 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/items"
 )
+
+// GET /admin/api/v1/items/ranks/weapons
+// Returns weapon rankings computed by the combat engine against a neutral
+// equal-stat opponent. Three sorted views are returned: by raw DPS, by
+// adjusted DPS (two-handed and wait-round penalties applied), and by max
+// single-hit damage.
+func apiV1GetItemRanksWeapons(w http.ResponseWriter, r *http.Request) {
+	byDPS, byAdjDPS, byMaxDmg := combat.RankWeapons()
+	writeJSON(w, http.StatusOK, APIResponse[map[string]any]{
+		Success: true,
+		Data: map[string]any{
+			"by_dps":     byDPS,
+			"by_adj_dps": byAdjDPS,
+			"by_max_dmg": byMaxDmg,
+		},
+	})
+}
+
+// GET /admin/api/v1/items/ranks/armor
+// Returns armor rankings. Three sorted views are returned: by defense rating,
+// by adjusted defense (accounting for shield multiplier), and by unified
+// eHP-equivalent score (defense + stat weights + buffs).
+func apiV1GetItemRanksArmor(w http.ResponseWriter, r *http.Request) {
+	byDefense, byAdjDefense, byScore := combat.RankArmor()
+	writeJSON(w, http.StatusOK, APIResponse[map[string]any]{
+		Success: true,
+		Data: map[string]any{
+			"by_defense":     byDefense,
+			"by_adj_defense": byAdjDefense,
+			"by_score":       byScore,
+		},
+	})
+}
 
 // GET /admin/api/v1/items/types
 func apiV1GetItemTypes(w http.ResponseWriter, r *http.Request) {
@@ -30,6 +64,8 @@ func apiV1GetItemAttackMessages(w http.ResponseWriter, r *http.Request) {
 type itemListEntry struct {
 	items.ItemSpec
 	HasScript bool `json:"HasScript"`
+	BuffCount int  `json:"BuffCount"`
+	BuffValue int  `json:"BuffValue"`
 }
 
 // GET /admin/api/v1/items
@@ -37,9 +73,12 @@ func apiV1GetItems(w http.ResponseWriter, r *http.Request) {
 	specs := items.GetAllItemSpecs()
 	result := make([]itemListEntry, len(specs))
 	for i, s := range specs {
+		buffCount, buffValue := items.GetBuffSummary(s.ItemId)
 		result[i] = itemListEntry{
 			ItemSpec:  s,
 			HasScript: s.GetScript() != "",
+			BuffCount: buffCount,
+			BuffValue: buffValue,
 		}
 	}
 	writeJSON(w, http.StatusOK, APIResponse[[]itemListEntry]{

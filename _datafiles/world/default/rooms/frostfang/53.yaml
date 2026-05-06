@@ -10,7 +10,10 @@ description: Adjacent to the banquet hall, the kitchen of Frostfang Castle is a 
   to countless feasts prepared. Hanging herbs and smoked meats scent the air, while
   the warmth from ovens and stovetops creates a comforting contrast to the castle's
   typically cool ambiance.
-biome: city
 exits:
   east:
     roomid: 52
+mapx: -1
+mapy: -11
+mapz: 0
+hascoordinates: true

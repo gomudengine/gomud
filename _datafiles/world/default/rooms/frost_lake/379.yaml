@@ -5,6 +5,7 @@ description: The island's surface is covered in a soft blanket of snow, untouche
   by the footprints of those who have ventured here before you. Tall, ancient pine
   trees stand sentinel, their branches heavy with snow and icicles that shimmer like
   crystal chandeliers in the gentle breeze.
+biome: land
 exits:
   east:
     roomid: 380
@@ -12,3 +13,7 @@ exits:
     roomid: 370
   south:
     roomid: 372
+mapx: 25
+mapy: 15
+mapz: 0
+hascoordinates: true

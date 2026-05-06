@@ -9,7 +9,6 @@ description: The main hall is lined with rows of simple, sturdy bunk beds, each 
   and insignia that represent various ranks and units within the Frostfang military.
 mapsymbol: '&'
 maplegend: Alts
-biome: city
 exits:
   southwest:
     roomid: 270
@@ -24,3 +23,7 @@ spawninfo:
   respawnrate: 7 real minutes
 tags:
 - character
+mapx: 2
+mapy: -5
+mapz: 0
+hascoordinates: true

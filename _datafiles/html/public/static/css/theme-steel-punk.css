@@ -1,12 +1,12 @@
 /*
  * theme-steel-punk.css
  *
- * Steel punk — cold industrial greys, riveted iron surfaces,
+ * Steel punk - cold industrial greys, riveted iron surfaces,
  * and hot copper-orange accents. Gears turning in the dark.
  */
 
 /* ════════════════════════════════════════════════════════════
-   PALETTE — edit only these to retheme.
+   PALETTE - edit only these to retheme.
    ════════════════════════════════════════════════════════════ */
 :root {
     --p-bg:          #1a1c1e;  /* window/panel body background; dock slots, row fills, party HP track | Theme Swatch 1 */
@@ -21,7 +21,7 @@
 }
 
 /* ════════════════════════════════════════════════════════════
-   SEMANTIC TOKENS — derived from palette + theme-specific values.
+   SEMANTIC TOKENS - derived from palette + theme-specific values.
    ════════════════════════════════════════════════════════════ */
 :root {
     /* ── Surfaces ────────────────────────────────────────────── */

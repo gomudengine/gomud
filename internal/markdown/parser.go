@@ -177,7 +177,7 @@ func (p *Parser) parseParagraphNodes() []Node {
 func (p *Parser) parseInline(text string) []Node {
 	var nodes []Node
 	for i := 0; i < len(text); {
-		// —— special: ~…~
+		// -- special: ~…~
 		if text[i] == '~' {
 			start := i
 			for i < len(text) && text[i] == '~' {
@@ -207,7 +207,7 @@ func (p *Parser) parseInline(text string) []Node {
 			continue
 		}
 
-		// —— strong: **bold**
+		// -- strong: **bold**
 		if strings.HasPrefix(text[i:], "**") && i+2 < len(text) && text[i+2] != ' ' {
 			if j := strings.Index(text[i+2:], "**"); j >= 0 {
 				inner := text[i+2 : i+2+j]
@@ -219,7 +219,7 @@ func (p *Parser) parseInline(text string) []Node {
 			}
 		}
 
-		// —— emphasis: *em*
+		// -- emphasis: *em*
 		if text[i] == '*' && i+1 < len(text) && text[i+1] != ' ' {
 			if j := strings.Index(text[i+1:], "*"); j >= 0 {
 				inner := text[i+1 : i+1+j]
@@ -231,7 +231,7 @@ func (p *Parser) parseInline(text string) []Node {
 			}
 		}
 
-		// —— plain text fallback
+		// -- plain text fallback
 		j := i
 		for j < len(text) && text[j] != '*' && text[j] != '~' {
 			j++

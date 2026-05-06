@@ -116,6 +116,10 @@ func Build(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 					return false, nil
 				}
 
+				if newRoom.HasCoordinates {
+					user.SendText(fmt.Sprintf("New room %d at coordinates (%d, %d, %d).", newRoom.RoomId, newRoom.MapX, newRoom.MapY, newRoom.MapZ))
+				}
+
 				destinationRoom = newRoom
 
 			} else {
@@ -125,13 +129,18 @@ func Build(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 					return false, nil
 				}
 				if _, ok := destinationRoom.Exits[exitName]; !ok {
-					rooms.ConnectRoom(user.Character.RoomId, destinationRoom.RoomId, exitName, exitDirection)
+					if err := rooms.ConnectRoom(user.Character.RoomId, destinationRoom.RoomId, exitName, exitDirection); err != nil {
+						user.SendText(err.Error())
+						return true, nil
+					}
 				}
 			}
 
 			// Connect the exit back
 			if len(returnExitName) > 0 {
-				rooms.ConnectRoom(destinationRoom.RoomId, user.Character.RoomId, returnExitName, returnExitDirection)
+				if err := rooms.ConnectRoom(destinationRoom.RoomId, user.Character.RoomId, returnExitName, returnExitDirection); err != nil {
+					user.SendText(fmt.Sprintf("Warning creating return exit: %s", err.Error()))
+				}
 			}
 
 			if err := rooms.MoveToRoom(user.UserId, destinationRoom.RoomId); err != nil {

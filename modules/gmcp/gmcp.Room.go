@@ -61,7 +61,7 @@ func (g *GMCPRoomModule) itemOwnershipHandler(e events.Event) events.ListenerRet
 		return events.Continue
 	}
 
-	// Only care about player ownership changes — look up their room
+	// Only care about player ownership changes - look up their room
 	if evt.UserId == 0 {
 		return events.Continue
 	}
@@ -420,12 +420,16 @@ func (g *GMCPRoomModule) GetRoomNode(user *users.UserRecord, gmcpModule string) 
 
 		// Coordinates
 		payload.Coordinates = room.Zone
-		m := mapper.GetMapper(room.RoomId)
-		x, y, z, err := m.GetCoordinates(room.RoomId)
-		if err != nil {
-			payload.Coordinates += `, 999999999999999999, 999999999999999999, 999999999999999999`
+		if room.HasCoordinates {
+			payload.Coordinates += `, ` + strconv.Itoa(room.MapX) + `, ` + strconv.Itoa(room.MapY) + `, ` + strconv.Itoa(room.MapZ)
 		} else {
-			payload.Coordinates += `, ` + strconv.Itoa(x) + `, ` + strconv.Itoa(y) + `, ` + strconv.Itoa(z)
+			m := mapper.GetMapper(room.RoomId)
+			x, y, z, err := m.GetCoordinates(room.RoomId)
+			if err != nil {
+				payload.Coordinates += `, 999999999999999999, 999999999999999999, 999999999999999999`
+			} else {
+				payload.Coordinates += `, ` + strconv.Itoa(x) + `, ` + strconv.Itoa(y) + `, ` + strconv.Itoa(z)
+			}
 		}
 
 		// set exits

@@ -8,11 +8,14 @@ description: The cold wind of Frostfang whistles through the narrow, snow-dusted
   are mostly boarded up, but from some, faint glimmers of candlelight seep out, casting
   eerie shadows on the snow. A dark alley twists and turns to the east, a foreboding
   place.
-biome: city
 exits:
   east:
     roomid: 20
   north:
     roomid: 14
   south:
-    roomid: 16
+    roomid: 1060
+mapx: 0
+mapy: 5
+mapz: 0
+hascoordinates: true

@@ -7,7 +7,6 @@ description: The thieves' den, hidden in the labyrinthine backstreets of the cit
   outside world hold no sway. The air is thick with the smoke of cheap tobacco and
   the scent of stale ale, mingling with the underlying musk of unwashed bodies and
   damp stone.
-biome: city
 exits:
   west:
     roomid: 490
@@ -20,7 +19,7 @@ spawninfo:
   message: A student of the guild enters the room.
   levelmod: 5
   respawnrate: 2 real minutes
-skilltraining:
-  skulduggery:
-    min: 1
-    max: 4
+mapx: 2
+mapy: 13
+mapz: 0
+hascoordinates: true

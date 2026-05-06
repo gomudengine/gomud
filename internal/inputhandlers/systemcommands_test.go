@@ -16,7 +16,7 @@ func TestMain(m *testing.M) {
 }
 
 // newTestUser creates a minimal UserRecord for use in auth tests.
-// The Character field is nil intentionally — auth checks only inspect Role.
+// The Character field is nil intentionally - auth checks only inspect Role.
 func newTestUser(userId int, connId connections.ConnectionId, role string) *users.UserRecord {
 	u := &users.UserRecord{
 		UserId:   userId,

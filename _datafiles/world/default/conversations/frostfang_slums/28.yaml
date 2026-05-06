@@ -24,14 +24,14 @@
   Conversation:
     - ["#1 say You think just ‘cause you slipped some junk from the Icy Emporium, you're hot stuff?"]
     - ["#2 say Better than you, who can't even snatch a loaf of bread from a blind beggar."]
-    - ["#1 say Go on, insult me again—see what happens."]
+    - ["#1 say Go on, insult me again-see what happens."]
     - ["#2 say I'll do more than insult.",
       "#2 attack #1."]
 - 
   Supported: # A map of lowercase names of "Initiator" (#1) to array of "Participant" (#2) names allowed to use this conversation. 
     "ruffian": ["ruffian", "dangerous ruffian"]
   Conversation:
-    - ["#1 say I heard the Shadow Master's got a fresh batch of recruits training under his nose—skulduggery at its finest."]
+    - ["#1 say I heard the Shadow Master's got a fresh batch of recruits training under his nose-skulduggery at its finest."]
     - ["#2 say So you're kissin' his boots now? I knew you were soft, beggin' for scraps from that secret hideout."]
     - ["#1 say Watch your mouth. The Shadow Master's got ears everywhere."]
     - ["#2 say Let him hear-no boss is worth bending a knee if we get nothin' in return."]

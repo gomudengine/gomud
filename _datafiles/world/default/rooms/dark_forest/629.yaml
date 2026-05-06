@@ -6,7 +6,6 @@ description: "From this lofty vantage point, you can see the entire expanse of t
   webs, shadowy trees, and skittering arachnids. The tangled forest stretches in all
   directions, an eerie and surreal landscape that seems both haunting and strangely
   beautiful from this height."
-biome: forest
 exits:
   east:
     roomid: 628
@@ -19,3 +18,7 @@ spawninfo:
 - mobid: 35
   message: A small spider hatches from a nearby egg.
   respawnrate: 7 real minutes
+mapx: 30
+mapy: -6
+mapz: 2
+hascoordinates: true

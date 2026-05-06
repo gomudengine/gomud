@@ -13,7 +13,6 @@ description: The Frost Garden is a mesmerizing blend of nature's resilience and 
   beside the pond.
 mapsymbol: P
 maplegend: Pond
-biome: city
 exits:
   west:
     roomid: 72
@@ -36,3 +35,9 @@ nouns:
     as if waiting for an icy tea party that never happened.
   winterberries: Clusters of bright red berries offer a stark contrast to the surrounding
     whiteness, nestled snugly beneath the evergreen boughs.
+items:
+- itemid: 10
+mapx: -3
+mapy: 3
+mapz: 0
+hascoordinates: true

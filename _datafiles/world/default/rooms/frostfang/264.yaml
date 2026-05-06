@@ -6,9 +6,12 @@ description: The streets, paved with cobblestone smoothed by countless footsteps
   casting a soft, golden glow that dances across the snow-covered ground and illuminates
   the faces of those who walk these paths. Residents, wrapped in furs and thick cloaks,
   move about with purpose, their breath forming fleeting clouds in the cold air.
-biome: city
 exits:
   north:
     roomid: 263
   south:
     roomid: 59
+mapx: 6
+mapy: -1
+mapz: 0
+hascoordinates: true

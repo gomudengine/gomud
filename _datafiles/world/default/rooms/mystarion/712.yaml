@@ -5,3 +5,7 @@ description: The north road
 exits:
   south:
     roomid: 711
+mapx: 77
+mapy: -7
+mapz: 0
+hascoordinates: true

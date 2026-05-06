@@ -89,6 +89,7 @@ func (m *ZombieModule) zombieCommand(rest string, user *users.UserRecord, room *
 			RoamRadius:    cfg.RoamRadius,
 			RestThreshold: cfg.RestThreshold,
 			LootTargets:   append([]string{}, cfg.LootTargets...),
+			Waypoints:     append([]int{}, cfg.Waypoints...),
 		}
 		cfg.Profiles[profileName] = saved
 		m.configs[user.UserId] = cfg
@@ -114,6 +115,7 @@ func (m *ZombieModule) zombieCommand(rest string, user *users.UserRecord, room *
 		cfg.RoamRadius = p.RoamRadius
 		cfg.RestThreshold = p.RestThreshold
 		cfg.LootTargets = append([]string{}, p.LootTargets...)
+		cfg.Waypoints = append([]int{}, p.Waypoints...)
 		m.configs[user.UserId] = cfg
 		user.SendText(fmt.Sprintf(`Profile <ansi fg="yellow">%s</ansi> loaded.`, profileName))
 		return true, nil
@@ -153,6 +155,12 @@ func (m *ZombieModule) zombieCommand(rest string, user *users.UserRecord, room *
 				lootStr = `<ansi fg="yellow">` + strings.Join(p.LootTargets, `, `) + `</ansi>`
 			}
 			user.SendText(fmt.Sprintf(`    <ansi fg="white">Loot targets:  </ansi> %s`, lootStr))
+
+			wpStr := `<ansi fg="red">none</ansi>`
+			if len(p.Waypoints) > 0 {
+				wpStr = fmt.Sprintf(`<ansi fg="yellow">%d defined</ansi>`, len(p.Waypoints))
+			}
+			user.SendText(fmt.Sprintf(`    <ansi fg="white">Waypoints:     </ansi> %s`, wpStr))
 		}
 		return true, nil
 
@@ -170,6 +178,9 @@ func (m *ZombieModule) zombieCommand(rest string, user *users.UserRecord, room *
 		m.configs[user.UserId] = cfg
 		user.SendText(fmt.Sprintf(`Profile <ansi fg="yellow">%s</ansi> deleted.`, profileName))
 		return true, nil
+
+	case `waypoints`:
+		return m.handleWaypoints(args[1:], user, cfg)
 	}
 
 	user.SendText(`Unknown zombie subcommand. Type <ansi fg="command">help zombie</ansi> for usage.`)
@@ -195,6 +206,10 @@ func (m *ZombieModule) handleSet(field string, valueArgs []string, user *users.U
 		radius, err := strconv.Atoi(value)
 		if err != nil || radius < 0 {
 			user.SendText(`Roam radius must be a non-negative integer.`)
+			return true, nil
+		}
+		if maxRoam, ok := m.plug.Config.Get(`MaximumRoam`).(int); ok && maxRoam > 0 && radius > maxRoam {
+			user.SendText(fmt.Sprintf(`Roam radius cannot exceed <ansi fg="yellow">%d</ansi> on this server.`, maxRoam))
 			return true, nil
 		}
 		cfg.RoamRadius = radius
@@ -305,8 +320,98 @@ func (m *ZombieModule) showConfig(user *users.UserRecord, cfg ZombieConfig) {
 	}
 	user.SendText(fmt.Sprintf(`  <ansi fg="white">Loot targets:  </ansi> %s`, lootStr))
 
+	wpStr := `<ansi fg="red">none</ansi>`
+	if len(cfg.Waypoints) > 0 {
+		wpStr = fmt.Sprintf(`<ansi fg="yellow">%d defined</ansi>`, len(cfg.Waypoints))
+	}
+	user.SendText(fmt.Sprintf(`  <ansi fg="white">Waypoints:     </ansi> %s`, wpStr))
+
 	user.SendText(``)
 	user.SendText(`Type <ansi fg="command">help zombie</ansi> for usage.`)
+}
+
+func (m *ZombieModule) handleWaypoints(args []string, user *users.UserRecord, cfg ZombieConfig) (bool, error) {
+
+	if len(args) == 0 {
+		if len(cfg.Waypoints) == 0 {
+			user.SendText(`No waypoints defined. Use <ansi fg="command">zombie waypoints add</ansi> to add your current room.`)
+			return true, nil
+		}
+		user.SendText(fmt.Sprintf(`<ansi fg="black-bold">.:.</ansi> <ansi fg="magenta">Zombie Waypoints</ansi> [<ansi fg="yellow">%d</ansi>]`, len(cfg.Waypoints)))
+		user.SendText(``)
+		for i, roomId := range cfg.Waypoints {
+			roomName := `unknown`
+			if r := rooms.LoadRoom(roomId); r != nil {
+				roomName = r.Title
+			}
+			marker := ``
+			if roomId == user.Character.RoomId {
+				marker = ` <ansi fg="green">(here)</ansi>`
+			}
+			user.SendText(fmt.Sprintf(`  <ansi fg="yellow">%d.</ansi> <ansi fg="white">Room %d</ansi> - %s%s`, i+1, roomId, roomName, marker))
+		}
+		return true, nil
+	}
+
+	switch args[0] {
+	case `add`:
+		maxWaypoints := 10
+		if maxWP, ok := m.plug.Config.Get(`MaxWaypoints`).(int); ok && maxWP > 0 {
+			maxWaypoints = maxWP
+		}
+		if len(cfg.Waypoints) >= maxWaypoints {
+			user.SendText(fmt.Sprintf(`Cannot add more than <ansi fg="yellow">%d</ansi> waypoints.`, maxWaypoints))
+			return true, nil
+		}
+
+		currentRoomId := user.Character.RoomId
+
+		for _, wp := range cfg.Waypoints {
+			if wp == currentRoomId {
+				user.SendText(`This room is already a waypoint.`)
+				return true, nil
+			}
+		}
+
+		if len(cfg.Waypoints) > 0 {
+			lastWP := cfg.Waypoints[len(cfg.Waypoints)-1]
+			if _, err := mapper.GetPath(lastWP, currentRoomId); err != nil {
+				user.SendText(fmt.Sprintf(`No valid path from the previous waypoint (room %d) to here. Cannot add.`, lastWP))
+				return true, nil
+			}
+		}
+
+		cfg.Waypoints = append(cfg.Waypoints, currentRoomId)
+		m.configs[user.UserId] = cfg
+
+		roomName := `unknown`
+		if r := rooms.LoadRoom(currentRoomId); r != nil {
+			roomName = r.Title
+		}
+		user.SendText(fmt.Sprintf(`Waypoint added: room %d (%s). Total: %d.`, currentRoomId, roomName, len(cfg.Waypoints)))
+
+		if len(cfg.Waypoints) > 1 {
+			if _, err := mapper.GetPath(currentRoomId, cfg.Waypoints[0]); err != nil {
+				user.SendText(fmt.Sprintf(`<ansi fg="yellow">Warning:</ansi> No path from here back to the first waypoint (room %d). The cycle may not complete.`, cfg.Waypoints[0]))
+			}
+		}
+
+		return true, nil
+
+	case `reset`:
+		cfg.Waypoints = nil
+		m.configs[user.UserId] = cfg
+		if rt, isActive := m.active[user.UserId]; isActive {
+			rt.WaypointIndex = 0
+			rt.WaypointPath = nil
+			m.active[user.UserId] = rt
+		}
+		user.SendText(`All waypoints cleared.`)
+		return true, nil
+	}
+
+	user.SendText(`Usage: <ansi fg="command">zombie waypoints</ansi>, <ansi fg="command">zombie waypoints add</ansi>, or <ansi fg="command">zombie waypoints reset</ansi>`)
+	return true, nil
 }
 
 func containsString(slice []string, s string) bool {

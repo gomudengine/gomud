@@ -31,3 +31,7 @@ idlemessages:
   here.
 - A <ansi fg="mobname">guard</ansi> brushes off some of the snow that has accumulated
   on the <ansi fg="itemname">sign</ansi>.
+mapx: 0
+mapy: 0
+mapz: 0
+hascoordinates: true

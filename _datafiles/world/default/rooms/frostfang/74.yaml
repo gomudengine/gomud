@@ -10,7 +10,6 @@ description: The headquarters of the Frostwarden Rangers is a blend of rugged pr
   embodying the guild's vigilant spirit.
 mapsymbol: '%'
 maplegend: Trainer
-biome: city
 exits:
   east:
     roomid: 4
@@ -28,3 +27,7 @@ skilltraining:
   track:
     min: 1
     max: 4
+mapx: -1
+mapy: -3
+mapz: 0
+hascoordinates: true

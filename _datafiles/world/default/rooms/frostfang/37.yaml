@@ -7,9 +7,12 @@ description: The East Wing of Frostfang Castle is characterized by its dimly lit
   light, casting deep shadows that play tricks on the eyes. The few sconces and lanterns
   provide little more than faint, flickering glows, making navigation a cautious endeavor
   and giving the entire wing an air of quiet solemnity.
-biome: city
 exits:
   east:
     roomid: 38
   west:
     roomid: 36
+mapx: 1
+mapy: -8
+mapz: 0
+hascoordinates: true

@@ -10,15 +10,16 @@ description: Nestled in the heart of Frostfang, the Magic Academy stands as a be
   orbs of soft, magical light.
 mapsymbol: '%'
 maplegend: Trainer
-biome: city
 exits:
   east:
     roomid: 5
+  northwest:
+    roomid: 1067
 spawninfo:
 - mobid: 50
   message: A mage enters the room.
   respawnrate: 2 real minutes
-skilltraining:
-  cast:
-    min: 1
-    max: 4
+mapx: -1
+mapy: -4
+mapz: 0
+hascoordinates: true

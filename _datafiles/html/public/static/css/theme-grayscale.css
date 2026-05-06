@@ -1,12 +1,12 @@
 /*
  * theme-grayscale.css
  *
- * Pure achromatic theme — every color is a shade of gray.
+ * Pure achromatic theme - every color is a shade of gray.
  * Clean, stark, and distraction-free.
  */
 
 /* ════════════════════════════════════════════════════════════
-   PALETTE — edit only these to retheme.
+   PALETTE - edit only these to retheme.
    ════════════════════════════════════════════════════════════ */
 :root {
     --p-bg:          #1a1a1a;  /* window/panel body background; dock slots, row fills, party HP track | Theme Swatch 1 */
@@ -21,7 +21,7 @@
 }
 
 /* ════════════════════════════════════════════════════════════
-   SEMANTIC TOKENS — derived from palette + theme-specific values.
+   SEMANTIC TOKENS - derived from palette + theme-specific values.
    ════════════════════════════════════════════════════════════ */
 :root {
     /* ── Surfaces ────────────────────────────────────────────── */

@@ -108,6 +108,8 @@ func apiV1PatchUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	users.UpdateOnlineUser(updated)
+
 	writeJSON(w, http.StatusOK, APIResponse[*users.UserRecord]{
 		Success: true,
 		Data:    &updated,

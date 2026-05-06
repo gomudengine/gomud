@@ -5,6 +5,14 @@ import (
 )
 
 func registerAdminAPIRoutes(mux *http.ServeMux) {
+	// Scripting
+	mux.HandleFunc("GET /admin/api/v1/scripting/functions", RunWithMUDLocked(
+		doBasicAuth(apiV1GetScriptFunctions),
+	))
+	mux.HandleFunc("POST /admin/api/v1/scripting/validate", RunWithMUDLocked(
+		doBasicAuth(apiV1ValidateScript),
+	))
+
 	// Tags
 	mux.HandleFunc("GET /admin/api/v1/tags", RunWithMUDLocked(
 		doBasicAuth(apiV1GetTags),
@@ -33,13 +41,19 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 		doBasicAuth(apiV1GetStatMods),
 	))
 
-	// Items — static sub-routes must be registered before the wildcard {itemId}
+	// Items - static sub-routes must be registered before the wildcard {itemId}
 	// pattern so the Go 1.22 ServeMux prefers the more specific match.
 	mux.HandleFunc("GET /admin/api/v1/items/types", RunWithMUDLocked(
 		doBasicAuth(apiV1GetItemTypes),
 	))
 	mux.HandleFunc("GET /admin/api/v1/items/attack-messages", RunWithMUDLocked(
 		doBasicAuth(apiV1GetItemAttackMessages),
+	))
+	mux.HandleFunc("GET /admin/api/v1/items/ranks/weapons", RunWithMUDLocked(
+		doBasicAuth(apiV1GetItemRanksWeapons),
+	))
+	mux.HandleFunc("GET /admin/api/v1/items/ranks/armor", RunWithMUDLocked(
+		doBasicAuth(apiV1GetItemRanksArmor),
 	))
 	mux.HandleFunc("PUT /admin/api/v1/items/attack-messages/{subtype}/{intensity}/{proximity}/{target}", RunWithMUDLocked(
 		doBasicAuth(apiV1PutItemAttackMessage),
@@ -100,7 +114,7 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 		doBasicAuth(apiV1DeleteQuest),
 	))
 
-	// Users — static sub-routes must be registered before any future wildcard
+	// Users - static sub-routes must be registered before any future wildcard
 	// {userId} pattern.
 	mux.HandleFunc("GET /admin/api/v1/users/search", RunWithMUDLocked(
 		doBasicAuth(apiV1SearchUsers),
@@ -140,7 +154,7 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 		doBasicAuth(apiV1DeleteColorPattern),
 	))
 
-	// Mobs — script sub-route before wildcard {mobId}
+	// Mobs - script sub-route before wildcard {mobId}
 	mux.HandleFunc("GET /admin/api/v1/mobs", RunWithMUDLocked(
 		doBasicAuth(apiV1GetMobs),
 	))
@@ -180,7 +194,29 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 		doBasicAuth(apiV1DeleteZone),
 	))
 
-	// Rooms — static sub-routes before wildcard {roomId}
+	// Biomes
+	mux.HandleFunc("GET /admin/api/v1/biomes", RunWithMUDLocked(
+		doBasicAuth(apiV1GetBiomesV2),
+	))
+	mux.HandleFunc("POST /admin/api/v1/biomes", RunWithMUDLocked(
+		doBasicAuth(apiV1CreateBiome),
+	))
+	mux.HandleFunc("PATCH /admin/api/v1/biomes/{biomeId}", RunWithMUDLocked(
+		doBasicAuth(apiV1PatchBiome),
+	))
+	mux.HandleFunc("DELETE /admin/api/v1/biomes/{biomeId}", RunWithMUDLocked(
+		doBasicAuth(apiV1DeleteBiome),
+	))
+
+	// Mapper
+	mux.HandleFunc("GET /admin/api/v1/mapper/rooms", RunWithMUDLocked(
+		doBasicAuth(apiV1GetMapperAllRooms),
+	))
+	mux.HandleFunc("GET /admin/api/v1/mapper/zone/{zonename}", RunWithMUDLocked(
+		doBasicAuth(apiV1GetMapperZone),
+	))
+
+	// Rooms - static sub-routes before wildcard {roomId}
 	mux.HandleFunc("GET /admin/api/v1/rooms/biomes", RunWithMUDLocked(
 		doBasicAuth(apiV1GetBiomes),
 	))
@@ -253,7 +289,55 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 		doBasicAuth(apiV1DeleteRace),
 	))
 
-	// Spells — script sub-route before wildcard {spellId}
+	// Pets
+	mux.HandleFunc("GET /admin/api/v1/pets/ranks", RunWithMUDLocked(
+		doBasicAuth(apiV1GetPetRanks),
+	))
+	mux.HandleFunc("GET /admin/api/v1/pets", RunWithMUDLocked(
+		doBasicAuth(apiV1GetPets),
+	))
+	mux.HandleFunc("POST /admin/api/v1/pets", RunWithMUDLocked(
+		doBasicAuth(apiV1CreatePet),
+	))
+	mux.HandleFunc("PATCH /admin/api/v1/pets/{petname}", RunWithMUDLocked(
+		doBasicAuth(apiV1PatchPet),
+	))
+	mux.HandleFunc("DELETE /admin/api/v1/pets/{petname}", RunWithMUDLocked(
+		doBasicAuth(apiV1DeletePet),
+	))
+
+	// Conversations
+	mux.HandleFunc("GET /admin/api/v1/conversations", RunWithMUDLocked(
+		doBasicAuth(apiV1GetConversations),
+	))
+	mux.HandleFunc("GET /admin/api/v1/conversations/{zone}/{mobId}", RunWithMUDLocked(
+		doBasicAuth(apiV1GetConversation),
+	))
+	mux.HandleFunc("PUT /admin/api/v1/conversations/{zone}/{mobId}", RunWithMUDLocked(
+		doBasicAuth(apiV1PutConversation),
+	))
+	mux.HandleFunc("DELETE /admin/api/v1/conversations/{zone}/{mobId}", RunWithMUDLocked(
+		doBasicAuth(apiV1DeleteConversation),
+	))
+
+	// GameTime Calendars - static list route before wildcard {calendar}
+	mux.HandleFunc("GET /admin/api/v1/gametime", RunWithMUDLocked(
+		doBasicAuth(apiV1GetGameTime),
+	))
+	mux.HandleFunc("POST /admin/api/v1/gametime", RunWithMUDLocked(
+		doBasicAuth(apiV1CreateGameTimeCalendar),
+	))
+	mux.HandleFunc("GET /admin/api/v1/gametime/{calendar}", RunWithMUDLocked(
+		doBasicAuth(apiV1GetGameTimeCalendar),
+	))
+	mux.HandleFunc("PATCH /admin/api/v1/gametime/{calendar}", RunWithMUDLocked(
+		doBasicAuth(apiV1PatchGameTimeCalendar),
+	))
+	mux.HandleFunc("DELETE /admin/api/v1/gametime/{calendar}", RunWithMUDLocked(
+		doBasicAuth(apiV1DeleteGameTimeCalendar),
+	))
+
+	// Spells - script sub-route before wildcard {spellId}
 	mux.HandleFunc("GET /admin/api/v2/spells", RunWithMUDLocked(
 		doBasicAuth(apiV2GetSpells),
 	))

@@ -10,13 +10,16 @@ description: Inside Frostfang Castle, the grand entrance hall is a testament to 
   of past rulers, stern and unyielding, stand sentinel on either side, their imposing
   perception demanding respect. In a distant corner, the somber tones of a live ensemble
   resonate, their haunting melody echoing through the hall.
-biome: city
 exits:
   east:
     roomid: 37
   north:
     roomid: 50
   south:
-    roomid: 6
+    roomid: 1066
   west:
     roomid: 39
+mapx: 0
+mapy: -8
+mapz: 0
+hascoordinates: true
