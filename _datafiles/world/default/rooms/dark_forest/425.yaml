@@ -9,8 +9,6 @@ description: As you venture further along the old road, it leads you into the he
 exits:
   east:
     roomid: 555
-  north:
-    roomid: 426
   southeast:
     roomid: 424
   west:

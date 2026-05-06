@@ -14,3 +14,7 @@ exits:
     mapdirection: west
     lock:
       difficulty: 32
+mapx: 2
+mapy: -4
+mapz: 1
+hascoordinates: true

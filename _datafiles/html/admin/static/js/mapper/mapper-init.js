@@ -20,7 +20,8 @@
    MAP_BG_2D, CONNECTION_COLOR, ABNORMAL_CONNECTION_COLOR, SELECTED_ROOM_COLOR, SELECTED_ROOM_TEXT_COLOR,
    SYMBOL_TEXT_COLOR, ROOM_BORDER_MOB_SPAWN, ROOM_BORDER_SCRIPT_GLOW, ROOM_ARROW_COLOR,
    BADGE_SECRET_COLOR, BADGE_LOCK_COLOR, ZONE_BOX_COLOR, ZONE_BOX_COLOR_HOV, ZONE_BOX_BORDER,
-   ZONE_BOX_BORDER_HOV, ZONE_BOX_PADDING, computeZonePaddedBounds */
+   ZONE_BOX_BORDER_HOV, ZONE_BOX_PADDING, computeZonePaddedBounds,
+   CONNECTION_WIDTH_2D */
 'use strict';
 
 (function() {
@@ -36,7 +37,9 @@
         canvas:            canvas,
         viewport:          viewport,
         spacingCtrlEl:     document.getElementById('spacing-controls'),
-        zButtonsEl:        document.getElementById('z-buttons'),
+        zSelectEl:         document.getElementById('z-select'),
+        zPrevBtn:          document.getElementById('z-prev'),
+        zNextBtn:          document.getElementById('z-next'),
         saveCtrlEl:        document.getElementById('save-controls'),
         toastContainerEl:  document.getElementById('mapper-toast-container'),
         changelogEl:       document.getElementById('mapper-changelog'),
@@ -68,6 +71,44 @@
     MapperCtxMenu.init(domRefs.ctxMenuEl);
     MapperUI.init(domRefs);
 
+    // Wire the API spinner to AdminAPI's busy/idle callbacks.
+    (function() {
+        var spinnerEl = document.getElementById('mapper-api-spinner');
+        if (!spinnerEl) return;
+        AdminAPI.onBusy(function()  { spinnerEl.classList.add('visible'); });
+        AdminAPI.onIdle(function()  { spinnerEl.classList.remove('visible'); });
+    })();
+
+    if (domRefs.zSelectEl) {
+        domRefs.zSelectEl.addEventListener('change', function() {
+            MapperState.camera.activeZ2d = parseInt(this.value, 10);
+            MapperUI.updateZButtons();
+            MapperRender.render();
+        });
+    }
+    if (domRefs.zPrevBtn) {
+        domRefs.zPrevBtn.addEventListener('click', function() {
+            var levels = MapperState.data.zLevels;
+            var idx = levels.indexOf(MapperState.camera.activeZ2d);
+            if (idx < levels.length - 1) {
+                MapperState.camera.activeZ2d = levels[idx + 1];
+                MapperUI.updateZButtons();
+                MapperRender.render();
+            }
+        });
+    }
+    if (domRefs.zNextBtn) {
+        domRefs.zNextBtn.addEventListener('click', function() {
+            var levels = MapperState.data.zLevels;
+            var idx = levels.indexOf(MapperState.camera.activeZ2d);
+            if (idx > 0) {
+                MapperState.camera.activeZ2d = levels[idx - 1];
+                MapperUI.updateZButtons();
+                MapperRender.render();
+            }
+        });
+    }
+
     MapperEvents.on('room:createAt', function(data) {
         MapperUI.createRoomAt(data.gx, data.gy, data.gz);
     });
@@ -86,6 +127,28 @@
     MapperTools.activate('pan');
 
     // =====================================================================
+    //  Canvas rect cache
+    // Calling getBoundingClientRect() on every mouse event forces a layout
+    // reflow. Cache it and invalidate only when the viewport resizes.
+    // =====================================================================
+
+    var _canvasRect = null;
+    function _getCanvasRect() {
+        if (!_canvasRect) _canvasRect = canvas.getBoundingClientRect();
+        return _canvasRect;
+    }
+
+    // Invalidate the cached rect whenever the canvas is resized so the next
+    // event picks up the new position automatically.
+    (function() {
+        var _origResizeCanvas = MapperRender.resizeCanvas;
+        MapperRender.resizeCanvas = function() {
+            _origResizeCanvas();
+            _canvasRect = null;
+        };
+    })();
+
+    // =====================================================================
     //  Canvas event dispatch
     // =====================================================================
 
@@ -94,7 +157,7 @@
         e.preventDefault();
         MapperCtxMenu.hide();
 
-        var rect = canvas.getBoundingClientRect();
+        var rect = _getCanvasRect();
         var cx = e.clientX - rect.left, cy = e.clientY - rect.top;
         var roomId = MapperRender.roomAtPoint(cx, cy);
         var gridCell = roomId === null ? MapperRender.canvasToGrid(cx, cy) : null;
@@ -119,7 +182,7 @@
     });
 
     canvas.addEventListener('mousemove', function(e) {
-        var rect = canvas.getBoundingClientRect();
+        var rect = _getCanvasRect();
         var cx = e.clientX - rect.left, cy = e.clientY - rect.top;
         var roomId = MapperRender.roomAtPoint(cx, cy);
         var gridCell = roomId === null ? MapperRender.canvasToGrid(cx, cy) : null;
@@ -136,18 +199,23 @@
             tool.onMouseMove(e, cx, cy, roomId, gridCell);
         }
 
-        // Update hover state for ghost cells and cursor style
+        // Update hover state for ghost cells and cursor style.
+        // Skip hoveredGridCell tracking while a room drag is active — the
+        // ghost cell is not visible during drag and the extra canvasToGrid
+        // call is wasted work.
         MapperState.hoveredRoomId = roomId;
-        var prevGhost = MapperState.hoveredGridCell;
-        if (roomId === null && MapperState.data.rooms.size > 0) {
-            MapperState.hoveredGridCell = MapperRender.canvasToGrid(cx, cy);
-        } else {
-            MapperState.hoveredGridCell = null;
+        if (!MapperState.roomDrag.active) {
+            var prevGhost = MapperState.hoveredGridCell;
+            if (roomId === null && MapperState.data.rooms.size > 0) {
+                MapperState.hoveredGridCell = MapperRender.canvasToGrid(cx, cy);
+            } else {
+                MapperState.hoveredGridCell = null;
+            }
+            var ghostChanged = (prevGhost === null) !== (MapperState.hoveredGridCell === null) ||
+                (prevGhost && MapperState.hoveredGridCell &&
+                 (prevGhost.gx !== MapperState.hoveredGridCell.gx || prevGhost.gy !== MapperState.hoveredGridCell.gy));
+            if (ghostChanged) MapperRender.scheduleRender();
         }
-        var ghostChanged = (prevGhost === null) !== (MapperState.hoveredGridCell === null) ||
-            (prevGhost && MapperState.hoveredGridCell &&
-             (prevGhost.gx !== MapperState.hoveredGridCell.gx || prevGhost.gy !== MapperState.hoveredGridCell.gy));
-        if (ghostChanged) MapperRender.render();
 
         // Cursor: tools with a custom cursor override the default room/empty logic
         var activeTool = MapperTools.getActive();
@@ -160,7 +228,7 @@
     });
 
     canvas.addEventListener('mouseup', function(e) {
-        var rect = canvas.getBoundingClientRect();
+        var rect = _getCanvasRect();
         var cx = e.clientX - rect.left, cy = e.clientY - rect.top;
 
         // Room-drag may still be armed even though it is not the active tool
@@ -180,7 +248,7 @@
         if (tool && tool.name === 'select' && MapperState.selRect.active) {
             MapperState.selRect.active = false;
             canvas.style.cursor = '';
-            MapperRender.render();
+            MapperRender.scheduleRender();
         }
         if (MapperState.roomDrag.active) {
             MapperState.roomDrag.active = false;
@@ -189,7 +257,7 @@
             MapperState.roomDrag.brokenExits = [];
             MapperState.roomDrag.allConstraints = [];
             canvas.style.cursor = '';
-            MapperRender.render();
+            MapperRender.scheduleRender();
         }
         if (MapperState.camera.dragActive) {
             MapperState.camera.dragActive = false;
@@ -197,7 +265,7 @@
         }
         if (MapperState.hoveredGridCell) {
             MapperState.hoveredGridCell = null;
-            MapperRender.render();
+            MapperRender.scheduleRender();
         }
         MapperState.mouseState.mousedownRoomId = null;
     });
@@ -210,7 +278,7 @@
         if (activeTool && (activeTool.name === 'exit-draw' || activeTool.name === 'quick-build')) return;
 
         MapperCtxMenu.hide();
-        var rect = canvas.getBoundingClientRect();
+        var rect = _getCanvasRect();
         var cx = e.clientX - rect.left, cy = e.clientY - rect.top;
         var id = MapperRender.roomAtPoint(cx, cy);
 
@@ -247,12 +315,25 @@
         if (activeTool && activeTool.name === 'exit-draw') { MapperTools.activate('pan'); return; }
     });
 
+    // Wheel zoom: accumulate delta across rapid scroll events and apply once
+    // per animation frame so a fast trackpad doesn't queue dozens of
+    // individual Math.pow() calls and render passes.
+    var _wheelDelta = 0;
+    var _wheelScheduled = false;
     canvas.addEventListener('wheel', function(e) {
         e.preventDefault();
-        var factor = Math.pow(1.25, e.deltaY * 0.002);
-        var cam = MapperState.camera;
-        cam.zoomScale = Math.min(5.0, Math.max(0.15, cam.zoomScale / factor));
-        MapperRender.render();
+        _wheelDelta += e.deltaY;
+        if (!_wheelScheduled) {
+            _wheelScheduled = true;
+            requestAnimationFrame(function() {
+                _wheelScheduled = false;
+                var factor = Math.pow(1.25, _wheelDelta * 0.002);
+                _wheelDelta = 0;
+                var cam = MapperState.camera;
+                cam.zoomScale = Math.min(5.0, Math.max(0.15, cam.zoomScale / factor));
+                MapperRender.scheduleRender();
+            });
+        }
     }, { passive: false });
 
     // Close context menu when clicking outside it
@@ -266,6 +347,11 @@
             !clEl.contains(e.target) && btnEl && !btnEl.contains(e.target)) {
             clEl.classList.remove('visible');
         }
+        // Close settings modal when clicking the backdrop directly
+        var settingsBackdrop = document.getElementById('mapper-settings-backdrop');
+        if (settingsBackdrop && e.target === settingsBackdrop) {
+            settingsBackdrop.classList.remove('visible');
+        }
     });
 
     // =====================================================================
@@ -274,6 +360,11 @@
 
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
+            var settingsBackdrop = document.getElementById('mapper-settings-backdrop');
+            if (settingsBackdrop && settingsBackdrop.classList.contains('visible')) {
+                settingsBackdrop.classList.remove('visible');
+                return;
+            }
             var activeTool = MapperTools.getActive();
             if (activeTool && activeTool.name === 'quick-build') { MapperTools.activate('pan'); return; }
             if (activeTool && activeTool.name === 'exit-draw') { MapperTools.activate('pan'); return; }
@@ -291,7 +382,7 @@
             if (e.key === 'ArrowRight') cam.panOffsetX += gridStep;
             if (e.key === 'ArrowUp')    cam.panOffsetY -= gridStep;
             if (e.key === 'ArrowDown')  cam.panOffsetY += gridStep;
-            MapperRender.render();
+            MapperRender.scheduleRender();
             return;
         }
         if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -309,6 +400,71 @@
         var tool = MapperTools.getActive();
         if (tool && tool.onKeyDown) tool.onKeyDown(e);
     });
+
+    // =====================================================================
+    //  Toolbar tooltips
+    // =====================================================================
+
+    (function() {
+        var tip = document.getElementById('toolbar-tooltip');
+        var toolbar = document.querySelector('.mapper-toolbar');
+        if (!tip || !toolbar) return;
+
+        var showTimer = null;
+        var currentTarget = null;
+
+        function show(el, x, y) {
+            var text = el.getAttribute('data-tip');
+            if (!text) return;
+            tip.textContent = text;
+            tip.style.display = 'block';
+            position(x, y);
+        }
+
+        function position(x, y) {
+            var tw = tip.offsetWidth;
+            var th = tip.offsetHeight;
+            var left = x + 12;
+            var top  = y + 18;
+            if (left + tw + 8 > window.innerWidth)  left = x - tw - 8;
+            if (top  + th + 8 > window.innerHeight) top  = y - th - 8;
+            tip.style.left = left + 'px';
+            tip.style.top  = top  + 'px';
+        }
+
+        function hide() {
+            clearTimeout(showTimer);
+            showTimer = null;
+            currentTarget = null;
+            tip.style.display = 'none';
+        }
+
+        toolbar.addEventListener('mouseover', function(e) {
+            var el = e.target.closest('[data-tip]');
+            if (!el || el === currentTarget) return;
+            hide();
+            currentTarget = el;
+            showTimer = setTimeout(function() {
+                show(el, e.clientX, e.clientY);
+            }, 400);
+        });
+
+        toolbar.addEventListener('mousemove', function(e) {
+            if (tip.style.display === 'block') {
+                position(e.clientX, e.clientY);
+            }
+        });
+
+        toolbar.addEventListener('mouseout', function(e) {
+            var el = e.target.closest('[data-tip]');
+            if (!el) return;
+            var to = e.relatedTarget;
+            if (to && el.contains(to)) return;
+            hide();
+        });
+
+        toolbar.addEventListener('mousedown', hide);
+    })();
 
     // =====================================================================
     //  Zone dropdown
@@ -330,7 +486,6 @@
     //  Global handler exposure (for inline HTML onclick attributes)
     // =====================================================================
 
-    window.switchTab        = MapperUI.switchTab;
     window.zoomIn           = MapperUI.zoomIn;
     window.zoomOut          = MapperUI.zoomOut;
     window.centerCamera     = MapperUI.centerCamera;
@@ -346,6 +501,50 @@
         }
     };
 
+    window.searchRoom = function() {
+        var input = prompt('Enter a Room ID:');
+        if (!input) return;
+        var roomId = parseInt(input, 10);
+        if (isNaN(roomId)) return;
+        var room = MapperState.data.rooms.get(roomId);
+        if (!room) { alert('Room #' + roomId + ' not found.'); return; }
+        if (!room.HasCoordinates) { alert('Room #' + roomId + ' has no map coordinates.'); return; }
+        var cam = MapperState.camera;
+        cam.cameraX = room.MapX;
+        cam.cameraY = room.MapY;
+        cam.panOffsetX = 0;
+        cam.panOffsetY = 0;
+        cam.activeZ2d = room.MapZ;
+        MapperState.selected.clear();
+        MapperState.selected.add(roomId);
+        MapperUI.updateZButtons();
+        MapperUI.updateInfoPanel();
+        MapperRender.render();
+    };
+
+    window.toggleLegend = function() {
+        var el = document.getElementById('mapper-legend');
+        if (el) el.classList.toggle('visible');
+    };
+
+    window.toggleMapperSettings = function() {
+        var el = document.getElementById('mapper-settings-backdrop');
+        if (el) el.classList.toggle('visible');
+    };
+
+    window.addEventListener('beforeunload', function() {
+        var cam = MapperState.camera;
+        localStorage.setItem('mapper.cameraState', JSON.stringify({
+            zone: MapperState.data.currentZone,
+            zoomScale: cam.zoomScale,
+            cameraX: cam.cameraX,
+            cameraY: cam.cameraY,
+            panOffsetX: cam.panOffsetX,
+            panOffsetY: cam.panOffsetY,
+            activeZ2d: cam.activeZ2d
+        }));
+    });
+
     window.onSpacingSlider = function(val) {
         var v = Math.max(0.75, parseFloat(val));
         MapperState.camera.spacingScale2d = v;
@@ -355,9 +554,30 @@
         MapperRender.render();
     };
 
+    window.onConnectionWidthSlider = function(val) {
+        var v = Math.min(ROOM_SIZE_2D, Math.max(1, parseInt(val, 10)));
+        CONNECTION_WIDTH_2D = v;
+        localStorage.setItem('mapper.connectionWidth2d', v);
+        var lbl = document.getElementById('conn-width-val');
+        if (lbl) lbl.textContent = v;
+        MapperRender.render();
+    };
+
+    window.onConnectionColorPicker = function(val) {
+        CONNECTION_COLOR = val;
+        localStorage.setItem('mapper.connectionColor', val);
+        MapperRender.render();
+    };
+
     window.onShowBoundsToggle = function(checked) {
         MapperState.camera.showBounds = checked;
         localStorage.setItem('mapper.showBounds', checked);
+        MapperRender.render();
+    };
+
+    window.onSelectedZoneOnlyToggle = function(checked) {
+        MapperState.camera.selectedZoneOnly = checked;
+        localStorage.setItem('mapper.selectedZoneOnly', checked);
         MapperRender.render();
     };
 
@@ -368,10 +588,8 @@
     (async function() {
         await MapperState.loadBiomes();
         await MapperState.loadTags();
-        await MapperState.loadMobNames();
         await MapperState.loadAllRooms();
         MapperUI.populateZoneDropdown();
-        MapperUI.switchTab('2d');
         MapperRender.initResizeObserver();
 
         // Sync spacing slider to persisted value
@@ -382,9 +600,35 @@
             if (sliderVal) sliderVal.textContent = MapperState.camera.spacingScale2d.toFixed(2);
         }
 
+        // Sync connection width slider to persisted value
+        var savedConnWidth = localStorage.getItem('mapper.connectionWidth2d');
+        if (savedConnWidth !== null) {
+            var cw = Math.min(ROOM_SIZE_2D, Math.max(1, parseInt(savedConnWidth, 10)));
+            CONNECTION_WIDTH_2D = cw;
+        }
+        var connWidthSlider = document.getElementById('conn-width-slider');
+        var connWidthVal = document.getElementById('conn-width-val');
+        if (connWidthSlider) {
+            connWidthSlider.max = ROOM_SIZE_2D;
+            connWidthSlider.value = CONNECTION_WIDTH_2D;
+            if (connWidthVal) connWidthVal.textContent = CONNECTION_WIDTH_2D;
+        }
+
+        // Sync connection color picker to persisted value
+        var savedConnColor = localStorage.getItem('mapper.connectionColor');
+        if (savedConnColor) {
+            CONNECTION_COLOR = savedConnColor;
+        }
+        var connColorPicker = document.getElementById('conn-color-picker');
+        if (connColorPicker) connColorPicker.value = CONNECTION_COLOR;
+
         // Sync show-bounds toggle to persisted value
         var boundsToggle = document.getElementById('show-bounds-toggle');
         if (boundsToggle) boundsToggle.checked = MapperState.camera.showBounds;
+
+        // Sync selected-zone-only toggle to persisted value
+        var zoneOnlyToggle = document.getElementById('selected-zone-only-toggle');
+        if (zoneOnlyToggle) zoneOnlyToggle.checked = MapperState.camera.selectedZoneOnly;
 
         // Restore last-used zone, falling back to the first available zone
         var lastZone = localStorage.getItem('mapper.lastZone');
@@ -394,6 +638,25 @@
         if (lastZone) {
             domRefs.zoneSelect.value = lastZone;
             MapperState.centerOnZone(lastZone);
+        }
+
+        var savedCam = localStorage.getItem('mapper.cameraState');
+        if (savedCam) {
+            try {
+                var cs = JSON.parse(savedCam);
+                if (cs.zone === lastZone) {
+                    var cam = MapperState.camera;
+                    if (typeof cs.zoomScale === 'number') cam.zoomScale = cs.zoomScale;
+                    if (typeof cs.cameraX === 'number') cam.cameraX = cs.cameraX;
+                    if (typeof cs.cameraY === 'number') cam.cameraY = cs.cameraY;
+                    if (typeof cs.panOffsetX === 'number') cam.panOffsetX = cs.panOffsetX;
+                    if (typeof cs.panOffsetY === 'number') cam.panOffsetY = cs.panOffsetY;
+                    if (typeof cs.activeZ2d === 'number' && MapperState.data.zLevels.indexOf(cs.activeZ2d) !== -1) {
+                        cam.activeZ2d = cs.activeZ2d;
+                        MapperUI.updateZButtons();
+                    }
+                }
+            } catch(e) { /* ignore corrupt data */ }
         }
 
         MapperRender.resizeCanvas();

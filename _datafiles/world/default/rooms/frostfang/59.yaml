@@ -17,8 +17,6 @@ exits:
     roomid: 264
   northeast:
     roomid: 804
-  south:
-    roomid: 732
   southeast:
     roomid: 805
   west:

@@ -20,11 +20,11 @@ var CENTER_EASE_DURATION = 0.2;   // seconds for the smooth-scroll to a room
 var ROOM_SIZE_2D         = 28;
 var ROOM_GAP_2D          = 14;
 var BASE_STEP_2D         = ROOM_SIZE_2D + ROOM_GAP_2D;  // grid pitch in px
-var CONNECTION_WIDTH_2D  = 4;
-var ROOM_BORDER_WIDTH_2D = 1.5;
+var CONNECTION_WIDTH_2D  = 14;
+var ROOM_BORDER_WIDTH_2D = 3;
 var SYMBOL_FONT_SIZE_2D  = 14;
 var MAP_BG_2D            = '#111';
-var ROOM_BORDER_COLOR_2D = '#000000';
+var ROOM_BORDER_COLOR_2D = '#d9d9d9';
 
 var ZONE_BOX_PADDING      = 0.6;                      // extra grid cells of padding around the zone bounding box
 var ZONE_BOX_COLOR        = 'rgba(180,180,220,0.06)';  // fill for non-hovered zones
@@ -34,7 +34,7 @@ var ZONE_BOX_BORDER_HOV   = 'rgba(180,180,255,0.7)';   // border for hovered zon
 
 // --- Shared Color Palette ---
 
-var CONNECTION_COLOR          = '#7a4a1a';
+var CONNECTION_COLOR          = '#ffffff';
 var ABNORMAL_CONNECTION_COLOR = '#d4c050';  // visually flags non-standard exits
 var SELECTED_ROOM_COLOR       = '#1a6abf';
 var SELECTED_ROOM_TEXT_COLOR  = '#ffffff';
@@ -42,9 +42,11 @@ var SYMBOL_TEXT_COLOR          = '#e0e0e0';
 var DEFAULT_ROOM_COLOR        = '#3a3a4a';
 
 // Room border indicators
-var ROOM_BORDER_MOB_SPAWN     = '#cc2222';  // border color when room has a mob spawn
+var ROOM_BORDER_MOB_SPAWN     = 'rgb(255, 90, 90)';  // border color when room has a mob spawn
 var ROOM_BORDER_SCRIPT_GLOW   = '#d4a843';  // script glow border color
 var ROOM_ARROW_COLOR          = '#ff00ff';  // up/down Z-arrow color
+var ROOM_ARROW_STROKE_COLOR   = 'rgba(0,0,0,0.75)';  // stroke/outline color for Z-arrows (set to '' to disable)
+var ROOM_ARROW_STROKE_WIDTH   = 3;                   // stroke line width in px (before zoom scaling)
 
 // Line badge colors
 var BADGE_SECRET_COLOR        = '#d4a843';  // secret exit badge
@@ -76,67 +78,11 @@ var QB_OCCUPIED_COLOR         = '255,255,255'; // RGB components for occupied sl
 var SELECT_RECT_FILL          = 'rgba(100,160,255,0.12)';
 var SELECT_RECT_BORDER        = 'rgba(100,160,255,0.6)';
 
-// --- Symbol & Environment Lookup Tables ---
-// Each symbol has a fixed color so the palette stays consistent across biomes.
-
-var SYMBOL_COLORS = {
-    '~':  '#2a53f7',
-    '≈': '#0033cd',
-    '♣': '#1a6b1a',
-    '♨': '#4a6b20',
-    '❄': '#b8d8f0',
-    '⌬': '#5a4a38',
-    '⩕': '#7a6a50',
-    '▼': '#8a7a5a',
-    '⌂': '#8a6a3a',
-    '*':  '#d4aa55',
-    "'":  '#6a8a30',
-    '=':  '#a07840',
-    '$':  '#2a7a2a',
-    '%':  '#2a5a8a',
-    '♜': '#4a4a4a',
-    '+':  '#5fb7ff',
-    '•': '#3a3a4a'
-};
-
-var ENVIRONMENT_SYMBOLS = {
-    'Forest':    '♣',
-    'Swamp':     '♨',
-    'Snow':      '❄',
-    'Cave':      '⌬',
-    'Dungeon':   '⌬',
-    'Mountains': '⩕',
-    'Cliffs':    '▼',
-    'House':     '⌂',
-    'Desert':    '*',
-    'Farmland':  "'",
-    'Road':      '=',
-    'Shore':     '~',
-    'Water':     '≈'
-};
-
-var ENVIRONMENT_COLORS = {
-    'Forest':    '#1a6b1a',
-    'Swamp':     '#4a6b20',
-    'Snow':      '#b8d8f0',
-    'Cave':      '#5a4a38',
-    'Dungeon':   '#5a4a38',
-    'Mountains': '#7a6a50',
-    'Cliffs':    '#8a7a5a',
-    'House':     '#8a6a3a',
-    'Desert':    '#d4aa55',
-    'Farmland':  '#6a8a30',
-    'Road':      '#a07840',
-    'Shore':     '#2a53f7',
-    'Water':     '#0033cd',
-    'City':      '#5a5a6a',
-    'Fort':      '#5a5a6a',
-    'Land':      '#3a3a4a'
-};
-
 // Populated at runtime when custom biome data is loaded from the server
-var BIOME_SYMBOLS = {};
-var BIOME_COLORS  = {};
+var BIOME_SYMBOLS          = {};
+var BIOME_COLORS           = {};  // biomeId -> hex fg color
+var BIOME_BG_COLORS        = {};  // biomeId -> hex bg color
+var BIOME_SYMBOL_OVERRIDES = {};  // biomeId -> { symbol -> { fg: hex|null, bg: hex|null } }
 
 // --- Direction & Grid Geometry ---
 // Deltas are [dx, dy, dz]. Suffixes like -x2/-x3 represent multi-cell jumps;

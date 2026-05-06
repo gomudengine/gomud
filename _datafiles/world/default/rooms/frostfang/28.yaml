@@ -23,6 +23,6 @@ spawninfo:
   level: 1
   respawnrate: 3 real minutes
 mapx: 3
-mapy: 2
+mapy: 3
 mapz: 0
 hascoordinates: true

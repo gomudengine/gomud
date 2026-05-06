@@ -56,7 +56,7 @@
             if (!sr.active) return;
             sr.endCx = cx;
             sr.endCy = cy;
-            MapperRender.render();
+            MapperRender.scheduleRender();
         },
 
         // -----------------------------------------------------------------
@@ -86,6 +86,8 @@
                     }
                 });
             }
+
+            MapperUI.updateInfoPanel();
 
             // Suppress the click that would otherwise fire on the same mouseup
             document.getElementById('mapper-canvas').dataset.suppressClick = '1';

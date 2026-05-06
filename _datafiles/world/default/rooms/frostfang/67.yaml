@@ -7,8 +7,8 @@ description: The path, lined with cobblestones and bordered by tall willows, lea
   trail unfolds, it reveals a vast expanse of organized flower beds, shrubs, and the
   distant sound of trickling water, signaling the heart of the garden.
 exits:
-  north:
-    roomid: 66
+  northeast:
+    roomid: 65
   southeast:
     roomid: 68
 mapx: -5

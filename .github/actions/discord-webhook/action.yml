@@ -17,9 +17,48 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: tsickert/discord-webhook@v7.0.0
-      with:
-        webhook-url: ${{ inputs.webhook-url }}
-        embed-title: ${{ inputs.pr-title }}
-        embed-description: ${{ inputs.pr-body }}
-        embed-url: ${{ inputs.pr-url }}
+    - name: Send Discord webhook
+      shell: bash
+      env:
+        WEBHOOK_URL: ${{ inputs.webhook-url }}
+        PR_TITLE: ${{ inputs.pr-title }}
+        PR_BODY: ${{ inputs.pr-body }}
+        PR_URL: ${{ inputs.pr-url }}
+      run: |
+        set -euo pipefail
+
+        payload="$(
+          python3 - <<'PY'
+        import json
+        import os
+
+        title = os.environ.get("PR_TITLE") or "Pull request notification"
+        description = (
+            os.environ.get("PR_BODY") or
+            "No pull request description provided."
+        )
+        url = os.environ.get("PR_URL") or ""
+
+        print(json.dumps({
+            "allowed_mentions": {
+                "parse": [],
+            },
+            "embeds": [
+                {
+                    "title": title[:256],
+                    "description": description[:4096],
+                    "url": url,
+                },
+            ],
+        }))
+        PY
+        )"
+
+        curl \
+          --fail-with-body \
+          --silent \
+          --show-error \
+          --request POST \
+          --header "Content-Type: application/json" \
+          --data "$payload" \
+          "$WEBHOOK_URL"

@@ -135,7 +135,7 @@
                         rd.allConstraints = allC;
 
                         MapperTools.activate('room-drag');
-                        MapperRender.render();
+                        MapperRender.scheduleRender();
                         return;
                     }
                 }
@@ -182,7 +182,7 @@
                     rd.brokenExits = [];
                 }
             }
-            MapperRender.render();
+            MapperRender.scheduleRender();
         },
 
         onMouseUp: function(e, cx, cy) {
@@ -200,6 +200,7 @@
             var dGx = rd.deltaGx;
             var dGy = rd.deltaGy;
             var groupCopy = new Map(rd.group);
+            var brokenCopy = rd.brokenExits.slice();
 
             rd.active = false;
             rd.anchorId = null;
@@ -210,8 +211,12 @@
 
             MapperEvents.emit('pan:suppressClick');
 
-            if (wasDroppable && (dGx !== 0 || dGy !== 0)) {
-                MapperState.applyGroupMove(groupCopy, dGx, dGy);
+            if (dGx !== 0 || dGy !== 0) {
+                if (wasDroppable) {
+                    MapperState.applyGroupMove(groupCopy, dGx, dGy, brokenCopy);
+                } else {
+                    MapperState.showToast('Cannot move — room collision detected');
+                }
             }
 
             MapperTools.activate('pan');

@@ -22,6 +22,6 @@ spawninfo:
   level: 100
   respawnrate: 7 real minutes
 mapx: 0
-mapy: -7
+mapy: -9
 mapz: 0
 hascoordinates: true

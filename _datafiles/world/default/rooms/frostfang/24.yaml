@@ -15,8 +15,8 @@ description: 'Adjacent to the Sanctuary of the Benevolent Heart, a narrow, shado
 exits:
   east:
     roomid: 25
-  south:
-    roomid: 23
+  west:
+    roomid: 21
 spawninfo:
 - mobid: 40
   message: You notice a rat catcher setting up some traps.
@@ -24,6 +24,6 @@ spawninfo:
   level: 40
   respawnrate: 2 real minutes
 mapx: 3
-mapy: 4
+mapy: 5
 mapz: 0
 hascoordinates: true

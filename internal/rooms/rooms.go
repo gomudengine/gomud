@@ -72,7 +72,7 @@ type Room struct {
 	Description       string                            `yaml:"description"`                         // Description shown to the user
 	MapSymbol         string                            `yaml:"mapsymbol,omitempty"`                 // The symbol to use when generating a map of the zone
 	MapLegend         string                            `yaml:"maplegend,omitempty"`                 // The text to display in the legend for this room. Should be one word.
-	Biome             string                            `yaml:"biome,omitempty"`                     // The biome of the room. Used for weather generation.
+	Biome             string                            `yaml:"biome,omitempty" instance:"skip"`     // The biome of the room. Used for weather generation.
 	Containers        map[string]Container              `yaml:"containers,omitempty"`                // If this room has a chest, what is in it?
 	Exits             map[string]exit.RoomExit          `yaml:"exits"`                               // Exits to other rooms
 	ExitsTemp         map[string]exit.TemporaryRoomExit `yaml:"-"`                                   // Temporary exits that will be removed after a certain time. Don't bother saving on sever shutting down.
@@ -419,6 +419,18 @@ func (r *Room) GetScript() string {
 	}
 
 	return ``
+}
+
+func (r *Room) HasScript() bool {
+
+	scriptPath := r.GetScriptPath()
+
+	// Load the script into a string
+	if _, err := os.Stat(scriptPath); err == nil {
+		return true
+	}
+
+	return false
 }
 
 func (r *Room) GetScriptPath() string {

@@ -9,11 +9,11 @@ mapsymbol: ♜
 maplegend: Wall
 exits:
   southeast:
-    roomid: 798
+    roomid: 1064
   west:
     roomid: 796
     mapdirection: west-x2
 mapx: 4
-mapy: -10
+mapy: -12
 mapz: 0
 hascoordinates: true

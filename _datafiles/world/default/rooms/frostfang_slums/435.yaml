@@ -10,8 +10,6 @@ description: 'Tucked away in the heart of Frostfang''s sprawling slums, a dimly 
   from shattered glass. Muffled whispers and subtle movements hint at the precarious
   lives within, hidden deep in the slums, yet a stone''s throw from a place of refuge.'
 exits:
-  east:
-    roomid: 434
   south:
     roomid: 446
   west:
@@ -21,7 +19,7 @@ spawninfo:
   message: A dark figure appears from the shadows.
   forcehostile: true
   respawnrate: 5 real minutes
-mapx: 4
-mapy: 6
+mapx: 3
+mapy: 8
 mapz: 0
 hascoordinates: true

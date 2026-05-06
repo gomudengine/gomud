@@ -15,7 +15,7 @@ exits:
   north:
     roomid: 485
 gold: 3
-mapx: -4
-mapy: 10
+mapx: -5
+mapy: 12
 mapz: 0
 hascoordinates: true

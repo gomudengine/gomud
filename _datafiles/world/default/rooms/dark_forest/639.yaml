@@ -26,3 +26,7 @@ spawninfo:
   message: A small spider hatches from a nearby egg.
   maxwander: 1
   respawnrate: 2 real minutes
+mapx: 33
+mapy: -6
+mapz: 4
+hascoordinates: true

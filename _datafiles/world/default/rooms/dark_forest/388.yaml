@@ -9,8 +9,6 @@ description: As you venture further along the old road, it leads you into the he
 exits:
   east:
     roomid: 389
-  southwest:
-    roomid: 387
   west:
     roomid: 386
 spawninfo:
