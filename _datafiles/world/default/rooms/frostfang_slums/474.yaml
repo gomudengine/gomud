@@ -20,7 +20,7 @@ spawninfo:
   message: A dark figure appears from the shadows.
   forcehostile: true
   respawnrate: 5 real minutes
-mapx: 0
-mapy: 12
+mapx: -1
+mapy: 14
 mapz: 0
 hascoordinates: true

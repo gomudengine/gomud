@@ -9,8 +9,8 @@ description: The path, lined with cobblestones and bordered by tall willows, lea
 exits:
   northeast:
     roomid: 64
-  west:
-    roomid: 66
+  southwest:
+    roomid: 67
 mapx: -4
 mapy: 2
 mapz: 0

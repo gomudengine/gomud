@@ -11,8 +11,6 @@ exits:
     roomid: 417
   northwest:
     roomid: 415
-  west:
-    roomid: 492
 mapx: 30
 mapy: 1
 mapz: 0

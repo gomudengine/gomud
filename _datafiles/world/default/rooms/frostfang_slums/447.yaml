@@ -21,7 +21,7 @@ spawninfo:
   message: A massive rat saunters out from the shadows.
   forcehostile: true
   respawnrate: 2 real minutes
-mapx: 5
-mapy: 7
+mapx: 4
+mapy: 9
 mapz: 0
 hascoordinates: true

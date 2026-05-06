@@ -15,33 +15,9 @@ description: The west wing hits you before you fully enter it. The noise arrives
 exits:
   east:
     roomid: 1005
-nouns:
-  slot machine: |-
-    <ansi fg="220">╔════════════════════════════════╗</ansi>
-    <ansi fg="220">║</ansi>     <ansi fg="yellow-bold">S L O T  M A C H I N E</ansi>     <ansi fg="220">║</ansi>
-    <ansi fg="220">╚════════════════════════════════╝</ansi>
-
-    A gleaming mechanical contraption adorned with spinning reels and flashing lights.
-    A worn lever protrudes from its side.
-
-        Cost to play:    <ansi fg="gold">25 gold</ansi>
-        Current jackpot: <ansi fg="gold">4144 gold</ansi>
-
-        Biggest winner:  <ansi fg="username">AdminAnt</ansi> with <ansi fg="gold">50 gold</ansi>
-
-    <ansi fg="magenta">Payout table:</ansi>
-        <ansi fg="gold">JACKPOT       </ansi>  <ansi fg="8">seven  seven  seven   </ansi>  <ansi fg="gold">entire jackpot</ansi>
-        <ansi fg="cyan-bold">TRIPLE BAR    </ansi>  <ansi fg="8">bar    bar    bar     </ansi>  <ansi fg="gold">20x cost</ansi>
-        <ansi fg="green-bold">TRIPLE BELL   </ansi>  <ansi fg="8">bell   bell   bell    </ansi>  <ansi fg="gold">10x cost</ansi>
-        <ansi fg="green-bold">TRIPLE <any>  </ansi>  <ansi fg="8">X      X      X       </ansi>  <ansi fg="gold">5x cost</ansi>
-        <ansi fg="green-bold">PAIR          </ansi>  <ansi fg="8">X      X      -       </ansi>  <ansi fg="gold">2x cost</ansi>
-        <ansi fg="green-bold">CHERRIES      </ansi>  <ansi fg="8">cherry cherry -       </ansi>  <ansi fg="gold">2x cost</ansi>
-
-    Type <ansi fg="command">play slots</ansi> to try your luck.
-  slots: :slot machine
 tags:
 - slot machine
-mapx: -3
-mapy: 6
+mapx: -4
+mapy: 8
 mapz: 0
 hascoordinates: true

@@ -10,10 +10,8 @@ maplegend: Wall
 exits:
   north:
     roomid: 820
-    mapdirection: north-x2
   south:
-    roomid: 818
-    mapdirection: south-x2
+    roomid: 1058
 mapx: -7
 mapy: 11
 mapz: 0

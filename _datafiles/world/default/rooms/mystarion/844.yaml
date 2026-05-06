@@ -10,9 +10,12 @@ description: At the very end of Bloodroot Way, the shadows converge, and the air
   Shelves are lined with ancient, leather-bound tomes etched with glowing runes, alongside
   vials of mysterious, shimmering elixirs. Enchanted relics float in eerie stillness,
   their soft glow casting an otherworldly light.
+biome: city
 exits:
   south:
     roomid: 843
+tags:
+- fast travel
 mapx: 71
 mapy: -4
 mapz: 0

@@ -14,14 +14,12 @@ exits:
     roomid: 448
   south:
     roomid: 458
-  west:
-    roomid: 450
 spawninfo:
 - mobid: 12
   message: A massive rat saunters out from the shadows.
   forcehostile: true
   respawnrate: 2 real minutes
-mapx: 4
-mapy: 8
+mapx: 3
+mapy: 10
 mapz: 0
 hascoordinates: true

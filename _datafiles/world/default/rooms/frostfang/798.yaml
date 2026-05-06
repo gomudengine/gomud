@@ -8,8 +8,8 @@ description: Encircling the city of Frostfang, the ramparts stand as a formidabl
 mapsymbol: ♜
 maplegend: Wall
 exits:
-  northwest:
-    roomid: 797
+  north-x2:
+    roomid: 1064
   south:
     roomid: 799
     mapdirection: south-x2

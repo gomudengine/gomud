@@ -10,8 +10,6 @@ description: 'Tucked away in the heart of Frostfang''s sprawling slums, a dimly 
   from shattered glass. Muffled whispers and subtle movements hint at the precarious
   lives within, hidden deep in the slums, yet a stone''s throw from a place of refuge.'
 exits:
-  east:
-    roomid: 443
   south:
     roomid: 453
   west:
@@ -22,7 +20,7 @@ spawninfo:
   forcehostile: true
   maxwander: -1
   respawnrate: 5 real minutes
-mapx: 0
-mapy: 7
+mapx: -1
+mapy: 9
 mapz: 0
 hascoordinates: true

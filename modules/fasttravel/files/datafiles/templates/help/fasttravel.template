@@ -1,0 +1,13 @@
+<ansi fg="yellow-bold">Fast Travel</ansi>
+
+Fast travel stations are special locations scattered across the world.
+When you visit a fast travel station, it becomes permanently unlocked for you.
+From any fast travel station, you can instantly travel to any other station
+you have previously visited.
+
+<ansi fg="white-bold">Usage:</ansi>
+  <ansi fg="command">fasttravel</ansi>               - List available destinations
+  <ansi fg="command">fasttravel</ansi> <ansi fg="cyan"><destination></ansi>  - Travel to a destination (partial name match)
+  <ansi fg="command">ft</ansi>                       - Alias for fasttravel
+
+Travel may require gold or a specific item per use, depending on server configuration.

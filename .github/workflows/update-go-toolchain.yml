@@ -17,17 +17,20 @@ permissions:
 jobs:
   update-go-toolchain:
     runs-on: ubuntu-24.04
+    timeout-minutes: 45
     env:
       BASE_BRANCH: master
       PR_BRANCH: automation/update-go-toolchain
     steps:
-      - uses: actions/checkout@v6
+      # actions/checkout v6.0.2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           persist-credentials: false
 
       - name: Detect latest stable Go release
         id: detect
-        uses: actions/github-script@v9
+        # actions/github-script v9.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         with:
           script: |
             const fs = require('node:fs')
@@ -79,7 +82,8 @@ jobs:
 
       - name: Set up Go
         if: steps.detect.outputs.changed == 'true'
-        uses: actions/setup-go@v6.4.0
+        # actions/setup-go v6.4.0
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
         with:
           go-version: ${{ steps.detect.outputs.version }}
           cache: true
@@ -101,6 +105,7 @@ jobs:
         if: steps.detect.outputs.changed == 'true'
         env:
           BRANCH_NAME: ${{ env.PR_BRANCH }}
+          GO_VERSION: ${{ steps.detect.outputs.version }}
           PUSH_URL: >-
             https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{
             github.repository }}.git
@@ -118,7 +123,7 @@ jobs:
           git switch -C "$BRANCH_NAME"
           git add go.mod go.sum
           git commit -m \
-            "deps: update Go toolchain to ${{ steps.detect.outputs.version }}"
+            "deps: update Go toolchain to ${GO_VERSION}"
           if [ -n "$remote_sha" ]; then
             git push \
               --force-with-lease="$BRANCH_NAME:$remote_sha" \
@@ -134,24 +139,27 @@ jobs:
         if: steps.detect.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GO_VERSION: ${{ steps.detect.outputs.version }}
           PR_BODY_FILE: /tmp/update-go-toolchain-pr.md
           PR_TITLE: >-
             deps: update Go toolchain to ${{ steps.detect.outputs.version }}
         run: |
-          cat >"$PR_BODY_FILE" <<'EOF'
-          ## Summary
-
-          Updates the repository's pinned Go version in `go.mod` to
-          `${{ steps.detect.outputs.version }}`.
-
-          Other Go toolchain consumers derive their version from `go.mod`.
-
-          ## Validation
-
-          - `go mod tidy`
-          - `make validate`
-          - `go test -race ./...`
-          EOF
+          {
+            echo '## Summary'
+            echo
+            echo "Updates the repository's pinned Go version in \`go.mod\` to"
+            echo "\`${GO_VERSION}\`."
+            echo
+            printf '%s %s\n' \
+              'Other Go toolchain consumers derive their version from' \
+              "\`go.mod\`."
+            echo
+            echo '## Validation'
+            echo
+            echo "- \`go mod tidy\`"
+            echo "- \`make validate\`"
+            echo "- \`go test -race ./...\`"
+          } >"$PR_BODY_FILE"
 
           pr_url="$(gh pr list \
             --base "$BASE_BRANCH" \

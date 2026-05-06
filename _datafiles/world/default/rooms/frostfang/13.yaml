@@ -11,10 +11,10 @@ exits:
   east:
     roomid: 30
   north:
-    roomid: 12
+    roomid: 1062
   south:
     roomid: 14
 mapx: 0
-mapy: 2
+mapy: 3
 mapz: 0
 hascoordinates: true

@@ -34,7 +34,7 @@ spawninfo:
   respawnrate: 3 real minutes
 idlemessages:
 - Some movement stirs in the edge of your vision, and then is lost.
-mapx: 2
-mapy: 11
+mapx: 1
+mapy: 13
 mapz: 0
 hascoordinates: true
