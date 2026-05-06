@@ -14,10 +14,10 @@ jobs:
   notify-discord:
     if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
       # actions/checkout v6.0.2
-      - uses: >-
-          actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           persist-credentials: false
       - name: Resolve Discord webhook URL

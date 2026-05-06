@@ -21,6 +21,7 @@ env:
 jobs:
   package:
     runs-on: ubuntu-24.04
+    timeout-minutes: 60
     permissions:
       contents: read
       packages: write
@@ -28,8 +29,7 @@ jobs:
       id-token: write
     steps:
       # actions/checkout v6.0.2
-      - uses: >-
-          actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           persist-credentials: false
 
@@ -39,13 +39,11 @@ jobs:
 
       - name: Set up Docker Buildx
         # docker/setup-buildx-action v4.0.0
-        uses: >-
-          docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd
 
       - name: Log in to the Container registry ${{ env.REGISTRY }}
         # docker/login-action v4.1.0
-        uses: >-
-          docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -54,8 +52,7 @@ jobs:
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         # docker/metadata-action v6.0.0
-        uses: >-
-          docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf
+        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
@@ -68,8 +65,7 @@ jobs:
       - name: Build and push Docker image
         id: push
         # docker/build-push-action v7.1.0
-        uses: >-
-          docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
@@ -84,8 +80,7 @@ jobs:
       - name: Generate artifact attestation
         if: github.event_name != 'pull_request'
         # actions/attest-build-provenance v4.1.0
-        uses: >-
-          actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           subject-digest: ${{ steps.push.outputs.digest }}
