@@ -293,6 +293,15 @@ jobs:
                 --target "$GITHUB_SHA" \
                 --notes-file release-notes.md
             else
+              if gh api \
+                "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" \
+                >/dev/null 2>&1; then
+                gh api \
+                  -X PATCH \
+                  "repos/${GITHUB_REPOSITORY}/git/refs/tags/${RELEASE_TAG}" \
+                  -f "sha=${GITHUB_SHA}" \
+                  -F force=true
+              fi
               gh release create "$RELEASE_TAG" \
                 "${assets[@]}" \
                 --title "$RELEASE_TITLE" \
