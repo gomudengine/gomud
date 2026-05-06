@@ -428,7 +428,12 @@
                 </div>
                 <div class="field">
                     <label>Map Symbol</label>
-                    <input type="text" id="f-mapsymbol" maxlength="4" placeholder="e.g. #" />
+                    <div style="display:flex;gap:0.4rem;align-items:center">
+                        <input type="text" id="f-mapsymbol" maxlength="4" placeholder="(biome default)" style="flex:1" />
+                        <button type="button" class="btn-add-sm" style="margin-top:0;white-space:nowrap" onclick="openMapSymbolPicker()">Pick&hellip;</button>
+                        <button type="button" class="btn-icon" title="Clear" onclick="document.getElementById('f-mapsymbol').value=''">&#x2715;</button>
+                    </div>
+                    <div class="field-hint">Overrides the biome default symbol for this room</div>
                 </div>
                 <div class="field">
                     <label>Map Legend</label>
@@ -1034,6 +1039,52 @@
     function closeMusicPickers() {
         document.querySelectorAll('.music-picker-dropdown.open').forEach(d => d.classList.remove('open'));
     }
+
+    // -------------------------------------------------------------------------
+    // Map symbol picker
+    // -------------------------------------------------------------------------
+    // Resolves the effective biome for the room currently loaded in the editor.
+    // Checks the room-level biome first, then falls back to the zone default.
+    function _getEffectiveBiomeForEditor() {
+        const biomeVal = document.getElementById('f-biome').value;
+        if (biomeVal) return biomeVal;
+        const zoneVal = document.getElementById('f-zone').value;
+        if (zoneVal) {
+            const zoneInfo = allZones.find(z => z.Name === zoneVal);
+            if (zoneInfo && zoneInfo.DefaultBiome) return zoneInfo.DefaultBiome;
+        }
+        return 'default';
+    }
+
+    window.openMapSymbolPicker = function () {
+        const biomeId = _getEffectiveBiomeForEditor();
+        const biome = biomes.find(b => b.BiomeId === biomeId) || biomes.find(b => b.BiomeId === 'default');
+        if (!biome) { return; }
+
+        // Build symbol list: biome default symbol + all override keys
+        const symbols = [];
+        symbols.push({ symbol: biome.Symbol, label: 'Default (' + biome.Symbol + ')', isDefault: true });
+        const overrides = biome.SymbolOverrides || {};
+        Object.keys(overrides).sort().forEach(function(sym) {
+            symbols.push({ symbol: sym, label: sym, isDefault: false });
+        });
+
+        Picker.open({
+            title: 'Pick Map Symbol \u2014 ' + (biome.Name || biomeId),
+            source: async () => symbols,
+            idKey: 'symbol',
+            columns: [
+                { key: 'symbol', label: 'Symbol', width: '6rem', render: function(v) { return v; } },
+                { key: 'label',  label: 'Description', flex: true },
+            ],
+            searchKeys: ['symbol', 'label'],
+            onSelect: function(item) {
+                const input = document.getElementById('f-mapsymbol');
+                // Selecting the biome default clears the override (empty string)
+                input.value = item.isDefault ? '' : item.symbol;
+            },
+        });
+    };
 
     // -------------------------------------------------------------------------
     // Exits

@@ -13,6 +13,7 @@ description: Nestled at the edge of the secluded island in the middle of Frost L
   and rustic tools are strewn about, and a small wooden dock extends into the crystal-clear
   waters, a testament to the solitary life of the old fisherman who calls this remote
   haven his home.
+biome: house
 exits:
   east:
     roomid: 759
