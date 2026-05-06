@@ -1,6 +1,9 @@
 package pets
 
 import (
+	"maps"
+	"slices"
+
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/statmods"
 )
@@ -12,4 +15,11 @@ type PetAbility struct {
 	StatMods     statmods.StatMods `yaml:"statmods,omitempty"`
 	BuffIds      []int             `yaml:"buffids,omitempty"`
 	Capacity     int               `yaml:"capacity,omitempty"`
+}
+
+func (pa PetAbility) Clone() PetAbility {
+	pa.Damage = pa.Damage.Clone()
+	pa.StatMods = maps.Clone(pa.StatMods)
+	pa.BuffIds = slices.Clone(pa.BuffIds)
+	return pa
 }

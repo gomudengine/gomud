@@ -29,6 +29,18 @@ type ShopItem struct {
 	lastRestockRound uint64 // When was the last time an item was restocked?
 }
 
+func (s Shop) Clone() Shop {
+	cloned := slices.Clone(s)
+	for i := range cloned {
+		cloned[i] = cloned[i].Clone()
+	}
+	return cloned
+}
+
+func (si ShopItem) Clone() ShopItem {
+	return si
+}
+
 func (s *Shop) Restock() bool {
 
 	if len(*s) < 1 {

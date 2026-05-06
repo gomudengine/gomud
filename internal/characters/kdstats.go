@@ -1,6 +1,9 @@
 package characters
 
-import "fmt"
+import (
+	"fmt"
+	"maps"
+)
 
 type KDStats struct {
 	TotalKills  int         `json:"totalkills,omitempty"`  // Quick tally of kills
@@ -11,6 +14,13 @@ type KDStats struct {
 	PlayerKills    map[string]int `json:"playerkills,omitempty"`    // map of userid:username to count
 	PlayerDeaths   map[string]int `json:"playerdeaths,omitempty"`   // map of userid:username to count
 	TotalPvpDeaths int            `json:"totalpvpdeaths,omitempty"` // Quick tally of pvp deaths
+}
+
+func (kd KDStats) Clone() KDStats {
+	kd.Kills = maps.Clone(kd.Kills)
+	kd.PlayerKills = maps.Clone(kd.PlayerKills)
+	kd.PlayerDeaths = maps.Clone(kd.PlayerDeaths)
+	return kd
 }
 
 func (kd *KDStats) GetMobKDRatio() float64 {

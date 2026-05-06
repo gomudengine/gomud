@@ -1,6 +1,9 @@
 package buffs
 
 import (
+	"maps"
+	"slices"
+
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 )
 
@@ -46,6 +49,28 @@ func New() Buffs {
 		buffFlags: make(map[Flag][]int),
 		buffIds:   make(map[int]int),
 	}
+}
+
+func (bs Buffs) Clone() Buffs {
+	cloned := Buffs{
+		List:      make([]*Buff, len(bs.List)),
+		buffFlags: make(map[Flag][]int, len(bs.buffFlags)),
+		buffIds:   maps.Clone(bs.buffIds),
+	}
+
+	for i, buff := range bs.List {
+		if buff == nil {
+			continue
+		}
+		buffCopy := *buff
+		cloned.List[i] = &buffCopy
+	}
+
+	for flag, indexes := range bs.buffFlags {
+		cloned.buffFlags[flag] = slices.Clone(indexes)
+	}
+
+	return cloned
 }
 
 func (bs *Buffs) Validate(forceRebuild ...bool) {

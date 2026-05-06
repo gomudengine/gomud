@@ -1,6 +1,7 @@
 package users
 
 import (
+	"slices"
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/util"
@@ -19,6 +20,10 @@ type UserLogEntry struct {
 }
 
 type UserLog []UserLogEntry
+
+func (ul UserLog) Clone() UserLog {
+	return slices.Clone(ul)
+}
 
 func (ul *UserLog) Add(cat string, message string) {
 

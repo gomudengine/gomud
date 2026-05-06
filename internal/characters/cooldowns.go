@@ -1,10 +1,16 @@
 package characters
 
 import (
+	"maps"
+
 	"github.com/GoMudEngine/GoMud/internal/gametime"
 )
 
 type Cooldowns map[string]int
+
+func (cd Cooldowns) Clone() Cooldowns {
+	return maps.Clone(cd)
+}
 
 func (cd Cooldowns) RoundTick() {
 	for trackingTag := range cd {

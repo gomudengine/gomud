@@ -2,6 +2,8 @@ package items
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode"
@@ -63,6 +65,18 @@ func New(itemId int) Item {
 	newItm.Validate()
 
 	return newItm
+}
+
+func (i Item) Clone() Item {
+	i.Adjectives = slices.Clone(i.Adjectives)
+	i.tempDataStore = maps.Clone(i.tempDataStore)
+
+	if i.Spec != nil {
+		spec := i.Spec.Clone()
+		i.Spec = &spec
+	}
+
+	return i
 }
 
 func (i *Item) GetScript() string {

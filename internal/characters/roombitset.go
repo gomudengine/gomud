@@ -2,6 +2,7 @@ package characters
 
 import (
 	"fmt"
+	"maps"
 	"math/bits"
 	"strconv"
 
@@ -17,6 +18,10 @@ import (
 // YAML serialization uses hex strings ("0x...") so the data is human-readable
 // in character save files.
 type RoomBitset map[uint16]uint64
+
+func (rb RoomBitset) Clone() RoomBitset {
+	return maps.Clone(rb)
+}
 
 // Set marks a room as visited. Room IDs must be positive; non-positive IDs
 // are silently ignored because they represent special sentinel values (e.g.

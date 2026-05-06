@@ -15,6 +15,20 @@ type Worn struct {
 	Feet    items.Item `yaml:"feet,omitempty"`
 }
 
+func (w Worn) Clone() Worn {
+	w.Weapon = w.Weapon.Clone()
+	w.Offhand = w.Offhand.Clone()
+	w.Head = w.Head.Clone()
+	w.Neck = w.Neck.Clone()
+	w.Body = w.Body.Clone()
+	w.Belt = w.Belt.Clone()
+	w.Gloves = w.Gloves.Clone()
+	w.Ring = w.Ring.Clone()
+	w.Legs = w.Legs.Clone()
+	w.Feet = w.Feet.Clone()
+	return w
+}
+
 func (w *Worn) StatMod(stat ...string) int {
 
 	return w.Weapon.StatMod(stat...) +

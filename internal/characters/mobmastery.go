@@ -1,7 +1,14 @@
 package characters
 
+import "maps"
+
 type MobMasteries struct {
 	Tame map[int]int `json:"tame,omitempty"` // mobId to proficiency
+}
+
+func (m MobMasteries) Clone() MobMasteries {
+	m.Tame = maps.Clone(m.Tame)
+	return m
 }
 
 // // // // // // // // // // // //

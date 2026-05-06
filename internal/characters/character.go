@@ -137,6 +137,62 @@ func New() *Character {
 	}
 }
 
+func (c *Character) Clone() *Character {
+	if c == nil {
+		return nil
+	}
+
+	cloned := *c
+	cloned.Adjectives = slices.Clone(c.Adjectives)
+	cloned.Shop = c.Shop.Clone()
+	cloned.SpellBook = maps.Clone(c.SpellBook)
+	cloned.CharmedMobs = slices.Clone(c.CharmedMobs)
+	cloned.Items = cloneItems(c.Items)
+	cloned.Buffs = c.Buffs.Clone()
+	cloned.Equipment = c.Equipment.Clone()
+	cloned.Skills = maps.Clone(c.Skills)
+	cloned.Cooldowns = c.Cooldowns.Clone()
+	cloned.Settings = maps.Clone(c.Settings)
+	cloned.QuestProgress = maps.Clone(c.QuestProgress)
+	cloned.KeyRing = maps.Clone(c.KeyRing)
+	cloned.KD = c.KD.Clone()
+	cloned.MiscData = maps.Clone(c.MiscData)
+	cloned.MobMastery = c.MobMastery.Clone()
+	cloned.Pet = c.Pet.Clone()
+	cloned.Timers = maps.Clone(c.Timers)
+	cloned.ZonesVisited = cloneZonesVisited(c.ZonesVisited)
+	cloned.roomHistory = slices.Clone(c.roomHistory)
+	cloned.PlayerDamage = maps.Clone(c.PlayerDamage)
+	cloned.permaBuffIds = slices.Clone(c.permaBuffIds)
+
+	if c.Charmed != nil {
+		charmed := *c.Charmed
+		cloned.Charmed = &charmed
+	}
+
+	return &cloned
+}
+
+func cloneItems(itemList []items.Item) []items.Item {
+	cloned := slices.Clone(itemList)
+	for i := range cloned {
+		cloned[i] = cloned[i].Clone()
+	}
+	return cloned
+}
+
+func cloneZonesVisited(zones map[string]RoomBitset) map[string]RoomBitset {
+	if zones == nil {
+		return nil
+	}
+
+	cloned := make(map[string]RoomBitset, len(zones))
+	for zone, rooms := range zones {
+		cloned[zone] = rooms.Clone()
+	}
+	return cloned
+}
+
 // returns description unless description is a hash
 // which points to another description location.
 func (c *Character) GetDescription() string {

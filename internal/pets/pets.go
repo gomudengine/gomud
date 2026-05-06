@@ -3,6 +3,7 @@ package pets
 import (
 	"fmt"
 	"os"
+	"slices"
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/buffs"
@@ -30,6 +31,25 @@ type Pet struct {
 
 	cachedAbility *PetAbility `yaml:"-"` // cached current ability
 	cachedLevel   int         `yaml:"-"` // level when cache was set
+}
+
+func (p Pet) Clone() Pet {
+	p.Items = cloneItems(p.Items)
+	p.Abilities = slices.Clone(p.Abilities)
+	for i := range p.Abilities {
+		p.Abilities[i] = p.Abilities[i].Clone()
+	}
+	p.cachedAbility = nil
+	p.cachedLevel = 0
+	return p
+}
+
+func cloneItems(itemList []items.Item) []items.Item {
+	cloned := slices.Clone(itemList)
+	for i := range cloned {
+		cloned[i] = cloned[i].Clone()
+	}
+	return cloned
 }
 
 var (

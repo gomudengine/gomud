@@ -3,6 +3,7 @@ package users
 import (
 	"crypto/md5"
 	"fmt"
+	"maps"
 	"math"
 	"math/big"
 	"strings"
@@ -80,6 +81,22 @@ func NewUserRecord(userId int, connectionId uint64) *UserRecord {
 	}
 
 	return u
+}
+
+func (u *UserRecord) Clone() UserRecord {
+	cloned := *u
+	cloned.Macros = maps.Clone(u.Macros)
+	cloned.Aliases = maps.Clone(u.Aliases)
+	if u.Character == nil {
+		cloned.Character = characters.New()
+	} else {
+		cloned.Character = u.Character.Clone()
+	}
+	cloned.ConfigOptions = maps.Clone(u.ConfigOptions)
+	cloned.TipsComplete = maps.Clone(u.TipsComplete)
+	cloned.EventLog = u.EventLog.Clone()
+	cloned.tempDataStore = maps.Clone(u.tempDataStore)
+	return cloned
 }
 
 func (u *UserRecord) ClientSettings() connections.ClientSettings {
