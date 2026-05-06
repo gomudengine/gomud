@@ -52,13 +52,13 @@ func TestArrowForDelta(t *testing.T) {
 		dx, dy, dz int
 		want       rune
 	}{
-		{0, -1, 0, '\u2502'}, // north: vertical bar
-		{0, 1, 0, '\u2502'},  // south: vertical bar
-		{-1, 0, 0, '\u2500'}, // west: horizontal bar
-		{1, 0, 0, '\u2500'},  // east: horizontal bar
-		{1, -1, 0, '\u2571'}, // northeast: slash
-		{-1, 1, 0, '\u2571'}, // southwest: slash
-		{1, 1, 0, '\u2572'},  // southeast: backslash
+		{0, -1, 0, '\u2502'},  // north: vertical bar
+		{0, 1, 0, '\u2502'},   // south: vertical bar
+		{-1, 0, 0, '\u2500'},  // west: horizontal bar
+		{1, 0, 0, '\u2500'},   // east: horizontal bar
+		{1, -1, 0, '\u2571'},  // northeast: slash
+		{-1, 1, 0, '\u2571'},  // southwest: slash
+		{1, 1, 0, '\u2572'},   // southeast: backslash
 		{-1, -1, 0, '\u2572'}, // northwest: backslash
 		{0, 0, 1, '^'},        // up
 		{0, 0, -1, 'v'},       // down

@@ -13,14 +13,12 @@ maplegend: Trainer
 exits:
   east:
     roomid: 5
+  northwest:
+    roomid: 1067
 spawninfo:
 - mobid: 50
   message: A mage enters the room.
   respawnrate: 2 real minutes
-skilltraining:
-  cast:
-    min: 1
-    max: 4
 mapx: -1
 mapy: -4
 mapz: 0

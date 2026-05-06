@@ -1,0 +1,15 @@
+################################################################################
+# If modified, these settings will be copied into your config overrides
+# folder under `Modules.fasttravel`:
+#
+# Modules:
+#   fasttravel:
+#     GoldCost: 0
+#     RequiredItemId: 0
+################################################################################
+# - GoldCost -
+#   Gold required each time a player uses fast travel. Set to 0 to disable.
+GoldCost: 0
+# - RequiredItemId -
+#   Item ID that is consumed each time a player uses fast travel. Set to 0 to disable.
+RequiredItemId: 0
