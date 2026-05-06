@@ -19,11 +19,7 @@ spawninfo:
   message: A student of the guild enters the room.
   levelmod: 5
   respawnrate: 2 real minutes
-skilltraining:
-  skulduggery:
-    min: 1
-    max: 4
-mapx: 3
-mapy: 11
+mapx: 2
+mapy: 13
 mapz: 0
 hascoordinates: true

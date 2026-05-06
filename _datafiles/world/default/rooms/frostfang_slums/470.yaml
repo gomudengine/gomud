@@ -19,7 +19,7 @@ spawninfo:
   message: A dangerous figure appears from the shadows.
   forcehostile: true
   respawnrate: 5 real minutes
-mapx: 4
-mapy: 12
+mapx: 3
+mapy: 14
 mapz: 0
 hascoordinates: true

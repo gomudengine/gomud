@@ -26,7 +26,7 @@ spawninfo:
 - mobid: 23
   message: A bat flies into the room and hangs from the ceiling.
   respawnrate: 3 real minutes
-mapx: -20
+mapx: -21
 mapy: 8
-mapz: 0
+mapz: -1
 hascoordinates: true

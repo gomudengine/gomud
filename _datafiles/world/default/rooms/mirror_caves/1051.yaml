@@ -12,7 +12,7 @@ description: Within the labyrinth of The Mirror Caves, you find yourself in yet 
 exits:
   south:
     roomid: 1018
-mapx: -17
+mapx: -18
 mapy: 9
-mapz: 0
+mapz: -1
 hascoordinates: true

@@ -16,10 +16,10 @@ exits:
   north:
     roomid: 50
   south:
-    roomid: 6
+    roomid: 1066
   west:
     roomid: 39
 mapx: 0
-mapy: -6
+mapy: -8
 mapz: 0
 hascoordinates: true

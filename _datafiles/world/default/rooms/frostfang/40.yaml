@@ -15,6 +15,6 @@ exits:
   north:
     roomid: 41
 mapx: -2
-mapy: -6
+mapy: -8
 mapz: 0
 hascoordinates: true

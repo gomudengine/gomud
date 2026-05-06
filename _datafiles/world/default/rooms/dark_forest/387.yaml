@@ -9,8 +9,6 @@ description: As you venture further along the old road, it leads you into the he
 exits:
   east:
     roomid: 506
-  northeast:
-    roomid: 388
   west:
     roomid: 385
 mutators:

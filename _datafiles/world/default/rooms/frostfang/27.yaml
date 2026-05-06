@@ -13,13 +13,11 @@ description: 'Adjacent to the Sanctuary of the Benevolent Heart, a narrow, shado
   hinting at the lives precariously balanced in this hidden enclave, a stone''s throw
   away from a place of worship and refuge.'
 exits:
-  northeast:
-    roomid: 731
   south:
     roomid: 26
   west:
     roomid: 28
 mapx: 4
-mapy: 2
+mapy: 3
 mapz: 0
 hascoordinates: true

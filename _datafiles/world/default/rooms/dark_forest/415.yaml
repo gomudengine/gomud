@@ -7,8 +7,6 @@ description: As you venture further along the old road, it leads you into the he
   twisted branches that reach out like skeletal fingers from ancient trees, their
   bark as black as night.
 exits:
-  northwest:
-    roomid: 414
   southeast:
     roomid: 416
   west:

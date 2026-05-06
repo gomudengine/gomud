@@ -20,7 +20,7 @@ spawninfo:
   forcehostile: true
   level: 4
   respawnrate: 2 real minutes
-mapx: -1
-mapy: 9
+mapx: -2
+mapy: 11
 mapz: 0
 hascoordinates: true

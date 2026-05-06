@@ -12,11 +12,9 @@ description: 'Tucked away in the heart of Frostfang''s sprawling slums, a dimly 
 exits:
   east:
     roomid: 458
-  south:
-    roomid: 461
   west:
     roomid: 456
-mapx: 3
-mapy: 9
+mapx: 2
+mapy: 11
 mapz: 0
 hascoordinates: true

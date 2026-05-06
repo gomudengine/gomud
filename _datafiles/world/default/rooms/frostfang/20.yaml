@@ -15,8 +15,6 @@ description: 'Adjacent to the Sanctuary of the Benevolent Heart, a narrow, shado
 exits:
   east:
     roomid: 21
-  south:
-    roomid: 19
   west:
     roomid: 15
 items:
@@ -27,6 +25,6 @@ spawninfo:
   level: 1
   respawnrate: 1 real minutes
 mapx: 1
-mapy: 4
+mapy: 5
 mapz: 0
 hascoordinates: true
