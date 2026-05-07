@@ -232,6 +232,15 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("PUT /admin/api/v1/rooms/{roomId}/script", RunWithMUDLocked(
 		doBasicAuth(apiV1PutRoomScript),
 	))
+	mux.HandleFunc("GET /admin/api/v1/rooms/{roomId}/instance", RunWithMUDLocked(
+		doBasicAuth(apiV1GetRoomInstance),
+	))
+	mux.HandleFunc("PUT /admin/api/v1/rooms/{roomId}/instance", RunWithMUDLocked(
+		doBasicAuth(apiV1PutRoomInstance),
+	))
+	mux.HandleFunc("DELETE /admin/api/v1/rooms/{roomId}/instance", RunWithMUDLocked(
+		doBasicAuth(apiV1DeleteRoomInstance),
+	))
 	mux.HandleFunc("GET /admin/api/v1/rooms/{roomId}", RunWithMUDLocked(
 		doBasicAuth(apiV1GetRoom),
 	))

@@ -62,6 +62,17 @@ func init() {
 		nil,
 	)
 
+	// Admin page: About.
+	m.plug.Web.AdminPage(
+		"About",
+		"mudmail-about",
+		"html/admin/mudmail-about.html",
+		true,
+		"Modules",
+		"Mudmail",
+		nil,
+	)
+
 	// Admin API endpoints.
 	m.plug.Web.AdminAPIEndpoint("GET", "mudmail", m.apiAdminListMudmail)
 	m.plug.Web.AdminAPIEndpoint("GET", "mudmail-body/{user_id}/{timestamp}", m.apiAdminGetMudmailBody)

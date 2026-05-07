@@ -1,0 +1,33 @@
+{{template "header" .}}
+
+<style>
+    .about-h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .about-subtitle { color: var(--color-text-muted); margin-bottom: 1.5rem; font-size: 0.9rem; }
+    .about-section { background: var(--color-surface-white); border: 1px solid var(--color-border); border-radius: 6px; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
+    .about-section h2 { font-size: 1.05rem; margin: 0 0 0.6rem; color: var(--color-text-strong); }
+    .about-section p { font-size: 0.9rem; color: var(--color-text-secondary); line-height: 1.6; margin: 0 0 0.5rem; }
+    .about-section p:last-child { margin-bottom: 0; }
+    .tag-table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; font-size: 0.875rem; }
+    .tag-table th { text-align: left; padding: 0.4rem 0.75rem; background: var(--color-border-faint); color: var(--color-text-muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--color-border); }
+    .tag-table td { padding: 0.45rem 0.75rem; border-bottom: 1px solid var(--color-border-light); vertical-align: top; }
+    .tag-table tr:last-child td { border-bottom: none; }
+    .tag-name { font-family: monospace; color: var(--color-primary); font-size: 0.85rem; white-space: nowrap; }
+    .no-tags { font-size: 0.875rem; color: var(--color-text-faint); font-style: italic; }
+</style>
+
+<h1 class="about-h1">Leaderboards</h1>
+<p class="about-subtitle">Module overview and room tag reference.</p>
+
+<div class="about-section">
+    <h2>Description</h2>
+    <p>The Leaderboards module maintains ranked lists of the top players across four categories: Gold (on-hand plus bank), Experience, Kills, and Exploration (total unique rooms visited). Leaderboards are recalculated at most once per real-time minute and consider both online and offline characters, including alt characters if the Alt Characters module is loaded.</p>
+    <p>Players can view the leaderboards in-game with the <code>leaderboard</code> command. A public web page at <code>/leaderboards</code> also displays the current standings for visitors who are not logged in.</p>
+    <p>The size of each leaderboard is individually configurable: <code>GoldLBSize</code>, <code>ExperienceLBSize</code>, <code>KillsLBSize</code>, and <code>ExplorationLBSize</code>. Setting any of these to 0 disables that particular leaderboard.</p>
+</div>
+
+<div class="about-section">
+    <h2>Room Tags</h2>
+    <p class="no-tags">This module does not use any room tags.</p>
+</div>
+
+{{template "footer" .}}

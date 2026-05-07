@@ -316,6 +316,16 @@
     }
     .script-area textarea:focus { outline: 2px solid var(--color-accent-link); outline-offset: 1px; }
     .script-hint { font-size: 0.75rem; color: var(--color-text-faint); margin-top: 0.3rem; }
+
+    /* instance editor modal */
+    .instance-modal-overlay { display:none; position:fixed; inset:0; background:var(--color-overlay); z-index:600; align-items:center; justify-content:center; }
+    .instance-modal-overlay.open { display:flex; }
+    .instance-modal { background:var(--color-surface-white); border-radius:8px; padding:1.25rem; width:min(780px,95vw); max-height:85vh; display:flex; flex-direction:column; gap:0.75rem; }
+    .instance-modal-header { display:flex; align-items:center; justify-content:space-between; }
+    .instance-modal-body { flex:1; overflow:auto; display:flex; flex-direction:column; gap:0.5rem; }
+    .instance-modal textarea { width:100%; min-height:380px; font-family:monospace; font-size:0.82rem; padding:0.6rem 0.75rem; border:1px solid var(--color-border-medium); border-radius:4px; resize:vertical; box-sizing:border-box; line-height:1.55; }
+    .instance-modal-footer { display:flex; gap:0.6rem; align-items:center; }
+    .instance-empty-hint { font-size:0.8rem; color:var(--color-text-faint); font-style:italic; }
 </style>
 
 <h1>Rooms</h1>
@@ -548,6 +558,7 @@
             <div class="action-bar">
                 <button class="btn btn-primary" id="save-btn" onclick="saveRoom()">Save Room</button>
                 <button class="btn btn-secondary" onclick="cancelEdit()">Cancel</button>
+                <button class="btn btn-secondary" id="instance-btn" onclick="openInstanceEditor()">Instance&hellip;</button>
                 <button class="btn btn-danger" id="delete-btn" onclick="deleteRoom()" style="margin-left:auto;">Delete Room</button>
                 <span class="id-display" id="room-id-display"></span>
             </div>
@@ -564,6 +575,26 @@
         </div>
         <input type="search" id="buff-modal-search" placeholder="Search buffs..." style="padding:0.35rem 0.6rem; border:1px solid var(--color-border-medium); border-radius:4px; font-size:0.85rem;" oninput="filterBuffModal()" />
         <div id="buff-modal-list" style="overflow-y:auto; flex:1; border:1px solid var(--color-border-light); border-radius:4px;"></div>
+    </div>
+</div>
+
+<!-- Instance editor modal -->
+<div id="instance-modal" class="instance-modal-overlay" onclick="handleInstanceOverlayClick(event)">
+    <div class="instance-modal">
+        <div class="instance-modal-header">
+            <strong style="font-size:0.95rem;">Room Instance Data &mdash; #<span id="instance-room-id-label"></span></strong>
+            <button onclick="closeInstanceEditor()" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:var(--color-text-subtle);">&times;</button>
+        </div>
+        <div class="instance-modal-body">
+            <div id="instance-empty-hint" class="instance-empty-hint" style="display:none;">No instance file exists for this room. Any content you enter will create one.</div>
+            <textarea id="instance-textarea" spellcheck="false" placeholder="# YAML instance overrides&#10;# Leave blank to delete the instance file."></textarea>
+        </div>
+        <div id="instance-status" class="status-bar" style="margin-bottom:0;"></div>
+        <div class="instance-modal-footer">
+            <button class="btn btn-primary" id="instance-save-btn" onclick="saveInstance()">Save Instance</button>
+            <button class="btn btn-secondary" onclick="closeInstanceEditor()">Cancel</button>
+            <button class="btn btn-danger" id="instance-delete-btn" onclick="deleteInstance()" style="margin-left:auto;">Delete Instance</button>
+        </div>
     </div>
 </div>
 
@@ -1336,6 +1367,66 @@
         const card = buffPickerTarget.closest('.exit-card');
         if (card) updateExitHeader(card.querySelector('.exit-name'));
     }
+
+    // -------------------------------------------------------------------------
+    // Instance editor modal
+    // -------------------------------------------------------------------------
+    window.openInstanceEditor = async function () {
+        if (!currentRoomId) return;
+        document.getElementById('instance-room-id-label').textContent = currentRoomId;
+        const bar = document.getElementById('instance-status');
+        bar.className = 'status-bar';
+        bar.textContent = '';
+        document.getElementById('instance-textarea').value = '';
+        document.getElementById('instance-empty-hint').style.display = 'none';
+        document.getElementById('instance-modal').classList.add('open');
+
+        const res = await AdminAPI.get('/admin/api/v1/rooms/' + currentRoomId + '/instance', true);
+        if (!res.ok) {
+            bar.className = 'status-bar error';
+            bar.textContent = 'Failed to load instance: ' + res.error;
+            return;
+        }
+        const content = (res.data && res.data.data && res.data.data.instance) ? res.data.data.instance : '';
+        document.getElementById('instance-textarea').value = content;
+        document.getElementById('instance-empty-hint').style.display = content === '' ? 'block' : 'none';
+    };
+
+    window.closeInstanceEditor = function () {
+        document.getElementById('instance-modal').classList.remove('open');
+    };
+
+    window.handleInstanceOverlayClick = function (e) {
+        if (e.target === document.getElementById('instance-modal')) closeInstanceEditor();
+    };
+
+    window.saveInstance = async function () {
+        const btn = document.getElementById('instance-save-btn');
+        btn.disabled = true; btn.textContent = 'Saving...';
+        const content = document.getElementById('instance-textarea').value;
+        const res = await AdminAPI.put('/admin/api/v1/rooms/' + currentRoomId + '/instance', { instance: content });
+        btn.disabled = false; btn.textContent = 'Save Instance';
+        const bar = document.getElementById('instance-status');
+        if (!res.ok) {
+            bar.className = 'status-bar error'; bar.textContent = 'Save failed: ' + res.error;
+        } else {
+            closeInstanceEditor();
+        }
+    };
+
+    window.deleteInstance = async function () {
+        if (!confirm('Delete the instance file for room #' + currentRoomId + '? This cannot be undone.')) return;
+        const btn = document.getElementById('instance-delete-btn');
+        btn.disabled = true;
+        const res = await AdminAPI.delete('/admin/api/v1/rooms/' + currentRoomId + '/instance');
+        btn.disabled = false;
+        const bar = document.getElementById('instance-status');
+        if (!res.ok) {
+            bar.className = 'status-bar error'; bar.textContent = 'Delete failed: ' + res.error;
+        } else {
+            closeInstanceEditor();
+        }
+    };
 
     // -------------------------------------------------------------------------
     // Spawn Info

@@ -45,6 +45,7 @@ func init() {
 	//
 	// Register any user/mob commands
 	//
+	plug.Web.AdminPage("About", "time-about", "html/admin/time-about.html", true, "Modules", "Time", nil)
 	plug.AddUserCommand(`time`, TimeCommand, true, false)
 }
 

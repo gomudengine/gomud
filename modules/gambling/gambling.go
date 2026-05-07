@@ -33,6 +33,7 @@ func init() {
 	}
 
 	g.plug.Web.AdminPage("Config", "gambling-config", "html/admin/gambling-config.html", true, "Modules", "Gambling", nil)
+	g.plug.Web.AdminPage("About", "gambling-about", "html/admin/gambling-about.html", true, "Modules", "Gambling", nil)
 	for itemId, path := range map[int]string{
 		1040000: `files/datafiles/items/1040000-6_sided_die.js`,
 		1040001: `files/datafiles/items/1040001-lucky_coin.js`,

@@ -35,6 +35,7 @@ func init() {
 	}
 
 	mod.plug.Web.AdminPage("Config", "newbieguide-config", "html/admin/newbieguide-config.html", true, "Modules", "Newbie Guide", nil)
+	mod.plug.Web.AdminPage("About", "newbieguide-about", "html/admin/newbieguide-about.html", true, "Modules", "Newbie Guide", nil)
 	events.RegisterListener(events.RoomChange{}, mod.spawnGuide)
 	events.RegisterListener(events.LevelUp{}, mod.checkGuide)
 

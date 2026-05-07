@@ -29,6 +29,7 @@ func init() {
 	}
 
 	m.plug.Web.AdminPage("Config", "zombiemode-config", "html/admin/zombiemode-config.html", true, "Modules", "Zombie Mode", nil)
+	m.plug.Web.AdminPage("About", "zombiemode-about", "html/admin/zombiemode-about.html", true, "Modules", "Zombie Mode", nil)
 
 	m.plug.AddUserCommand(`zombie`, m.zombieCommand, false, false)
 	m.plug.AddUserCommand(`zombieact`, m.zombieActCommand, true, false)

@@ -39,6 +39,7 @@ func init() {
 	m.plug.AddUserCommand(`fasttravel`, m.fastTravelCommand, false, false)
 
 	m.plug.Web.AdminPage("Config", "fasttravel-config", "html/admin/fasttravel-config.html", true, "Modules", "Fast Travel", nil)
+	m.plug.Web.AdminPage("About", "fasttravel-about", "html/admin/fasttravel-about.html", true, "Modules", "Fast Travel", nil)
 
 	m.plug.ReserveTags(fastTravelTag)
 

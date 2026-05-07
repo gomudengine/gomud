@@ -67,6 +67,16 @@ func init() {
 		nil,
 	)
 
+	m.plug.Web.AdminPage(
+		"About",
+		"storage-about",
+		"html/admin/storage-about.html",
+		true,
+		"Modules",
+		"Storage",
+		nil,
+	)
+
 	m.plug.Web.AdminAPIEndpoint("GET", "storage", m.apiAdminGetStorage)
 	m.plug.Web.AdminAPIEndpoint("DELETE", "storage", m.apiAdminDeleteStorageItem)
 

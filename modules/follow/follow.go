@@ -53,7 +53,8 @@ func init() {
 		panic(err)
 	}
 
-	f.plug.Web.AdminPage("Config", "follow-config", "html/admin/follow-config.html", true, "Modules", "Follow", nil) //
+	f.plug.Web.AdminPage("Config", "follow-config", "html/admin/follow-config.html", true, "Modules", "Follow", nil)
+	f.plug.Web.AdminPage("About", "follow-about", "html/admin/follow-about.html", true, "Modules", "Follow", nil) //
 	// Register any user/mob commands
 	//
 	f.plug.AddUserCommand(`follow`, f.followUserCommand, true, false)

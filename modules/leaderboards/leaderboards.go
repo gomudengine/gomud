@@ -53,7 +53,8 @@ func init() {
 		panic(err)
 	}
 
-	t.plug.Web.AdminPage("Config", "leaderboards-config", "html/admin/leaderboards-config.html", true, "Modules", "Leaderboards", nil) //
+	t.plug.Web.AdminPage("Config", "leaderboards-config", "html/admin/leaderboards-config.html", true, "Modules", "Leaderboards", nil)
+	t.plug.Web.AdminPage("About", "leaderboards-about", "html/admin/leaderboards-about.html", true, "Modules", "Leaderboards", nil) //
 	// Register any user/mob commands
 	//
 	t.plug.AddUserCommand(`leaderboard`, t.leaderboardCommand, true, false)

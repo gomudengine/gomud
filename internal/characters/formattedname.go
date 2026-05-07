@@ -5,7 +5,13 @@ import (
 	"sort"
 
 	"github.com/GoMudEngine/GoMud/internal/colorpatterns"
+	"github.com/GoMudEngine/GoMud/internal/util"
 )
+
+// OnGetFormattedName is fired at the end of getFormattedName with the
+// fully-populated FormattedName. Modules may register handlers to modify the
+// name before it is returned to the caller (e.g. to append a title).
+var OnGetFormattedName util.Hook[FormattedName]
 
 type adjectiveStyle struct {
 	LongForm     string
@@ -34,6 +40,7 @@ type FormattedName struct {
 	Name               string
 	Type               string // mob/user
 	Suffix             string // What ansi alias suffix to use (if any)
+	Title              string // Optional title appended after name (e.g. "Mayor of Frostfang")
 	Adjectives         []string
 	UseShortAdjectives bool   // Whether to failover to short adjectives
 	QuestAlert         bool   // Whether this mob is relevant to a current quest
@@ -48,6 +55,10 @@ func (f FormattedName) String() string {
 	}
 
 	output := fmt.Sprintf(`<ansi fg="%s">%s</ansi>`, ansiAlias, f.Name)
+
+	if f.Title != `` {
+		output += `, ` + f.Title
+	}
 
 	adjectives := f.Adjectives
 

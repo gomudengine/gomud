@@ -49,6 +49,7 @@ func init() {
 	}
 
 	c.plug.Web.AdminPage("Config", "cleanup-config", "html/admin/cleanup-config.html", true, "Modules", "Cleanup", nil)
+	c.plug.Web.AdminPage("About", "cleanup-about", "html/admin/cleanup-about.html", true, "Modules", "Cleanup", nil)
 	//
 	// Register any user/mob commands
 	//
