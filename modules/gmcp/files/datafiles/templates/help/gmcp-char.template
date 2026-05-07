@@ -118,9 +118,18 @@ Sent when profession progress changes. Jobs are derived from skill rank combinat
 Sent when the player's pet status changes.
 
   Each entry contains:
-  <ansi fg="cyan">name</ansi>    <ansi fg="green">string</ansi>  - Pet's name
-  <ansi fg="cyan">type</ansi>    <ansi fg="green">string</ansi>  - Pet species or type
-  <ansi fg="cyan">hunger</ansi>  <ansi fg="green">string</ansi>  - Hunger state (e.g. "full")
+  <ansi fg="cyan">name</ansi>      <ansi fg="green">string</ansi>  - Pet's name
+  <ansi fg="cyan">type</ansi>      <ansi fg="green">string</ansi>  - Pet species or type
+  <ansi fg="cyan">level</ansi>     <ansi fg="yellow">number</ansi>  - Pet's current level
+  <ansi fg="cyan">hunger</ansi>    <ansi fg="green">string</ansi>  - Hunger state (e.g. "full")
+  <ansi fg="cyan">capacity</ansi>  <ansi fg="yellow">number</ansi>  - Number of items the pet can carry
+  <ansi fg="cyan">buffs</ansi>     <ansi fg="magenta">array</ansi>   - List of buff names the pet grants to the owner
+  <ansi fg="cyan">items</ansi>     <ansi fg="magenta">array</ansi>   - Items currently stored in the pet's inventory (same structure as backpack items)
+  <ansi fg="cyan">ability</ansi>   <ansi fg="blue-bold">object</ansi>  - Current combat ability (omitted if none). Contains:
+                   <ansi fg="cyan">level_granted</ansi>  <ansi fg="yellow">number</ansi>           - Level at which this ability was granted
+                   <ansi fg="cyan">combat_chance</ansi>  <ansi fg="yellow">number</ansi>           - Percentage chance to trigger per combat round
+                   <ansi fg="cyan">dice_roll</ansi>      <ansi fg="green">string</ansi>           - Damage dice expression (e.g. "2d6+3")
+                   <ansi fg="cyan">stat_mods</ansi>      <ansi fg="blue-bold">object</ansi>(<ansi fg="green">string</ansi>-><ansi fg="yellow">number</ansi>)  - Stat modifiers granted by the ability
 
 <ansi fg="yellow-bold">Char.Kills</ansi>
 Sent on login and updated whenever a mob or player kill or death is recorded.

@@ -4,7 +4,7 @@ The <ansi fg="command">discord</ansi> command allows Mudlet client users to cust
 
 <ansi fg="yellow">Usage: </ansi>
 
-  <ansi fg="command">discord</ansi>               - Shows current settings and available commands
+  <ansi fg="command">discord</ansi>               - Shows usage and available subcommands
   
   <ansi fg="command">discord info on|off</ansi>   - Enable/disable Discord application info
   <ansi fg="command">discord status on|off</ansi> - Enable/disable Discord status updates
@@ -24,6 +24,6 @@ The <ansi fg="command">discord</ansi> command allows Mudlet client users to cust
 - The status setting controls sending presence updates to Discord
 - Disabling either info or status will clear any cached data
 - Settings persist between sessions
-- Running <ansi fg="command">discord</ansi> without arguments shows current settings
+- Running <ansi fg="command">discord</ansi> without arguments shows available subcommands
 
 <ansi fg="magenta-bold">See also:</ansi> <ansi fg="command">help client</ansi>, <ansi fg="command">checkclient</ansi> 
