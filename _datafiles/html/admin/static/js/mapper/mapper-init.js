@@ -581,6 +581,24 @@
         MapperRender.render();
     };
 
+    window.onMobBorderToggle = function(checked) {
+        MapperState.camera.showMobBorder = checked;
+        localStorage.setItem('mapper.showMobBorder', checked);
+        MapperRender.render();
+    };
+
+    window.onScriptBorderToggle = function(checked) {
+        MapperState.camera.showScriptBorder = checked;
+        localStorage.setItem('mapper.showScriptBorder', checked);
+        MapperRender.render();
+    };
+
+    window.onTagsBorderToggle = function(checked) {
+        MapperState.camera.showTagsBorder = checked;
+        localStorage.setItem('mapper.showTagsBorder', checked);
+        MapperRender.render();
+    };
+
     // =====================================================================
     //  Boot sequence
     // =====================================================================
@@ -629,6 +647,14 @@
         // Sync selected-zone-only toggle to persisted value
         var zoneOnlyToggle = document.getElementById('selected-zone-only-toggle');
         if (zoneOnlyToggle) zoneOnlyToggle.checked = MapperState.camera.selectedZoneOnly;
+
+        // Sync border indicator toggles to persisted values
+        var mobBorderToggle = document.getElementById('mob-border-toggle');
+        if (mobBorderToggle) mobBorderToggle.checked = MapperState.camera.showMobBorder;
+        var scriptBorderToggle = document.getElementById('script-border-toggle');
+        if (scriptBorderToggle) scriptBorderToggle.checked = MapperState.camera.showScriptBorder;
+        var tagsBorderToggle = document.getElementById('tags-border-toggle');
+        if (tagsBorderToggle) tagsBorderToggle.checked = MapperState.camera.showTagsBorder;
 
         // Restore last-used zone, falling back to the first available zone
         var lastZone = localStorage.getItem('mapper.lastZone');

@@ -5,7 +5,7 @@
    CONNECTION_COLOR, ABNORMAL_CONNECTION_COLOR, SELECTED_ROOM_COLOR, SELECTED_ROOM_TEXT_COLOR, SYMBOL_TEXT_COLOR,
    ZONE_BOX_PADDING, ZONE_BOX_COLOR, ZONE_BOX_COLOR_HOV, ZONE_BOX_BORDER, ZONE_BOX_BORDER_HOV,
    ROOM_ARROW_COLOR, ROOM_ARROW_STROKE_COLOR, ROOM_ARROW_STROKE_WIDTH,
-   ROOM_BORDER_MOB_SPAWN, ROOM_BORDER_SCRIPT_GLOW, BADGE_SECRET_COLOR, BADGE_LOCK_COLOR,
+   ROOM_BORDER_MOB_SPAWN, ROOM_BORDER_SCRIPT_GLOW, ROOM_BORDER_TAGS, BADGE_SECRET_COLOR, BADGE_LOCK_COLOR,
    GHOST_CELL_BORDER, GHOST_CELL_FILL, GHOST_CELL_SYMBOL,
    EXIT_DRAW_TARGET_HIGHLIGHT, EXIT_DRAW_LINE_COLOR,
    DRAG_ORIGIN_MARKER, DRAG_SNAP_BLOCKED, DRAG_SNAP_BROKEN, DRAG_SNAP_CLEAN, DRAG_CONSTRAINT_BROKEN, DRAG_CONSTRAINT_OK, DRAG_GHOST_BROKEN_FILL,
@@ -357,6 +357,7 @@ var MapperRender = (function() {
     var _abnormalEdges = [];
     var _deferredBadges = [];
     var _glowRooms     = [];   // { p, room, rx, ry, scaledSize, scaledBorder }
+    var _tagRooms      = [];   // { rx, ry, scaledSize, scaledBorder }
     var _arrowRooms    = [];   // { p, room, rx, ry, scaledSize }
 
     // --- 2D Core Renderer ---
@@ -400,6 +401,7 @@ var MapperRender = (function() {
         _abnormalEdges.length = 0;
         _deferredBadges.length = 0;
         _glowRooms.length = 0;
+        _tagRooms.length = 0;
         _arrowRooms.length = 0;
 
         // Pass 1: normal directional edges
@@ -483,7 +485,7 @@ var MapperRender = (function() {
             ctx.fillStyle = fill;
             ctx.fillRect(rx, ry, scaledSize, scaledSize);
 
-            if (!isSelected && room.HasMobSpawn) {
+            if (!isSelected && room.HasMobSpawn && cam.showMobBorder) {
                 ctx.strokeStyle = ROOM_BORDER_MOB_SPAWN;
             } else {
                 ctx.strokeStyle = isSelected ? SELECTED_ROOM_COLOR : ROOM_BORDER_COLOR_2D;
@@ -497,8 +499,12 @@ var MapperRender = (function() {
             ctx.fillText(room._symbol || '•', p.px, p.py);
 
             // Collect rooms that need deferred passes rather than doing them inline
-            if (!isSelected && room.HasScript) {
+            if (!isSelected && room.HasScript && cam.showScriptBorder) {
                 _glowRooms.push({ p: p, scaledSize: scaledSize, scaledBorder: scaledBorder, rx: rx, ry: ry });
+            }
+
+            if (!isSelected && room.Tags && room.Tags.length > 0 && cam.showTagsBorder) {
+                _tagRooms.push({ scaledSize: scaledSize, scaledBorder: scaledBorder, rx: rx, ry: ry });
             }
 
             if (room.Exits) {
@@ -514,21 +520,34 @@ var MapperRender = (function() {
             }
         });
 
-        // Pass 4: script glow — one save/restore for all glowing rooms
-        if (_glowRooms.length > 0) {
+        // Pass 4: tags border — one save/restore for all rooms with tags
+        if (_tagRooms.length > 0) {
+            ctx.save();
+            ctx.strokeStyle = ROOM_BORDER_TAGS;
+            for (var ti = 0; ti < _tagRooms.length; ti++) {
+                var tr = _tagRooms[ti];
+                var tagOffset = tr.scaledBorder * 2;
+                ctx.lineWidth = tr.scaledBorder;
+                ctx.strokeRect(tr.rx - tagOffset, tr.ry - tagOffset, tr.scaledSize + tagOffset * 2, tr.scaledSize + tagOffset * 2);
+            }
+            ctx.restore();
+        }
+
+        // Pass 5: script glow — one save/restore for all glowing rooms
+        if (_glowRooms.length > 0 && cam.showScriptBorder) {
             ctx.save();
             ctx.shadowColor = ROOM_BORDER_SCRIPT_GLOW;
             ctx.strokeStyle = ROOM_BORDER_SCRIPT_GLOW;
             for (var gi = 0; gi < _glowRooms.length; gi++) {
                 var gr = _glowRooms[gi];
-                var offset = gr.scaledBorder * 2;
+                var offset = gr.scaledBorder * 1;
                 ctx.lineWidth = gr.scaledBorder;
                 ctx.strokeRect(gr.rx - offset, gr.ry - offset, gr.scaledSize + offset * 2, gr.scaledSize + offset * 2);
             }
             ctx.restore();
         }
 
-        // Pass 5: Z-arrows — one save/restore for all arrow rooms
+        // Pass 6: Z-arrows — one save/restore for all arrow rooms
         if (_arrowRooms.length > 0) {
             var arrowSize = Math.max(10, ROOM_SIZE_2D * cam.zoomScale * 0.56);
             var useStroke = ROOM_ARROW_STROKE_COLOR && ROOM_ARROW_STROKE_WIDTH > 0;
