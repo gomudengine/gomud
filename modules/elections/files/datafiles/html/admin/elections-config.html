@@ -1,0 +1,452 @@
+{{template "header" .}}
+
+<style>
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--color-text-muted); margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+    .btn { padding: 0.4rem 1rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.875rem; font-weight: 600; }
+    .btn-primary { background: var(--color-primary); color: var(--color-surface-white); }
+    .btn-primary:hover { background: var(--color-primary-hover); }
+    .btn-primary:disabled { background: var(--color-text-secondary); cursor: default; }
+
+    #status-bar { display: none; padding: 0.6rem 1rem; border-radius: 4px; font-size: 0.875rem; margin-bottom: 1rem; }
+    #status-bar.success { background: var(--color-success-bg); color: var(--color-success-text); display: block; }
+    #status-bar.error   { background: var(--color-error-bg); color: var(--color-error-text); display: block; }
+
+    .config-table-wrap { background: var(--color-surface-white); border: 1px solid var(--color-border); border-radius: 6px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    col.col-key   { width: 38%; }
+    col.col-value { width: 62%; }
+    thead th { background: var(--color-border-faint); text-align: left; padding: 0.6rem 0.9rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-muted); border-bottom: 1px solid var(--color-border); }
+    tbody tr { border-bottom: 1px solid var(--color-border-light); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--color-surface-alt); }
+    td { padding: 0.55rem 0.9rem; font-size: 0.875rem; vertical-align: middle; overflow: hidden; }
+    td.key-cell { font-family: monospace; font-size: 0.82rem; color: var(--color-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    td.value-cell { max-width: 0; overflow: hidden; }
+
+    .value-display { cursor: pointer; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .value-display:hover { text-decoration: underline dotted var(--color-text-faint); }
+    .edit-form { display: none; align-items: center; gap: 0.4rem; width: 100%; }
+    .edit-form.active { display: flex; }
+    .edit-form input[type="text"] { flex: 1; padding: 0.3rem 0.5rem; border: 1px solid var(--color-text-placeholder); border-radius: 3px; font-size: 0.875rem; font-family: inherit; }
+    .btn-save { padding: 0.25rem 0.6rem; font-size: 0.8rem; border-radius: 3px; border: none; cursor: pointer; background: var(--color-btn-save-bg); color: var(--color-surface-white); }
+    .btn-save:hover { background: var(--color-btn-new-hover); }
+    .btn-cancel { padding: 0.25rem 0.6rem; font-size: 0.8rem; border-radius: 3px; border: none; cursor: pointer; background: var(--color-border-medium); color: var(--color-text-strong); }
+    .btn-cancel:hover { background: var(--color-btn-cancel-hover); }
+
+    #pending-panel { display: none; background: var(--color-surface-white); border: 1px solid var(--color-border); border-radius: 6px; padding: 1rem; margin-bottom: 1.25rem; }
+    #pending-panel h3 { font-size: 1rem; margin-bottom: 0.75rem; }
+    #pending-list { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.75rem; }
+    .pending-item { display: flex; align-items: baseline; gap: 0.5rem; font-size: 0.875rem; background: var(--color-surface-alt); border: 1px solid var(--color-border-light); border-radius: 4px; padding: 0.35rem 0.65rem; }
+    .pending-key { font-family: monospace; font-size: 0.82rem; color: var(--color-primary); flex: 1; }
+    .pending-arrow { color: var(--color-text-faint); }
+    .pending-val { color: var(--color-success-text); font-weight: 600; }
+    .pending-remove { background: none; border: none; cursor: pointer; color: var(--color-text-faint); font-size: 1rem; line-height: 1; padding: 0 0.2rem; }
+    .pending-remove:hover { color: var(--color-danger); }
+    .pending-actions { display: flex; gap: 0.5rem; }
+    .btn-discard { background: var(--color-border-light); color: var(--color-text-strong); }
+    .btn-discard:hover { background: var(--color-border); }
+
+    .no-keys { padding: 2rem; text-align: center; color: var(--color-text-faint); font-size: 0.9rem; }
+    tr.desc-row td { padding: 0.1rem 0.9rem 0.5rem; font-size: 0.78rem; color: var(--color-text-faint); font-style: italic; border-bottom: 1px solid var(--color-border-light); }
+
+    /* ── TitleColor picker cell ──────────────────────────────────────────── */
+    .color-picker-cell { display: flex; flex-direction: column; gap: 0.4rem; padding: 0.4rem 0; }
+    .color-picker-input-row { display: flex; align-items: center; gap: 0.4rem; }
+    .color-picker-input-row input[type="text"] {
+        flex: 1; padding: 0.3rem 0.5rem; border: 1px solid var(--color-border-medium);
+        border-radius: 3px; font-size: 0.875rem; font-family: monospace;
+    }
+    .btn-search {
+        padding: 0.25rem 0.55rem; font-size: 0.82rem; border-radius: 3px;
+        border: 1px solid var(--color-border-medium); background: var(--color-page-bg);
+        cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    }
+    .btn-search:hover { background: var(--color-hover-tint); border-color: var(--color-hover-tint-border); }
+    .color-picker-stage {
+        padding: 0.25rem 0.6rem; font-size: 0.8rem; border-radius: 3px; border: none;
+        cursor: pointer; background: var(--color-btn-save-bg); color: var(--color-surface-white);
+    }
+    .color-picker-stage:hover { background: var(--color-btn-new-hover); }
+
+    /* 256-color swatch popup — same as color-aliases.html */
+    .cp-swatch-wrap { position: relative; display: inline-block; }
+    .ansi-palette-popup {
+        position: fixed; z-index: 9999; margin-top: 0.35rem;
+        background: var(--color-surface); border: 1px solid var(--color-border);
+        border-radius: 6px; padding: 0.5rem;
+        box-shadow: 0 4px 16px var(--color-shadow);
+        display: flex; flex-wrap: wrap; gap: 2px;
+        width: 404px;
+    }
+    .ansi-palette-cell {
+        width: 18px; height: 18px; border-radius: 2px; cursor: pointer;
+        border: 2px solid transparent; flex-shrink: 0; transition: transform 0.08s;
+    }
+    .ansi-palette-cell:hover { transform: scale(1.4); border-color: rgba(255,255,255,0.6); z-index: 1; position: relative; }
+    .ansi-palette-cell.selected { border-color: var(--color-surface-white); box-shadow: 0 0 0 2px var(--color-focus); }
+</style>
+
+<h1>elections - Module Config</h1>
+<p class="subtitle">Configuration keys for the <strong>elections</strong> module. Click any value to edit it inline. Changes are staged until you apply them.</p>
+
+<div id="status-bar"></div>
+
+<div id="pending-panel">
+    <h3>Pending Changes</h3>
+    <div id="pending-list"></div>
+    <div class="pending-actions">
+        <button class="btn btn-primary" id="apply-btn" onclick="applyChanges()">Apply Changes</button>
+        <button class="btn btn-discard" onclick="discardAll()">Discard All</button>
+    </div>
+</div>
+
+<div class="config-table-wrap">
+    <table>
+        <colgroup><col class="col-key" /><col class="col-value" /></colgroup>
+        <thead><tr><th>Key</th><th>Value</th></tr></thead>
+        <tbody id="config-body">
+            <tr><td colspan="2" style="padding:1.5rem;text-align:center;color:var(--color-text-faint);">Loading...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<script>
+(function () {
+    'use strict';
+    const MODULE = 'elections';
+    const PREFIX = 'Modules.' + MODULE + '.';
+    const DESCRIPTIONS = {
+        'TitleColor':       'Color code (0\u2013255) or color pattern name applied to player titles. Use the swatch to pick a color, or the Pattern button to browse named patterns.',
+        'ElectionDuration': 'How long an election runs before it automatically ends. Uses game-time period format (e.g. "2 days", "1 week").',
+    };
+    const COLOR_PICKER_KEYS = new Set(['TitleColor']);
+
+    const pending = {};
+    let configData = {};
+
+    // One active swatch popup at a time.
+    let palettePopup = null;
+    let paletteOutsideHandler = null;
+
+    async function init() {
+        const res = await AdminAPI.get('/admin/api/v1/config');
+        if (!res.ok) { showStatus('Failed to load configuration: ' + res.error, false); return; }
+        const all = res.data.data || {};
+        for (const [fullKey, val] of Object.entries(all)) {
+            if (fullKey.startsWith(PREFIX)) {
+                configData[fullKey.slice(PREFIX.length)] = String(val);
+            }
+        }
+        buildTable();
+    }
+
+    // -------------------------------------------------------------------------
+    // Table
+    // -------------------------------------------------------------------------
+    function buildTable() {
+        const tbody = document.getElementById('config-body');
+        tbody.innerHTML = '';
+        const keys = Object.keys(configData).sort();
+        if (keys.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="2" class="no-keys">No configuration keys found for this module.</td></tr>';
+            return;
+        }
+        for (const key of keys) {
+            const value = configData[key];
+            const tr = document.createElement('tr');
+            tr.dataset.key = key;
+
+            if (COLOR_PICKER_KEYS.has(key)) {
+                const td1 = document.createElement('td');
+                td1.className = 'key-cell';
+                td1.title = PREFIX + key;
+                td1.textContent = key;
+
+                const td2 = document.createElement('td');
+                td2.className = 'value-cell';
+                td2.appendChild(buildColorPickerWidget(key, value));
+
+                tr.appendChild(td1);
+                tr.appendChild(td2);
+            } else {
+                tr.innerHTML =
+                    '<td class="key-cell" title="' + escAttr(PREFIX + key) + '">' + escHtml(key) + '</td>' +
+                    '<td class="value-cell">' +
+                        '<span class="value-display" title="' + escAttr(value) + '" onclick="startEdit(\'' + escAttr(key) + '\')">' + escHtml(value) + '</span>' +
+                        '<span class="edit-form" id="edit-' + cssId(key) + '">' +
+                            '<input type="text" id="input-' + cssId(key) + '" value="' + escAttr(value) + '" onkeydown="editKeydown(event, \'' + escAttr(key) + '\')" />' +
+                            '<button class="btn-save" onclick="stageEdit(\'' + escAttr(key) + '\')">Stage</button>' +
+                            '<button class="btn-cancel" onclick="cancelEdit(\'' + escAttr(key) + '\')">Cancel</button>' +
+                        '</span>' +
+                    '</td>';
+            }
+
+            tbody.appendChild(tr);
+
+            if (DESCRIPTIONS[key]) {
+                const dr = document.createElement('tr');
+                dr.className = 'desc-row';
+                dr.dataset.descFor = key;
+                dr.innerHTML = '<td colspan="2">' + escHtml(DESCRIPTIONS[key]) + '</td>';
+                tbody.appendChild(dr);
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Color picker widget
+    // -------------------------------------------------------------------------
+    function buildColorPickerWidget(key, value) {
+        const wrap = document.createElement('div');
+        wrap.className = 'color-picker-cell';
+
+        const inputRow = document.createElement('div');
+        inputRow.className = 'color-picker-input-row';
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.id = 'cpinput-' + cssId(key);
+        input.value = pending[key] !== undefined ? pending[key] : value;
+        input.placeholder = 'e.g. 220 or rainbow';
+        input.addEventListener('keydown', e => { if (e.key === 'Enter') stageColorValue(key); });
+        inputRow.appendChild(input);
+
+        // Swatch button + popup anchor
+        const swatchWrap = document.createElement('div');
+        swatchWrap.className = 'cp-swatch-wrap';
+
+        const btnSwatch = document.createElement('button');
+        btnSwatch.type = 'button';
+        btnSwatch.className = 'btn-search';
+        btnSwatch.textContent = '\uD83C\uDFA8 Color';
+        btnSwatch.title = 'Pick from 256-color palette';
+        btnSwatch.addEventListener('click', e => { e.stopPropagation(); togglePalette(key, swatchWrap); });
+        swatchWrap.appendChild(btnSwatch);
+        inputRow.appendChild(swatchWrap);
+
+        // Color pattern picker button
+        const btnPattern = document.createElement('button');
+        btnPattern.type = 'button';
+        btnPattern.className = 'btn-search';
+        btnPattern.textContent = '\uD83D\uDD0D Pattern';
+        btnPattern.title = 'Browse color patterns';
+        btnPattern.addEventListener('click', () => openColorPatternPicker(key));
+        inputRow.appendChild(btnPattern);
+
+        const stageBtn = document.createElement('button');
+        stageBtn.type = 'button';
+        stageBtn.className = 'color-picker-stage';
+        stageBtn.textContent = 'Stage';
+        stageBtn.addEventListener('click', () => stageColorValue(key));
+        inputRow.appendChild(stageBtn);
+
+        wrap.appendChild(inputRow);
+        return wrap;
+    }
+
+    function stageColorValue(key) {
+        const input = document.getElementById('cpinput-' + cssId(key));
+        if (!input) return;
+        const newVal = input.value.trim();
+        const tr = document.querySelector('tr[data-key="' + escAttr(key) + '"]');
+        if (newVal === configData[key]) {
+            delete pending[key];
+            if (tr) tr.style.background = '';
+        } else {
+            pending[key] = newVal;
+            if (tr) tr.style.background = '#fffbe6';
+        }
+        renderPendingPanel();
+    }
+
+    // ── 256-color palette popup ──────────────────────────────────────────────
+    function togglePalette(key, anchor) {
+        if (palettePopup) { closePalette(); return; }
+
+        const input = document.getElementById('cpinput-' + cssId(key));
+        const currentCode = input ? parseInt(input.value, 10) : NaN;
+
+        palettePopup = document.createElement('div');
+        palettePopup.className = 'ansi-palette-popup';
+
+        let html = '';
+        for (let i = 0; i < 256; i++) {
+            const sel = i === currentCode ? ' selected' : '';
+            html += '<div class="ansi-palette-cell' + sel + '" data-code="' + i + '" style="background:' + AnsiColors.toHex(i) + '" title="' + i + '"></div>';
+        }
+        palettePopup.innerHTML = html;
+
+        palettePopup.addEventListener('click', function (e) {
+            const cell = e.target.closest('.ansi-palette-cell');
+            if (!cell) return;
+            if (input) { input.value = cell.dataset.code; stageColorValue(key); }
+            closePalette();
+        });
+
+        document.body.appendChild(palettePopup);
+
+        const btn = anchor.querySelector('.btn-search');
+        const rect = btn.getBoundingClientRect();
+        palettePopup.style.top  = (rect.bottom + window.scrollY + 4) + 'px';
+        palettePopup.style.left = rect.left + 'px';
+
+        paletteOutsideHandler = function (e) {
+            if (palettePopup && !palettePopup.contains(e.target) && e.target !== btn) {
+                closePalette();
+            }
+        };
+        setTimeout(() => document.addEventListener('click', paletteOutsideHandler), 0);
+    }
+
+    function closePalette() {
+        if (palettePopup) { palettePopup.remove(); palettePopup = null; }
+        if (paletteOutsideHandler) { document.removeEventListener('click', paletteOutsideHandler); paletteOutsideHandler = null; }
+    }
+
+    // ── Color pattern picker ─────────────────────────────────────────────────
+    function openColorPatternPicker(key) {
+        SelectDialog.open({
+            title: 'Pick a Color Pattern',
+            apiPath: '/admin/api/v1/colorpatterns',
+            transform: data => Object.keys(data).sort().map(k => ({
+                label: k,
+                value: k,
+                html: AnsiColors.swatchHtml(data[k], 12),
+            })),
+            onSelect: value => {
+                const input = document.getElementById('cpinput-' + cssId(key));
+                if (input) { input.value = value; stageColorValue(key); }
+            },
+        });
+    }
+
+    // -------------------------------------------------------------------------
+    // Plain text editor
+    // -------------------------------------------------------------------------
+    window.startEdit = function (key) {
+        cancelAllEdits();
+        const form = document.getElementById('edit-' + cssId(key));
+        const display = form.previousElementSibling;
+        display.style.display = 'none';
+        form.classList.add('active');
+        const input = document.getElementById('input-' + cssId(key));
+        if (pending[key] !== undefined) input.value = pending[key];
+        input.focus(); input.select();
+    };
+
+    window.cancelEdit = function (key) {
+        const form = document.getElementById('edit-' + cssId(key));
+        if (!form) return;
+        form.classList.remove('active');
+        form.previousElementSibling.style.display = '';
+    };
+
+    window.editKeydown = function (e, key) {
+        if (e.key === 'Enter')  stageEdit(key);
+        if (e.key === 'Escape') cancelEdit(key);
+    };
+
+    window.stageEdit = function (key) {
+        const input = document.getElementById('input-' + cssId(key));
+        const newVal = input.value;
+        cancelEdit(key);
+        if (newVal === configData[key] && pending[key] === undefined) return;
+        if (newVal === configData[key]) { delete pending[key]; }
+        else { pending[key] = newVal; }
+        const tr = document.querySelector('tr[data-key="' + escAttr(key) + '"]');
+        if (tr) { tr.querySelector('.value-display').textContent = newVal; tr.style.background = pending[key] !== undefined ? '#fffbe6' : ''; }
+        renderPendingPanel();
+    };
+
+    function cancelAllEdits() {
+        document.querySelectorAll('.edit-form.active').forEach(f => { f.classList.remove('active'); f.previousElementSibling.style.display = ''; });
+    }
+
+    // -------------------------------------------------------------------------
+    // Pending panel
+    // -------------------------------------------------------------------------
+    function renderPendingPanel() {
+        const panel = document.getElementById('pending-panel');
+        const list  = document.getElementById('pending-list');
+        const keys  = Object.keys(pending);
+        if (keys.length === 0) { panel.style.display = 'none'; return; }
+        panel.style.display = 'block';
+        list.innerHTML = '';
+        for (const key of keys.sort()) {
+            const item = document.createElement('div');
+            item.className = 'pending-item';
+            item.innerHTML = '<span class="pending-key">' + escHtml(key) + '</span><span class="pending-arrow">&rarr;</span><span class="pending-val">' + escHtml(pending[key]) + '</span><button class="pending-remove" onclick="removePending(\'' + escAttr(key) + '\')">\u00d7</button>';
+            list.appendChild(item);
+        }
+    }
+
+    window.removePending = function (key) {
+        delete pending[key];
+        const tr = document.querySelector('tr[data-key="' + escAttr(key) + '"]');
+        if (tr) tr.style.background = '';
+        if (COLOR_PICKER_KEYS.has(key)) {
+            const input = document.getElementById('cpinput-' + cssId(key));
+            if (input) input.value = configData[key] || '';
+        } else {
+            if (tr) tr.querySelector('.value-display').textContent = configData[key];
+        }
+        renderPendingPanel();
+    };
+
+    window.discardAll = function () {
+        for (const key of Object.keys(pending)) {
+            const tr = document.querySelector('tr[data-key="' + escAttr(key) + '"]');
+            if (tr) tr.style.background = '';
+            if (COLOR_PICKER_KEYS.has(key)) {
+                const input = document.getElementById('cpinput-' + cssId(key));
+                if (input) input.value = configData[key] || '';
+            } else {
+                if (tr) tr.querySelector('.value-display').textContent = configData[key];
+            }
+            delete pending[key];
+        }
+        renderPendingPanel();
+    };
+
+    // -------------------------------------------------------------------------
+    // Apply
+    // -------------------------------------------------------------------------
+    window.applyChanges = async function () {
+        if (Object.keys(pending).length === 0) return;
+        const btn = document.getElementById('apply-btn');
+        btn.disabled = true; btn.textContent = 'Applying...';
+        const payload = {};
+        for (const [key, val] of Object.entries(pending)) { payload[PREFIX + key] = val; }
+        const res = await AdminAPI.patch('/admin/api/v1/config', payload);
+        btn.disabled = false; btn.textContent = 'Apply Changes';
+        if (!res.ok) { showStatus('Error: ' + res.error, false); return; }
+        const result = res.data.data || {};
+        const applied  = (result.applied  || []).map(k => k.startsWith(PREFIX) ? k.slice(PREFIX.length) : k);
+        const rejected = (result.rejected || []).map(k => k.startsWith(PREFIX) ? k.slice(PREFIX.length) : k);
+        for (const key of applied) { configData[key] = pending[key]; delete pending[key]; const tr = document.querySelector('tr[data-key="' + escAttr(key) + '"]'); if (tr) tr.style.background = ''; }
+        let msg = '';
+        if (applied.length)  msg += 'Applied: ' + applied.join(', ') + '. ';
+        if (rejected.length) msg += 'Rejected (locked): ' + rejected.join(', ') + '.';
+        showStatus(msg || 'No changes applied.', rejected.length === 0);
+        renderPendingPanel();
+    };
+
+    // -------------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------------
+    function showStatus(msg, success) {
+        const bar = document.getElementById('status-bar');
+        bar.textContent = msg; bar.className = success ? 'success' : 'error';
+        clearTimeout(bar._t); bar._t = setTimeout(() => { bar.className = ''; bar.style.display = 'none'; }, 6000);
+    }
+    function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+    function escAttr(s) { return String(s).replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
+    function cssId(key) { return key.replace(/[^a-zA-Z0-9_-]/g, '_'); }
+
+    init();
+})();
+</script>
+
+{{template "footer" .}}

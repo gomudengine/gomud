@@ -312,6 +312,13 @@ func tryPurchase(request string, user *users.UserRecord, room *rooms.Room, shopM
 	})
 
 	user.Character.Gold -= price
+	if price > 0 {
+		events.AddToQueue(events.Purchase{
+			UserId: user.UserId,
+			Zone:   room.Zone,
+			Cost:   price,
+		})
+	}
 	if shopMob != nil {
 		shopMob.Character.Gold += 1 // only gains 1 gold with each sale
 	} else if shopUser != nil {

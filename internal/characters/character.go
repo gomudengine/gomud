@@ -696,7 +696,7 @@ func (c *Character) getFormattedName(viewingUserId int, uType string, renderFlag
 		f.PetName = c.Pet.DisplayName()
 	}
 
-	return f
+	return OnGetFormattedName.Fire(f)
 }
 
 func (c *Character) PruneCooldowns() {

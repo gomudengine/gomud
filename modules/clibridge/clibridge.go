@@ -37,6 +37,8 @@ func init() {
 		panic(err)
 	}
 
+	m.plug.Web.AdminPage("About", "clibridge-about", "html/admin/clibridge-about.html", true, "Modules", "CLI Bridge", nil)
+
 	m.plug.AddUserCommand(`cli`, m.cliCommand, false, true)
 
 	events.RegisterListener(events.CLIRequest{}, m.onCLIRequest)

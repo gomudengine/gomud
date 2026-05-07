@@ -48,6 +48,7 @@ func init() {
 
 	w.plug.Web.WebPage(`Help`, `/help`, `help.html`, true, w.getHelpCategories)
 	w.plug.Web.WebPage(`Help Topic`, `/help-details`, `help-details.html`, false, w.getHelpCommand)
+	w.plug.Web.AdminPage("About", "webhelp-about", "html/admin/webhelp-about.html", true, "Modules", "Web Help", nil)
 }
 
 //////////////////////////////////////////////////////////////////////

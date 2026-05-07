@@ -1,0 +1,16 @@
+################################################################################
+# If modified, these settings will be copied into your config overrides
+# folder under `Modules.elections`:
+#
+# Modules:
+#   elections:
+#     TitleColor: "yellow"
+#     ElectionDuration: "2 days"
+################################################################################
+# - TitleColor -
+#   The color code or color pattern name to apply to player titles when shown.
+TitleColor: "158"
+# - ElectionDuration -
+#   How long an election runs before it automatically ends.
+#   Uses the game-time period format (e.g. "2 days", "1 week").
+ElectionDuration: "2 days"

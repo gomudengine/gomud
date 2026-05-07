@@ -19,6 +19,8 @@ items:
 spawninfo:
 - itemid: 5
   respawnrate: 1 real day
+tags:
+- coffer
 mapx: -1
 mapy: -1
 mapz: 0
