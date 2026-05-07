@@ -312,13 +312,6 @@ func tryPurchase(request string, user *users.UserRecord, room *rooms.Room, shopM
 	})
 
 	user.Character.Gold -= price
-	if price > 0 {
-		events.AddToQueue(events.Purchase{
-			UserId: user.UserId,
-			Zone:   room.Zone,
-			Cost:   price,
-		})
-	}
 	if shopMob != nil {
 		shopMob.Character.Gold += 1 // only gains 1 gold with each sale
 	} else if shopUser != nil {
@@ -406,6 +399,24 @@ func tryPurchase(request string, user *users.UserRecord, room *rooms.Room, shopM
 
 		user.Character.StoreItem(newItm)
 
+		if price > 0 {
+			sellerMobId := 0
+			sellerUserId := 0
+			if shopMob != nil {
+				sellerMobId = int(shopMob.MobId)
+			} else if shopUser != nil {
+				sellerUserId = shopUser.UserId
+			}
+			events.AddToQueue(events.Purchase{
+				UserId:       user.UserId,
+				RoomId:       room.RoomId,
+				Cost:         price,
+				SellerMobId:  sellerMobId,
+				SellerUserId: sellerUserId,
+				ItemId:       matchedShopItem.ItemId,
+			})
+		}
+
 		return true
 	}
 
@@ -448,6 +459,24 @@ func tryPurchase(request string, user *users.UserRecord, room *rooms.Room, shopM
 		}
 
 		newMob.Command(`emote is ready to serve.`)
+
+		if price > 0 {
+			sellerMobId := 0
+			sellerUserId := 0
+			if shopMob != nil {
+				sellerMobId = int(shopMob.MobId)
+			} else if shopUser != nil {
+				sellerUserId = shopUser.UserId
+			}
+			events.AddToQueue(events.Purchase{
+				UserId:       user.UserId,
+				RoomId:       room.RoomId,
+				Cost:         price,
+				SellerMobId:  sellerMobId,
+				SellerUserId: sellerUserId,
+				MobId:        matchedShopItem.MobId,
+			})
+		}
 
 		return true
 	}
@@ -496,6 +525,24 @@ func tryPurchase(request string, user *users.UserRecord, room *rooms.Room, shopM
 
 		if shopMob != nil {
 			shopMob.Command(`say I've done what I can.`, 1)
+		}
+
+		if price > 0 {
+			sellerMobId := 0
+			sellerUserId := 0
+			if shopMob != nil {
+				sellerMobId = int(shopMob.MobId)
+			} else if shopUser != nil {
+				sellerUserId = shopUser.UserId
+			}
+			events.AddToQueue(events.Purchase{
+				UserId:       user.UserId,
+				RoomId:       room.RoomId,
+				Cost:         price,
+				SellerMobId:  sellerMobId,
+				SellerUserId: sellerUserId,
+				BuffId:       matchedShopItem.BuffId,
+			})
 		}
 
 		return true
@@ -561,6 +608,24 @@ func tryPurchase(request string, user *users.UserRecord, room *rooms.Room, shopM
 		user.Character.Pet = petInfo
 		// make sure new pet buffs get applied
 		user.Character.Validate(true)
+
+		if price > 0 {
+			sellerMobId := 0
+			sellerUserId := 0
+			if shopMob != nil {
+				sellerMobId = int(shopMob.MobId)
+			} else if shopUser != nil {
+				sellerUserId = shopUser.UserId
+			}
+			events.AddToQueue(events.Purchase{
+				UserId:       user.UserId,
+				RoomId:       room.RoomId,
+				Cost:         price,
+				SellerMobId:  sellerMobId,
+				SellerUserId: sellerUserId,
+				PetName:      matchedShopItem.PetType,
+			})
+		}
 
 		return true
 	}

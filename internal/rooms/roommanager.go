@@ -648,6 +648,15 @@ func GetZoneBiome(zone string) string {
 	return ``
 }
 
+// GetZoneForRoom returns the zone name for a given room ID using the lightweight
+// summary cache. Returns an empty string if the room is not known.
+func GetZoneForRoom(roomId int) string {
+	if summary, ok := roomManager.roomSummaries[roomId]; ok {
+		return summary.Zone
+	}
+	return ``
+}
+
 func MoveToZone(roomId int, newZoneName string) error {
 
 	tplRoom := LoadRoomTemplate(roomId)

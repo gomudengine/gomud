@@ -118,8 +118,9 @@
     const MODULE = 'elections';
     const PREFIX = 'Modules.' + MODULE + '.';
     const DESCRIPTIONS = {
-        'TitleColor':       'Color code (0\u2013255) or color pattern name applied to player titles. Use the swatch to pick a color, or the Pattern button to browse named patterns.',
-        'ElectionDuration': 'How long an election runs before it automatically ends. Uses game-time period format (e.g. "2 days", "1 week").',
+        'TitleColor':           'Color code (0\u2013255) or color pattern name applied to player titles. Use the swatch to pick a color, or the Pattern button to browse named patterns.',
+        'ElectionDuration':     'How long an election runs before it automatically ends. Uses game-time period format (e.g. "2 days", "1 week").',
+        'ElectionCyclePeriod': 'How long after an election ends before a new one is automatically started for the same title and zone. Uses game-time period format (e.g. "1 year", "6 months"). Leave empty to disable automatic re-elections.',
     };
     const COLOR_PICKER_KEYS = new Set(['TitleColor']);
 

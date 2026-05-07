@@ -424,9 +424,15 @@ func (c CLIRequest) Type() string { return `CLIRequest` }
 
 // Fired when a player successfully purchases something from a shop.
 type Purchase struct {
-	UserId int
-	Zone   string
-	Cost   int
+	UserId       int
+	RoomId       int
+	Cost         int
+	SellerMobId  int    // mob spec ID of the seller; 0 if seller is a player or unknown
+	SellerUserId int    // user ID of the seller; 0 if seller is a mob or unknown
+	ItemId       int    // item spec ID when an item was purchased; 0 otherwise
+	MobId        int    // mob spec ID when a mercenary was purchased; 0 otherwise
+	BuffId       int    // buff ID when a buff/enchantment was purchased; 0 otherwise
+	PetName      string // pet type name when a pet was purchased; empty otherwise
 }
 
 func (p Purchase) Type() string { return `Purchase` }

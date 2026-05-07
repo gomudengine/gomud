@@ -3,6 +3,7 @@ package elections
 import (
 	"embed"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/gametime"
 	"github.com/GoMudEngine/GoMud/internal/plugins"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/templates"
 	"github.com/GoMudEngine/GoMud/internal/term"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
@@ -76,9 +78,10 @@ type Election struct {
 
 // Winner records the outcome of a completed election.
 type Winner struct {
-	CharacterName string `yaml:"charactername"`
-	UserId        int    `yaml:"userid"`
-	Title         string `yaml:"title"`
+	CharacterName     string `yaml:"charactername"`
+	UserId            int    `yaml:"userid"`
+	Title             string `yaml:"title"`
+	LastElectionRound uint64 `yaml:"lastelectionround,omitempty"`
 }
 
 // ElectionsModule owns all elections state.
@@ -130,6 +133,13 @@ func (m *ElectionsModule) electionDuration() string {
 	return `2 days`
 }
 
+func (m *ElectionsModule) electionCyclePeriod() string {
+	if v, ok := m.plug.Config.Get(`ElectionCyclePeriod`).(string); ok {
+		return v
+	}
+	return `1 year`
+}
+
 func (m *ElectionsModule) titleColor() string {
 	if v, ok := m.plug.Config.Get(`TitleColor`).(string); ok && v != `` {
 		return v
@@ -178,35 +188,46 @@ func (m *ElectionsModule) endElection(adminUser *users.UserRecord) {
 		voteCounts[nomineeId]++
 	}
 
-	// Find winner (most votes; ties go to first-nominated).
-	winnerUserId := 0
-	winnerName := ``
-	winnerVotes := -1
-	for i, nomineeId := range el.NomineeIds {
-		count := voteCounts[nomineeId]
-		if count > winnerVotes {
-			winnerVotes = count
-			winnerUserId = nomineeId
-			winnerName = el.Nominees[i]
-		}
-	}
-
 	m.state.ActiveElection = nil
 
-	if winnerUserId == 0 {
-		// No nominees at all.
+	// No nominees or no votes cast — election ends with no winner.
+	if len(el.NomineeIds) == 0 || len(el.Votes) == 0 {
 		msg := electionAlert(
-			fmt.Sprintf(`The election for <ansi fg="white-bold">%s</ansi> has ended with no candidates.`, el.Title),
+			fmt.Sprintf(`The election for <ansi fg="white-bold">%s</ansi> has ended with no winner.`, el.Title),
 		)
 		broadcastAlert(msg)
 		return
 	}
 
+	// Find the highest vote count, collect all nominees tied at that count.
+	topVotes := 0
+	for _, count := range voteCounts {
+		if count > topVotes {
+			topVotes = count
+		}
+	}
+	type candidate struct {
+		userId int
+		name   string
+	}
+	var tied []candidate
+	for i, nomineeId := range el.NomineeIds {
+		if voteCounts[nomineeId] == topVotes {
+			tied = append(tied, candidate{userId: nomineeId, name: el.Nominees[i]})
+		}
+	}
+
+	// Pick randomly among tied candidates.
+	winner := tied[util.Rand(len(tied))]
+	winnerUserId := winner.userId
+	winnerName := winner.name
+
 	zoneKey := strings.ToLower(el.Zone)
 	m.state.Winners[zoneKey] = Winner{
-		CharacterName: winnerName,
-		UserId:        winnerUserId,
-		Title:         el.Title,
+		CharacterName:     winnerName,
+		UserId:            winnerUserId,
+		Title:             el.Title,
+		LastElectionRound: util.GetRoundCount(),
 	}
 
 	msg := electionAlert(
@@ -471,12 +492,40 @@ func (m *ElectionsModule) handleVote(userId int, targetName string) events.Liste
 			user.SendText(fmt.Sprintf(`No one has been nominated yet for <ansi fg="white-bold">%s</ansi>.`, el.Title))
 			return events.Cancel
 		}
-		user.SendText(``)
-		user.SendText(fmt.Sprintf(`<ansi fg="white-bold">Candidates for %s:</ansi>`, el.Title))
-		for _, name := range el.Nominees {
-			user.SendText(fmt.Sprintf(`  <ansi fg="username">%s</ansi>`, name))
+
+		// Tally current votes.
+		voteCounts := make(map[int]int, len(el.NomineeIds))
+		for _, nomineeId := range el.Votes {
+			voteCounts[nomineeId]++
 		}
-		user.SendText(``)
+		totalVotes := len(el.Votes)
+
+		// Build a sorted list of name+index pairs.
+		type entry struct {
+			name   string
+			userId int
+		}
+		entries := make([]entry, len(el.Nominees))
+		for i, name := range el.Nominees {
+			entries[i] = entry{name: name, userId: el.NomineeIds[i]}
+		}
+		sort.Slice(entries, func(i, j int) bool {
+			return strings.ToLower(entries[i].name) < strings.ToLower(entries[j].name)
+		})
+
+		headers := []string{`Candidate`, `% of Vote`}
+		rows := make([][]string, len(entries))
+		for i, e := range entries {
+			pct := 0
+			if totalVotes > 0 {
+				pct = voteCounts[e.userId] * 100 / totalVotes
+			}
+			rows[i] = []string{e.name, fmt.Sprintf(`%d%%`, pct)}
+		}
+		formatting := []string{`<ansi fg="username">%s</ansi>`, `<ansi fg="white">%s</ansi>`}
+		tblData := templates.GetTable(fmt.Sprintf(`Candidates for %s`, el.Title), headers, rows, formatting)
+		tplTxt, _ := templates.Process(`tables/generic`, tblData, user.UserId)
+		user.SendText(tplTxt)
 		user.SendText(`Type <ansi fg="command">vote <name></ansi> to cast your vote.`)
 		return events.Cancel
 	}
@@ -540,16 +589,49 @@ func (m *ElectionsModule) onPlayerSpawn(e events.Event) events.ListenerReturn {
 }
 
 // onNewRound checks whether the election duration has elapsed and auto-ends if so.
+// When no election is active, it checks whether any zone's election cycle period
+// has elapsed and starts a new election if so.
 func (m *ElectionsModule) onNewRound(e events.Event) events.ListenerReturn {
-	if m.state.ActiveElection == nil {
+	if m.state.ActiveElection != nil {
+		gd := gametime.GetDate(m.state.ActiveElection.StartRound)
+		endRound := gd.AddPeriod(m.electionDuration())
+
+		if util.GetRoundCount() >= endRound {
+			m.endElection(nil)
+		}
 		return events.Continue
 	}
 
-	gd := gametime.GetDate(m.state.ActiveElection.StartRound)
-	endRound := gd.AddPeriod(m.electionDuration())
+	cyclePeriod := m.electionCyclePeriod()
+	if cyclePeriod == `` {
+		return events.Continue
+	}
 
-	if util.GetRoundCount() >= endRound {
-		m.endElection(nil)
+	now := util.GetRoundCount()
+	for zoneKey, winner := range m.state.Winners {
+		if winner.LastElectionRound == 0 {
+			continue
+		}
+		gd := gametime.GetDate(winner.LastElectionRound)
+		nextElectionRound := gd.AddPeriod(cyclePeriod)
+		if now < nextElectionRound {
+			continue
+		}
+		m.state.ActiveElection = &Election{
+			Title:      winner.Title,
+			Zone:       zoneKey,
+			StartRound: now,
+			Votes:      make(map[int]int),
+		}
+		daysLeft := m.daysRemaining()
+		msg := electionAlert(
+			fmt.Sprintf(`A new election has started for "<ansi fg="white-bold">%s</ansi>."`, winner.Title),
+			`Type <ansi fg="command">help elections</ansi> to find out more about it.`,
+			`Cast your vote at the nearest polling location.`,
+			fmt.Sprintf(`The election ends in <ansi fg="white-bold">%s</ansi>!`, daysLeft),
+		)
+		broadcastAlert(msg)
+		break
 	}
 
 	return events.Continue
@@ -562,7 +644,11 @@ func (m *ElectionsModule) onPurchase(e events.Event) events.ListenerReturn {
 		return events.Continue
 	}
 
-	zoneKey := strings.ToLower(evt.Zone)
+	zoneName := rooms.GetZoneForRoom(evt.RoomId)
+	if zoneName == `` {
+		return events.Continue
+	}
+	zoneKey := strings.ToLower(zoneName)
 	tax := evt.Cost / 10
 	if tax < 1 {
 		tax = 1

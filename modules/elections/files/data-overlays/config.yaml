@@ -6,6 +6,7 @@
 #   elections:
 #     TitleColor: "yellow"
 #     ElectionDuration: "2 days"
+#     ElectionCyclePeriod: "1 year"
 ################################################################################
 # - TitleColor -
 #   The color code or color pattern name to apply to player titles when shown.
@@ -14,3 +15,8 @@ TitleColor: "158"
 #   How long an election runs before it automatically ends.
 #   Uses the game-time period format (e.g. "2 days", "1 week").
 ElectionDuration: "2 days"
+# - ElectionCyclePeriod -
+#   How long after an election ends before a new one is automatically started
+#   for the same title and zone. Uses the game-time period format.
+#   Set to empty string to disable automatic re-elections.
+ElectionCyclePeriod: "1 year"
