@@ -19,11 +19,10 @@ Full room state, sent on room entry.
   <ansi fg="cyan">details</ansi>      <ansi fg="magenta">array</ansi>   - Room feature flags. Possible values:
                     "trainer"    - Room has a skill trainer
                     "bank"       - Room contains a bank
-                    "storage"    - Room has player storage
-                    "character"  - Character creation/management room
                     "pvp"        - PvP combat is enabled
                     "ephemeral"  - Dynamically generated room (not persistent)
                     "root"       - Entry room for the zone
+                    Any room tags set on the room are also included (e.g. "storage", "character")
   <ansi fg="cyan">Contents</ansi>     <ansi fg="blue-bold">object</ansi>  - Players, NPCs, items, and containers present (see below)
 
   Each entry in <ansi fg="white-bold">exitsv2</ansi> contains:

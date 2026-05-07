@@ -4,6 +4,7 @@ The <ansi fg="white-bold">Gametime</ansi> GMCP payload is sent to all online pla
 
 <ansi fg="yellow-bold">Gametime</ansi>
 
+  <ansi fg="cyan">calendar</ansi>     <ansi fg="green">string</ansi>  - Calendar system identifier in the form "CalendarName/MudName"
   <ansi fg="cyan">hour</ansi>         <ansi fg="yellow">number</ansi>  - Current in-game hour (12-hour format)
   <ansi fg="cyan">hour24</ansi>       <ansi fg="yellow">number</ansi>  - Current in-game hour (24-hour format)
   <ansi fg="cyan">minute</ansi>       <ansi fg="yellow">number</ansi>  - Current in-game minute
@@ -16,5 +17,7 @@ The <ansi fg="white-bold">Gametime</ansi> GMCP payload is sent to all online pla
   <ansi fg="cyan">night</ansi>        <ansi fg="red">bool</ansi>    - True if it is currently nighttime in-game
   <ansi fg="cyan">day_start</ansi>    <ansi fg="yellow">number</ansi>  - The hour (24h) at which daytime begins
   <ansi fg="cyan">night_start</ansi>  <ansi fg="yellow">number</ansi>  - The hour (24h) at which nighttime begins
+  <ansi fg="cyan">sun_count</ansi>    <ansi fg="yellow">number</ansi>  - Number of suns (typically 1 or 2)
+  <ansi fg="cyan">moon_count</ansi>   <ansi fg="yellow">number</ansi>  - Number of moons (0-3)
 
 <ansi fg="magenta-bold">See also:</ansi> <ansi fg="command">help gmcp</ansi>, <ansi fg="command">help gmcp-game</ansi>
