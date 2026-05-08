@@ -37,6 +37,9 @@ func Backstab(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 			if attackMobInstanceId == 0 {
 				for _, uId := range room.GetPlayers(rooms.FindFightingMob) {
 					u := users.GetByUserId(uId)
+					if u == nil {
+						continue
+					}
 					if u.Character.Aggro != nil && u.Character.Aggro.MobInstanceId == mob.InstanceId {
 						attackPlayerId = u.UserId
 						break

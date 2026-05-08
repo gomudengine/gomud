@@ -14,6 +14,9 @@ import (
 func Aid(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 	raceInfo := races.GetRace(mob.Character.GetRaceId())
+	if raceInfo == nil {
+		return true, nil
+	}
 	if !raceInfo.KnowsFirstAid {
 
 		mob.Command(`emote doesn't know first aid.`)

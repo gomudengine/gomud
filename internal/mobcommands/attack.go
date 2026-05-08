@@ -2,7 +2,6 @@ package mobcommands
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
@@ -14,12 +13,6 @@ import (
 )
 
 func Attack(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
-
-	args := util.SplitButRespectQuotes(strings.ToLower(rest))
-
-	if len(args) < 1 {
-		return true, nil
-	}
 
 	attackPlayerId := 0
 	attackMobInstanceId := 0
@@ -37,6 +30,9 @@ func Attack(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		if attackMobInstanceId == 0 {
 			for _, uId := range room.GetPlayers(rooms.FindFightingMob) {
 				u := users.GetByUserId(uId)
+				if u == nil {
+					continue
+				}
 				if u.Character.Aggro != nil && u.Character.Aggro.MobInstanceId == mob.InstanceId {
 					attackPlayerId = u.UserId
 					break

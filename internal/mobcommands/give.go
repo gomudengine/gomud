@@ -31,7 +31,7 @@ func Give(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	var giveItem items.Item = items.Item{}
 	var giveGoldAmount int = 0
 
-	if len(giveWhat) > 4 && giveWhat[len(giveWhat)-4:] == "gold" {
+	if len(giveWhat) >= 5 && giveWhat[len(giveWhat)-4:] == "gold" && giveWhat[len(giveWhat)-5] == ' ' {
 
 		g, _ := strconv.ParseInt(giveWhat[0:len(giveWhat)-5], 10, 32)
 		giveGoldAmount = int(g)

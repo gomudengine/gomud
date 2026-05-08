@@ -40,7 +40,7 @@ func Server(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 
 	args := util.SplitButRespectQuotes(rest)
 	if args[0] == "config" {
-		return server_Config(strings.TrimSpace(rest[1:]), user, room, flags)
+		return server_Config(strings.TrimSpace(rest[7:]), user, room, flags)
 	}
 
 	if args[0] == "set" {

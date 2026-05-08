@@ -1325,18 +1325,20 @@ func room_Edit_Exits(rest string, user *users.UserRecord, room *rooms.Room, flag
 	// Exit message?
 	//
 	{
-		secretExitDefault := `no`
-		if currentlyEditing.Exit.Secret {
-			secretExitDefault = `yes`
+		defaultMessage := currentlyEditing.Exit.ExitMessage
+		if defaultMessage == `` {
+			defaultMessage = `none`
 		}
-
 		// allow them to name/rename the exit.
-		question := cmdPrompt.Ask(`Is this a hidden exit?`, []string{`yes`, `no`}, secretExitDefault)
+		question := cmdPrompt.Ask(`Special message when using the exit?`, []string{defaultMessage}, defaultMessage)
 		if !question.Done {
 			return true, nil
 		}
 
-		currentlyEditing.Exit.Secret = question.Response == `yes`
+		if question.Response != `none` {
+			currentlyEditing.Exit.ExitMessage = question.Response
+		}
+
 	}
 
 	//
@@ -1355,26 +1357,6 @@ func room_Edit_Exits(rest string, user *users.UserRecord, room *rooms.Room, flag
 		}
 
 		currentlyEditing.Exit.Secret = question.Response == `yes`
-	}
-
-	//
-	// Special message when using the exit?
-	//
-	{
-		defaultMessage := currentlyEditing.Exit.ExitMessage
-		if defaultMessage == `` {
-			defaultMessage = `none`
-		}
-		// allow them to name/rename the exit.
-		question := cmdPrompt.Ask(`Special message when using the exit?`, []string{defaultMessage}, defaultMessage)
-		if !question.Done {
-			return true, nil
-		}
-
-		if question.Response != `none` {
-			currentlyEditing.Exit.ExitMessage = question.Response
-		}
-
 	}
 
 	//

@@ -63,7 +63,11 @@ func Peep(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 
 		if playerId > 0 {
 
-			u := *users.GetByUserId(playerId)
+			uPtr := users.GetByUserId(playerId)
+			if uPtr == nil {
+				return true, nil
+			}
+			u := *uPtr
 			targetName := u.Character.GetPlayerName(user.UserId).String()
 
 			if skillLevel >= 2 {
@@ -92,6 +96,9 @@ func Peep(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 				}
 
 				raceInfo := races.GetRace(u.Character.GetRaceId())
+				if raceInfo == nil {
+					return true, nil
+				}
 
 				diceRoll := raceInfo.Damage.DiceRoll
 				if u.Character.Equipment.Weapon.ItemId != 0 {
@@ -157,6 +164,9 @@ func Peep(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 				}
 
 				raceInfo := races.GetRace(m.Character.GetRaceId())
+				if raceInfo == nil {
+					return true, nil
+				}
 
 				diceRoll := raceInfo.Damage.DiceRoll
 				if m.Character.Equipment.Weapon.ItemId != 0 {

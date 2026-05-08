@@ -388,7 +388,7 @@ func Track(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 
 		}
 
-		visitorData := make([]trackingInfo, len(allUsersAndMobs))
+		visitorData := make([]trackingInfo, 0, len(allUsersAndMobs))
 		for _, vInfo := range allUsersAndMobs {
 			visitorData = append(visitorData, vInfo)
 		}

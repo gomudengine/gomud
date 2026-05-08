@@ -112,6 +112,9 @@ func Throw(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 			// do something with tempExit
 			throwToRoom := rooms.LoadRoom(tempExit.RoomId)
+			if throwToRoom == nil {
+				return true, nil
+			}
 			returnExitName := throwToRoom.FindExitTo(mob.Character.RoomId)
 
 			if len(returnExitName) < 1 {

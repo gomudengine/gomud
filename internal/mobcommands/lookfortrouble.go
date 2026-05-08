@@ -115,6 +115,9 @@ func LookForTrouble(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) 
 			}
 
 			raceInfo := races.GetRace(mob.Character.GetRaceId())
+			if raceInfo == nil {
+				continue
+			}
 
 			if mob.HatesMob(considerMob) || mob.HatesRace(raceInfo.Name) {
 				possibleMobTargets = append(possibleMobTargets, considerMobInstanceId)

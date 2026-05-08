@@ -99,7 +99,12 @@ func Attack(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 				allPlayers = append(allPlayers, userId)
 			}
 
-			randomSelection := util.Rand(len(allMobs) + len(allPlayers))
+			totalTargets := len(allMobs) + len(allPlayers)
+			if totalTargets == 0 {
+				return true, nil
+			}
+
+			randomSelection := util.Rand(totalTargets)
 
 			if randomSelection < len(allMobs) {
 				attackMobInstanceId = allMobs[randomSelection]

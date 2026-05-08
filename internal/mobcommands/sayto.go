@@ -60,6 +60,9 @@ func SayTo(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	} else if mobInstanceId > 0 {
 
 		toMob := mobs.GetInstance(mobInstanceId)
+		if toMob == nil {
+			return true, nil
+		}
 
 		rest = strings.TrimSpace(rest[len(args[0]):])
 		isSneaking := mob.Character.HasBuffFlag(buffs.Hidden)
@@ -153,6 +156,9 @@ func ReplyTo(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	} else if mobInstanceId > 0 {
 
 		toMob := mobs.GetInstance(mobInstanceId)
+		if toMob == nil {
+			return true, nil
+		}
 
 		rest = strings.TrimSpace(rest[len(args[0]):])
 		isSneaking := mob.Character.HasBuffFlag(buffs.Hidden)

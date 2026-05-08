@@ -6,6 +6,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/util"
 )
 
 func Wander(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
@@ -60,7 +61,17 @@ func Wander(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		}
 	}
 
-	if exitName, roomId := room.GetRandomExit(); exitName != `` {
+	// If we have filtered options, pick from those; otherwise pick any random exit.
+	if len(exitOptions) > 0 {
+		exitName := exitOptions[util.Rand(len(exitOptions))]
+		exitInfo := room.Exits[exitName]
+		if r := rooms.LoadRoom(exitInfo.RoomId); r != nil {
+			if !restrictZone || r.Zone == mob.Character.Zone {
+				mob.WanderCount++
+				mob.Command(fmt.Sprintf("go %s", exitName))
+			}
+		}
+	} else if exitName, roomId := room.GetRandomExit(); exitName != `` {
 		if r := rooms.LoadRoom(roomId); r != nil {
 			if !restrictZone || r.Zone == mob.Character.Zone {
 

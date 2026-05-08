@@ -232,6 +232,9 @@ func Throw(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 
 					// do something with tempExit
 					throwToRoom := rooms.LoadRoom(tempExit.RoomId)
+					if throwToRoom == nil {
+						return true, nil
+					}
 					returnExitName := throwToRoom.FindExitTo(user.Character.RoomId)
 
 					if len(returnExitName) < 1 {
