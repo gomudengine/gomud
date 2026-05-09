@@ -50,8 +50,8 @@ func SetAdminRegistrar(r ModuleAdminRegistrar) {
 }
 
 const (
-	dataFilesFolder         = `datafiles` + string(filepath.Separator)
-	dataOverlaysFilesFolder = `data-overlays` + string(filepath.Separator)
+	dataFilesFolder         = `datafiles/`
+	dataOverlaysFilesFolder = `data-overlays/`
 )
 
 type pluginRegistry []*Plugin
