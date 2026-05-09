@@ -3,6 +3,8 @@ package plugins
 import (
 	"embed"
 	"io/fs"
+	"path/filepath"
+	"strings"
 )
 
 // Implements fs.ReadFileFS
@@ -12,7 +14,7 @@ type PluginFiles struct {
 }
 
 func (p PluginFiles) ReadFile(name string) ([]byte, error) {
-
+	name = strings.ReplaceAll(filepath.ToSlash(name), `//`, `/`)
 	if embedPath, ok := p.filePaths[name]; ok {
 		b, err := p.fileSystem.ReadFile(embedPath)
 		if err == nil {
@@ -24,7 +26,7 @@ func (p PluginFiles) ReadFile(name string) ([]byte, error) {
 }
 
 func (p PluginFiles) Open(name string) (fs.File, error) {
-
+	name = strings.ReplaceAll(filepath.ToSlash(name), `//`, `/`)
 	if embedPath, ok := p.filePaths[name]; ok {
 		return p.fileSystem.Open(embedPath)
 
@@ -35,7 +37,7 @@ func (p PluginFiles) Open(name string) (fs.File, error) {
 }
 
 func (p PluginFiles) Stat(name string) (fs.FileInfo, error) {
-
+	name = strings.ReplaceAll(filepath.ToSlash(name), `//`, `/`)
 	if embedPath, ok := p.filePaths[name]; ok {
 		return fs.Stat(p.fileSystem, embedPath)
 	}
