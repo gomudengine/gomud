@@ -131,7 +131,7 @@ func loadAlts(userId int) []characters.Character {
 		return nil
 	}
 
-	data, err := os.ReadFile(altsFilePath(userId))
+	data, err := util.ReadFile(altsFilePath(userId))
 	if err != nil {
 		mudlog.Error("loadAlts", "error", err.Error())
 		return nil
@@ -168,7 +168,7 @@ func saveAlts(userId int, alts []characters.Character) bool {
 		saveFilePath += `.new`
 	}
 
-	if err := os.WriteFile(saveFilePath, data, 0777); err != nil {
+	if err := util.WriteFile(saveFilePath, data, 0777); err != nil {
 		mudlog.Error("saveAlts", "error", err.Error())
 		return false
 	}

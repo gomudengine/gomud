@@ -138,7 +138,7 @@ func SaveAttackMessageGroup(group *WeaponAttackMessageGroup) error {
 
 	bytes = insertCombatComments(bytes, sectionComments)
 
-	if err := os.WriteFile(filePath, bytes, 0644); err != nil {
+	if err := util.WriteFile(filePath, bytes, 0644); err != nil {
 		return fmt.Errorf("writing attack messages file: %w", err)
 	}
 
@@ -266,5 +266,5 @@ func SaveItemScript(itemId int, content string) error {
 		return nil
 	}
 
-	return os.WriteFile(scriptPath, []byte(content), 0644)
+	return util.WriteFile(scriptPath, []byte(content), 0644)
 }

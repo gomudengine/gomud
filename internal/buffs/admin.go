@@ -83,5 +83,5 @@ func SaveBuffScript(buffId int, content string) error {
 		return nil
 	}
 
-	return os.WriteFile(scriptPath, []byte(content), 0644)
+	return util.WriteFile(scriptPath, []byte(content), 0644)
 }

@@ -85,7 +85,7 @@ func GetConversationFile(zone string, mobId int) (ConversationFileContents, erro
 	zone = ZoneNameSanitize(zone)
 	path := convFilePath(zone, mobId)
 
-	data, err := os.ReadFile(path)
+	data, err := util.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return ConversationFileContents{}, fmt.Errorf("conversation file not found: %s/%d", zone, mobId)
@@ -137,7 +137,7 @@ func SaveConversationFile(zone string, mobId int, convs []ConversationData) erro
 		return fmt.Errorf("marshalling conversation data: %w", err)
 	}
 
-	if err := os.WriteFile(path, out, 0644); err != nil {
+	if err := util.WriteFile(path, out, 0644); err != nil {
 		return fmt.Errorf("writing conversation file: %w", err)
 	}
 

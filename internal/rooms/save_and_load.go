@@ -113,7 +113,7 @@ func LoadRoomInstance(roomId int) *Room {
 	// Look for specially saved instance data
 	filepath := util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), `/rooms.instances/`, filename)
 
-	if bytes, err := os.ReadFile(filepath); err == nil {
+	if bytes, err := util.ReadFile(filepath); err == nil {
 		// Unmarshal onto the default template data, overwriting any set fields in the instance save file
 		yaml.Unmarshal(bytes, room)
 	}
@@ -167,7 +167,7 @@ func SaveRoomTemplate(roomTpl Room) error {
 
 	// First write the empty version to its template file
 	roomFilePath := util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), `/rooms/`, fmt.Sprintf("%s%d.yaml", zoneFolder, roomTpl.RoomId))
-	if err = os.WriteFile(roomFilePath, data, 0777); err != nil {
+	if err = util.WriteFile(roomFilePath, data, 0777); err != nil {
 		return err
 	}
 
@@ -305,7 +305,7 @@ func SaveRoomInstance(r Room) error {
 		return err
 	}
 
-	if err = os.WriteFile(instanceFilePath, data, 0777); err != nil {
+	if err = util.WriteFile(instanceFilePath, data, 0777); err != nil {
 		return err
 	}
 

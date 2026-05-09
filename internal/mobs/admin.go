@@ -103,7 +103,7 @@ func SaveMobScript(mobId MobId, content string) error {
 	}
 
 	os.MkdirAll(filepath.Dir(scriptPath), os.ModePerm)
-	return os.WriteFile(scriptPath, []byte(content), 0644)
+	return util.WriteFile(scriptPath, []byte(content), 0644)
 }
 
 func StockMobShop(mobId MobId, entry characters.ShopItem) error {

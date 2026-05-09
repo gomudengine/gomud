@@ -2,7 +2,6 @@ package colorpatterns
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/util"
@@ -47,10 +46,10 @@ func DeleteColorPattern(name string) error {
 }
 
 func saveColorPatternsFile() error {
-	path := util.FilePath(configs.GetFilePathsConfig().DataFiles.String() + `/color-patterns.yaml`)
+	path := configs.GetFilePathsConfig().DataFiles.String() + `/color-patterns.yaml`
 	bytes, err := yaml.Marshal(numericPatterns)
 	if err != nil {
 		return fmt.Errorf("marshaling color patterns: %w", err)
 	}
-	return os.WriteFile(path, bytes, 0644)
+	return util.WriteFile(path, bytes, 0644)
 }

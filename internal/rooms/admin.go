@@ -301,7 +301,7 @@ func GetRoomInstanceRaw(roomId int) ([]byte, error) {
 		return nil, fmt.Errorf("room %d not found", roomId)
 	}
 	instancePath := util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), `/rooms.instances/`, filePath)
-	data, err := os.ReadFile(instancePath)
+	data, err := util.ReadFile(instancePath)
 	if os.IsNotExist(err) {
 		return nil, nil
 	}
@@ -326,7 +326,7 @@ func SaveRoomInstanceRaw(roomId int, content []byte) error {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("creating instance directory: %w", err)
 	}
-	return os.WriteFile(instancePath, content, 0644)
+	return util.WriteFile(instancePath, content, 0644)
 }
 
 // DeleteRoomInstance removes the instance file for roomId. Returns nil when
@@ -360,7 +360,7 @@ func SaveRoomScript(roomId int, content string) error {
 		return nil
 	}
 
-	return os.WriteFile(scriptPath, []byte(content), 0644)
+	return util.WriteFile(scriptPath, []byte(content), 0644)
 }
 
 type MapperRoomData struct {

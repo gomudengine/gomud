@@ -649,7 +649,7 @@ func (r *Mob) Save() error {
 
 	saveFilePath := util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), `/`, `mobs`, `/`, fmt.Sprintf("%s.yaml", fileName))
 
-	err = os.WriteFile(saveFilePath, bytes, 0644)
+	err = util.WriteFile(saveFilePath, bytes, 0644)
 	if err != nil {
 		return err
 	}
@@ -673,7 +673,7 @@ func (m *Mob) GetScript() string {
 	scriptPath := m.GetScriptPath()
 	// Load the script into a string
 	if _, err := os.Stat(scriptPath); err == nil {
-		if bytes, err := os.ReadFile(scriptPath); err == nil {
+		if bytes, err := util.ReadFile(scriptPath); err == nil {
 			return string(bytes)
 		}
 	}

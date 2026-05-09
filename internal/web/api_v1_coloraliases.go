@@ -3,7 +3,6 @@ package web
 import (
 	"encoding/json"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -89,7 +88,7 @@ func apiV1DeleteColorAlias(w http.ResponseWriter, r *http.Request) {
 // The file format wraps aliases under a top-level "colors:" key to match the
 // existing file structure that ansitags.LoadAliases expects.
 func writeColorAliasYAML(aliases map[string]any) error {
-	path := util.FilePath(string(configs.GetFilePathsConfig().DataFiles) + `/ansi-aliases.yaml`)
+	path := string(configs.GetFilePathsConfig().DataFiles) + `/ansi-aliases.yaml`
 
 	// Normalise: the in-memory map may contain int or float64 values depending
 	// on how they were loaded. Convert everything to int for clean YAML output.
@@ -110,5 +109,5 @@ func writeColorAliasYAML(aliases map[string]any) error {
 		return err
 	}
 
-	return os.WriteFile(path, data, 0644)
+	return util.WriteFile(path, data, 0644)
 }

@@ -702,6 +702,14 @@ func FilePath(pathParts ...string) string {
 	return filepath.FromSlash(strings.Join(pathParts, ``))
 }
 
+func ReadFile(path string) ([]byte, error) {
+	return os.ReadFile(filepath.FromSlash(path))
+}
+
+func WriteFile(path string, data []byte, perm os.FileMode) error {
+	return os.WriteFile(filepath.FromSlash(path), data, perm)
+}
+
 func BreakIntoParts(full string) []string {
 	result := []string{full}
 

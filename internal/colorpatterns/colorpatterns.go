@@ -3,7 +3,6 @@ package colorpatterns
 import (
 	"fmt"
 	"math"
-	"os"
 	"regexp"
 	"sort"
 	"strconv"
@@ -342,9 +341,9 @@ func LoadColorPatterns() {
 
 	start := time.Now()
 
-	path := util.FilePath(string(configs.GetFilePathsConfig().DataFiles) + `/color-patterns.yaml`)
+	path := string(configs.GetFilePathsConfig().DataFiles) + `/color-patterns.yaml`
 
-	bytes, err := os.ReadFile(path)
+	bytes, err := util.ReadFile(path)
 	if err != nil {
 		panic(errors.Wrap(err, `filepath: `+path))
 	}

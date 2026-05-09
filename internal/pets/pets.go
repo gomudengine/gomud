@@ -2,7 +2,6 @@ package pets
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/buffs"
@@ -318,7 +317,7 @@ func (p *Pet) Save() error {
 
 	saveFilePath := util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), `/`, `pets`, `/`, p.Filename())
 
-	err = os.WriteFile(saveFilePath, bytes, 0644)
+	err = util.WriteFile(saveFilePath, bytes, 0644)
 	if err != nil {
 		return err
 	}

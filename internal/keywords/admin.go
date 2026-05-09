@@ -2,10 +2,10 @@ package keywords
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/util"
 	"gopkg.in/yaml.v2"
 )
 
@@ -73,7 +73,7 @@ func SaveKeywords(a *Aliases) error {
 
 	bytes = insertSectionComments(bytes, sectionComments)
 
-	if err := os.WriteFile(path, bytes, 0644); err != nil {
+	if err := util.WriteFile(path, bytes, 0644); err != nil {
 		return fmt.Errorf("writing keywords file: %w", err)
 	}
 
@@ -90,7 +90,7 @@ func SaveKeywords(a *Aliases) error {
 func extractSectionComments(path string) map[string][]string {
 	comments := make(map[string][]string)
 
-	data, err := os.ReadFile(path)
+	data, err := util.ReadFile(path)
 	if err != nil {
 		return comments
 	}

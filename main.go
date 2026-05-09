@@ -320,7 +320,7 @@ func main() {
 		if hostKeyPath == `` {
 			mudlog.Error("SSH", "error", "SSHPort is set but SSHHostKeyFile is not configured; SSH disabled")
 		} else {
-			hostKeyBytes, err := os.ReadFile(hostKeyPath)
+			hostKeyBytes, err := util.ReadFile(hostKeyPath)
 			if err != nil {
 				mudlog.Error("SSH", "error", "failed to read SSH host key", "path", hostKeyPath, "details", err)
 			} else {

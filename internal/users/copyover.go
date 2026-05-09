@@ -1,7 +1,6 @@
 package users
 
 import (
-	"os"
 	"strconv"
 	"time"
 
@@ -88,7 +87,7 @@ func (u *usersCopyoverContributor) CopyoverRestore(dec *copyover.Decoder) error 
 func loadUserById(userId int) (*UserRecord, error) {
 	userFilePath := util.FilePath(string(configs.GetFilePathsConfig().DataFiles), `/`, `users`, `/`, strconv.Itoa(userId)+`.yaml`)
 
-	data, err := os.ReadFile(userFilePath)
+	data, err := util.ReadFile(userFilePath)
 	if err != nil {
 		return nil, err
 	}

@@ -37,7 +37,7 @@ func AttemptConversation(initiatorMobId int, initatorInstanceId int, initiatorNa
 		return 0
 	}
 
-	bytes, err := os.ReadFile(filePath)
+	bytes, err := util.ReadFile(filePath)
 	if err != nil {
 		mudlog.Error("AttemptConversation()", "error", "Problem reading conversation datafile "+filePath+": "+err.Error())
 		return 0

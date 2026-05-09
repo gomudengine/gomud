@@ -3,7 +3,6 @@ package races
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -180,7 +179,7 @@ func (r *Race) Save() error {
 
 	saveFilePath := util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), `/`, `races`, `/`, r.Filename())
 
-	err = os.WriteFile(saveFilePath, bytes, 0644)
+	err = util.WriteFile(saveFilePath, bytes, 0644)
 	if err != nil {
 		return err
 	}

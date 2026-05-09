@@ -481,7 +481,7 @@ func (i ItemSpec) GetScript() string {
 
 	// Load the script into a string
 	if _, err := os.Stat(scriptPath); err == nil {
-		if bytes, err := os.ReadFile(scriptPath); err == nil {
+		if bytes, err := util.ReadFile(scriptPath); err == nil {
 			return string(bytes)
 		}
 	}

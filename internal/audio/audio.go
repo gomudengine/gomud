@@ -78,7 +78,7 @@ func SaveAudio(entries map[string]AudioConfig) error {
 		return fmt.Errorf("marshaling audio config: %w", err)
 	}
 
-	if err := os.WriteFile(path, bytes, 0644); err != nil {
+	if err := util.WriteFile(path, bytes, 0644); err != nil {
 		return fmt.Errorf("writing audio config file: %w", err)
 	}
 
@@ -94,9 +94,9 @@ func LoadAudioConfig() {
 
 	start := time.Now()
 
-	path := util.FilePath(string(configs.GetFilePathsConfig().DataFiles) + `/audio.yaml`)
+	path := string(configs.GetFilePathsConfig().DataFiles) + `/audio.yaml`
 
-	bytes, err := os.ReadFile(path)
+	bytes, err := util.ReadFile(path)
 	if err != nil {
 		panic(errors.Wrap(err, `filepath: `+path))
 	}

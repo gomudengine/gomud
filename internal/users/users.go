@@ -389,7 +389,7 @@ func LoadUser(username string, skipValidation ...bool) (*UserRecord, error) {
 
 	userFilePath := util.FilePath(string(configs.GetFilePathsConfig().DataFiles), `/`, `users`, `/`, strconv.Itoa(userId)+`.yaml`)
 
-	userFileTxt, err := os.ReadFile(userFilePath)
+	userFileTxt, err := util.ReadFile(userFilePath)
 	if err != nil {
 		return nil, err
 	}
@@ -588,7 +588,7 @@ func SaveUser(u UserRecord, isAutoSave ...bool) error {
 		saveFilePath += `.new`
 	}
 
-	err = os.WriteFile(saveFilePath, data, 0600)
+	err = util.WriteFile(saveFilePath, data, 0600)
 	if err != nil {
 		return err
 	}

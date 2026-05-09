@@ -221,10 +221,10 @@ func Process(fname string, data any, receivingUserId ...int) (string, error) {
 		// nothing able to load from the plugin files, lets try the normal filesystem.
 		//
 
-		fullPath := util.FilePath(string(configs.GetFilePathsConfig().DataFiles), `/`, tplInfo.path)
+		fullPath := string(configs.GetFilePathsConfig().DataFiles) + `/` + tplInfo.path
 
 		// Get the file contents
-		fileContents, err := os.ReadFile(fullPath)
+		fileContents, err := util.ReadFile(fullPath)
 		if err != nil {
 			continue
 		}

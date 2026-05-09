@@ -395,7 +395,7 @@ func (p *Plugin) WriteBytes(identifier string, bytes []byte) error {
 		}
 	}
 
-	if err := os.WriteFile(fullPath, bytes, 0777); err != nil {
+	if err := util.WriteFile(fullPath, bytes, 0777); err != nil {
 		mudlog.Error(`plugin.WriteBytes`, `name`, p.name, `path`, fullPath, `error`, err)
 		return err
 	}
@@ -414,7 +414,7 @@ func (p *Plugin) ReadBytes(identifier string) ([]byte, error) {
 	// Create full path
 	fullPath := util.FilePath(folderPath, `/`, fileName)
 
-	bytes, err := os.ReadFile(fullPath)
+	bytes, err := util.ReadFile(fullPath)
 	if err != nil && !os.IsNotExist(err) {
 		mudlog.Warn(`plugin.ReadBytes`, `name`, p.name, `path`, fullPath, `error`, err)
 	}

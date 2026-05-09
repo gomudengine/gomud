@@ -3,7 +3,6 @@ package gametime
 import (
 	"math"
 	"math/rand"
-	"os"
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -96,9 +95,9 @@ func LoadGameTimeConfigs() {
 
 	start := time.Now()
 
-	path := util.FilePath(string(configs.GetFilePathsConfig().DataFiles) + `/gametime.yaml`)
+	path := string(configs.GetFilePathsConfig().DataFiles) + `/gametime.yaml`
 
-	bytes, err := os.ReadFile(path)
+	bytes, err := util.ReadFile(path)
 	if err != nil {
 		panic(errors.Wrap(err, `filepath: `+path))
 	}

@@ -357,9 +357,9 @@ func overridePathNoLock() string {
 
 func ReloadConfig() error {
 
-	configPath := util.FilePath(`_datafiles/config.yaml`)
+	configPath := `_datafiles/config.yaml`
 
-	bytes, err := os.ReadFile(configPath)
+	bytes, err := util.ReadFile(configPath)
 	if err != nil {
 		return err
 	}
@@ -391,7 +391,7 @@ func ReloadConfig() error {
 
 			mudlog.Info("ReloadConfig()", "Loading overrides", true)
 
-			overrideBytes, err := os.ReadFile(util.FilePath(ovrPath))
+			overrideBytes, err := util.ReadFile(ovrPath)
 			if err != nil {
 				return err
 			}

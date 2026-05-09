@@ -2,7 +2,6 @@ package gametime
 
 import (
 	"fmt"
-	"os"
 	"sort"
 
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -85,14 +84,14 @@ func DeleteCalendar(name string) error {
 
 // saveGameTimeFile writes the current gameTimeData to the gametime.yaml path.
 func saveGameTimeFile() error {
-	path := util.FilePath(string(configs.GetFilePathsConfig().DataFiles) + `/gametime.yaml`)
+	path := string(configs.GetFilePathsConfig().DataFiles) + `/gametime.yaml`
 
 	data, err := yaml.Marshal(&gameTimeData)
 	if err != nil {
 		return errors.Wrap(err, "marshal gametime data")
 	}
 
-	if err := os.WriteFile(path, data, 0o644); err != nil {
+	if err := util.WriteFile(path, data, 0o644); err != nil {
 		return errors.Wrap(err, "write gametime.yaml: "+path)
 	}
 
