@@ -743,7 +743,11 @@ func (m *ElectionsModule) onMovementGate(e events.Event) events.ListenerReturn {
 		return events.Continue
 	}
 
-	cmd := strings.ToLower(strings.TrimSpace(strings.Fields(evt.InputText)[0]))
+	fields := strings.Fields(evt.InputText)
+	if len(fields) == 0 {
+		return events.Continue
+	}
+	cmd := strings.ToLower(fields[0])
 
 	_, destRoomId := sourceRoom.FindExitByName(cmd)
 	if destRoomId == 0 {
