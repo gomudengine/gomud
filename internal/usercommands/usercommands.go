@@ -131,6 +131,7 @@ var (
 		`quit`:        {Quit, true, false},
 		`questtoken`:  {QuestToken, false, true}, // Admin only
 		`rank`:        {Rank, false, false},
+		`rankings`:    {Rankings, false, true}, // Admin only
 		`read`:        {Read, false, false},
 		`recover`:     {Recover, false, false},
 		`reload`:      {Reload, true, true}, // Admin only
