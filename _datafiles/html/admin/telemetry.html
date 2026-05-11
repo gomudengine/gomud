@@ -94,6 +94,18 @@
         <input type="text" id="f-dateTo" placeholder="e.g. 20261231" maxlength="8">
     </div>
     <div class="filter-group">
+        <label>Group By</label>
+        <select id="f-groupby">
+            <option value="">None (raw rows)</option>
+            <option value="mob">Mob</option>
+            <option value="item">Item</option>
+            <option value="zone">Zone</option>
+            <option value="room">Room</option>
+            <option value="date">Date</option>
+            <option value="category">Category</option>
+        </select>
+    </div>
+    <div class="filter-group">
         <label>Sort</label>
         <select id="f-sort">
             <option value="desc">Count desc</option>
@@ -210,6 +222,7 @@ function buildParams() {
     const zone     = document.getElementById('f-zone').value;
     const dateFrom = document.getElementById('f-dateFrom').value;
     const dateTo   = document.getElementById('f-dateTo').value;
+    const groupby  = document.getElementById('f-groupby').value;
     const sort     = document.getElementById('f-sort').value;
 
     if (cat)      p.set('category', cat);
@@ -219,6 +232,7 @@ function buildParams() {
     if (zone)     p.set('zone', zone);
     if (dateFrom) p.set('dateFrom', dateFrom);
     if (dateTo)   p.set('dateTo', dateTo);
+    if (groupby)  p.set('groupby', groupby);
     p.set('sort', sort);
     return p;
 }

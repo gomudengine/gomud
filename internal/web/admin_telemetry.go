@@ -16,7 +16,7 @@ func adminTelemetryAPI(w http.ResponseWriter, r *http.Request) {
 }
 
 // GET /admin/api/v1/telemetry
-// Query params: category, itemId, mobId, roomId, zone, date, dateFrom, dateTo, sort (asc|desc)
+// Query params: category, itemId, mobId, roomId, zone, date, dateFrom, dateTo, groupby (mob|item|zone|room|date|category), sort (asc|desc)
 func apiV1GetTelemetry(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 
@@ -51,6 +51,21 @@ func apiV1GetTelemetry(w http.ResponseWriter, r *http.Request) {
 		if id, err := strconv.Atoi(v); err == nil {
 			qb = qb.RoomId(id)
 		}
+	}
+
+	switch q.Get("groupby") {
+	case "mob", "mobid":
+		qb = qb.GroupBy(telemetry.GroupByMobId)
+	case "item", "itemid":
+		qb = qb.GroupBy(telemetry.GroupByItemId)
+	case "zone":
+		qb = qb.GroupBy(telemetry.GroupByZone)
+	case "room", "roomid":
+		qb = qb.GroupBy(telemetry.GroupByRoomId)
+	case "date":
+		qb = qb.GroupBy(telemetry.GroupByDate)
+	case "category":
+		qb = qb.GroupBy(telemetry.GroupByCategory)
 	}
 
 	if q.Get("sort") == "asc" {

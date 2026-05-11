@@ -55,6 +55,7 @@
         </summary>
         <div class="api-body">
             <p>Returns an array of <code>Record</code> objects matching the supplied filters. All parameters are optional; omitting a parameter matches any value for that field. Results are sorted by <code>count</code> descending by default.</p>
+            <p>Use <code>groupby</code> to roll up records across dates, zones, or rooms and see a single aggregated count per unique value of the chosen dimension. Fields that are not part of the grouping key are omitted from the rolled-up records.</p>
             <table class="params-table">
                 <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
                 <tbody>
@@ -66,6 +67,7 @@
                     <tr><td class="param-name">date</td><td>string <span class="param-opt">optional</span></td><td>Exact date <code>YYYYMMDD</code>. Shorthand for <code>dateFrom</code> + <code>dateTo</code> set to the same value.</td></tr>
                     <tr><td class="param-name">dateFrom</td><td>string <span class="param-opt">optional</span></td><td>Start of date range <code>YYYYMMDD</code>, inclusive</td></tr>
                     <tr><td class="param-name">dateTo</td><td>string <span class="param-opt">optional</span></td><td>End of date range <code>YYYYMMDD</code>, inclusive</td></tr>
+                    <tr><td class="param-name">groupby</td><td>string <span class="param-opt">optional</span></td><td>Roll up matching records by a single dimension. Counts are summed across all records sharing the same value. Non-key fields are omitted from results. Accepted values: <code>mob</code> (or <code>mobid</code>), <code>item</code> (or <code>itemid</code>), <code>zone</code>, <code>room</code> (or <code>roomid</code>), <code>date</code>, <code>category</code></td></tr>
                     <tr><td class="param-name">sort</td><td>string <span class="param-opt">optional</span></td><td><code>asc</code> or <code>desc</code> (default <code>desc</code>). Sorts by <code>count</code>.</td></tr>
                 </tbody>
             </table>
@@ -75,12 +77,21 @@
      <span class="str">"http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/telemetry?category=mob_kill&amp;zone=frostfang&amp;dateFrom=20260101&amp;dateTo=20261231"</span></div>
             <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
      <span class="str">"http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/telemetry?category=item_drop&amp;itemId=42"</span></div>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="str">"http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/telemetry?category=mob_kill&amp;groupby=mob&amp;sort=desc"</span></div>
             <div class="response-examples">
                 <details class="resp-entry">
-                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success (raw rows)</span></summary>
                     <div class="resp-body"><div class="curl-block">{"success":true,"data":[
   {"date":"20260510","category":"item_drop","itemid":42,"mobid":7,"roomid":100,"zone":"frostfang","count":14},
   {"date":"20260510","category":"item_drop","itemid":42,"mobid":12,"roomid":105,"zone":"frostfang","count":3}
+]}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success (groupby=mob)</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":[
+  {"category":"mob_kill","mobid":7,"count":42},
+  {"category":"mob_kill","mobid":12,"count":18}
 ]}</div></div>
                 </details>
             </div>

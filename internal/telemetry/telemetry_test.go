@@ -272,6 +272,51 @@ func TestLoad_EmptyDirectory(t *testing.T) {
 	assert.Empty(t, index)
 }
 
+func TestQuery_GroupByMobId(t *testing.T) {
+	resetState()
+
+	// Same mob killed in two different rooms on two different dates.
+	records = []Record{
+		{Date: "20260101", Category: CatMobKill, MobId: 7, Zone: "frostfang", RoomId: 100, Count: 3},
+		{Date: "20260102", Category: CatMobKill, MobId: 7, Zone: "frostfang", RoomId: 101, Count: 5},
+		{Date: "20260101", Category: CatMobKill, MobId: 9, Zone: "dungeon", RoomId: 200, Count: 2},
+	}
+	rebuildIndex()
+
+	results := Query().Category(CatMobKill).GroupBy(GroupByMobId).SortDesc().Results()
+
+	require.Len(t, results, 2)
+	// Mob 7 should be first with count 8.
+	assert.Equal(t, 7, results[0].MobId)
+	assert.Equal(t, 8, results[0].Count)
+	// Date, Zone, RoomId are zeroed out on rolled-up records.
+	assert.Empty(t, results[0].Date)
+	assert.Empty(t, results[0].Zone)
+	assert.Equal(t, 0, results[0].RoomId)
+	// Mob 9 second.
+	assert.Equal(t, 9, results[1].MobId)
+	assert.Equal(t, 2, results[1].Count)
+}
+
+func TestQuery_GroupByZone(t *testing.T) {
+	resetState()
+
+	records = []Record{
+		{Date: "20260101", Category: CatMobKill, MobId: 1, Zone: "frostfang", Count: 4},
+		{Date: "20260102", Category: CatMobKill, MobId: 2, Zone: "frostfang", Count: 6},
+		{Date: "20260101", Category: CatMobKill, MobId: 3, Zone: "dungeon", Count: 1},
+	}
+	rebuildIndex()
+
+	results := Query().Category(CatMobKill).GroupBy(GroupByZone).SortDesc().Results()
+
+	require.Len(t, results, 2)
+	assert.Equal(t, "frostfang", results[0].Zone)
+	assert.Equal(t, 10, results[0].Count)
+	assert.Equal(t, "dungeon", results[1].Zone)
+	assert.Equal(t, 1, results[1].Count)
+}
+
 func TestLoad_MissingDirectory(t *testing.T) {
 	resetState()
 

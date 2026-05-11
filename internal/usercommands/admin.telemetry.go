@@ -23,11 +23,11 @@ func Telemetry(rest string, user *users.UserRecord, room *rooms.Room, flags even
 
 	if len(args) == 0 || args[0] == "help" {
 		user.SendText(`<ansi fg="white-bold">Telemetry Commands:</ansi>`)
-		user.SendText(`  <ansi fg="command">telemetry list item_drops</ansi>  [itemId=N] [mobId=N] [zone=X] [date=YYYYMMDD] [dateFrom=YYYYMMDD] [dateTo=YYYYMMDD] [asc|desc]`)
-		user.SendText(`  <ansi fg="command">telemetry list item_pickups</ansi> [itemId=N] [zone=X] [date=YYYYMMDD] [asc|desc]`)
-		user.SendText(`  <ansi fg="command">telemetry list mob_kills</ansi>    [mobId=N] [zone=X] [date=YYYYMMDD] [asc|desc]`)
-		user.SendText(`  <ansi fg="command">telemetry list player_deaths</ansi>[mobId=N] [zone=X] [date=YYYYMMDD] [asc|desc]`)
-		user.SendText(`  <ansi fg="command">telemetry list item_purchases</ansi>[itemId=N] [mobId=N] [date=YYYYMMDD] [asc|desc]`)
+		user.SendText(`  <ansi fg="command">telemetry list item_drops</ansi>  [itemId=N] [mobId=N] [zone=X] [date=YYYYMMDD] [dateFrom=YYYYMMDD] [dateTo=YYYYMMDD] [groupby=item|mob|zone|room|date] [asc|desc]`)
+		user.SendText(`  <ansi fg="command">telemetry list item_pickups</ansi> [itemId=N] [zone=X] [date=YYYYMMDD] [groupby=item|zone|room|date] [asc|desc]`)
+		user.SendText(`  <ansi fg="command">telemetry list mob_kills</ansi>    [mobId=N] [zone=X] [date=YYYYMMDD] [groupby=mob|zone|room|date] [asc|desc]`)
+		user.SendText(`  <ansi fg="command">telemetry list player_deaths</ansi>[mobId=N] [zone=X] [date=YYYYMMDD] [groupby=mob|zone|room|date] [asc|desc]`)
+		user.SendText(`  <ansi fg="command">telemetry list item_purchases</ansi>[itemId=N] [mobId=N] [date=YYYYMMDD] [groupby=item|mob|date] [asc|desc]`)
 		user.SendText(`  <ansi fg="command">telemetry clear</ansi> [category] [date=YYYYMMDD]`)
 		user.SendText(`  <ansi fg="command">telemetry save</ansi>`)
 		return true, nil
@@ -79,6 +79,16 @@ func Telemetry(rest string, user *users.UserRecord, room *rooms.Room, flags even
 				descSort = false
 			case arg == "desc":
 				descSort = true
+			case arg == "groupby=mob" || arg == "groupby=mobid":
+				qb = qb.GroupBy(telemetry.GroupByMobId)
+			case arg == "groupby=item" || arg == "groupby=itemid":
+				qb = qb.GroupBy(telemetry.GroupByItemId)
+			case arg == "groupby=zone":
+				qb = qb.GroupBy(telemetry.GroupByZone)
+			case arg == "groupby=room" || arg == "groupby=roomid":
+				qb = qb.GroupBy(telemetry.GroupByRoomId)
+			case arg == "groupby=date":
+				qb = qb.GroupBy(telemetry.GroupByDate)
 			case strings.HasPrefix(arg, "itemid="):
 				if v, err := strconv.Atoi(strings.TrimPrefix(arg, "itemid=")); err == nil {
 					qb = qb.ItemId(v)
