@@ -55,6 +55,10 @@ func onMobDeath(e events.Event) events.ListenerReturn {
 		return events.Continue
 	}
 
+	if len(evt.KilledByUsers) == 0 {
+		return events.Continue
+	}
+
 	zone := ""
 	if r := rooms.LoadRoom(evt.RoomId); r != nil {
 		zone = r.Zone

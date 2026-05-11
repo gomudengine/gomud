@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -278,4 +279,31 @@ func TestLoad_MissingDirectory(t *testing.T) {
 
 	assert.Empty(t, records)
 	assert.Empty(t, index)
+}
+
+func TestOnMobDeath_SkipsSuicide(t *testing.T) {
+	resetState()
+
+	// No KilledByUsers means the mob died with no player involvement (suicide).
+	onMobDeath(events.MobDeath{
+		MobId:         7,
+		RoomId:        100,
+		KilledByUsers: []int{},
+	})
+
+	assert.Empty(t, records)
+}
+
+func TestOnMobDeath_TracksPlayerKill(t *testing.T) {
+	resetState()
+
+	onMobDeath(events.MobDeath{
+		MobId:         7,
+		RoomId:        100,
+		KilledByUsers: []int{42},
+	})
+
+	require.Len(t, records, 1)
+	assert.Equal(t, CatMobKill, records[0].Category)
+	assert.Equal(t, 7, records[0].MobId)
 }
