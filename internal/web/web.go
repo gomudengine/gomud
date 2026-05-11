@@ -143,7 +143,7 @@ func (reg *moduleAdminRegistrarImpl) RegisterAdminPage(
 		}
 	}
 
-	internalMux.HandleFunc("GET "+path, RunWithMUDLocked(doBasicAuth(handler)))
+	internalMux.HandleFunc("GET "+path, doBasicAuth(RunWithMUDLocked(handler)))
 
 	if !addToNav {
 		return
@@ -240,7 +240,7 @@ func (reg *moduleAdminRegistrarImpl) RegisterAdminAPIEndpoint(
 		writeJSON(w, status, APIResponse[any]{Success: success, Data: data})
 	}
 
-	internalMux.HandleFunc(method+" "+path, RunWithMUDLocked(doBasicAuth(h)))
+	internalMux.HandleFunc(method+" "+path, doBasicAuth(RunWithMUDLocked(h)))
 }
 
 type WebPlugin interface {
