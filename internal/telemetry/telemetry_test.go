@@ -219,8 +219,8 @@ func TestSaveLoad_RoundTrip(t *testing.T) {
 	require.NoError(t, Save())
 
 	// Verify two separate files were written.
-	assert.FileExists(t, filepath.Join(dataDir, "20260101.yaml"))
-	assert.FileExists(t, filepath.Join(dataDir, "20260102.yaml"))
+	assert.FileExists(t, filepath.Join(dataDir, "20260101.json"))
+	assert.FileExists(t, filepath.Join(dataDir, "20260102.json"))
 
 	// Reload from directory.
 	resetState()
@@ -257,8 +257,8 @@ func TestSave_DeletesFileWhenDateCleared(t *testing.T) {
 	Clear("", "", "20260101", "20260101", 0, 0, 0)
 	require.NoError(t, Save())
 
-	assert.NoFileExists(t, filepath.Join(dataDir, "20260101.yaml"))
-	assert.FileExists(t, filepath.Join(dataDir, "20260102.yaml"))
+	assert.NoFileExists(t, filepath.Join(dataDir, "20260101.json"))
+	assert.FileExists(t, filepath.Join(dataDir, "20260102.json"))
 }
 
 func TestLoad_EmptyDirectory(t *testing.T) {

@@ -1,6 +1,7 @@
 package telemetry
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -40,12 +41,13 @@ var (
 	records []Record
 	index   = map[string]int{}  // recordKey -> slice index
 	dirty   = map[string]bool{} // date -> needs save
-	dataDir string              // directory that holds per-date YAML files
+	dataDir string              // directory that holds per-date JSON files
 )
 
-// Load reads all YYYYMMDD.yaml files from <dataFilesPath>/telemetry/ and
-// rebuilds the in-memory index. Safe to call when the directory does not
-// exist yet.
+// Load reads all YYYYMMDD.json files from <dataFilesPath>/telemetry/ and
+// rebuilds the in-memory index. Any legacy YYYYMMDD.yaml files found are
+// migrated to JSON and then deleted. Safe to call when the directory does
+// not exist yet.
 func Load(dataFilesPath string) {
 	dataDir = util.FilePath(dataFilesPath, `/`, `telemetry`)
 
@@ -67,33 +69,63 @@ func Load(dataFilesPath string) {
 
 	fileCount := 0
 	for _, e := range entries {
-		if e.IsDir() || !strings.HasSuffix(e.Name(), ".yaml") {
+		if e.IsDir() {
 			continue
 		}
 
-		data, err := util.ReadFile(filepath.Join(dataDir, e.Name()))
-		if err != nil {
-			mudlog.Error("telemetry.Load", "file", e.Name(), "error", err)
-			continue
-		}
+		name := e.Name()
+		path := filepath.Join(dataDir, name)
 
-		var loaded []Record
-		if err := yaml.Unmarshal(data, &loaded); err != nil {
-			mudlog.Error("telemetry.Load", "file", e.Name(), "error", err)
-			continue
-		}
+		switch {
+		case strings.HasSuffix(name, ".json"):
+			data, err := util.ReadFile(path)
+			if err != nil {
+				mudlog.Error("telemetry.Load", "file", name, "error", err)
+				continue
+			}
+			var loaded []Record
+			if err := json.Unmarshal(data, &loaded); err != nil {
+				mudlog.Error("telemetry.Load", "file", name, "error", err)
+				continue
+			}
+			for _, r := range loaded {
+				records = append(records, r)
+				index[recordKey(r.Date, r.Category, r.Zone, r.ItemId, r.MobId, r.RoomId, r.RaceId, r.Topic)] = len(records) - 1
+			}
+			fileCount++
 
-		for _, r := range loaded {
-			records = append(records, r)
-			index[recordKey(r.Date, r.Category, r.Zone, r.ItemId, r.MobId, r.RoomId, r.RaceId, r.Topic)] = len(records) - 1
+		case strings.HasSuffix(name, ".yaml"):
+			data, err := util.ReadFile(path)
+			if err != nil {
+				mudlog.Error("telemetry.Load", "file", name, "error", err)
+				continue
+			}
+			var loaded []Record
+			if err := yaml.Unmarshal(data, &loaded); err != nil {
+				mudlog.Error("telemetry.Load", "file", name, "error", err)
+				continue
+			}
+			jsonPath := strings.TrimSuffix(path, ".yaml") + ".json"
+			if err := writeJSONFile(jsonPath, loaded); err != nil {
+				mudlog.Error("telemetry.Load", "action", "migrate", "file", name, "error", err)
+				continue
+			}
+			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+				mudlog.Error("telemetry.Load", "action", "remove-yaml", "file", name, "error", err)
+			}
+			mudlog.Info("telemetry.Load", "action", "migrated", "from", name, "to", filepath.Base(jsonPath))
+			for _, r := range loaded {
+				records = append(records, r)
+				index[recordKey(r.Date, r.Category, r.Zone, r.ItemId, r.MobId, r.RoomId, r.RaceId, r.Topic)] = len(records) - 1
+			}
+			fileCount++
 		}
-		fileCount++
 	}
 
 	mudlog.Info("telemetry.Load", "files", fileCount, "records", len(records))
 }
 
-// Save writes one YAML file per dirty date to the telemetry directory.
+// Save writes one JSON file per dirty date to the telemetry directory.
 // Dates whose records were all cleared have their file deleted.
 // Clean dates are not touched.
 func Save() error {
@@ -123,7 +155,7 @@ func Save() error {
 	}
 
 	for date := range dirty {
-		path := filepath.Join(dataDir, date+".yaml")
+		path := filepath.Join(dataDir, date+".json")
 		recs := byDate[date]
 
 		if len(recs) == 0 {
@@ -134,13 +166,7 @@ func Save() error {
 			continue
 		}
 
-		data, err := yaml.Marshal(recs)
-		if err != nil {
-			mudlog.Error("telemetry.Save", "action", "marshal", "date", date, "error", err)
-			return fmt.Errorf("telemetry.Save marshal %s: %w", date, err)
-		}
-
-		if err := util.WriteFile(path, data, 0644); err != nil {
+		if err := writeJSONFile(path, recs); err != nil {
 			mudlog.Error("telemetry.Save", "action", "write", "file", path, "error", err)
 			return fmt.Errorf("telemetry.Save write %s: %w", date, err)
 		}
@@ -209,6 +235,14 @@ func Query() *QueryBuilder {
 // Len returns the total number of records currently in memory.
 func Len() int {
 	return len(records)
+}
+
+func writeJSONFile(path string, recs []Record) error {
+	data, err := json.Marshal(recs)
+	if err != nil {
+		return fmt.Errorf("marshal: %w", err)
+	}
+	return util.WriteFile(path, data, 0644)
 }
 
 func rebuildIndex() {
