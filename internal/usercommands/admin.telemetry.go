@@ -54,7 +54,7 @@ func Telemetry(rest string, user *users.UserRecord, room *rooms.Room, flags even
 				date = strings.TrimPrefix(arg, "date=")
 			}
 		}
-		telemetry.Clear(category, "", date, "", 0, 0, 0)
+		telemetry.Clear(category, "", date, "", 0, 0, 0, 0, "")
 		user.SendText(`Telemetry records cleared.`)
 		return true, nil
 

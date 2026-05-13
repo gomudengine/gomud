@@ -191,7 +191,7 @@ func TestClear(t *testing.T) {
 	Track(CatItemDrop, "frostfang", 5, 1, 10)
 	Track(CatMobKill, "dungeon", 0, 2, 20)
 
-	Clear(CatMobKill, "frostfang", "", "", 0, 0, 0)
+	Clear(CatMobKill, "frostfang", "", "", 0, 0, 0, 0, "")
 
 	results := Query().Category(CatMobKill).Results()
 	assert.Len(t, results, 1)
@@ -254,7 +254,7 @@ func TestSave_DeletesFileWhenDateCleared(t *testing.T) {
 	require.NoError(t, Save())
 
 	// Clear only the first date.
-	Clear("", "", "20260101", "20260101", 0, 0, 0)
+	Clear("", "", "20260101", "20260101", 0, 0, 0, 0, "")
 	require.NoError(t, Save())
 
 	assert.NoFileExists(t, filepath.Join(dataDir, "20260101.json"))

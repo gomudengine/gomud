@@ -93,7 +93,12 @@ func onPurchase(e events.Event) events.ListenerReturn {
 		return events.Continue
 	}
 
-	Track(CatItemPurchase, "", evt.ItemId, evt.SellerMobId, 0)
+	zone := ""
+	if r := rooms.LoadRoom(evt.RoomId); r != nil {
+		zone = r.Zone
+	}
+
+	Track(CatItemPurchase, zone, evt.ItemId, evt.SellerMobId, evt.RoomId)
 	return events.Continue
 }
 

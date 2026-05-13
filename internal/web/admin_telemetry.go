@@ -16,7 +16,9 @@ func adminTelemetryAPI(w http.ResponseWriter, r *http.Request) {
 }
 
 // GET /admin/api/v1/telemetry
-// Query params: category, itemId, mobId, roomId, zone, date, dateFrom, dateTo, groupby (mob|item|zone|room|date|category), sort (asc|desc)
+// Query params: category, itemId, mobId, roomId, zone, raceId, topic, date, dateFrom, dateTo,
+//
+//	groupby (mob|item|zone|room|date|category|race|topic), sort (asc|desc), limit (int)
 func apiV1GetTelemetry(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 
@@ -86,6 +88,12 @@ func apiV1GetTelemetry(w http.ResponseWriter, r *http.Request) {
 		qb = qb.SortDesc()
 	}
 
+	if v := q.Get("limit"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			qb = qb.Limit(n)
+		}
+	}
+
 	results := qb.Results()
 	if results == nil {
 		results = []telemetry.Record{}
@@ -98,7 +106,7 @@ func apiV1GetTelemetry(w http.ResponseWriter, r *http.Request) {
 }
 
 // DELETE /admin/api/v1/telemetry
-// Query params: category, zone, date, dateFrom, dateTo (all optional - omit to clear all)
+// Query params: category, zone, raceId, topic, date, dateFrom, dateTo (all optional - omit to clear all)
 func apiV1DeleteTelemetry(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 
@@ -116,7 +124,15 @@ func apiV1DeleteTelemetry(w http.ResponseWriter, r *http.Request) {
 		date = v
 	}
 
-	telemetry.Clear(category, zone, date, dateTo, 0, 0, 0)
+	var raceId int
+	if v := q.Get("raceId"); v != "" {
+		if id, err := strconv.Atoi(v); err == nil {
+			raceId = id
+		}
+	}
+	topic := q.Get("topic")
+
+	telemetry.Clear(category, zone, date, dateTo, 0, 0, 0, raceId, topic)
 
 	if err := telemetry.Save(); err != nil {
 		writeAPIError(w, http.StatusInternalServerError, err.Error())

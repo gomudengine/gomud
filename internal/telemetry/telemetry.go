@@ -214,10 +214,10 @@ func TrackFull(category, zone string, itemId, mobId, roomId, raceId int, topic s
 // Clear removes all in-memory records matching the given filters and marks
 // the affected dates dirty so Save() will update or remove their files.
 // Pass empty/zero values to match any value for that field.
-func Clear(category, zone, date, dateTo string, itemId, mobId, roomId int) {
+func Clear(category, zone, date, dateTo string, itemId, mobId, roomId, raceId int, topic string) {
 	kept := make([]Record, 0, len(records))
 	for _, r := range records {
-		if matchesFilter(r, category, zone, date, dateTo, itemId, mobId, roomId, 0, "") {
+		if matchesFilter(r, category, zone, date, dateTo, itemId, mobId, roomId, raceId, topic) {
 			dirty[r.Date] = true
 			continue
 		}
