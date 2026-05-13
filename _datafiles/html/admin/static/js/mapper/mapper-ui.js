@@ -1464,6 +1464,10 @@ var MapperUI = (function() {
                     var searchEl = document.getElementById('room-editor-tag-search');
                     if (searchEl) searchEl.value = '';
                     _reTagBuildPickerList('');
+                    // Position the fixed dropdown below the button
+                    var rect = newTagPickBtn.getBoundingClientRect();
+                    dd.style.top  = (rect.bottom + 4) + 'px';
+                    dd.style.left = rect.left + 'px';
                     dd.classList.add('open');
                     if (searchEl) setTimeout(function() { searchEl.focus(); }, 30);
                 }
