@@ -191,7 +191,7 @@ func TestClear(t *testing.T) {
 	Track(CatItemDrop, "frostfang", 5, 1, 10)
 	Track(CatMobKill, "dungeon", 0, 2, 20)
 
-	Clear(CatMobKill, "frostfang", "", "", 0, 0, 0)
+	Clear(CatMobKill, "frostfang", "", "", 0, 0, 0, 0, "")
 
 	results := Query().Category(CatMobKill).Results()
 	assert.Len(t, results, 1)
@@ -219,8 +219,8 @@ func TestSaveLoad_RoundTrip(t *testing.T) {
 	require.NoError(t, Save())
 
 	// Verify two separate files were written.
-	assert.FileExists(t, filepath.Join(dataDir, "20260101.yaml"))
-	assert.FileExists(t, filepath.Join(dataDir, "20260102.yaml"))
+	assert.FileExists(t, filepath.Join(dataDir, "20260101.json"))
+	assert.FileExists(t, filepath.Join(dataDir, "20260102.json"))
 
 	// Reload from directory.
 	resetState()
@@ -254,11 +254,11 @@ func TestSave_DeletesFileWhenDateCleared(t *testing.T) {
 	require.NoError(t, Save())
 
 	// Clear only the first date.
-	Clear("", "", "20260101", "20260101", 0, 0, 0)
+	Clear("", "", "20260101", "20260101", 0, 0, 0, 0, "")
 	require.NoError(t, Save())
 
-	assert.NoFileExists(t, filepath.Join(dataDir, "20260101.yaml"))
-	assert.FileExists(t, filepath.Join(dataDir, "20260102.yaml"))
+	assert.NoFileExists(t, filepath.Join(dataDir, "20260101.json"))
+	assert.FileExists(t, filepath.Join(dataDir, "20260102.json"))
 }
 
 func TestLoad_EmptyDirectory(t *testing.T) {

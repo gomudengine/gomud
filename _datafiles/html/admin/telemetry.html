@@ -67,6 +67,8 @@
             <option value="mob_kill">mob_kill</option>
             <option value="player_death">player_death</option>
             <option value="item_purchase">item_purchase</option>
+            <option value="char_created">char_created</option>
+            <option value="help_topic">help_topic</option>
         </select>
     </div>
     <div class="filter-group">
@@ -86,6 +88,14 @@
         <input type="text" id="f-zone" placeholder="any">
     </div>
     <div class="filter-group">
+        <label>Race ID</label>
+        <input type="number" id="f-raceId" placeholder="any" min="0">
+    </div>
+    <div class="filter-group">
+        <label>Topic</label>
+        <input type="text" id="f-topic" placeholder="any">
+    </div>
+    <div class="filter-group">
         <label>Date From (YYYYMMDD)</label>
         <input type="text" id="f-dateFrom" placeholder="e.g. 20260101" maxlength="8">
     </div>
@@ -103,6 +113,8 @@
             <option value="room">Room</option>
             <option value="date">Date</option>
             <option value="category">Category</option>
+            <option value="race">Race</option>
+            <option value="topic">Topic</option>
         </select>
     </div>
     <div class="filter-group">
@@ -110,6 +122,16 @@
         <select id="f-sort">
             <option value="desc">Count desc</option>
             <option value="asc">Count asc</option>
+        </select>
+    </div>
+    <div class="filter-group">
+        <label>Limit</label>
+        <select id="f-limit">
+            <option value="100">100</option>
+            <option value="250">250</option>
+            <option value="500">500</option>
+            <option value="1000">1000</option>
+            <option value="0">All</option>
         </select>
     </div>
     <div class="filter-group" style="justify-content: flex-end;">
@@ -135,11 +157,13 @@
                 <th onclick="sortBy('mobid')">Mob</th>
                 <th onclick="sortBy('roomid')">Room</th>
                 <th onclick="sortBy('zone')">Zone</th>
+                <th onclick="sortBy('raceid')">Race ID</th>
+                <th onclick="sortBy('topic')">Topic</th>
                 <th onclick="sortBy('count')">Count</th>
             </tr>
         </thead>
         <tbody id="data-body">
-            <tr><td colspan="7" class="empty">Use the filters above and click Query to load data.</td></tr>
+            <tr><td colspan="9" class="empty">Use the filters above and click Query to load data.</td></tr>
         </tbody>
     </table>
 </div>
@@ -220,19 +244,25 @@ function buildParams() {
     const mobId    = document.getElementById('f-mobId').value;
     const roomId   = document.getElementById('f-roomId').value;
     const zone     = document.getElementById('f-zone').value;
+    const raceId   = document.getElementById('f-raceId').value;
+    const topic    = document.getElementById('f-topic').value;
     const dateFrom = document.getElementById('f-dateFrom').value;
     const dateTo   = document.getElementById('f-dateTo').value;
     const groupby  = document.getElementById('f-groupby').value;
     const sort     = document.getElementById('f-sort').value;
+    const limit    = document.getElementById('f-limit').value;
 
     if (cat)      p.set('category', cat);
     if (itemId)   p.set('itemId', itemId);
     if (mobId)    p.set('mobId', mobId);
     if (roomId)   p.set('roomId', roomId);
     if (zone)     p.set('zone', zone);
+    if (raceId)   p.set('raceId', raceId);
+    if (topic)    p.set('topic', topic);
     if (dateFrom) p.set('dateFrom', dateFrom);
     if (dateTo)   p.set('dateTo', dateTo);
     if (groupby)  p.set('groupby', groupby);
+    if (limit && limit !== '0') p.set('limit', limit);
     p.set('sort', sort);
     return p;
 }
@@ -277,13 +307,15 @@ function renderTable() {
     const summary = document.getElementById('summary');
 
     if (!currentData || currentData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="empty">No records found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="empty">No records found.</td></tr>';
         summary.textContent = '';
         return;
     }
 
     const total = currentData.reduce((s, r) => s + (r.count || 0), 0);
-    summary.textContent = currentData.length + ' records, ' + total.toLocaleString() + ' total count';
+    const limitVal = parseInt(document.getElementById('f-limit').value, 10);
+    const limitNote = (limitVal > 0 && currentData.length >= limitVal) ? ` (limit ${limitVal} reached)` : '';
+    summary.textContent = currentData.length + ' records, ' + total.toLocaleString() + ' total count' + limitNote;
 
     tbody.innerHTML = currentData.map(r => `<tr>
         <td>${fmtDate(r.date)}</td>
@@ -292,6 +324,8 @@ function renderTable() {
         <td>${mobCell(r.mobid)}</td>
         <td>${roomCell(r.roomid)}</td>
         <td>${zoneCell(r.zone)}</td>
+        <td>${r.raceid ? String(r.raceid) : ''}</td>
+        <td>${esc(r.topic || '')}</td>
         <td class="num">${(r.count || 0).toLocaleString()}</td>
     </tr>`).join('');
 }
