@@ -52,6 +52,14 @@ func apiV1GetTelemetry(w http.ResponseWriter, r *http.Request) {
 			qb = qb.RoomId(id)
 		}
 	}
+	if v := q.Get("raceId"); v != "" {
+		if id, err := strconv.Atoi(v); err == nil {
+			qb = qb.RaceId(id)
+		}
+	}
+	if v := q.Get("topic"); v != "" {
+		qb = qb.Topic(v)
+	}
 
 	switch q.Get("groupby") {
 	case "mob", "mobid":
@@ -66,6 +74,10 @@ func apiV1GetTelemetry(w http.ResponseWriter, r *http.Request) {
 		qb = qb.GroupBy(telemetry.GroupByDate)
 	case "category":
 		qb = qb.GroupBy(telemetry.GroupByCategory)
+	case "race", "raceid":
+		qb = qb.GroupBy(telemetry.GroupByRaceId)
+	case "topic":
+		qb = qb.GroupBy(telemetry.GroupByTopic)
 	}
 
 	if q.Get("sort") == "asc" {
