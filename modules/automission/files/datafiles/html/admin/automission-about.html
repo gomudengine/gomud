@@ -1,0 +1,115 @@
+{{template "header" .}}
+
+<style>
+    .about-h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .about-subtitle { color: var(--color-text-muted); margin-bottom: 1.5rem; font-size: 0.9rem; }
+    .about-section { background: var(--color-surface-white); border: 1px solid var(--color-border); border-radius: 6px; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
+    .about-section h2 { font-size: 1.05rem; margin: 0 0 0.6rem; color: var(--color-text-strong); }
+    .about-section h3 { font-size: 0.9rem; font-weight: 700; margin: 1rem 0 0.4rem; color: var(--color-text-strong); }
+    .about-section p { font-size: 0.9rem; color: var(--color-text-secondary); line-height: 1.6; margin: 0 0 0.5rem; }
+    .about-section p:last-child { margin-bottom: 0; }
+    .about-section ul { font-size: 0.9rem; color: var(--color-text-secondary); line-height: 1.6; margin: 0 0 0.5rem; padding-left: 1.4rem; }
+    .tag-table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; font-size: 0.875rem; }
+    .tag-table th { text-align: left; padding: 0.4rem 0.75rem; background: var(--color-border-faint); color: var(--color-text-muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--color-border); }
+    .tag-table td { padding: 0.45rem 0.75rem; border-bottom: 1px solid var(--color-border-light); vertical-align: top; }
+    .tag-table tr:last-child td { border-bottom: none; }
+    .tag-name { font-family: monospace; color: var(--color-primary); font-size: 0.85rem; white-space: nowrap; }
+    .note { font-size: 0.82rem; color: var(--color-text-faint); margin-top: 0.6rem; font-style: italic; }
+</style>
+
+<h1 class="about-h1">Auto Mission</h1>
+<p class="about-subtitle">Module overview, player commands, room tags, and configuration reference.</p>
+
+<div class="about-section">
+    <h2>Overview</h2>
+    <p>Auto Mission generates and manages a dynamic mission board system. Each room tagged as a mission board independently generates its own pool of missions based on which type tags it carries. Missions are restocked across all board rooms simultaneously on a configurable timer.</p>
+    <p>Four mission types are supported, each with separate easy and hard difficulty tiers. Difficulty affects both target selection and reward. Targets are chosen using server telemetry — frequently killed mobs and commonly found items populate the easier tiers; rarer ones populate the harder tiers. Exploration mission difficulty is based on path distance from the board room.</p>
+    <p>All mission state is in-memory only and does not survive a server restart.</p>
+</div>
+
+<div class="about-section">
+    <h2>Player Commands</h2>
+    <table class="tag-table">
+        <thead><tr><th style="width:34%">Command</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr>
+                <td class="tag-name">mission list</td>
+                <td>At a board room: lists all missions available at that board with difficulty, reward, and current status. Elsewhere: lists only the player's currently accepted missions across all boards.</td>
+            </tr>
+            <tr>
+                <td class="tag-name">mission accept &lt;# or name&gt;</td>
+                <td>Accepts a mission by its list index or a partial title match. Must be at the board room that offers the mission. Escort missions spawn the escort mob immediately on accept.</td>
+            </tr>
+            <tr>
+                <td class="tag-name">mission turn in</td>
+                <td>Claims rewards for all completed missions that were accepted at this board. Must be at the same board room where each mission was accepted. If ready missions belong to a different board, the player is told which room to return to.</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="about-section">
+    <h2>Mission Types</h2>
+
+    <h3>Kill Mob</h3>
+    <p>A specific mob type must be killed. The target is chosen from telemetry kill data — easy missions target frequently killed mobs, hard missions target rarely killed ones. Any kill of the target mob while the mission is accepted counts.</p>
+
+    <h3>Find Item</h3>
+    <p>A specific item must be acquired. The target is chosen from telemetry item drop data. The mission completes as soon as the player picks up or receives the target item while the mission is accepted.</p>
+
+    <h3>Explore</h3>
+    <p>A specific room must be visited. Candidate rooms are sampled from loaded zones and path distance from the board room determines difficulty — closer rooms are easy, farther rooms are hard. The mission completes when the player enters the target room.</p>
+
+    <h3>Escort</h3>
+    <p>A charmed NPC must be guided to its destination zone. The escort mob spawns in the board room when the mission is accepted and follows the player. The mission completes when the player (with the escort mob still alive and charmed) enters any room in the target zone. If the escort mob is killed or the time limit expires, the mission fails and the mob is removed. Escort missions require <code>EscortMobIds</code> to be configured and the <code>missionboard escort</code> tag to be present.</p>
+</div>
+
+<div class="about-section">
+    <h2>Room Tags</h2>
+    <p>Each tag enables one mission type at the room. A room with multiple tags generates missions of all enabled types up to <code>MaxMissions</code> total. The <code>mission accept</code> and <code>mission turn in</code> commands only function in rooms carrying at least one of these tags.</p>
+    <table class="tag-table">
+        <thead><tr><th style="width:34%">Tag</th><th>Effect</th></tr></thead>
+        <tbody>
+            <tr><td class="tag-name">missionboard kill_mob</td><td>Enables kill-mob mission generation at this room.</td></tr>
+            <tr><td class="tag-name">missionboard find_item</td><td>Enables find-item mission generation at this room.</td></tr>
+            <tr><td class="tag-name">missionboard explore</td><td>Enables exploration mission generation at this room. Path distance from this room determines easy vs. hard difficulty.</td></tr>
+            <tr><td class="tag-name">missionboard escort</td><td>Enables escort mission generation at this room. Has no effect if <code>EscortMobIds</code> is empty.</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="about-section">
+    <h2>Configuration Reference</h2>
+
+    <h3>General</h3>
+    <table class="tag-table">
+        <thead><tr><th style="width:30%">Key</th><th style="width:20%">Default</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td class="tag-name">RestockPeriod</td><td><code>"1 real day"</code></td><td>How often all board rooms are restocked. Accepts gametime period strings (e.g. <code>"4 real hours"</code>, <code>"2 game days"</code>). On restock, all active escort missions are failed and all accepted mission state is cleared.</td></tr>
+            <tr><td class="tag-name">MaxMissions</td><td><code>6</code></td><td>Maximum number of missions generated per board room per restock.</td></tr>
+            <tr><td class="tag-name">EscortTimeLimit</td><td><code>"1 hour"</code></td><td>Time limit for each escort mission instance. Accepts gametime period strings. The timer starts when the mission is accepted.</td></tr>
+            <tr><td class="tag-name">EscortMobIds</td><td><em>empty</em></td><td>List of mob spec IDs eligible to be used as escort targets. One is chosen at random per escort mission. If empty, escort missions are not generated regardless of room tags.</td></tr>
+        </tbody>
+    </table>
+
+    <h3>Reward Pools</h3>
+    <p>Each mission type has its own easy and hard reward pool. When a mission is generated, one entry is chosen at random from the matching pool. If a hard pool is empty, the easy pool is used with amounts multiplied by 3. If both are empty, a gold fallback is used.</p>
+    <p>Each pool entry has a <code>Type</code> (<code>gold</code>, <code>experience</code>, or <code>item</code>) and an <code>Amount</code> (ignored for <code>item</code> type). Item rewards draw a random ID from the corresponding <code>RewardItems</code> list; if that list is empty the reward falls back to gold.</p>
+    <table class="tag-table">
+        <thead><tr><th style="width:40%">Key</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td class="tag-name">KillMobEasyRewards</td><td>Reward pool for easy kill-mob missions.</td></tr>
+            <tr><td class="tag-name">KillMobHardRewards</td><td>Reward pool for hard kill-mob missions.</td></tr>
+            <tr><td class="tag-name">FindItemEasyRewards</td><td>Reward pool for easy find-item missions.</td></tr>
+            <tr><td class="tag-name">FindItemHardRewards</td><td>Reward pool for hard find-item missions.</td></tr>
+            <tr><td class="tag-name">ExploreEasyRewards</td><td>Reward pool for easy exploration missions.</td></tr>
+            <tr><td class="tag-name">ExploreHardRewards</td><td>Reward pool for hard exploration missions.</td></tr>
+            <tr><td class="tag-name">EscortEasyRewards</td><td>Reward pool for easy escort missions.</td></tr>
+            <tr><td class="tag-name">EscortHardRewards</td><td>Reward pool for hard escort missions.</td></tr>
+            <tr><td class="tag-name">KillMobEasyRewardItems<br>KillMobHardRewardItems<br>FindItemEasyRewardItems<br>FindItemHardRewardItems<br>ExploreEasyRewardItems<br>ExploreHardRewardItems<br>EscortEasyRewardItems<br>EscortHardRewardItems</td><td>Item spec ID lists for item-type rewards. One ID is chosen at random when an <code>item</code> reward entry is selected. If empty, the reward falls back to gold.</td></tr>
+        </tbody>
+    </table>
+    <p class="note">Scalar keys (RestockPeriod, MaxMissions, EscortTimeLimit) are editable on the Config page and persisted to config-overrides.yaml. All other keys are managed through the Config page and stored in plugin-data.</p>
+</div>
+
+{{template "footer" .}}

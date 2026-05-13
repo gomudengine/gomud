@@ -1,0 +1,79 @@
+################################################################################
+# If modified, these settings will be copied into your config overrides
+# folder under `Modules.automission`.
+#
+# Reward pools are per mission type. The key pattern is:
+#   <Type><Difficulty>Rewards      - reward pool entries (Type/Amount)
+#   <Type><Difficulty>RewardItems  - item spec IDs for item-type rewards
+#
+# Where <Type> is one of: KillMob, FindItem, Explore, Escort
+# And <Difficulty> is one of: Easy, Hard
+################################################################################
+
+# - RestockPeriod -
+#   How often to restock the mission board (gametime period string).
+#   Supports formats like "1 real day", "4 real hours", "2 game days".
+RestockPeriod: "1 real day"
+
+# - MaxMissions -
+#   Maximum number of missions on the board at any time.
+MaxMissions: 3
+
+# - EscortTimeLimit -
+#   Time limit for escort missions (period string).
+EscortTimeLimit: "1 hour"
+
+# Kill Mob rewards
+KillMobEasyRewards:
+  - Type: gold
+    Amount: 100
+  - Type: experience
+    Amount: 500
+KillMobHardRewards:
+  - Type: gold
+    Amount: 300
+  - Type: experience
+    Amount: 1500
+
+# Find Item rewards
+FindItemEasyRewards:
+  - Type: gold
+    Amount: 100
+  - Type: experience
+    Amount: 500
+FindItemHardRewards:
+  - Type: gold
+    Amount: 300
+  - Type: experience
+    Amount: 1500
+
+# Explore rewards
+ExploreEasyRewards:
+  - Type: gold
+    Amount: 100
+  - Type: experience
+    Amount: 500
+ExploreHardRewards:
+  - Type: gold
+    Amount: 300
+  - Type: experience
+    Amount: 1500
+
+# Escort rewards
+EscortEasyRewards:
+  - Type: gold
+    Amount: 150
+  - Type: experience
+    Amount: 750
+EscortHardRewards:
+  - Type: gold
+    Amount: 450
+  - Type: experience
+    Amount: 2250
+
+# Item ID lists for item-type rewards (add spec IDs to enable item rewards).
+# EscortMobIds, KillMobEasyRewardItems, KillMobHardRewardItems,
+# FindItemEasyRewardItems, FindItemHardRewardItems, ExploreEasyRewardItems,
+# ExploreHardRewardItems, EscortEasyRewardItems, EscortHardRewardItems
+# are intentionally omitted here as empty lists cause a nil panic in the
+# config system. Set them via config-overrides.yaml or the admin Config page.
