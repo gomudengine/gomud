@@ -105,10 +105,7 @@ func (c ConfigBool) String() string {
 }
 
 func (c ConfigSliceString) String() string {
-	if len(c) == 0 {
-		return `[]`
-	}
-	return `["` + strings.Join(c, `", "`) + `"]`
+	return strings.Join(c, `,`)
 }
 
 //

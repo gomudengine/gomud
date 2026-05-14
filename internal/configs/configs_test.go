@@ -191,9 +191,9 @@ func TestConfigSliceStringString(t *testing.T) {
 		value    ConfigSliceString
 		expected string
 	}{
-		{name: "EmptySlice", value: ConfigSliceString{}, expected: `[]`},
-		{name: "SingleElement", value: ConfigSliceString{"one"}, expected: `["one"]`},
-		{name: "MultipleElements", value: ConfigSliceString{"one", "two", "three"}, expected: `["one", "two", "three"]`},
+		{name: "EmptySlice", value: ConfigSliceString{}, expected: ``},
+		{name: "SingleElement", value: ConfigSliceString{"one"}, expected: `one`},
+		{name: "MultipleElements", value: ConfigSliceString{"one", "two", "three"}, expected: `one,two,three`},
 	}
 
 	for _, tt := range tests {
