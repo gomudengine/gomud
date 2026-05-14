@@ -96,6 +96,9 @@ func Throw(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 	} else if targetPlayerId > 0 {
 
 		targetUser := users.GetByUserId(targetPlayerId)
+		if targetUser == nil {
+			return true, nil
+		}
 
 		if pvpErr := room.CanPvp(user, targetUser); pvpErr != nil {
 			user.SendText(pvpErr.Error())
@@ -116,7 +119,7 @@ func Throw(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		)
 
 		targetUser.SendText(
-			fmt.Sprintf(`<ansi fg="username">%s</ansi> hurls their <ansi fg="itemname">%s</ansi> at you.`, itemMatch.DisplayName(), user.Character.Name),
+			fmt.Sprintf(`<ansi fg="username">%s</ansi> hurls their <ansi fg="itemname">%s</ansi> at you.`, user.Character.Name, itemMatch.DisplayName()),
 		)
 
 		// Tell the old room they are leaving
@@ -161,6 +164,9 @@ func Throw(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 			user.Character.CancelBuffsWithFlag(buffs.Hidden)
 
 			throwToRoom := rooms.LoadRoom(throwRoomId)
+			if throwToRoom == nil {
+				return true, nil
+			}
 			returnExitName := throwToRoom.FindExitTo(user.Character.RoomId)
 
 			if len(returnExitName) < 1 {

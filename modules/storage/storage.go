@@ -406,13 +406,12 @@ func (m *StorageModule) storageCommand(rest string, user *users.UserRecord, room
 
 // buildStorageText renders the storage listing for the player using a panel.
 func buildStorageText(itemNames []string) string {
-	layout := templates.NewPanelLayout("open", "single", 1, 1)
-	slot := layout.AddSlot()
-	layout.AddPanelsToSlot(slot, "storage")
-
-	layout.Panel("storage").
-		SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">In Storage</ansi> `).
-		SetMinWidth(74)
+	layout, err := templates.LoadPanelLayout("storage/storage")
+	if err != nil {
+		layout = templates.NewPanelLayout("open", "single", 1, 1)
+		layout.AddPanelsToSlot(layout.AddSlot(), "storage")
+		layout.Panel("storage").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">In Storage</ansi> `).SetMinWidth(74)
+	}
 
 	panel := layout.Panel("storage")
 	if len(itemNames) == 0 {

@@ -135,7 +135,7 @@ func Get(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 		container := room.Containers[containerName]
 
 		goldName := `gold`
-		if args[0] == goldName || (len(args[0]) < 5 && goldName[0:len(args[0])-1] == args[0]) {
+		if args[0] == goldName || (len(args[0]) >= 1 && len(args[0]) < 5 && goldName[0:len(args[0])] == args[0]) {
 
 			if container.Gold < 1 {
 				user.SendText("There's no gold to grab.")
@@ -207,7 +207,7 @@ func Get(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 	} else {
 
 		goldName := `gold`
-		if args[0] == goldName || (len(args[0]) < 5 && goldName[0:len(args[0])-1] == args[0]) {
+		if args[0] == goldName || (len(args[0]) >= 1 && len(args[0]) < 5 && goldName[0:len(args[0])] == args[0]) {
 
 			if room.Gold < 1 {
 				user.SendText("There's no gold to grab.")

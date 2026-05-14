@@ -455,6 +455,10 @@ func mob_Create(rest string, user *users.UserRecord, room *rooms.Room, flags eve
 	}
 
 	mobInst := mobs.GetMobSpec(mobId)
+	if mobInst == nil {
+		user.SendText("Error: mob spec not found after creation.")
+		return true, nil
+	}
 
 	user.SendText(``)
 	user.SendText(`  <ansi bg="red" fg="white-bold">MOB CREATED</ansi>`)

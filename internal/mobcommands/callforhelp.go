@@ -51,6 +51,9 @@ func CallForHelp(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	}
 
 	m := mapper.GetMapper(room.RoomId)
+	if m == nil {
+		return true, nil
+	}
 	roomList := m.FindRoomsInDistance(room.RoomId, maxRange, 0)
 
 	for _, roomId := range roomList {

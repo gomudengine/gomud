@@ -1,6 +1,5 @@
-# Panel layout for the peep skill status-lite view.
-# Mirrors the structure of character/status but with fewer panels:
-# no zone, XP, bank, or training data.
+# Panel layout for looking inside a container.
+# No title is set here; the Go code does not assign one.
 #
 # border:  "full"    - every content row has side borders  │ label  value │
 #          "open"    - only the first and last content rows have side borders
@@ -28,19 +27,10 @@
 border: open
 charset: single
 gap: 1
-margin: 1
+margin: 0
 
 slots:
   - rows:
       - panels:
-          - id: info
-            title: ' <ansi fg="black-bold">.:</ansi><ansi fg="20">Info</ansi> '
-            min_width: 25
-
-  - rows:
-      - panels:
-          - id: attributes
-            title: ' <ansi fg="black-bold">.:</ansi><ansi fg="20">Attributes</ansi> '
-            min_width: 42
-            columns: 2
-            column_gap: 2
+          - id: inside
+            min_width: 74

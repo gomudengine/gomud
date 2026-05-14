@@ -458,6 +458,10 @@ func item_Create(rest string, user *users.UserRecord, room *rooms.Room, flags ev
 	}
 
 	itemInst := items.GetItemSpec(newItemId)
+	if itemInst == nil {
+		user.SendText("Error: item spec not found after creation.")
+		return true, nil
+	}
 
 	user.SendText(``)
 	user.SendText(`  <ansi bg="red" fg="white-bold">ITEM CREATED</ansi>`)

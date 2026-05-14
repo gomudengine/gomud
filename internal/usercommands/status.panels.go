@@ -86,13 +86,13 @@ func buildStatusPanel(user *users.UserRecord) string {
 func buildStatusTrainPanel(user *users.UserRecord, highlighted string) string {
 	c := user.Character
 
-	layout := templates.NewPanelLayout("open", "single", 1, 2)
-	slot := layout.AddSlot()
-	layout.AddPanelsToSlot(slot, "train")
-
-	layout.Panel("train").
-		SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Base Value</ansi> `).
-		SetMinWidth(38).SetLabelWidth(12)
+	layout, err := templates.LoadPanelLayout("character/stat-train")
+	if err != nil {
+		layout = templates.NewPanelLayout("open", "single", 1, 2)
+		layout.AddPanelsToSlot(layout.AddSlot(), "train")
+		layout.Panel("train").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Base Value</ansi> `).SetMinWidth(38)
+	}
+	layout.Panel("train").SetLabelWidth(12)
 
 	type statEntry struct {
 		name  string

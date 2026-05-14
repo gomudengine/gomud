@@ -68,9 +68,9 @@ func Suicide(rest string, user *users.UserRecord, room *rooms.Room, flags events
 
 			if i > 0 {
 				if i < dmgCt-1 {
-					killedBy += ` and `
-				} else {
 					killedBy += `, `
+				} else {
+					killedBy += ` and `
 				}
 			}
 			killedBy += `<ansi fg="username">` + u.Character.Name + `</ansi>`
@@ -197,11 +197,9 @@ func Suicide(rest string, user *users.UserRecord, room *rooms.Room, flags events
 					var pct float64 = 0.0
 
 					percent, err := strconv.ParseInt(string(config.Death.XPPenalty)[0:len(config.Death.XPPenalty)-1], 10, 64)
-					if err != nil || percent < 0 || percent > 100 {
-						pct = 0.0
+					if err == nil && percent >= 0 && percent <= 100 {
+						pct = float64(percent) / 100.0
 					}
-
-					pct = float64(percent) / 100.0
 
 					loss := int(math.Floor(float64(user.Character.Experience) * pct))
 					user.Character.Experience -= loss

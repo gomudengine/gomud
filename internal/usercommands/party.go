@@ -226,12 +226,17 @@ func Party(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 				}
 
 				u := users.GetByUserId(uid)
+				if u == nil {
+					continue
+				}
 				uLevel := fmt.Sprintf(`%d`, u.Character.Level)
 				uRoom := rooms.LoadRoom(u.Character.RoomId)
-				//uHealth := fmt.Sprintf(`%d/%d`, u.Character.Health, u.Character.HealthMax.Value)
+				uLoc := `-`
+				if uRoom != nil {
+					uLoc = uRoom.Title
+				}
 				uHealthPct := int(math.Floor((float64(u.Character.Health) / float64(u.Character.HealthMax.Value)) * 100))
 				uHealthPctStr := fmt.Sprintf(`%d%%`, uHealthPct)
-				uLoc := uRoom.Title
 				rank := currentParty.GetRank(u.UserId)
 				healthClass := util.HealthClass(u.Character.Health, u.Character.HealthMax.Value)
 
@@ -269,7 +274,14 @@ func Party(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 
 			for _, mobInstanceId := range charmedMobInstanceIds {
 				m := mobs.GetInstance(mobInstanceId)
+				if m == nil {
+					continue
+				}
 				mRoom := rooms.LoadRoom(m.Character.RoomId)
+				mLoc := `-`
+				if mRoom != nil {
+					mLoc = mRoom.Title
+				}
 				mHealthPct := int(math.Floor((float64(m.Character.Health) / float64(m.Character.HealthMax.Value)) * 100))
 				rows = append(rows, []string{
 					m.Character.Name,
@@ -277,7 +289,7 @@ func Party(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 					fmt.Sprintf(`%d`, m.Character.Level),
 					//fmt.Sprintf(`%d/%d`, m.Character.Health, m.Character.HealthMax.Value),
 					fmt.Sprintf(`%d%%`, mHealthPct),
-					mRoom.Title,
+					mLoc,
 					`-`,
 				})
 
@@ -294,6 +306,9 @@ func Party(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 
 			for _, uid := range currentParty.InviteUserIds {
 				u := users.GetByUserId(uid)
+				if u == nil {
+					continue
+				}
 				rows = append(rows, []string{
 					u.Character.Name,
 					`Invited`,
