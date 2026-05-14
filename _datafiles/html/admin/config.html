@@ -261,6 +261,7 @@
         'GamePlay.PVP.MinimumLevel': 'Minimum level required to participate in PVP. Only applies when PVP is enabled or limited.',
         'GamePlay.XPScale': 'Global XP multiplier as a percentage. 100 = normal.',
         'GamePlay.MobConverseChance': 'Chance in 100 that an idle mob will attempt to start a conversation.',
+        'GamePlay.AlignmentDecayRounds': 'Rounds between each alignment decay step toward neutral. 0 disables alignment decay.',
         'GamePlay.Party.MaxPlayerCount': 'Maximum players in a party. 0 = unlimited.',
         'GamePlay.Party.SameRoomOnly': 'If true, players must be in the same room to form or join a party.',
         'Integrations.Discord.WebhookUrl': 'Discord webhook URL for mud event notifications (joins, disconnects, etc.). Can also be set via DISCORD_WEBHOOK_URL environment variable.',
@@ -302,13 +303,13 @@
     };
 
     async function init() {
-        const res = await AdminAPI.get('/admin/api/v1/config');
+        const res = await AdminAPI.get('/admin/api/v1/config', true);
         if (!res.ok) {
             showStatus('Failed to load configuration: ' + res.error, false);
             return;
         }
         // Filter out Modules.* - those are managed by module-specific config pages
-        const raw = res.data.data || {};
+        const raw = (res.data && res.data.data) || {};
         configData = {};
         for (const [k, v] of Object.entries(raw)) {
             if (!k.startsWith('Modules.') && k !== 'Modules') configData[k] = v;

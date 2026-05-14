@@ -1816,6 +1816,26 @@ func (c *Character) RevertFormChange() []items.Item {
 }
 
 func (c *Character) UpdateAlignment(amt int) {
+	if amt == 0 {
+		return
+	}
+	// Resist movement that pushes further from neutral. Movement toward neutral
+	// is always unresisted so redemption is never harder than corruption.
+	movingAwayFromNeutral := (amt < 0 && c.Alignment < 0) || (amt > 0 && c.Alignment > 0)
+	if movingAwayFromNeutral {
+		resistance := math.Abs(float64(c.Alignment)) / 100.0
+		scaled := float64(amt) * (1.0 - resistance*0.75)
+		if math.Abs(scaled) < 1.0 {
+			// Probabilistic floor: even at maximum resistance there is a small
+			// chance the tick still lands.
+			if util.Rand(100) >= int(math.Abs(scaled)*100) {
+				return
+			}
+			amt = int(math.Copysign(1, float64(amt)))
+		} else {
+			amt = int(math.Round(scaled))
+		}
+	}
 	newAlignment := int(c.Alignment) + amt
 	if newAlignment < int(AlignmentMinimum) {
 		newAlignment = int(AlignmentMinimum)
@@ -1823,6 +1843,28 @@ func (c *Character) UpdateAlignment(amt int) {
 		newAlignment = int(AlignmentMaximum)
 	}
 	c.Alignment = int8(newAlignment)
+}
+
+// DecayAlignment drifts alignment one step toward neutral. The amount decayed
+// per call scales quadratically with distance from neutral so extreme alignments
+// decay faster and are harder to maintain.
+func (c *Character) DecayAlignment() {
+	if c.Alignment == 0 {
+		return
+	}
+	norm := math.Abs(float64(c.Alignment)) / 100.0
+	decay := int(math.Floor(norm*norm*4)) + 1
+	if c.Alignment > 0 {
+		c.Alignment -= int8(decay)
+		if c.Alignment < 0 {
+			c.Alignment = 0
+		}
+	} else {
+		c.Alignment += int8(decay)
+		if c.Alignment > 0 {
+			c.Alignment = 0
+		}
+	}
 }
 
 func (c *Character) AlignmentName() string {

@@ -24,8 +24,9 @@ type GamePlay struct {
 	// PVP Restrictions
 	PVP GameplayPVP `yaml:"PVP"`
 	// XpScale (difficulty)
-	XPScale           ConfigFloat `yaml:"XPScale"`
-	MobConverseChance ConfigInt   `yaml:"MobConverseChance"` // Chance 1-100 of attempting to converse when idle
+	XPScale              ConfigFloat `yaml:"XPScale"`
+	MobConverseChance    ConfigInt   `yaml:"MobConverseChance"`    // Chance 1-100 of attempting to converse when idle
+	AlignmentDecayRounds ConfigInt   `yaml:"AlignmentDecayRounds"` // Rounds between each alignment decay step toward neutral (0 = disabled)
 }
 
 // CombatConfig holds configurable min/max bounds for every combat calculation.
@@ -158,6 +159,10 @@ func (g *GamePlay) Validate() {
 		g.MobConverseChance = 0
 	} else if g.MobConverseChance > 100 {
 		g.MobConverseChance = 100
+	}
+
+	if g.AlignmentDecayRounds < 0 {
+		g.AlignmentDecayRounds = 100
 	}
 
 	g.Combat.validate()

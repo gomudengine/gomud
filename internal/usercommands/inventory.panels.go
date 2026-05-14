@@ -1,0 +1,122 @@
+package usercommands
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/templates"
+	"github.com/GoMudEngine/GoMud/internal/term"
+	"github.com/GoMudEngine/GoMud/internal/users"
+)
+
+// buildInventoryPanel renders the inventory using the panel system.
+// When not searching: Equipment panel followed by a wrapped "Carrying:" line.
+// When searching: Equipment panel is omitted; results appear as "Found in your bag:".
+// itemList is the filtered set of carried items. searching is true when a filter was given.
+func buildInventoryPanel(user *users.UserRecord, itemList []items.Item, searching bool) string {
+	c := user.Character
+
+	var sb strings.Builder
+
+	if !searching {
+		layout, err := templates.LoadPanelLayout("character/inventory")
+		if err != nil {
+			return ""
+		}
+
+		equipPanel := layout.Panel("equipment")
+		equipPanel.SetLabelWidth(9)
+
+		equipSlots := []struct {
+			label string
+			item  *items.Item
+		}{
+			{`Weapon:`, &c.Equipment.Weapon},
+			{`Offhand:`, &c.Equipment.Offhand},
+			{`Head:`, &c.Equipment.Head},
+			{`Neck:`, &c.Equipment.Neck},
+			{`Body:`, &c.Equipment.Body},
+			{`Belt:`, &c.Equipment.Belt},
+			{`Gloves:`, &c.Equipment.Gloves},
+			{`Ring:`, &c.Equipment.Ring},
+			{`Legs:`, &c.Equipment.Legs},
+			{`Feet:`, &c.Equipment.Feet},
+		}
+
+		for _, s := range equipSlots {
+			if s.item.IsDisabled() {
+				continue
+			}
+			equipPanel.Add(
+				fmt.Sprintf(`<ansi fg="yellow">%s</ansi>`, s.label),
+				fmt.Sprintf(`<ansi fg="yellow">%s</ansi>`, s.label),
+				fmt.Sprintf(`<ansi fg="itemname">%s</ansi>`, s.item.NameComplex()),
+			)
+		}
+
+		sb.WriteString(layout.Render())
+		sb.WriteString(term.CRLFStr)
+
+		// Build the wrapped "Carrying:" line, matching the original template behaviour.
+		// Items are comma-separated and wrapped at 68 visible chars.
+		// The count "(n/cap)" is right-aligned on the second line prefix.
+		count := fmt.Sprintf(`(%d/%d)`, len(itemList), c.CarryCapacity())
+		sb.WriteString(` Carrying: `)
+		lineLen := 0
+		lineNum := 1
+		for i, item := range itemList {
+			name := formatInventoryItemName(item)
+			plainLen := len(item.Name())
+			if iSpec := item.GetSpec(); iSpec.Uses > 0 &&
+				(iSpec.Subtype == items.Drinkable || iSpec.Subtype == items.Edible ||
+					iSpec.Subtype == items.Usable || iSpec.Type == items.Lockpicks) {
+				plainLen += 2 + len(fmt.Sprintf(`%d`, item.Uses)) + 1 // " (N)"
+			}
+			proposed := lineLen + plainLen + 2 // +2 for ", "
+			if lineLen > 0 && proposed > 68 {
+				lineLen = 0
+				lineNum++
+				if lineNum == 2 {
+					sb.WriteString(term.CRLFStr)
+					sb.WriteString(fmt.Sprintf(` %-8s  `, count))
+				} else {
+					sb.WriteString(term.CRLFStr)
+					sb.WriteString(`           `)
+				}
+			}
+			sb.WriteString(name)
+			if i < len(itemList)-1 {
+				sb.WriteString(`, `)
+				lineLen += plainLen + 2
+			}
+		}
+		sb.WriteString(term.CRLFStr)
+
+	} else {
+		// Searching: show "Found in your bag:" with each match on its own line.
+		sb.WriteString(term.CRLFStr)
+		sb.WriteString(` Found in your bag: `)
+		for _, item := range itemList {
+			sb.WriteString(formatInventoryItemName(item))
+			sb.WriteString(term.CRLFStr)
+			sb.WriteString(`                   `)
+		}
+		sb.WriteString(term.CRLFStr)
+	}
+
+	return sb.String()
+}
+
+// formatInventoryItemName returns the display string for one carried item,
+// including a uses count for consumables and lockpicks.
+func formatInventoryItemName(item items.Item) string {
+	iSpec := item.GetSpec()
+	name := fmt.Sprintf(`<ansi fg="itemname">%s</ansi>`, item.DisplayName())
+	if iSpec.Uses > 0 &&
+		(iSpec.Subtype == items.Drinkable || iSpec.Subtype == items.Edible ||
+			iSpec.Subtype == items.Usable || iSpec.Type == items.Lockpicks) {
+		name = fmt.Sprintf(`%s <ansi fg="uses-left">(%d)</ansi>`, name, item.Uses)
+	}
+	return name
+}

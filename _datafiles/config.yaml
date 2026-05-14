@@ -333,6 +333,10 @@ GamePlay:
   # - MobConverseChance -
   #   Chance in 100 that the mob will attempt to converse when idle.
   MobConverseChance: 3
+  # - AlignmentDecayRounds -
+  #   How many rounds between each alignment decay step toward neutral.
+  #   Set to 0 to disable alignment decay entirely.
+  AlignmentDecayRounds: 100
   # Party settings
   Party:
     # - MaxPlayerCount -
