@@ -2,9 +2,11 @@
 package hooks
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/scripting"
@@ -97,6 +99,17 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 
 				// Roundtick any cooldowns
 				user.Character.Cooldowns.RoundTick()
+
+				// Decay alignment toward neutral at the configured interval
+				if decayRounds := int(configs.GetGamePlayConfig().AlignmentDecayRounds); decayRounds > 0 && evt.RoundNumber%uint64(decayRounds) == 0 {
+					alignmentBefore := user.Character.AlignmentName()
+					user.Character.DecayAlignment()
+					if alignmentAfter := user.Character.AlignmentName(); alignmentAfter != alignmentBefore {
+						before := fmt.Sprintf(`<ansi fg="%s">%s</ansi>`, alignmentBefore, alignmentBefore)
+						after := fmt.Sprintf(`<ansi fg="%s">%s</ansi>`, alignmentAfter, alignmentAfter)
+						user.SendText(fmt.Sprintf(`<ansi fg="231">Your alignment has shifted from %s to %s!</ansi>`, before, after))
+					}
+				}
 
 				if user.Character.Charmed != nil && user.Character.Charmed.RoundsRemaining > 0 {
 					user.Character.Charmed.RoundsRemaining--

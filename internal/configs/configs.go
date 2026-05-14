@@ -155,11 +155,27 @@ func (c *Config) buildDotPaths(v reflect.Value, prefix string, result map[string
 			if prefix != "" {
 				newPrefix = prefix + "." + keyStr
 			}
-			c.buildDotPaths(v.MapIndex(key), newPrefix, result)
+			mapVal := v.MapIndex(key)
+			// Unwrap interface values so the underlying kind is visible.
+			if mapVal.Kind() == reflect.Interface {
+				mapVal = mapVal.Elem()
+			}
+			// YAML unmarshaling produces map[interface{}]interface{} for nested
+			// maps. Convert those to map[string]any so they are JSON-encodable.
+			if mapVal.IsValid() && mapVal.Kind() == reflect.Map && mapVal.Type().Key().Kind() == reflect.Interface {
+				converted := make(map[string]any)
+				for _, mk := range mapVal.MapKeys() {
+					converted[fmt.Sprintf("%v", mk.Interface())] = mapVal.MapIndex(mk).Interface()
+				}
+				mapVal = reflect.ValueOf(converted)
+			}
+			c.buildDotPaths(mapVal, newPrefix, result)
 		}
 	default:
 		// For non-struct fields, store the value using the accumulated prefix.
-		result[prefix] = v.Interface()
+		// Sanitize to ensure all values are JSON-encodable (YAML unmarshaling
+		// can produce map[interface{}]interface{} inside slices and nested maps).
+		result[prefix] = sanitizeForJSON(v.Interface())
 	}
 }
 
@@ -459,6 +475,33 @@ func FindFullPath(inputKey string) (properKey string, typeName string) {
 // Usage: configs.GetSecret(c.DiscordWebhookUrl)
 func GetSecret(v ConfigSecret) string {
 	return string(v)
+}
+
+// sanitizeForJSON recursively converts map[interface{}]interface{} (produced
+// by YAML unmarshaling) to map[string]any so that values stored in AllConfigData
+// are always JSON-encodable.
+func sanitizeForJSON(v any) any {
+	switch val := v.(type) {
+	case map[interface{}]interface{}:
+		out := make(map[string]any, len(val))
+		for k, mv := range val {
+			out[fmt.Sprintf("%v", k)] = sanitizeForJSON(mv)
+		}
+		return out
+	case map[string]any:
+		out := make(map[string]any, len(val))
+		for k, mv := range val {
+			out[k] = sanitizeForJSON(mv)
+		}
+		return out
+	case []any:
+		out := make([]any, len(val))
+		for i, elem := range val {
+			out[i] = sanitizeForJSON(elem)
+		}
+		return out
+	}
+	return v
 }
 
 // flatten recursively flattens a map[string]any.
