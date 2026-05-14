@@ -119,7 +119,9 @@ func (p *ScriptPanel) SetLabelWidth(w int) *ScriptPanel {
 }
 
 // SetCharset overrides the border character set for this panel.
-// Recognised values: "single", "double", "rounded".
+// Accepts a named preset ("single", "double", "rounded") or an 8-rune literal
+// string in the order: TopLeft, HorizontalTop, TopRight, VerticalLeft, VerticalRight,
+// BottomLeft, HorizontalBottom, BottomRight. Example: "\u2554\u2550\u2557\u2551\u2502\u255a\u2500\u2518".
 // If not called, the panel uses the layout-level charset.
 // Returns the panel for chaining.
 func (p *ScriptPanel) SetCharset(name string) *ScriptPanel {

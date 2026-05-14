@@ -21,31 +21,60 @@ const (
 	defaultColumnGap = 2 // spaces between columns when columns > 1
 )
 
-// borderChars holds the six characters used to draw a panel border.
+// borderChars holds the characters used to draw a panel border.
 type borderChars struct {
-	TopLeft     string // e.g. ┌
-	TopRight    string // e.g. ┐
-	BottomLeft  string // e.g. └
-	BottomRight string // e.g. ┘
-	Horizontal  string // e.g. ─
-	Vertical    string // e.g. │
+	TopLeft          string // e.g. ┌
+	TopRight         string // e.g. ┐
+	BottomLeft       string // e.g. └
+	BottomRight      string // e.g. ┘
+	Horizontal       string // e.g. ─  (top border horizontal fill)
+	HorizontalBottom string // e.g. ─  (bottom border horizontal fill)
+	VerticalLeft     string // e.g. │  (left side of content rows)
+	VerticalRight    string // e.g. │  (right side of content rows)
 }
 
 var (
-	charsetSingle  = borderChars{"┌", "┐", "└", "┘", "─", "│"}
-	charsetDouble  = borderChars{"╔", "╗", "╚", "╝", "═", "║"}
-	charsetRounded = borderChars{"╭", "╮", "╰", "╯", "─", "│"}
+	charsetSingle  = borderChars{"┌", "┐", "└", "┘", "─", "─", "│", "│"}
+	charsetDouble  = borderChars{"╔", "╗", "╚", "╝", "═", "═", "║", "║"}
+	charsetRounded = borderChars{"╭", "╮", "╰", "╯", "─", "─", "│", "│"}
 )
 
+// charsetForName returns the borderChars for a named preset or a literal
+// string.
+//
+// Named presets: "single" (default), "double", "rounded".
+//
+// Literal format - exactly 8 Unicode code points in order:
+//
+//	[TopLeft][HorizontalTop][TopRight][VerticalLeft][VerticalRight][BottomLeft][HorizontalBottom][BottomRight]
+//
+// Example: "\u2554\u2550\u2557\u2551\u2502\u255a\u2500\u2518"  (double top/left, single bottom/right)
 func charsetForName(name string) borderChars {
 	switch strings.ToLower(name) {
 	case "double":
 		return charsetDouble
 	case "rounded":
 		return charsetRounded
-	default:
+	case "", "single":
 		return charsetSingle
 	}
+	// Try to parse as an 8-rune literal:
+	// TopLeft, HorizontalTop, TopRight, VerticalLeft, VerticalRight,
+	// BottomLeft, HorizontalBottom, BottomRight.
+	runes := []rune(name)
+	if len(runes) == 8 {
+		return borderChars{
+			TopLeft:          string(runes[0]),
+			Horizontal:       string(runes[1]),
+			TopRight:         string(runes[2]),
+			VerticalLeft:     string(runes[3]),
+			VerticalRight:    string(runes[4]),
+			BottomLeft:       string(runes[5]),
+			HorizontalBottom: string(runes[6]),
+			BottomRight:      string(runes[7]),
+		}
+	}
+	return charsetSingle
 }
 
 // PanelRow is one label+value line inside a panel.
@@ -275,8 +304,10 @@ func (l *PanelLayout) AddPanelsToSlot(slot *LayoutSlot, ids ...string) {
 }
 
 // SetCharset sets the border character set for this panel, overriding the
-// layout-level charset. Recognised values: "single", "double", "rounded".
-// An unrecognised value falls back to "single".
+// layout-level charset. Accepts a named preset ("single", "double", "rounded")
+// or a 7-rune literal string in the order:
+// TopLeft, Horizontal, TopRight, VerticalLeft, VerticalRight, BottomLeft, BottomRight.
+// Example literal: "╔═╗║║╚╝". An unrecognised value falls back to "single".
 func (p *Panel) SetCharset(name string) *Panel { p.chars = charsetForName(name); return p }
 
 // SetTitle sets the panel's title string verbatim.
@@ -525,7 +556,7 @@ func renderPanel(p *Panel) []string {
 			}
 
 			if p.border == borderFull || isFirst || isLast {
-				lines = append(lines, c.Vertical+content+c.Vertical)
+				lines = append(lines, c.VerticalLeft+content+c.VerticalRight)
 			} else {
 				lines = append(lines, " "+content+" ")
 			}
@@ -533,7 +564,7 @@ func renderPanel(p *Panel) []string {
 	}
 
 	// Bottom border
-	lines = append(lines, c.BottomLeft+strings.Repeat(c.Horizontal, inner+2*panelPad)+c.BottomRight)
+	lines = append(lines, c.BottomLeft+strings.Repeat(c.HorizontalBottom, inner+2*panelPad)+c.BottomRight)
 
 	return lines
 }
@@ -562,7 +593,7 @@ func renderSingleColumnLine(p *Panel, row PanelRow, inner int, isFirst, isLast b
 			strings.Repeat(" ", panelPad)
 	}
 	if p.border == borderFull || isFirst || isLast {
-		return c.Vertical + content + c.Vertical
+		return c.VerticalLeft + content + c.VerticalRight
 	}
 	return " " + content + " "
 }
@@ -600,7 +631,7 @@ func composePanelGroup(panels []*Panel, gap int) []string {
 
 		var blankLine string
 		if p.border == borderFull {
-			blankLine = p.chars.Vertical + blankContent + p.chars.Vertical
+			blankLine = p.chars.VerticalLeft + blankContent + p.chars.VerticalRight
 		} else {
 			blankLine = " " + blankContent + " "
 		}

@@ -122,7 +122,7 @@ _datafiles/<world>/panel-layouts/<path>.yaml
 | Field | Type | Default | Description |
 | --- | --- | --- | --- |
 | `border` | string | `"full"` | `"full"` or `"open"` — see [Border styles](#border-styles) |
-| `charset` | string | `"single"` | `"single"`, `"double"`, or `"rounded"` — see [Character sets](#character-sets) |
+| `charset` | string | `"single"` | `"single"`, `"double"`, `"rounded"`, or an 8-character literal — see [Character sets](#character-sets) |
 | `gap` | int | `0` | Spaces between panels in the same row and between slots |
 | `margin` | int | `0` | Spaces prepended to every output line |
 | `slots` | list | — | Ordered list of slot definitions |
@@ -140,7 +140,7 @@ Each slot contains a list of rows. Each row contains a list of panels.
 | `panels[].min_width` | int | `0` | Minimum inner content width; expands if content is wider |
 | `panels[].columns` | int | `1` | `1` or `2` — see [Multi-column panels](#multi-column-panels) |
 | `panels[].column_gap` | int | `2` | Spaces between columns when `columns: 2` |
-| `panels[].charset` | string | _(layout charset)_ | Optional per-panel charset override: `"single"`, `"double"`, or `"rounded"` |
+| `panels[].charset` | string | _(layout charset)_ | Optional per-panel charset override: `"single"`, `"double"`, `"rounded"`, or an 8-character literal |
 
 ### Full example
 
@@ -148,9 +148,10 @@ Each slot contains a list of rows. Each row contains a list of panels.
 # border: "full"    - every row has side borders  │ label  value │
 # border: "open"    - only first/last rows have side borders
 #
-# charset: "single"  - ┌─┐ │ └─┘
-# charset: "double"  - ╔═╗ ║ ╚═╝
-# charset: "rounded" - ╭─╮ │ ╰─╯
+# charset: "single"  - ┌─┐ │ │ └─┘
+# charset: "double"  - ╔═╗ ║ ║ ╚═╝
+# charset: "rounded" - ╭─╮ │ │ ╰─╯
+# charset: literal   - 8 chars: TopLeft HorizontalTop TopRight VerticalLeft VerticalRight BottomLeft HorizontalBottom BottomRight
 
 border: open
 charset: single
@@ -230,7 +231,7 @@ build the structure, then `Panel(id)` to configure and populate each panel.
 | Parameter | Description |
 | --- | --- |
 | `border` | `"full"` or `"open"` |
-| `charset` | `"single"`, `"double"`, or `"rounded"` |
+| `charset` | `"single"`, `"double"`, `"rounded"`, or an 8-character literal |
 | `gap` | Spaces between side-by-side panels and between slots |
 | `margin` | Spaces prepended to every output line |
 
@@ -355,12 +356,13 @@ func (p *Panel) SetCharset(name string)
 ```
 
 Overrides the border character set for this panel. When set, this panel uses
-its own charset regardless of the layout-level setting. Recognised values:
-`"single"`, `"double"`, `"rounded"`. An unrecognised value falls back to
-`"single"`.
+its own charset regardless of the layout-level setting. Accepts a named preset
+(`"single"`, `"double"`, `"rounded"`) or an 8-character literal string. An
+unrecognised value falls back to `"single"`.
 
 ```go
 layout.Panel("highlight").SetCharset("double")
+layout.Panel("custom").SetCharset("╔═╗║│╚─┘")
 ```
 
 ---
@@ -469,15 +471,28 @@ default GoMud status screen.
 
 ## Character sets
 
-| Value | Top | Vertical | Bottom |
-| --- | --- | --- | --- |
-| `"single"` (default) | `┌─ title ───┐` | `│` | `└───────────┘` |
-| `"double"` | `╔═ title ═══╗` | `║` | `╚═══════════╝` |
-| `"rounded"` | `╭─ title ───╮` | `│` | `╰───────────╯` |
+| Value | Top-left | Horizontal-top | Top-right | Vertical-left | Vertical-right | Bottom-left | Horizontal-bottom | Bottom-right |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `"single"` (default) | `┌` | `─` | `┐` | `│` | `│` | `└` | `─` | `┘` |
+| `"double"` | `╔` | `═` | `╗` | `║` | `║` | `╚` | `═` | `╝` |
+| `"rounded"` | `╭` | `─` | `╮` | `│` | `│` | `╰` | `─` | `╯` |
 
-The charset applies to all panels in the layout. It is resolved by
-`charsetForName(name string)` which is case-insensitive and defaults to
-`"single"` for any unrecognised value.
+An **8-character literal** can be used instead of a named preset. The characters
+are read in order: TopLeft, HorizontalTop, TopRight, VerticalLeft, VerticalRight,
+BottomLeft, HorizontalBottom, BottomRight. This allows asymmetric left/right and
+top/bottom borders:
+
+```yaml
+charset: "╔═╗║│╚─┘"  # double top/left border, single bottom/right border
+```
+
+```go
+layout.Panel("x").SetCharset("╔═╗║│╚─┘")
+```
+
+The charset applies to all panels in the layout unless overridden per-panel.
+Charset resolution is case-insensitive for named presets and falls back to
+`"single"` for any unrecognised value that is not exactly 8 runes.
 
 ---
 

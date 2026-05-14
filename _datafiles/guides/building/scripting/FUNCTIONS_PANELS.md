@@ -72,11 +72,21 @@ Layout
 
 `charset` selects the box-drawing characters used for all panel borders.
 
-| Value | Example top border | Corners |
-| --- | --- | --- |
-| `"single"` (default) | `┌─ Title ───┐` | `┌ ┐ └ ┘` |
-| `"double"` | `╔═ Title ═══╗` | `╔ ╗ ╚ ╝` |
-| `"rounded"` | `╭─ Title ───╮` | `╭ ╮ ╰ ╯` |
+| Value | Top-left | Horizontal-top | Top-right | Vertical-left | Vertical-right | Bottom-left | Horizontal-bottom | Bottom-right |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `"single"` (default) | `┌` | `─` | `┐` | `│` | `│` | `└` | `─` | `┘` |
+| `"double"` | `╔` | `═` | `╗` | `║` | `║` | `╚` | `═` | `╝` |
+| `"rounded"` | `╭` | `─` | `╮` | `│` | `│` | `╰` | `─` | `╯` |
+
+An **8-character literal** can be used instead of a named preset. The characters
+are read in order: TopLeft, HorizontalTop, TopRight, VerticalLeft, VerticalRight,
+BottomLeft, HorizontalBottom, BottomRight. This allows asymmetric left/right and
+top/bottom borders:
+
+```javascript
+// Double top, single bottom, double left, single right
+var layout = PanelLayoutNew({ charset: "╔═╗║│╚─┘" });
+```
 
 ### Titles
 
@@ -140,7 +150,7 @@ Creates a blank panel layout entirely in script, with no YAML file required.
 | Property | Type | Default | Explanation |
 | --- | --- | --- | --- |
 | `border` | string | `"full"` | `"full"` or `"open"` — see [Border styles](#border-styles) |
-| `charset` | string | `"single"` | `"single"`, `"double"`, or `"rounded"` — see [Character sets](#character-sets) |
+| `charset` | string | `"single"` | `"single"`, `"double"`, `"rounded"`, or an 8-character literal — see [Character sets](#character-sets) |
 | `gap` | int | `1` | Spaces between panels placed side by side, and between slots |
 | `margin` | int | `0` | Spaces prepended to every output line |
 
@@ -218,11 +228,14 @@ Returns the panel for chaining.
 
 | Argument | Explanation |
 | --- | --- |
-| name | `"single"`, `"double"`, or `"rounded"`. An unrecognised value falls back to `"single"`. |
+| name | `"single"`, `"double"`, `"rounded"`, or an 8-character literal (TopLeft, HorizontalTop, TopRight, VerticalLeft, VerticalRight, BottomLeft, HorizontalBottom, BottomRight). An unrecognised value falls back to `"single"`. |
 
 ```javascript
 // Give one panel a double border while the rest use the layout default
 layout.Panel("highlight").SetCharset("double");
+
+// Asymmetric: double top/left, single bottom/right
+layout.Panel("custom").SetCharset("╔═╗║│╚─┘");
 ```
 
 ---

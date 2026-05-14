@@ -180,7 +180,7 @@ func TestRenderPanel_BlankRow(t *testing.T) {
 	got := renderPanel(p)
 	require.Equal(t, 5, len(got))
 	inner := panelInnerWidth(p)
-	assert.Equal(t, "│"+strings.Repeat(" ", inner+2*panelPad)+"│", got[2])
+	assert.Equal(t, charsetSingle.VerticalLeft+strings.Repeat(" ", inner+2*panelPad)+charsetSingle.VerticalRight, got[2])
 }
 
 func TestRenderPanel_AllLinesEqualVisualWidth(t *testing.T) {
@@ -462,6 +462,26 @@ func TestCharsetForName(t *testing.T) {
 	assert.Equal(t, charsetRounded, charsetForName("rounded"))
 }
 
+func TestCharsetForName_LiteralString(t *testing.T) {
+	// 8-rune literal: TL HTop TR VL VR BL HBottom BR
+	got := charsetForName("╔═╗║│╚─┘")
+	assert.Equal(t, "╔", got.TopLeft)
+	assert.Equal(t, "═", got.Horizontal)
+	assert.Equal(t, "╗", got.TopRight)
+	assert.Equal(t, "║", got.VerticalLeft)
+	assert.Equal(t, "│", got.VerticalRight)
+	assert.Equal(t, "╚", got.BottomLeft)
+	assert.Equal(t, "─", got.HorizontalBottom)
+	assert.Equal(t, "┘", got.BottomRight)
+}
+
+func TestCharsetForName_LiteralString_WrongLength_FallsBackToSingle(t *testing.T) {
+	// 7 runes – not 8 – should fall back to single
+	assert.Equal(t, charsetSingle, charsetForName("╔═╗║│╚┘"))
+	// 9 runes – not 8 – should fall back to single
+	assert.Equal(t, charsetSingle, charsetForName("╔═╗║║╚╝═─"))
+}
+
 func TestRenderPanel_Charset_Double(t *testing.T) {
 	p := makePanel("x", "X", 8, borderFull, []PanelRow{
 		{FullLabel: "A:", ShortLabel: "A:", Value: "1"},
@@ -470,7 +490,8 @@ func TestRenderPanel_Charset_Double(t *testing.T) {
 	got := renderPanel(p)
 	assert.True(t, strings.HasPrefix(got[0], "\u2554"), "double top-left corner")
 	assert.True(t, strings.HasSuffix(got[0], "\u2557"), "double top-right corner")
-	assert.True(t, strings.HasPrefix(got[1], "\u2551"), "double vertical")
+	assert.True(t, strings.HasPrefix(got[1], "\u2551"), "double vertical-left")
+	assert.True(t, strings.HasSuffix(got[1], "\u2551"), "double vertical-right")
 	assert.True(t, strings.HasPrefix(got[len(got)-1], "\u255a"), "double bottom-left corner")
 	assert.True(t, strings.HasSuffix(got[len(got)-1], "\u255d"), "double bottom-right corner")
 }
@@ -487,8 +508,25 @@ func TestRenderPanel_Charset_Rounded(t *testing.T) {
 	assert.True(t, strings.HasSuffix(got[len(got)-1], "\u256f"), "rounded bottom-right corner")
 }
 
+func TestRenderPanel_Charset_Literal_DistinctLeftRight(t *testing.T) {
+	// Use a charset where VerticalLeft (║) != VerticalRight (│) and
+	// HorizontalTop (═) != HorizontalBottom (─) to verify each side uses the
+	// correct character.
+	p := makePanel("x", "X", 8, borderFull, []PanelRow{
+		{FullLabel: "A:", ShortLabel: "A:", Value: "1"},
+	})
+	p.chars = charsetForName("╔═╗║│╚─┘")
+	got := renderPanel(p)
+	assert.True(t, strings.HasPrefix(got[1], "\u2551"), "content row left border is VerticalLeft")
+	assert.True(t, strings.HasSuffix(got[1], "\u2502"), "content row right border is VerticalRight")
+	assert.True(t, strings.HasPrefix(got[0], "\u2554"), "top border uses TopLeft")
+	assert.True(t, strings.Contains(got[0], "\u2550"), "top border uses HorizontalTop")
+	assert.True(t, strings.HasPrefix(got[len(got)-1], "\u255a"), "bottom border uses BottomLeft")
+	assert.True(t, strings.Contains(got[len(got)-1], "\u2500"), "bottom border uses HorizontalBottom")
+	assert.True(t, strings.HasSuffix(got[len(got)-1], "\u2518"), "bottom border uses BottomRight")
+}
+
 func TestRenderPanel_PerPanelCharset_OverridesLayout(t *testing.T) {
-	// Two panels in the same layout: one single (default), one double (override).
 	pSingle := makePanel("a", "A", 8, borderFull, []PanelRow{
 		{FullLabel: "X:", ShortLabel: "X:", Value: "1"},
 	})
