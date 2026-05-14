@@ -1,0 +1,23 @@
+# Panel layout for the character inventory screen.
+#
+# border:  "full"    - every content row has side borders  │ label  value │
+#          "open"    - only the first and last content rows have side borders
+#
+# charset: "single"  - single-line box drawing: ┌─┐ │ └─┘
+#          "double"  - double-line box drawing: ╔═╗ ║ ╚═╝
+#          "rounded" - rounded corners:         ╭─╮ │ ╰─╯
+#
+# gap:    spaces between panels placed side by side, and between top-level slots
+# margin: spaces prepended to every output line (optional, default 0)
+
+border: open
+charset: single
+gap: 1
+margin: 1
+
+slots:
+  - rows:
+      - panels:
+          - id: equipment
+            title: ' <ansi fg="black-bold">.:</ansi><ansi fg="20">Equipment</ansi> '
+            min_width: 74
