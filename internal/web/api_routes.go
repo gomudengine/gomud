@@ -156,6 +156,12 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("PATCH /admin/api/v1/gametime/{calendar}", doBasicAuth(RunWithMUDLocked(apiV1PatchGameTimeCalendar)))
 	mux.HandleFunc("DELETE /admin/api/v1/gametime/{calendar}", doBasicAuth(RunWithMUDLocked(apiV1DeleteGameTimeCalendar)))
 
+	// Panels
+	mux.HandleFunc("GET /admin/api/v1/panels", doBasicAuth(RunWithMUDLocked(apiV1GetPanels)))
+	mux.HandleFunc("POST /admin/api/v1/panels/validate", doBasicAuth(RunWithMUDLocked(apiV1PostPanelValidate)))
+	mux.HandleFunc("POST /admin/api/v1/panels/preview", doBasicAuth(RunWithMUDLocked(apiV1PostPanelPreview)))
+	mux.HandleFunc("PUT /admin/api/v1/panels/{panelname...}", doBasicAuth(RunWithMUDLocked(apiV1PutPanel)))
+
 	// Spells - script sub-route before wildcard {spellId}
 	mux.HandleFunc("GET /admin/api/v2/spells", doBasicAuth(RunWithMUDLocked(apiV2GetSpells)))
 	mux.HandleFunc("POST /admin/api/v2/spells", doBasicAuth(RunWithMUDLocked(apiV2CreateSpell)))

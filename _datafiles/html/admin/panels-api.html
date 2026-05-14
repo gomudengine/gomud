@@ -1,0 +1,262 @@
+{{template "header" .}}
+
+<style>
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--color-text-muted); margin-bottom: 2rem; font-size: 0.9rem; }
+    .api-list { display: flex; flex-direction: column; gap: 0.5rem; }
+    .api-entry { background: var(--color-surface-white); border: 1px solid var(--color-border); border-radius: 6px; overflow: hidden; }
+    .api-entry summary { display: flex; align-items: baseline; gap: 0.75rem; padding: 0.65rem 1rem; cursor: pointer; user-select: none; list-style: none; }
+    .api-entry summary::-webkit-details-marker { display: none; }
+    .api-entry summary::before { content: "\25B6"; font-size: 0.65rem; color: var(--color-text-faint); transition: transform 0.15s; flex-shrink: 0; }
+    .api-entry[open] summary::before { transform: rotate(90deg); }
+    .api-entry summary:hover { background: var(--color-surface-alt); }
+    .method { font-family: monospace; font-size: 0.8rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 3px; flex-shrink: 0; }
+    .method-get    { background: var(--color-success-bg); color: var(--color-success-text); }
+    .method-post   { background: var(--color-info-bg); color: var(--color-info-text); }
+    .method-put    { background: var(--color-method-put-bg); color: var(--color-method-put-text); }
+    .api-path { font-family: monospace; font-size: 0.9rem; color: var(--color-primary); }
+    .api-desc { font-size: 0.85rem; color: var(--color-text-muted); margin-left: auto; text-align: right; }
+    .api-body { padding: 0.75rem 1rem 1rem; border-top: 1px solid var(--color-border-light); background: var(--color-surface-alt); }
+    .api-body p { font-size: 0.85rem; color: var(--color-text-tertiary); margin-bottom: 0.5rem; }
+    .curl-block { background: var(--color-code-bg); color: var(--color-code-text); font-family: monospace; font-size: 0.82rem; padding: 0.85rem 1rem; border-radius: 5px; white-space: pre; overflow-x: auto; line-height: 1.6; margin-bottom: 0.5rem; }
+    .curl-block .kw   { color: var(--color-api-kw); }
+    .curl-block .str  { color: var(--color-api-str); }
+    .curl-block .flag { color: var(--color-api-flag); }
+    .response-examples { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
+    .resp-entry { border: 1px solid var(--color-border); border-radius: 4px; overflow: hidden; }
+    .resp-entry summary { display: flex; align-items: baseline; gap: 0.6rem; padding: 0.45rem 0.75rem; cursor: pointer; user-select: none; list-style: none; background: var(--color-page-bg); font-size: 0.82rem; }
+    .resp-entry summary::-webkit-details-marker { display: none; }
+    .resp-entry summary::before { content: "\25B6"; font-size: 0.6rem; color: var(--color-text-faint); transition: transform 0.15s; flex-shrink: 0; }
+    .resp-entry[open] summary::before { transform: rotate(90deg); }
+    .resp-entry summary:hover { background: var(--color-api-summary-hover); }
+    .resp-body { padding: 0.6rem 0.75rem 0.75rem; border-top: 1px solid var(--color-border-light); background: var(--color-surface-alt); }
+    .resp-body p { font-size: 0.82rem; color: var(--color-text-tertiary); margin-bottom: 0.4rem; }
+    .status-ok  { background: var(--color-success-bg); color: var(--color-success-text); }
+    .status-err { background: var(--color-error-bg); color: var(--color-error-text); }
+    .resp-label { font-size: 0.8rem; color: var(--color-text-tertiary); }
+</style>
+
+<h1>Panel Layouts API Reference</h1>
+<p class="subtitle">REST endpoints for reading, validating, previewing, and saving panel layout YAML files.</p>
+
+<h2 style="font-size:1.1rem;margin-bottom:0.5rem;margin-top:0">YAML Format Reference</h2>
+<div style="background:var(--color-surface-white);border:1px solid var(--color-border);border-radius:6px;padding:1.25rem 1.5rem;margin-bottom:2rem;font-size:0.875rem;line-height:1.7">
+
+    <p style="margin-bottom:1rem;color:var(--color-text-tertiary)">A panel layout file is a YAML document that describes how a set of bordered panels are arranged on screen. The file is loaded by Go code which then populates each panel with rows of data before rendering.</p>
+
+    <h3 style="font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--color-text-subtle);border-bottom:1px solid var(--color-border-light);padding-bottom:0.3rem;margin-bottom:0.75rem">Top-level fields</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:0.85rem;margin-bottom:1.25rem">
+        <thead><tr style="border-bottom:1px solid var(--color-border-light)">
+            <th style="text-align:left;padding:0.3rem 0.6rem 0.3rem 0;color:var(--color-text-muted);font-weight:600;white-space:nowrap">Field</th>
+            <th style="text-align:left;padding:0.3rem 0.6rem;color:var(--color-text-muted);font-weight:600">Values / Notes</th>
+        </tr></thead>
+        <tbody>
+        <tr style="border-bottom:1px solid var(--color-border-faint)">
+            <td style="padding:0.4rem 0.6rem 0.4rem 0;white-space:nowrap"><code>border</code></td>
+            <td style="padding:0.4rem 0.6rem">
+                <code>"full"</code> &mdash; every content row has side borders &nbsp;<code>│ label&nbsp;&nbsp;value │</code><br>
+                <code>"open"</code> &mdash; only the first and last content rows have side borders<br>
+                <em style="color:var(--color-text-faint)">Default: <code>"full"</code></em>
+            </td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--color-border-faint)">
+            <td style="padding:0.4rem 0.6rem 0.4rem 0;white-space:nowrap"><code>charset</code></td>
+            <td style="padding:0.4rem 0.6rem">
+                <code>"single"</code> &mdash; <code>┌─┐ │ └─┘</code> &nbsp;<em style="color:var(--color-text-faint)">(default)</em><br>
+                <code>"double"</code> &mdash; <code>╔═╗ ║ ╚═╝</code><br>
+                <code>"rounded"</code> &mdash; <code>╭─╮ │ ╰─╯</code><br>
+                8-rune literal in the order: <code>TopLeft HorizTop TopRight VertLeft VertRight BottomLeft HorizBottom BottomRight</code><br>
+                Example: <code>"╔═╗║║╚═╝"</code>
+            </td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--color-border-faint)">
+            <td style="padding:0.4rem 0.6rem 0.4rem 0;white-space:nowrap"><code>gap</code></td>
+            <td style="padding:0.4rem 0.6rem">Number of spaces between panels placed side by side and between top-level slots.</td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--color-border-faint)">
+            <td style="padding:0.4rem 0.6rem 0.4rem 0;white-space:nowrap"><code>margin</code></td>
+            <td style="padding:0.4rem 0.6rem">Spaces prepended to every output line. Optional, default <code>0</code>.</td>
+        </tr>
+        <tr>
+            <td style="padding:0.4rem 0.6rem 0.4rem 0;white-space:nowrap"><code>default_color</code></td>
+            <td style="padding:0.4rem 0.6rem">
+                Optional ANSI <code>fg</code> color that wraps the entire rendered output in a single <code>&lt;ansi&gt;</code> tag.<br>
+                Accepts a numeric 256-color code (e.g. <code>"214"</code>) or a named alias (e.g. <code>"gold"</code>).<br>
+                Omit or leave blank to disable.
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h3 style="font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--color-text-subtle);border-bottom:1px solid var(--color-border-light);padding-bottom:0.3rem;margin-bottom:0.75rem">Layout model</h3>
+    <p style="margin-bottom:0.5rem;color:var(--color-text-tertiary)">Panels are arranged in a three-level hierarchy:</p>
+    <ul style="margin:0 0 1.25rem 1.25rem;color:var(--color-text-tertiary)">
+        <li><strong>slots</strong> &mdash; top-level horizontal columns, rendered side by side</li>
+        <li><strong>rows</strong> &mdash; within a slot, panel groups stacked vertically top-to-bottom</li>
+        <li><strong>panels</strong> &mdash; within a row, individual panels placed side by side left-to-right</li>
+    </ul>
+
+    <h3 style="font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--color-text-subtle);border-bottom:1px solid var(--color-border-light);padding-bottom:0.3rem;margin-bottom:0.75rem">Per-panel fields</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:0.85rem;margin-bottom:1.25rem">
+        <thead><tr style="border-bottom:1px solid var(--color-border-light)">
+            <th style="text-align:left;padding:0.3rem 0.6rem 0.3rem 0;color:var(--color-text-muted);font-weight:600;white-space:nowrap">Field</th>
+            <th style="text-align:left;padding:0.3rem 0.6rem;color:var(--color-text-muted);font-weight:600">Values / Notes</th>
+        </tr></thead>
+        <tbody>
+        <tr style="border-bottom:1px solid var(--color-border-faint)">
+            <td style="padding:0.4rem 0.6rem 0.4rem 0;white-space:nowrap"><code>id</code></td>
+            <td style="padding:0.4rem 0.6rem">Unique string identifier. Used in Go code: <code>layout.Panel("id").Add(...)</code>. Required.</td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--color-border-faint)">
+            <td style="padding:0.4rem 0.6rem 0.4rem 0;white-space:nowrap"><code>title</code></td>
+            <td style="padding:0.4rem 0.6rem">Rendered verbatim into the top border. May contain ANSI tags &mdash; visual width is measured with tags stripped. Omit for a plain border line with no title gap.</td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--color-border-faint)">
+            <td style="padding:0.4rem 0.6rem 0.4rem 0;white-space:nowrap"><code>min_width</code></td>
+            <td style="padding:0.4rem 0.6rem">Minimum inner content width in characters. Expands automatically if content is wider. Total panel width = <code>min_width + 4</code> (two border chars + two padding spaces).</td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--color-border-faint)">
+            <td style="padding:0.4rem 0.6rem 0.4rem 0;white-space:nowrap"><code>columns</code></td>
+            <td style="padding:0.4rem 0.6rem">Number of label+value pairs rendered per line. Optional, default <code>1</code>.</td>
+        </tr>
+        <tr style="border-bottom:1px solid var(--color-border-faint)">
+            <td style="padding:0.4rem 0.6rem 0.4rem 0;white-space:nowrap"><code>column_gap</code></td>
+            <td style="padding:0.4rem 0.6rem">Spaces between columns when <code>columns &gt; 1</code>. Optional, default <code>2</code>.</td>
+        </tr>
+        <tr>
+            <td style="padding:0.4rem 0.6rem 0.4rem 0;white-space:nowrap"><code>charset</code></td>
+            <td style="padding:0.4rem 0.6rem">Per-panel charset override. Accepts the same values as the top-level <code>charset</code>. Falls back to the top-level charset when omitted.</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h3 style="font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--color-text-subtle);border-bottom:1px solid var(--color-border-light);padding-bottom:0.3rem;margin-bottom:0.75rem">Minimal example</h3>
+    <pre style="background:var(--color-code-bg);color:var(--color-code-text);font-family:monospace;font-size:0.82rem;padding:0.85rem 1rem;border-radius:5px;overflow-x:auto;line-height:1.6;margin:0">border: open
+charset: single
+gap: 1
+margin: 1
+
+slots:
+  - rows:
+      - panels:
+          - id: info
+            title: ' Info '
+            min_width: 30
+  - rows:
+      - panels:
+          - id: stats
+            title: ' Stats '
+            min_width: 40
+            columns: 2
+            column_gap: 2</pre>
+
+</div>
+
+<div class="api-list">
+
+    <!-- GET /admin/api/v1/panels -->
+    <details class="api-entry">
+        <summary>
+            <span class="method method-get">GET</span>
+            <span class="api-path">/admin/api/v1/panels</span>
+            <span class="api-desc">Return all panel layout files</span>
+        </summary>
+        <div class="api-body">
+            <p>Returns an array of every panel layout file found under the <code>panel-layouts/</code> data directory. Each entry includes the relative <code>name</code> (e.g. <code>character/status</code>) and the raw <code>yaml</code> content.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/panels</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":[{"name":"character/status","yaml":"border: open\ncharset: single\n..."}]}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <!-- POST /admin/api/v1/panels/validate -->
+    <details class="api-entry">
+        <summary>
+            <span class="method method-post">POST</span>
+            <span class="api-path">/admin/api/v1/panels/validate</span>
+            <span class="api-desc">Validate a panel layout YAML</span>
+        </summary>
+        <div class="api-body">
+            <p>Parses the supplied YAML and checks for structural problems: unknown border or charset values, missing or duplicate panel IDs, empty slots or rows, and negative numeric fields. Returns <code>valid: true</code> and an empty <code>issues</code> array when the layout is clean.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> <span class="flag">-X</span> POST \
+     <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
+     <span class="flag">-d</span> <span class="str">'{"yaml":"border: open\ncharset: single\ngap: 1\nslots:\n  - rows:\n      - panels:\n          - id: info\n            title: Info\n            min_width: 25\n"}'</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/panels/validate</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Valid layout</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"valid":true,"issues":[]}}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Invalid layout (issues found)</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"valid":false,"issues":[{"message":"slot 1, row 1, panel 1: missing id"},{"message":"unknown border style \"fancy\" (valid: \"full\", \"open\")"}]}}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">YAML parse error</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"invalid YAML: yaml: line 3: ..."}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <!-- POST /admin/api/v1/panels/preview -->
+    <details class="api-entry">
+        <summary>
+            <span class="method method-post">POST</span>
+            <span class="api-path">/admin/api/v1/panels/preview</span>
+            <span class="api-desc">Render a plain-text preview of a panel layout</span>
+        </summary>
+        <div class="api-body">
+            <p>Parses the supplied YAML, fills every panel with dummy rows, and returns the rendered plain-text output. ANSI tags in titles are stripped so the result is safe to display in a browser. Sole panels in a row receive 4 dummy rows; panels with horizontal siblings receive 2.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> <span class="flag">-X</span> POST \
+     <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
+     <span class="flag">-d</span> <span class="str">'{"yaml":"border: open\ncharset: single\ngap: 1\nslots:\n  - rows:\n      - panels:\n          - id: info\n            title: Info\n            min_width: 25\n"}'</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/panels/preview</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"preview":"┌─ Info ───────────────────┐\n│ label-1 value-1          │\n..."}}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">YAML parse error</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"preview panel layout: yaml: ..."}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <!-- PUT /admin/api/v1/panels/{name} -->
+    <details class="api-entry">
+        <summary>
+            <span class="method method-put">PUT</span>
+            <span class="api-path">/admin/api/v1/panels/{name}</span>
+            <span class="api-desc">Overwrite an existing panel layout file</span>
+        </summary>
+        <div class="api-body">
+            <p>Overwrites the panel layout file identified by <code>{name}</code> (e.g. <code>character/status</code>). The file must already exist; this endpoint does not create new layout files. The YAML is validated for parse errors before writing.</p>
+            <p>Encode slashes in the name as <code>%2F</code> or pass the full path directly &mdash; the route uses a wildcard catch-all so nested paths are preserved.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> <span class="flag">-X</span> PUT \
+     <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
+     <span class="flag">-d</span> <span class="str">'{"yaml":"border: open\ncharset: single\n..."}'</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/panels/character/status</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">File not found or invalid YAML</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"panel layout \"character/status\": stat ...: no such file or directory"}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+</div>
+
+{{template "footer" .}}

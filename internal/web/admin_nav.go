@@ -219,6 +219,14 @@ func buildAdminNav() []WebNavItem {
 					},
 				},
 				{
+					Name:   "Panels",
+					Target: "/admin/panels",
+					SubItems: []WebNavSub{
+						{Label: "View / Edit", Target: "/admin/panels"},
+						{Label: "API Docs", Target: "/admin/panels-api"},
+					},
+				},
+				{
 					Name:   "Scripting",
 					Target: "/admin/scripting-api",
 					SubItems: []WebNavSub{

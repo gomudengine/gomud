@@ -162,22 +162,22 @@ slots:
   - rows:
       - panels:
           - id: info
-            title: ' <ansi fg="black-bold">.:</ansi><ansi fg="20">Info</ansi> '
+            title: '<ansi fg="black-bold">.:</ansi><ansi fg="20">Info</ansi>'
             min_width: 30
 
   - rows:
       - panels:
           - id: attributes
-            title: ' <ansi fg="black-bold">.:</ansi><ansi fg="20">Attributes</ansi> '
+            title: '<ansi fg="black-bold">.:</ansi><ansi fg="20">Attributes</ansi>'
             min_width: 42
             columns: 2
             column_gap: 2
       - panels:
           - id: wealth
-            title: ' <ansi fg="black-bold">.:</ansi><ansi fg="20">Wealth</ansi> '
+            title: '<ansi fg="black-bold">.:</ansi><ansi fg="20">Wealth</ansi>'
             min_width: 19
           - id: training
-            title: ' <ansi fg="black-bold">.:</ansi><ansi fg="20">Training</ansi> '
+            title: '<ansi fg="black-bold">.:</ansi><ansi fg="20">Training</ansi>'
             min_width: 20
 ```
 

@@ -3,9 +3,11 @@ package templates
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/ansitags"
 	"github.com/mattn/go-runewidth"
 	"gopkg.in/yaml.v2"
@@ -151,20 +153,23 @@ func renderSlot(slot *layoutSlot, gap int) []string {
 
 // PanelLayout is a loaded layout skeleton populated with data and ready to render.
 type PanelLayout struct {
-	border borderStyle
-	chars  borderChars
-	gap    int
-	margin int               // spaces prepended to every output line
-	slots  []*layoutSlot     // top-level horizontal slots (columns)
-	byID   map[string]*Panel // fast lookup by panel id
+	border       borderStyle
+	chars        borderChars
+	gap          int
+	margin       int               // spaces prepended to every output line
+	defaultColor string            // optional ANSI fg color/alias wrapping entire output
+	slots        []*layoutSlot     // top-level horizontal slots (columns)
+	byID         map[string]*Panel // fast lookup by panel id
 }
 
 // Panel returns the named panel for data population.
-// It panics with a descriptive message if the id is not defined in the layout.
+// If the id is not defined in the layout, a no-op panel is returned and an
+// error is logged so the caller continues without panicking.
 func (l *PanelLayout) Panel(id string) *Panel {
 	p, ok := l.byID[id]
 	if !ok {
-		panic(fmt.Sprintf("panel layout: no panel with id %q", id))
+		mudlog.Error("panel layout", "error", fmt.Sprintf("no panel with id %q", id))
+		return &Panel{border: l.border, chars: l.chars, columns: 1, columnGap: defaultColumnGap}
 	}
 	return p
 }
@@ -220,7 +225,11 @@ func (l *PanelLayout) Render() string {
 			out[i] = prefix + line
 		}
 	}
-	return strings.Join(out, "\n")
+	result := strings.Join(out, "\n")
+	if l.defaultColor != "" {
+		result = fmt.Sprintf(`<ansi fg="%s">%s</ansi>`, l.defaultColor, result)
+	}
+	return result
 }
 
 // ---------------------------------------------------------------------------
@@ -250,11 +259,12 @@ type slotDef struct {
 
 // panelLayoutDef is the top-level YAML structure.
 type panelLayoutDef struct {
-	Border  string    `yaml:"border"`
-	Gap     int       `yaml:"gap"`
-	Margin  int       `yaml:"margin"`  // optional left margin applied to every output line
-	Charset string    `yaml:"charset"` // optional: "single" (default), "double", "rounded"
-	Slots   []slotDef `yaml:"slots"`
+	Border       string    `yaml:"border"`
+	Gap          int       `yaml:"gap"`
+	Margin       int       `yaml:"margin"`        // optional left margin applied to every output line
+	Charset      string    `yaml:"charset"`       // optional: "single" (default), "double", "rounded", or 8-rune literal
+	DefaultColor string    `yaml:"default_color"` // optional: ANSI color code or alias to wrap entire output
+	Slots        []slotDef `yaml:"slots"`
 }
 
 // LayoutSlot is the exported handle for a slot, used by the scripting layer.
@@ -340,6 +350,259 @@ func (p *Panel) SetColumnGap(n int) *Panel {
 	return p
 }
 
+// PanelLayoutInfo holds metadata about a discovered panel layout file.
+type PanelLayoutInfo struct {
+	// Name is the relative path under panel-layouts/ without the .yaml extension.
+	// Example: "character/status"
+	Name string
+	// YAML is the raw file content.
+	YAML string
+}
+
+// ListPanelLayouts returns all panel layout files found under the panel-layouts/
+// subdirectory of the data files directory. Each entry's Name is the relative
+// path without the .yaml extension (e.g. "character/status").
+func ListPanelLayouts() ([]PanelLayoutInfo, error) {
+	dataFiles := string(configs.GetFilePathsConfig().DataFiles)
+	root := dataFiles + "/panel-layouts"
+
+	var result []PanelLayoutInfo
+	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		if !strings.HasSuffix(path, ".yaml") {
+			return nil
+		}
+		rel, relErr := filepath.Rel(root, path)
+		if relErr != nil {
+			return relErr
+		}
+		name := strings.TrimSuffix(rel, ".yaml")
+		// Normalise Windows separators.
+		name = strings.ReplaceAll(name, "\\", "/")
+
+		data, readErr := os.ReadFile(path)
+		if readErr != nil {
+			return readErr
+		}
+		result = append(result, PanelLayoutInfo{Name: name, YAML: string(data)})
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list panel layouts: %w", err)
+	}
+	return result, nil
+}
+
+// PanelValidationIssue describes a single problem found during layout validation.
+type PanelValidationIssue struct {
+	Message string `json:"message"`
+}
+
+// ValidatePanelLayout parses the given YAML and returns a list of structural
+// issues. An empty slice means the layout is valid. A non-nil error means the
+// YAML itself could not be parsed.
+func ValidatePanelLayout(yamlData string) ([]PanelValidationIssue, error) {
+	var def panelLayoutDef
+	if err := yaml.Unmarshal([]byte(yamlData), &def); err != nil {
+		return nil, fmt.Errorf("invalid YAML: %w", err)
+	}
+
+	var issues []PanelValidationIssue
+	add := func(msg string) { issues = append(issues, PanelValidationIssue{Message: msg}) }
+
+	if def.Border != "" && def.Border != string(borderFull) && def.Border != string(borderOpen) {
+		add(fmt.Sprintf("unknown border style %q (valid: \"full\", \"open\")", def.Border))
+	}
+
+	validCharsets := map[string]bool{"single": true, "double": true, "rounded": true, "": true}
+	if !validCharsets[def.Charset] && len([]rune(def.Charset)) != 8 {
+		add(fmt.Sprintf("unknown charset %q (valid: \"single\", \"double\", \"rounded\", or 8-rune literal)", def.Charset))
+	}
+
+	if def.DefaultColor != "" && strings.TrimSpace(def.DefaultColor) == "" {
+		add("default_color must not be blank whitespace; omit the field to disable it")
+	}
+
+	if len(def.Slots) == 0 {
+		add("layout has no slots defined")
+	}
+
+	seenIDs := make(map[string]bool)
+	for si, sd := range def.Slots {
+		if len(sd.Rows) == 0 {
+			add(fmt.Sprintf("slot %d has no rows", si+1))
+		}
+		for ri, rd := range sd.Rows {
+			if len(rd.Panels) == 0 {
+				add(fmt.Sprintf("slot %d, row %d has no panels", si+1, ri+1))
+			}
+			for pi, pd := range rd.Panels {
+				loc := fmt.Sprintf("slot %d, row %d, panel %d", si+1, ri+1, pi+1)
+				if pd.ID == "" {
+					add(fmt.Sprintf("%s: missing id", loc))
+				} else if seenIDs[pd.ID] {
+					add(fmt.Sprintf("%s: duplicate panel id %q", loc, pd.ID))
+				} else {
+					seenIDs[pd.ID] = true
+				}
+				if pd.Columns < 0 {
+					add(fmt.Sprintf("%s (id=%q): columns must be >= 0", loc, pd.ID))
+				}
+				if pd.MinWidth < 0 {
+					add(fmt.Sprintf("%s (id=%q): min_width must be >= 0", loc, pd.ID))
+				}
+				if pd.Charset != "" && !validCharsets[pd.Charset] && len([]rune(pd.Charset)) != 8 {
+					add(fmt.Sprintf("%s (id=%q): unknown charset %q", loc, pd.ID, pd.Charset))
+				}
+			}
+		}
+	}
+
+	return issues, nil
+}
+
+// PreviewPanelLayout parses the given YAML definition and renders a text
+// preview by filling every panel with at least two dummy rows.
+// When stripAnsi is true the output is plain ASCII (ANSI tags removed from
+// titles). When false, titles are kept verbatim so the caller can render the
+// ANSI tags with a client-side library.
+func PreviewPanelLayout(yamlData string, stripAnsi bool) (string, error) {
+	var def panelLayoutDef
+	if err := yaml.Unmarshal([]byte(yamlData), &def); err != nil {
+		return "", fmt.Errorf("preview panel layout: %w", err)
+	}
+
+	border := borderFull
+	if borderStyle(def.Border) == borderOpen {
+		border = borderOpen
+	}
+	chars := charsetForName(def.Charset)
+	gap := def.Gap
+	if gap < 0 {
+		gap = 0
+	}
+
+	layout := &PanelLayout{
+		border:       border,
+		chars:        chars,
+		gap:          gap,
+		margin:       def.Margin,
+		defaultColor: def.DefaultColor,
+		byID:         make(map[string]*Panel),
+	}
+	if stripAnsi {
+		layout.defaultColor = ""
+	}
+
+	for _, sd := range def.Slots {
+		slot := &layoutSlot{}
+		for _, rd := range sd.Rows {
+			panelCount := len(rd.Panels)
+			var rowPanels []*Panel
+			for _, pd := range rd.Panels {
+				cols := pd.Columns
+				if cols < 1 {
+					cols = 1
+				}
+				colGap := pd.ColumnGap
+				if colGap < 1 {
+					colGap = defaultColumnGap
+				}
+				panelChars := chars
+				if pd.Charset != "" {
+					panelChars = charsetForName(pd.Charset)
+				}
+				title := pd.Title
+				if stripAnsi {
+					title = panelVisualTitle(pd.Title)
+				}
+				p := &Panel{
+					id:        pd.ID,
+					title:     title,
+					minWidth:  pd.MinWidth,
+					border:    border,
+					chars:     panelChars,
+					columns:   cols,
+					columnGap: colGap,
+				}
+				// Sole panel in its row defines its own height; give it more rows
+				// so the preview is representative. Panels with siblings get 2.
+				p.rows = append(p.rows, previewDummyRows(cols, panelCount == 1, !stripAnsi)...)
+				layout.byID[pd.ID] = p
+				rowPanels = append(rowPanels, p)
+			}
+			slot.rows = append(slot.rows, rowPanels)
+		}
+		layout.slots = append(layout.slots, slot)
+	}
+
+	return layout.Render(), nil
+}
+
+// panelVisualTitle strips ANSI tags from a title string and returns the
+// printable text only, suitable for plain-text preview output.
+func panelVisualTitle(title string) string {
+	stripped := ansitags.Parse(title, ansitags.StripTags)
+	return strings.TrimSpace(stripped)
+}
+
+// previewDummyRows returns dummy PanelRows for preview purposes.
+// alone=true means the panel is the sole panel in its row and will define the
+// row height; it gets 4 rows. Panels with horizontal siblings get 2 rows.
+// Multi-column panels double the count so both columns appear populated.
+// When withAnsi is true, labels and values are wrapped in ANSI colour tags.
+func previewDummyRows(columns int, alone bool, withAnsi bool) []PanelRow {
+	base := 2
+	if alone {
+		base = 4
+	}
+	count := base * columns
+	rows := make([]PanelRow, count)
+	for i := range rows {
+		label := fmt.Sprintf("label-%d", i+1)
+		value := fmt.Sprintf("value-%d", i+1)
+		if withAnsi {
+			label = fmt.Sprintf(`<ansi fg="yellow">%s</ansi>`, label)
+			value = fmt.Sprintf(`<ansi fg="green-bold">%s</ansi>`, value)
+		}
+		rows[i] = PanelRow{
+			FullLabel:  label,
+			ShortLabel: label,
+			Value:      value,
+		}
+	}
+	return rows
+}
+
+// SavePanelLayout writes yamlData to the panel layout file for the given name.
+// name is relative to panel-layouts/ without the .yaml extension.
+// The file must already exist; this function does not create new layout files.
+func SavePanelLayout(name, yamlData string) error {
+	dataFiles := string(configs.GetFilePathsConfig().DataFiles)
+	path := dataFiles + "/panel-layouts/" + name + ".yaml"
+
+	// Verify the file exists before overwriting.
+	if _, err := os.Stat(path); err != nil {
+		return fmt.Errorf("panel layout %q: %w", name, err)
+	}
+
+	// Validate the YAML parses correctly before writing.
+	var def panelLayoutDef
+	if err := yaml.Unmarshal([]byte(yamlData), &def); err != nil {
+		return fmt.Errorf("panel layout %q: invalid YAML: %w", name, err)
+	}
+
+	if err := os.WriteFile(path, []byte(yamlData), 0644); err != nil {
+		return fmt.Errorf("panel layout %q: %w", name, err)
+	}
+	return nil
+}
+
 // LoadPanelLayout loads a panel layout definition from the datafiles directory.
 // name is relative to the panel-layouts/ subdirectory and has no extension.
 // Example: LoadPanelLayout("character/status")
@@ -370,11 +633,12 @@ func LoadPanelLayout(name string) (*PanelLayout, error) {
 	}
 
 	layout := &PanelLayout{
-		border: border,
-		chars:  chars,
-		gap:    gap,
-		margin: def.Margin,
-		byID:   make(map[string]*Panel),
+		border:       border,
+		chars:        chars,
+		gap:          gap,
+		margin:       def.Margin,
+		defaultColor: def.DefaultColor,
+		byID:         make(map[string]*Panel),
 	}
 
 	for _, sd := range def.Slots {
@@ -506,16 +770,23 @@ func renderPanel(p *Panel) []string {
 
 	var lines []string
 
-	// Top border: TopLeft + Horizontal + " " + title + " " + Horizontal... + TopRight
-	// The title is used verbatim (may contain ANSI tags); its visual width is measured stripped.
-	titleVW := panelVisualWidth(p.title)
-	// visible structure: TL + H + " " + title + " " + H*n + TR
-	// that is 1 + 1 + 1 + titleVW + 1 + n + 1 = inner + 2*panelPad + 2
-	dashCount := inner + 2*panelPad + 2 - 1 - 1 - 1 - titleVW - 1 - 1
-	if dashCount < 0 {
-		dashCount = 0
+	// Top border.
+	// With title:    TopLeft + H + " " + title + " " + H*n + TopRight
+	// Without title: TopLeft + H*(inner + 2*panelPad) + TopRight
+	var topBorder string
+	if p.title == "" {
+		topBorder = c.TopLeft + strings.Repeat(c.Horizontal, inner+2*panelPad) + c.TopRight
+	} else {
+		titleVW := panelVisualWidth(p.title)
+		// visible structure: TL + H + " " + title + " " + H*n + TR
+		// that is 1 + 1 + 1 + titleVW + 1 + n + 1 = inner + 2*panelPad + 2
+		dashCount := inner + 2*panelPad + 2 - 1 - 1 - 1 - titleVW - 1 - 1
+		if dashCount < 0 {
+			dashCount = 0
+		}
+		topBorder = c.TopLeft + c.Horizontal + " " + p.title + " " + strings.Repeat(c.Horizontal, dashCount) + c.TopRight
 	}
-	lines = append(lines, c.TopLeft+c.Horizontal+" "+p.title+" "+strings.Repeat(c.Horizontal, dashCount)+c.TopRight)
+	lines = append(lines, topBorder)
 
 	nRows := len(p.rows)
 
