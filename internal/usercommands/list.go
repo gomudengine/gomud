@@ -73,6 +73,7 @@ func List(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 			Stock:     mob.Character.Shop.GetInstock(),
 			Buyer:     user,
 			SellerMob: mob,
+			Room:      room,
 		})
 
 		itemsAvailable := characters.Shop{}
@@ -418,6 +419,8 @@ func List(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 			user.SendText(tplTxt)
 			user.SendText(fmt.Sprintf(`To buy a pet, type: <ansi fg="command">buy [name]</ansi>%s`, term.CRLFStr))
 		}
+
+		OnShopListRendered.Fire(shopReq)
 	}
 
 	for _, uid := range room.GetPlayers(rooms.FindMerchant) {
@@ -441,6 +444,7 @@ func List(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 			Stock:      shopUser.Character.Shop.GetInstock(),
 			Buyer:      user,
 			SellerUser: shopUser,
+			Room:       room,
 		})
 
 		itemsAvailable := characters.Shop{}
@@ -791,6 +795,7 @@ func List(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 			user.SendText(fmt.Sprintf(`To buy a pet, type: <ansi fg="command">buy [name]</ansi>%s`, term.CRLFStr))
 		}
 
+		OnShopListRendered.Fire(shopReq)
 	}
 
 	if !listedSomething {

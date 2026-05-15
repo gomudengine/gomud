@@ -1,0 +1,230 @@
+{{template "header" .}}
+
+<style>
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--color-text-muted); margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+    #status-bar { display: none; padding: 0.6rem 1rem; border-radius: 4px; font-size: 0.875rem; margin-bottom: 1rem; }
+    #status-bar.success { background: var(--color-success-bg); color: var(--color-success-text); display: block; }
+    #status-bar.error   { background: var(--color-error-bg);   color: var(--color-error-text);   display: block; }
+
+    .table-wrap { background: var(--color-surface-white); border: 1px solid var(--color-border); border-radius: 6px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { background: var(--color-border-faint); text-align: left; padding: 0.6rem 0.9rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-muted); border-bottom: 1px solid var(--color-border); white-space: nowrap; }
+    tbody tr { border-bottom: 1px solid var(--color-border-light); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--color-surface-alt); }
+    td { padding: 0.55rem 0.9rem; font-size: 0.875rem; vertical-align: middle; }
+    td.zone-cell { font-family: monospace; font-size: 0.82rem; color: var(--color-primary); white-space: nowrap; }
+    td.none { color: var(--color-text-faint); font-style: italic; }
+
+    .btn { padding: 0.3rem 0.7rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: 600; white-space: nowrap; }
+    .btn-danger  { background: var(--color-danger, #c0392b); color: #fff; }
+    .btn-danger:hover  { opacity: 0.85; }
+    .btn-save   { background: var(--color-btn-save-bg); color: #fff; }
+    .btn-save:hover { background: var(--color-btn-new-hover); }
+    .btn-cancel { background: var(--color-border-medium); color: var(--color-text-strong); }
+    .btn-cancel:hover { background: var(--color-border); }
+
+    /* inline edit cells */
+    .view-mode  { display: flex; align-items: center; gap: 0.5rem; }
+    .edit-mode  { display: none; align-items: center; gap: 0.4rem; }
+    .edit-mode.active { display: flex; }
+    .view-mode.hidden { display: none; }
+    .edit-mode input[type="number"] { width: 80px; padding: 0.25rem 0.4rem; border: 1px solid var(--color-text-placeholder); border-radius: 3px; font-size: 0.875rem; }
+
+    .edit-link { cursor: pointer; color: var(--color-primary); font-size: 0.78rem; text-decoration: underline dotted; }
+    .edit-link:hover { color: var(--color-primary-hover); }
+
+    .no-official { color: var(--color-text-faint); font-style: italic; font-size: 0.82rem; }
+    .official-name { font-weight: 600; }
+    .official-title { color: var(--color-text-muted); font-size: 0.8rem; }
+
+    .loading-row td { padding: 1.5rem; text-align: center; color: var(--color-text-faint); }
+</style>
+
+<h1>Elections — Zone Audit</h1>
+<p class="subtitle">All zones with their elected officials, tax rates, and coffer balances. Changes take effect immediately.</p>
+
+<div id="status-bar"></div>
+
+<div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>Zone</th>
+                <th>Elected Official</th>
+                <th>Tax Rate</th>
+                <th>Coffer</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="zone-tbody">
+            <tr class="loading-row"><td colspan="5">Loading...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    const BASE = '/admin/api/v1/elections/zones';
+
+    let zones = [];
+
+    async function init() {
+        const res = await AdminAPI.get(BASE);
+        if (!res.ok) { showStatus('Failed to load zones: ' + res.error, false); return; }
+        zones = (res.data.data || {}).zones || [];
+        render();
+    }
+
+    function render() {
+        const tbody = document.getElementById('zone-tbody');
+        tbody.innerHTML = '';
+
+        if (zones.length === 0) {
+            tbody.innerHTML = '<tr class="loading-row"><td colspan="5">No zones found.</td></tr>';
+            return;
+        }
+
+        for (const z of zones) {
+            const tr = document.createElement('tr');
+            tr.id = 'row-' + cssId(z.zone);
+            tr.innerHTML = buildRow(z);
+            tbody.appendChild(tr);
+        }
+    }
+
+    function buildRow(z) {
+        const officialHtml = z.official_name
+            ? '<span class="official-name">' + escHtml(z.official_name) + '</span>' +
+              (z.official_title ? ' <span class="official-title">('+escHtml(z.official_title)+')</span>' : '')
+            : '<span class="no-official">None</span>';
+
+        const removeBtn = z.official_name
+            ? '<button class="btn btn-danger" data-action="remove-official" data-zone="' + escHtml(z.zone) + '">Remove</button>'
+            : '';
+
+        return (
+            '<td class="zone-cell">' + escHtml(z.zone) + '</td>' +
+            '<td id="official-cell-' + cssId(z.zone) + '">' +
+                officialHtml + (removeBtn ? ' ' + removeBtn : '') +
+            '</td>' +
+            '<td id="tax-cell-' + cssId(z.zone) + '">' + buildTaxCell(z) + '</td>' +
+            '<td id="coffer-cell-' + cssId(z.zone) + '">' + buildCofferCell(z) + '</td>' +
+            '<td></td>'
+        );
+    }
+
+    function buildTaxCell(z) {
+        const id = cssId(z.zone);
+        return (
+            '<div class="view-mode" id="tax-view-' + id + '">' +
+                '<span id="tax-val-' + id + '">' + escHtml(String(z.tax_rate)) + '%</span>' +
+                ' <span class="edit-link" data-action="edit-tax" data-zone="' + escHtml(z.zone) + '">edit</span>' +
+            '</div>' +
+            '<div class="edit-mode" id="tax-edit-' + id + '">' +
+                '<input type="number" id="tax-input-' + id + '" min="0" max="100" value="' + escHtml(String(z.tax_rate)) + '" />' +
+                '<button class="btn btn-save" data-action="save-tax" data-zone="' + escHtml(z.zone) + '">Save</button>' +
+                '<button class="btn btn-cancel" data-action="cancel-tax" data-zone="' + escHtml(z.zone) + '">Cancel</button>' +
+            '</div>'
+        );
+    }
+
+    function buildCofferCell(z) {
+        const id = cssId(z.zone);
+        return (
+            '<div class="view-mode" id="coffer-view-' + id + '">' +
+                '<span id="coffer-val-' + id + '">' + escHtml(String(z.coffer)) + '</span>' +
+                ' <span class="edit-link" data-action="edit-coffer" data-zone="' + escHtml(z.zone) + '">edit</span>' +
+            '</div>' +
+            '<div class="edit-mode" id="coffer-edit-' + id + '">' +
+                '<input type="number" id="coffer-input-' + id + '" min="0" max="100000000" value="' + escHtml(String(z.coffer)) + '" />' +
+                '<button class="btn btn-save" data-action="save-coffer" data-zone="' + escHtml(z.zone) + '">Save</button>' +
+                '<button class="btn btn-cancel" data-action="cancel-coffer" data-zone="' + escHtml(z.zone) + '">Cancel</button>' +
+            '</div>'
+        );
+    }
+
+    // Single delegated listener — reads data-action and data-zone from the clicked element.
+    document.getElementById('zone-tbody').addEventListener('click', async function (e) {
+        const el = e.target.closest('[data-action]');
+        if (!el) return;
+        const action = el.dataset.action;
+        const zone   = el.dataset.zone;
+        const id     = cssId(zone);
+
+        if (action === 'edit-tax') {
+            document.getElementById('tax-view-' + id).classList.add('hidden');
+            document.getElementById('tax-edit-' + id).classList.add('active');
+            document.getElementById('tax-input-' + id).focus();
+
+        } else if (action === 'cancel-tax') {
+            document.getElementById('tax-view-' + id).classList.remove('hidden');
+            document.getElementById('tax-edit-' + id).classList.remove('active');
+
+        } else if (action === 'save-tax') {
+            const val = parseInt(document.getElementById('tax-input-' + id).value, 10);
+            if (isNaN(val) || val < 0 || val > 100) { showStatus('Tax rate must be between 0 and 100.', false); return; }
+            const res = await AdminAPI.patch(BASE + '/' + encodeURIComponent(zone), { tax_rate: val });
+            if (!res.ok) { showStatus('Error: ' + (res.error || 'unknown'), false); return; }
+            const zt = zones.find(z => z.zone === zone);
+            if (zt) zt.tax_rate = val;
+            document.getElementById('tax-val-' + id).textContent = val + '%';
+            document.getElementById('tax-view-' + id).classList.remove('hidden');
+            document.getElementById('tax-edit-' + id).classList.remove('active');
+            showStatus('Tax rate for ' + zone + ' updated to ' + val + '%.', true);
+
+        } else if (action === 'edit-coffer') {
+            document.getElementById('coffer-view-' + id).classList.add('hidden');
+            document.getElementById('coffer-edit-' + id).classList.add('active');
+            document.getElementById('coffer-input-' + id).focus();
+
+        } else if (action === 'cancel-coffer') {
+            document.getElementById('coffer-view-' + id).classList.remove('hidden');
+            document.getElementById('coffer-edit-' + id).classList.remove('active');
+
+        } else if (action === 'save-coffer') {
+            const val = parseInt(document.getElementById('coffer-input-' + id).value, 10);
+            if (isNaN(val) || val < 0) { showStatus('Coffer value must be a non-negative number.', false); return; }
+            const res = await AdminAPI.patch(BASE + '/' + encodeURIComponent(zone), { coffer: val });
+            if (!res.ok) { showStatus('Error: ' + (res.error || 'unknown'), false); return; }
+            const zc = zones.find(z => z.zone === zone);
+            if (zc) zc.coffer = val;
+            document.getElementById('coffer-val-' + id).textContent = val;
+            document.getElementById('coffer-view-' + id).classList.remove('hidden');
+            document.getElementById('coffer-edit-' + id).classList.remove('active');
+            showStatus('Coffer for ' + zone + ' updated to ' + val + '.', true);
+
+        } else if (action === 'remove-official') {
+            if (!confirm('Remove the elected official for "' + zone + '"? This cannot be undone.')) return;
+            const res = await AdminAPI.delete(BASE + '/' + encodeURIComponent(zone) + '/official');
+            if (!res.ok) { showStatus('Error: ' + (res.error || 'unknown'), false); return; }
+            const zo = zones.find(z => z.zone === zone);
+            if (zo) { zo.official_name = ''; zo.official_title = ''; zo.official_id = 0; }
+            const cell = document.getElementById('official-cell-' + id);
+            if (cell) cell.innerHTML = '<span class="no-official">None</span>';
+            showStatus('Elected official for ' + zone + ' removed.', true);
+        }
+    });
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    function showStatus(msg, success) {
+        const bar = document.getElementById('status-bar');
+        bar.textContent = msg;
+        bar.className = success ? 'success' : 'error';
+        clearTimeout(bar._t);
+        bar._t = setTimeout(() => { bar.className = ''; }, 6000);
+    }
+
+    function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+    function cssId(s)   { return String(s).replace(/[^a-zA-Z0-9_-]/g, '_'); }
+
+    init();
+})();
+</script>
+
+{{template "footer" .}}

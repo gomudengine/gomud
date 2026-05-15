@@ -123,6 +123,8 @@ func tryPurchase(request string, user *users.UserRecord, room *rooms.Room, shopM
 			Stock:     shopMob.Character.Shop.GetInstock(),
 			Buyer:     user,
 			SellerMob: shopMob,
+			Room:      room,
+			IsBuy:     true,
 		})
 		saleItems = shopReq.Stock
 	} else if shopUser != nil {
@@ -130,6 +132,8 @@ func tryPurchase(request string, user *users.UserRecord, room *rooms.Room, shopM
 			Stock:      shopUser.Character.Shop.GetInstock(),
 			Buyer:      user,
 			SellerUser: shopUser,
+			Room:       room,
+			IsBuy:      true,
 		})
 		saleItems = shopReq.Stock
 	}
@@ -274,10 +278,20 @@ func tryPurchase(request string, user *users.UserRecord, room *rooms.Room, shopM
 	}
 
 	if user.Character.Gold < price {
-		if shopMob != nil {
-			shopMob.Command(`say You don't have enough gold for that.`)
-		} else if shopUser != nil {
-			user.SendText(`You don't have enough gold for that.`)
+		insuf := OnInsufficientFunds.Fire(InsufficientFundsRequest{
+			Buyer:      user,
+			SellerMob:  shopMob,
+			SellerUser: shopUser,
+			Room:       room,
+			Gold:       user.Character.Gold,
+			Price:      price,
+		})
+		if !insuf.Handled {
+			if shopMob != nil {
+				shopMob.Command(`say You don't have enough gold for that.`)
+			} else if shopUser != nil {
+				user.SendText(`You don't have enough gold for that.`)
+			}
 		}
 		return false
 	}
