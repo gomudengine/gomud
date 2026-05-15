@@ -82,11 +82,14 @@ func charsetForName(name string) borderChars {
 // PanelRow is one label+value line inside a panel.
 // The renderer uses FullLabel when it fits the panel width, ShortLabel otherwise.
 // Set Blank to true to insert an empty spacer line; label and value are ignored.
+// When MaxWidth > 0, the value is word-wrapped at that visual width; continuation
+// lines are indented to align with the value column of the first line.
 type PanelRow struct {
 	FullLabel  string
 	ShortLabel string
 	Value      string
 	Blank      bool
+	MaxWidth   int
 }
 
 // Panel holds the rows for one titled box. Obtain via PanelLayout.Panel(id).
@@ -94,6 +97,7 @@ type Panel struct {
 	id         string
 	title      string // raw title string, may contain ANSI tags; used verbatim in the top border
 	minWidth   int
+	maxWidth   int // if > 0, value fields are wrapped at this visual width using SplitStringOnSpaces
 	border     borderStyle
 	chars      borderChars
 	columns    int // 1 (default) or 2: how many label+value pairs share a line
@@ -103,11 +107,27 @@ type Panel struct {
 }
 
 // Add appends a label+value row and returns the panel for chaining.
+// If the panel has a non-zero MaxWidth set, the value will be wrapped at that width.
 func (p *Panel) Add(fullLabel, shortLabel, value string) *Panel {
 	p.rows = append(p.rows, PanelRow{
 		FullLabel:  fullLabel,
 		ShortLabel: shortLabel,
 		Value:      value,
+		MaxWidth:   p.maxWidth,
+	})
+	return p
+}
+
+// AddWithMaxWidth appends a label+value row with an explicit maximum value width,
+// overriding the panel-level MaxWidth for this row.
+// When the value's visual width exceeds maxWidth, it is wrapped onto continuation
+// lines indented to align with the value column of the first line.
+func (p *Panel) AddWithMaxWidth(fullLabel, shortLabel, value string, maxWidth int) *Panel {
+	p.rows = append(p.rows, PanelRow{
+		FullLabel:  fullLabel,
+		ShortLabel: shortLabel,
+		Value:      value,
+		MaxWidth:   maxWidth,
 	})
 	return p
 }
@@ -241,6 +261,7 @@ type panelDef struct {
 	ID        string `yaml:"id"`
 	Title     string `yaml:"title"`
 	MinWidth  int    `yaml:"min_width"`
+	MaxWidth  int    `yaml:"max_width"`  // optional; when > 0, value fields are wrapped at this visual width
 	Columns   int    `yaml:"columns"`    // optional, default 1
 	ColumnGap int    `yaml:"column_gap"` // optional, default 2
 	Charset   string `yaml:"charset"`    // optional, overrides layout-level charset
@@ -325,6 +346,12 @@ func (p *Panel) SetTitle(title string) *Panel { p.title = title; return p }
 
 // SetMinWidth sets the panel's minimum inner content width.
 func (p *Panel) SetMinWidth(w int) *Panel { p.minWidth = w; return p }
+
+// SetMaxWidth sets the panel's value wrap width.
+// When non-zero, value fields added via Add are wrapped at this visual width
+// using word-boundary splitting. Continuation lines are indented to align
+// with the value column of the first line.
+func (p *Panel) SetMaxWidth(w int) *Panel { p.maxWidth = w; return p }
 
 // SetLabelWidth sets a fixed visual width that all labels are padded to.
 // When non-zero, every label is right-padded with spaces to this width before
@@ -456,6 +483,9 @@ func ValidatePanelLayout(yamlData string) ([]PanelValidationIssue, error) {
 				if pd.MinWidth < 0 {
 					add(fmt.Sprintf("%s (id=%q): min_width must be >= 0", loc, pd.ID))
 				}
+				if pd.MaxWidth < 0 {
+					add(fmt.Sprintf("%s (id=%q): max_width must be >= 0", loc, pd.ID))
+				}
 				if pd.Charset != "" && !validCharsets[pd.Charset] && len([]rune(pd.Charset)) != 8 {
 					add(fmt.Sprintf("%s (id=%q): unknown charset %q", loc, pd.ID, pd.Charset))
 				}
@@ -525,6 +555,7 @@ func PreviewPanelLayout(yamlData string, stripAnsi bool) (string, error) {
 					id:        pd.ID,
 					title:     title,
 					minWidth:  pd.MinWidth,
+					maxWidth:  pd.MaxWidth,
 					border:    border,
 					chars:     panelChars,
 					columns:   cols,
@@ -662,6 +693,7 @@ func LoadPanelLayout(name string) (*PanelLayout, error) {
 					id:        pd.ID,
 					title:     pd.Title,
 					minWidth:  pd.MinWidth,
+					maxWidth:  pd.MaxWidth,
 					border:    border,
 					chars:     panelChars,
 					columns:   cols,
@@ -703,6 +735,9 @@ func panelInnerWidth(p *Panel) int {
 				lw = p.labelWidth
 			}
 			vw := panelVisualWidth(row.Value)
+			if row.MaxWidth > 0 && vw > row.MaxWidth {
+				vw = row.MaxWidth
+			}
 			needed := lw + 1 + vw
 			if needed > width {
 				width = needed
@@ -795,7 +830,7 @@ func renderPanel(p *Panel) []string {
 		for i, row := range p.rows {
 			isFirst := i == 0
 			isLast := i == nRows-1
-			lines = append(lines, renderSingleColumnLine(p, row, inner, isFirst, isLast))
+			lines = append(lines, renderSingleColumnLines(p, row, inner, isFirst, isLast)...)
 		}
 	} else {
 		// Multi-column layout: pair up rows.
@@ -840,33 +875,83 @@ func renderPanel(p *Panel) []string {
 	return lines
 }
 
-// renderSingleColumnLine renders one content line for a single-column panel.
-func renderSingleColumnLine(p *Panel, row PanelRow, inner int, isFirst, isLast bool) string {
+// renderSingleColumnLines renders one content row for a single-column panel,
+// returning one or more lines. When row.MaxWidth > 0 and the value exceeds that
+// width, the value is split and continuation lines are indented to align with
+// the value column of the first line.
+func renderSingleColumnLines(p *Panel, row PanelRow, inner int, isFirst, isLast bool) []string {
 	c := p.chars
-	var content string
+	borderLine := func(content string) string {
+		if p.border == borderFull || isFirst || isLast {
+			return c.VerticalLeft + content + c.VerticalRight
+		}
+		return " " + content + " "
+	}
+
 	if row.Blank {
-		content = strings.Repeat(" ", inner+2*panelPad)
-	} else {
-		label := chooseLabel(row, inner)
-		lw := panelVisualWidth(label)
-		if p.labelWidth > lw {
-			label = label + strings.Repeat(" ", p.labelWidth-lw)
-			lw = p.labelWidth
-		}
-		vw := panelVisualWidth(row.Value)
-		rightPad := inner - lw - 1 - vw
-		if rightPad < 0 {
-			rightPad = 0
-		}
-		content = strings.Repeat(" ", panelPad) +
-			label + " " + row.Value +
-			strings.Repeat(" ", rightPad) +
-			strings.Repeat(" ", panelPad)
+		return []string{borderLine(strings.Repeat(" ", inner+2*panelPad))}
 	}
-	if p.border == borderFull || isFirst || isLast {
-		return c.VerticalLeft + content + c.VerticalRight
+
+	label := chooseLabel(row, inner)
+	lw := panelVisualWidth(label)
+	if p.labelWidth > lw {
+		label = label + strings.Repeat(" ", p.labelWidth-lw)
+		lw = p.labelWidth
 	}
-	return " " + content + " "
+
+	// valueIndent is the number of spaces to prepend on continuation lines so
+	// that they align with the value column of the first line.
+	// Layout: panelPad + label + " " + value
+	valueIndent := panelPad + lw + 1
+
+	var chunks []string
+	if row.MaxWidth > 0 {
+		for _, chunk := range ansitags.SplitStringOnSpaces(row.Value, row.MaxWidth, true) {
+			if panelVisualWidth(chunk) > 0 {
+				chunks = append(chunks, chunk)
+			}
+		}
+	}
+	if len(chunks) == 0 {
+		chunks = []string{row.Value}
+	}
+
+	var result []string
+	for ci, chunk := range chunks {
+		vw := panelVisualWidth(chunk)
+		var content string
+		if ci == 0 {
+			rightPad := inner - lw - 1 - vw
+			if rightPad < 0 {
+				rightPad = 0
+			}
+			content = strings.Repeat(" ", panelPad) +
+				label + " " + chunk +
+				strings.Repeat(" ", rightPad) +
+				strings.Repeat(" ", panelPad)
+		} else {
+			rightPad := inner + 2*panelPad - valueIndent - vw
+			if rightPad < 0 {
+				rightPad = 0
+			}
+			content = strings.Repeat(" ", valueIndent) +
+				chunk +
+				strings.Repeat(" ", rightPad)
+		}
+		// Only the first and last logical rows of the panel get border treatment
+		// from isFirst/isLast; continuation lines are never first or last.
+		if ci == 0 {
+			result = append(result, borderLine(content))
+		} else {
+			// Continuation lines: open border unless the panel uses full borders.
+			if p.border == borderFull {
+				result = append(result, c.VerticalLeft+content+c.VerticalRight)
+			} else {
+				result = append(result, " "+content+" ")
+			}
+		}
+	}
+	return result
 }
 
 // composePanelGroup renders a group of panels side by side into a slice of lines.

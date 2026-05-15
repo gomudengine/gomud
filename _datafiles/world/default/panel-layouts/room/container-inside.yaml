@@ -4,7 +4,7 @@
 border: open
 charset: single
 gap: 1
-margin: 0
+margin: 1
 
 slots:
   - rows:

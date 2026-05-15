@@ -11,3 +11,4 @@ slots:
           - id: mods
             title: '<ansi fg="black-bold">.:</ansi><ansi fg="20">Modifiers</ansi>'
             min_width: 74
+            max_width: 60

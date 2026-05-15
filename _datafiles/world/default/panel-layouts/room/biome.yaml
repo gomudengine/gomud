@@ -3,7 +3,7 @@
 border: open
 charset: single
 gap: 1
-margin: 0
+margin: 1
 
 slots:
   - rows:
@@ -11,3 +11,4 @@ slots:
           - id: biome
             title: '<ansi fg="black-bold">.:</ansi> Biome Info'
             min_width: 74
+            max_width: 60

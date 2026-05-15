@@ -8,7 +8,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/templates"
 	"github.com/GoMudEngine/GoMud/internal/term"
-	"github.com/GoMudEngine/GoMud/internal/util"
 )
 
 // buildDescriptionPanel renders the character/description template as a panel.
@@ -23,9 +22,7 @@ func buildDescriptionPanel(c *characters.Character) string {
 
 	panel := layout.Panel("desc")
 
-	for _, line := range util.SplitString(c.GetDescription(), 72) {
-		panel.Add(``, ``, line)
-	}
+	panel.Add(``, ``, c.GetDescription())
 	panel.Add(``, ``, c.GetHealthAppearance())
 
 	return layout.Render() + term.CRLFStr
@@ -44,9 +41,7 @@ func buildCorpseDescriptionPanel(c *characters.Character) string {
 
 	panel := layout.Panel("desc")
 	panel.Add(``, ``, skulls)
-	for _, line := range util.SplitString(c.GetDescription(), 72) {
-		panel.Add(``, ``, fmt.Sprintf(`<ansi fg="8">%s</ansi>`, line))
-	}
+	panel.Add(``, ``, fmt.Sprintf(`<ansi fg="8">%s</ansi>`, c.GetDescription()))
 	panel.Add(``, ``, `<ansi fg="8">This is a corpse. They are dead.</ansi>`)
 	panel.Add(``, ``, skulls)
 

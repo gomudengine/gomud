@@ -27,14 +27,7 @@ func buildInspectPanel(inspectLevel int, itm *items.Item, iSpec *items.ItemSpec)
 
 		p := layout.Panel("basic")
 		p.Add(`<ansi fg="yellow">Name:</ansi>`, `<ansi fg="yellow">Name:</ansi>`, strings.ToUpper(itm.Name()))
-		descLines := util.SplitString(iSpec.Description, 60)
-		for i, line := range descLines {
-			label := ``
-			if i == 0 {
-				label = `<ansi fg="yellow">Description:</ansi>`
-			}
-			p.Add(label, label, line)
-		}
+		p.Add(`<ansi fg="yellow">Description:</ansi>`, `<ansi fg="yellow">Description:</ansi>`, iSpec.Description)
 		p.Add(`<ansi fg="yellow">Type:</ansi>`, `<ansi fg="yellow">Type:</ansi>`,
 			fmt.Sprintf(`<ansi fg="white">%s</ansi> (<ansi fg="white">%s</ansi>)`, strings.ToUpper(iSpec.Type.String()), strings.ToUpper(iSpec.Subtype.String())))
 		p.Add(`<ansi fg="yellow">Value:</ansi>`, `<ansi fg="yellow">Val:</ansi>`,
@@ -144,7 +137,7 @@ func buildInspectPanel(inspectLevel int, itm *items.Item, iSpec *items.ItemSpec)
 				for _, flag := range spec.Flags {
 					allFlags := buffs.GetAllFlags()
 					if desc, ok := allFlags[flag]; ok {
-						p.Add(``, ``, fmt.Sprintf(`  <ansi fg="cyan">%s</ansi>`, desc))
+						p.Add(``, ``, fmt.Sprintf(`- <ansi fg="cyan">%s</ansi>`, desc))
 					}
 				}
 				added = true
@@ -409,14 +402,7 @@ func buildBiomePanel(biome *rooms.BiomeInfo) string {
 	p.Add(`<ansi fg="yellow">Name:</ansi>`, `<ansi fg="yellow">Name:</ansi>`, biome.Name)
 	p.Add(`<ansi fg="yellow">Symbol:</ansi>`, `<ansi fg="yellow">Sym:</ansi>`, biome.SymbolString())
 	p.Add(`<ansi fg="yellow">Lighting:</ansi>`, `<ansi fg="yellow">Light:</ansi>`, lighting)
-	biomeDescLines := util.SplitString(biome.Description, 60)
-	for i, line := range biomeDescLines {
-		label := ``
-		if i == 0 {
-			label = `<ansi fg="yellow">Description:</ansi>`
-		}
-		p.Add(label, label, line)
-	}
+	p.Add(`<ansi fg="yellow">Description:</ansi>`, `<ansi fg="yellow">Description:</ansi>`, biome.Description)
 
 	return layout.Render() + term.CRLFStr
 }
