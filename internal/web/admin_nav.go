@@ -5,11 +5,6 @@ package web
 func buildAdminNav() []WebNavItem {
 	nav := []WebNavItem{
 		{
-			Name:   "Dashboard",
-			Target: "/admin/",
-		},
-
-		{
 			Name: "Lifeforms",
 			SubMenus: []WebNavItem{
 				{

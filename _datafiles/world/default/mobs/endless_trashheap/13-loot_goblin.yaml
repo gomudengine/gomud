@@ -4,7 +4,7 @@ itemdropchance: 100
 hostile: false
 maxwander: -1
 idlecommands:
-  - 'portal home;go portal;wander;wander;wander;wander;wander;wander;wander;suicide'
+  - 'portal home;go portal;wander;wander;wander;wander;wander;wander;drop all;suicide'
   - 'portal loot;go portal;get all'
   - 'portal loot;go portal;get all'
   - 'portal loot;go portal;get all'
@@ -26,7 +26,7 @@ idlecommands:
   - 'wear random'
   - 'alchemy random'
 combatcommands:
-  - 'portal home;go portal;drop all;wander'
+  - 'portal home;go portal;wander;wander;wander;drop all;wander'
 activitylevel: 90
 character:
   name: loot goblin

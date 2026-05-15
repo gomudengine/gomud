@@ -48,4 +48,21 @@
     <ansi fg="command">coffer deposit <amount></ansi>  - Deposit gold (title-holder only).
     <ansi fg="command">coffer withdraw <amount></ansi> - Withdraw gold (title-holder only).
 
+  <ansi fg="yellow">Zone Tax Rate</ansi>
+
+  The elected official of a zone may set a tax rate between 0%
+  and 100%. The tax is charged on top of the normal purchase
+  price for any shop transaction in the zone, and the extra
+  gold flows into the zone coffer.
+
+  The default tax rate is <ansi fg="white-bold">1%</ansi>. A rate of 0% disables the tax
+  entirely. The current tax rate is shown as a room alert in
+  any room within a governed zone, and at the bottom of every
+  shop listing in the zone.
+
+  Elected officials can set the tax rate from the coffer room:
+
+    <ansi fg="command">taxrate <0-100></ansi>  - Set the tax rate for your zone
+                       (title-holder only, at the coffer).
+
 <ansi fg="yellow-bold">*****************************************************</ansi>

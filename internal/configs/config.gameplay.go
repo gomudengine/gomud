@@ -16,10 +16,11 @@ type GamePlay struct {
 	LivesMax       ConfigInt `yaml:"LivesMax"`       // Maximum permadeath lives
 	LivesOnLevelUp ConfigInt `yaml:"LivesOnLevelUp"` // # lives gained on level up
 	PricePerLife   ConfigInt `yaml:"PricePerLife"`   // Price in gold to buy new lives
-	// Shops/Conatiners
-	ShopRestockRate  ConfigString `yaml:"ShopRestockRate"`  // Default time it takes to restock 1 quantity in shops
-	ContainerSizeMax ConfigInt    `yaml:"ContainerSizeMax"` // How many objects containers can hold before overflowing
-	Combat           CombatConfig `yaml:"Combat"`
+	// Shops/Containers
+	ShopRestockRate   ConfigString `yaml:"ShopRestockRate"`   // Default time it takes to restock 1 quantity in shops
+	ContainerSizeMax  ConfigInt    `yaml:"ContainerSizeMax"`  // How many objects containers can hold before overflowing
+	FloorItemCountMax ConfigInt    `yaml:"FloorItemCountMax"` // Maximum items allowed on the floor at once (0 = no limit)
+	Combat            CombatConfig `yaml:"Combat"`
 
 	// PVP Restrictions
 	PVP GameplayPVP `yaml:"PVP"`
@@ -133,6 +134,10 @@ func (g *GamePlay) Validate() {
 
 	if g.ContainerSizeMax < 1 {
 		g.ContainerSizeMax = 1
+	}
+
+	if g.FloorItemCountMax < 0 {
+		g.FloorItemCountMax = 0
 	}
 
 	if g.Death.CorpseDecayTime == `` {

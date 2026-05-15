@@ -1,0 +1,47 @@
+<ansi fg="black-bold">.:</ansi> <ansi fg="red-bold">Admin Help for </ansi><ansi fg="command">election</ansi>
+
+  <ansi fg="yellow">Managing Elections</ansi>
+
+    <ansi fg="command">election start <title></ansi>
+      Starts a new election for the zone you are currently in.
+      <title> becomes the elected title (e.g. "Mayor of Frostfang").
+      Only one election may be active at a time.
+
+    <ansi fg="command">election end</ansi>
+      Immediately ends the active election and tallies votes.
+      The candidate with the most votes wins. Ties are broken
+      randomly. If no votes were cast, no winner is recorded.
+
+  <ansi fg="yellow">Tax Rate Override</ansi>
+
+    <ansi fg="command">election taxrate <0-100></ansi>
+      Sets the tax rate for the zone you are currently in.
+
+    <ansi fg="command">election taxrate <zone> <0-100></ansi>
+      Sets the tax rate for any named zone regardless of your
+      current location.
+
+    Tax is charged on top of listed shop prices in the zone.
+    The extra gold flows into the zone coffer. Default is 1%.
+    A rate of 0 disables the tax entirely.
+
+    Note: elected officials set the tax rate in-game via
+    <ansi fg="command">taxrate <0-100></ansi> while standing in their zone's coffer room.
+
+  <ansi fg="yellow">Room Tags</ansi>
+
+    <ansi fg="cyan">election poll</ansi>      - Polling location. Players nominate and vote here.
+    <ansi fg="cyan">coffer</ansi>             - Zone coffer room. Title-holder manages gold here.
+                         Elected official sets tax rate here.
+    <ansi fg="cyan">elected officials only</ansi> - Restricted area. Only the title-holder and
+                         their active party may enter.
+
+  <ansi fg="yellow">Config Keys</ansi>  (Modules.elections.* in config overrides)
+
+    <ansi fg="white-bold">ElectionDuration</ansi>     - How long an election runs (default: "2 days").
+    <ansi fg="white-bold">ElectionCyclePeriod</ansi>  - Time between automatic re-elections
+                         (default: "1 year"). Empty string disables.
+    <ansi fg="white-bold">TitleColor</ansi>           - Color code or pattern for winner titles
+                         shown after player names (default: "158").
+
+<ansi fg="yellow-bold">*****************************************************</ansi>

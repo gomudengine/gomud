@@ -11,11 +11,14 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/colorpatterns"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/gametime"
+	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/parties"
 	"github.com/GoMudEngine/GoMud/internal/plugins"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/templates"
 	"github.com/GoMudEngine/GoMud/internal/term"
+	"github.com/GoMudEngine/GoMud/internal/usercommands"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
@@ -45,6 +48,12 @@ func init() {
 
 	m.plug.Web.AdminPage("Config", "elections-config", "html/admin/elections-config.html", true, "Modules", "Elections", nil)
 	m.plug.Web.AdminPage("About", "elections-about", "html/admin/elections-about.html", true, "Modules", "Elections", nil)
+	m.plug.Web.AdminPage("Audit", "elections-audit", "html/admin/elections-audit.html", true, "Modules", "Elections", nil)
+	m.plug.Web.AdminPage("API Docs", "elections-api", "html/admin/elections-api.html", true, "Modules", "Elections", nil)
+
+	m.plug.Web.AdminAPIEndpoint("GET", "elections/zones", m.apiGetZones)
+	m.plug.Web.AdminAPIEndpoint("PATCH", "elections/zones/{zone}", m.apiPatchZone)
+	m.plug.Web.AdminAPIEndpoint("DELETE", "elections/zones/{zone}/official", m.apiDeleteZoneOfficial)
 
 	m.plug.AddUserCommand(`election`, m.electionAdminCommand, true, true)
 	m.plug.AddUserCommand(`coffer`, m.cofferCommand, false, false)
@@ -60,6 +69,9 @@ func init() {
 
 	rooms.OnRoomLook.Register(m.onRoomLook)
 	characters.OnGetFormattedName.Register(m.onGetFormattedName)
+	usercommands.OnShopList.Register(m.onShopList)
+	usercommands.OnShopListRendered.Register(m.onShopListRendered)
+	usercommands.OnInsufficientFunds.Register(m.onInsufficientFunds)
 }
 
 // ElectionsState is the persisted state for the elections module.
@@ -67,6 +79,7 @@ type ElectionsState struct {
 	ActiveElection *Election         `yaml:"activeelection,omitempty"`
 	Winners        map[string]Winner `yaml:"winners,omitempty"`
 	Coffers        map[string]int    `yaml:"coffers,omitempty"`
+	TaxRates       map[string]int    `yaml:"taxrates,omitempty"`
 }
 
 // Election represents a running election.
@@ -101,6 +114,9 @@ func (m *ElectionsModule) load() {
 	if m.state.Coffers == nil {
 		m.state.Coffers = make(map[string]int)
 	}
+	if m.state.TaxRates == nil {
+		m.state.TaxRates = make(map[string]int)
+	}
 	if m.state.ActiveElection != nil && m.state.ActiveElection.Votes == nil {
 		m.state.ActiveElection.Votes = make(map[int]int)
 	}
@@ -108,6 +124,15 @@ func (m *ElectionsModule) load() {
 
 func (m *ElectionsModule) save() {
 	m.plug.WriteStruct(`elections-state`, m.state)
+}
+
+// zoneTaxRate returns the tax rate (0-100) for the given zone key.
+// Defaults to 1 if no rate has been explicitly set.
+func (m *ElectionsModule) zoneTaxRate(zoneKey string) int {
+	if rate, ok := m.state.TaxRates[zoneKey]; ok {
+		return rate
+	}
+	return 1
 }
 
 // electionAlert formats a bordered election update message.
@@ -118,6 +143,22 @@ func electionAlert(lines ...string) string {
 	parts = append(parts, lines...)
 	parts = append(parts, close)
 	return strings.Join(parts, "\n")
+}
+
+// broadcastZoneAlert sends a message to all players currently in any room
+// belonging to the named zone.
+func broadcastZoneAlert(zoneName string, msg string) {
+	for _, roomId := range rooms.GetAllZoneRoomsIds(zoneName) {
+		room := rooms.LoadRoom(roomId)
+		if room == nil {
+			continue
+		}
+		for _, uid := range room.GetPlayers() {
+			if u := users.GetByUserId(uid); u != nil {
+				u.SendText(msg)
+			}
+		}
+	}
 }
 
 // broadcastAlert sends an alert to all online players.
@@ -245,7 +286,8 @@ func (m *ElectionsModule) electionAdminCommand(rest string, user *users.UserReco
 	args := strings.Fields(rest)
 
 	if len(args) == 0 {
-		user.SendText(`Usage: <ansi fg="command">election start <title></ansi> or <ansi fg="command">election end</ansi>` + term.CRLFStr)
+		tplTxt, _ := templates.Process(`help/elections-admin`, nil, user.UserId)
+		user.SendText(tplTxt)
 		return true, nil
 	}
 
@@ -288,8 +330,39 @@ func (m *ElectionsModule) electionAdminCommand(rest string, user *users.UserReco
 		}
 		m.endElection(user)
 
+	case `taxrate`:
+		// Admin/mod only. Usage:
+		//   election taxrate <0-100>            (uses current room's zone)
+		//   election taxrate <zonename> <0-100> (explicit zone)
+		if len(args) < 2 {
+			user.SendText(`Usage: <ansi fg="command">election taxrate <0-100></ansi> or <ansi fg="command">election taxrate <zone> <0-100></ansi>` + term.CRLFStr)
+			return true, nil
+		}
+
+		zoneKey := strings.ToLower(room.Zone)
+		rateStr := args[1]
+
+		if len(args) >= 3 {
+			zoneKey = strings.ToLower(args[1])
+			rateStr = args[2]
+		}
+
+		rate, err := strconv.Atoi(rateStr)
+		if err != nil || rate < 0 || rate > 100 {
+			user.SendText(`Tax rate must be a number between 0 and 100.` + term.CRLFStr)
+			return true, nil
+		}
+
+		m.state.TaxRates[zoneKey] = rate
+		user.SendText(fmt.Sprintf(`Tax rate for <ansi fg="white-bold">%s</ansi> set to <ansi fg="yellow">%d%%</ansi>.`+term.CRLFStr, zoneKey, rate))
+		broadcastZoneAlert(zoneKey, fmt.Sprintf(
+			`<ansi fg="username">%s</ansi> has set the tax rate in <ansi fg="white-bold">%s</ansi> to <ansi fg="yellow">%d%%</ansi>!`,
+			user.Character.Name, zoneKey, rate,
+		))
+
 	default:
-		user.SendText(`Usage: <ansi fg="command">election start <title></ansi> or <ansi fg="command">election end</ansi>` + term.CRLFStr)
+		tplTxt, _ := templates.Process(`help/elections-admin`, nil, user.UserId)
+		user.SendText(tplTxt)
 	}
 
 	return true, nil
@@ -394,7 +467,7 @@ func (m *ElectionsModule) cofferCommand(rest string, user *users.UserRecord, roo
 	return true, nil
 }
 
-// onInput intercepts `nominate` and `vote` commands.
+// onInput intercepts `nominate`, `vote`, and `taxrate` commands.
 func (m *ElectionsModule) onInput(e events.Event) events.ListenerReturn {
 	evt, ok := e.(events.Input)
 	if !ok || evt.UserId == 0 {
@@ -409,9 +482,55 @@ func (m *ElectionsModule) onInput(e events.Event) events.ListenerReturn {
 		return m.handleNominate(evt.UserId, strings.TrimSpace(rest))
 	case `vote`:
 		return m.handleVote(evt.UserId, strings.TrimSpace(rest))
+	case `taxrate`:
+		return m.handleTaxRate(evt.UserId, strings.TrimSpace(rest))
 	}
 
 	return events.Continue
+}
+
+func (m *ElectionsModule) handleTaxRate(userId int, rateStr string) events.ListenerReturn {
+	user := users.GetByUserId(userId)
+	if user == nil {
+		return events.Continue
+	}
+
+	room := rooms.LoadRoom(user.Character.RoomId)
+	if room == nil || !room.HasTag(cofferTag) {
+		return events.Continue
+	}
+
+	zoneKey := strings.ToLower(room.Zone)
+	winner, hasWinner := m.state.Winners[zoneKey]
+	if !hasWinner || winner.UserId != userId {
+		return events.Continue
+	}
+
+	// At this point: elected official, coffer room, their zone.
+	if rateStr == `` {
+		user.SendText(fmt.Sprintf(
+			`Current tax rate for <ansi fg="white-bold">%s</ansi> is <ansi fg="yellow">%d%%</ansi>. Use <ansi fg="command">taxrate <0-100></ansi> to change it.`,
+			room.Zone, m.zoneTaxRate(zoneKey),
+		) + term.CRLFStr)
+		return events.Cancel
+	}
+
+	rate, err := strconv.Atoi(rateStr)
+	if err != nil || rate < 0 || rate > 100 {
+		user.SendText(`Tax rate must be a number between 0 and 100.` + term.CRLFStr)
+		return events.Cancel
+	}
+
+	m.state.TaxRates[zoneKey] = rate
+	user.SendText(fmt.Sprintf(
+		`Tax rate for <ansi fg="white-bold">%s</ansi> set to <ansi fg="yellow">%d%%</ansi>.`+term.CRLFStr,
+		room.Zone, rate,
+	))
+	broadcastZoneAlert(room.Zone, fmt.Sprintf(
+		`<ansi fg="username">%s</ansi> has set the tax rate in <ansi fg="white-bold">%s</ansi> to <ansi fg="yellow">%d%%</ansi>!`,
+		user.Character.Name, room.Zone, rate,
+	))
+	return events.Cancel
 }
 
 func (m *ElectionsModule) handleNominate(userId int, targetName string) events.ListenerReturn {
@@ -640,7 +759,10 @@ func (m *ElectionsModule) onNewRound(e events.Event) events.ListenerReturn {
 	return events.Continue
 }
 
-// onPurchase applies a 10% coffer tax on any shop purchase.
+// onPurchase adds the tax portion of a purchase to the zone coffer and
+// notifies the buyer. evt.Cost is the tax-inclusive total charged by buy.go
+// (because onShopList inflated the price for the buy path). The tax amount
+// is back-calculated as total - base = total * rate / (100 + rate).
 func (m *ElectionsModule) onPurchase(e events.Event) events.ListenerReturn {
 	evt, ok := e.(events.Purchase)
 	if !ok || evt.Cost <= 0 {
@@ -652,9 +774,17 @@ func (m *ElectionsModule) onPurchase(e events.Event) events.ListenerReturn {
 		return events.Continue
 	}
 	zoneKey := strings.ToLower(zoneName)
-	tax := evt.Cost / 10
+	rate := m.zoneTaxRate(zoneKey)
+	if rate == 0 {
+		return events.Continue
+	}
+
+	// Back-calculate the tax from the inflated total:
+	// total = base + base*rate/100 = base*(100+rate)/100
+	// tax   = total - base = total*rate/(100+rate)
+	tax := evt.Cost * rate / (100 + rate)
 	if tax < 1 {
-		tax = 1
+		return events.Continue
 	}
 
 	current := m.state.Coffers[zoneKey]
@@ -664,7 +794,94 @@ func (m *ElectionsModule) onPurchase(e events.Event) events.ListenerReturn {
 	}
 	m.state.Coffers[zoneKey] = current
 
+	if u := users.GetByUserId(evt.UserId); u != nil {
+		u.SendText(fmt.Sprintf(`You paid <ansi fg="gold">%d gold</ansi> in taxes.`, tax))
+	}
+
 	return events.Continue
+}
+
+// onInsufficientFunds fires when a buyer can't afford a purchase. If the
+// zone has a tax rate and the buyer could afford the base price but not the
+// tax-inclusive total, it sends a specific tax message and marks the request
+// handled to suppress the generic insufficient-funds message.
+func (m *ElectionsModule) onInsufficientFunds(r usercommands.InsufficientFundsRequest) usercommands.InsufficientFundsRequest {
+	if r.Room == nil || r.Buyer == nil {
+		return r
+	}
+	zoneKey := strings.ToLower(r.Room.Zone)
+	rate := m.zoneTaxRate(zoneKey)
+	if rate == 0 {
+		return r
+	}
+	// Back-calculate the base price from the inflated total.
+	// inflated = base * (100 + rate) / 100  =>  base = inflated * 100 / (100 + rate)
+	base := r.Price * 100 / (100 + rate)
+	if r.Gold >= base && r.Gold < r.Price {
+		tax := r.Price - base
+		r.Buyer.SendText(fmt.Sprintf(
+			`You have enough for the <ansi fg="gold">%d gold</ansi> purchase, but not enough to pay the <ansi fg="gold">%d gold</ansi> tax (<ansi fg="yellow">%d%%</ansi>).`,
+			base, tax, rate,
+		))
+		r.Handled = true
+	}
+	return r
+}
+
+// onShopList mutates item prices to be tax-inclusive for the buy command only,
+// so that the affordability check in buy.go accounts for the full cost.
+// The list command sees base prices unchanged.
+// Prices of 0 mean "use the item's default value" — we resolve that here
+// so the tax is applied to the true base price in all cases.
+func (m *ElectionsModule) onShopList(r usercommands.ShopListRequest) usercommands.ShopListRequest {
+	if r.Room == nil || !r.IsBuy {
+		return r
+	}
+	zoneKey := strings.ToLower(r.Room.Zone)
+	rate := m.zoneTaxRate(zoneKey)
+	if rate == 0 {
+		return r
+	}
+	for i, si := range r.Stock {
+		base := si.Price
+		if base < 0 {
+			continue // free item, no tax
+		}
+		if base == 0 {
+			// Resolve the default price the same way tryPurchase does.
+			if si.ItemId > 0 {
+				item := items.New(si.ItemId)
+				base = item.GetSpec().Value
+			} else if si.MobId > 0 {
+				if mobSpec := mobs.GetMobSpec(mobs.MobId(si.MobId)); mobSpec != nil {
+					base = 250 * mobSpec.Character.Level
+				}
+			} else if si.BuffId > 0 {
+				base = 1000
+			} else if si.PetType != `` {
+				base = 10000
+			}
+		}
+		if base > 0 {
+			r.Stock[i].Price = base + (base*rate)/100
+		}
+	}
+	return r
+}
+
+// onShopListRendered sends the zone tax rate notice to the buyer after all
+// shop tables for a seller have been rendered. Fires for the list command only.
+func (m *ElectionsModule) onShopListRendered(r usercommands.ShopListRequest) usercommands.ShopListRequest {
+	if r.Room == nil || r.Buyer == nil {
+		return r
+	}
+	zoneKey := strings.ToLower(r.Room.Zone)
+	rate := m.zoneTaxRate(zoneKey)
+	r.Buyer.SendText(fmt.Sprintf(
+		`<ansi fg="yellow">Zone tax rate: <ansi fg="white-bold">%d%%</ansi> (charged on top of base prices)</ansi>`,
+		rate,
+	))
+	return r
 }
 
 // onRoomLook injects poll/coffer alerts into the room look details.
@@ -680,6 +897,13 @@ func (m *ElectionsModule) onRoomLook(d rooms.RoomTemplateDetails) rooms.RoomTemp
 			d.RoomAlerts = append(d.RoomAlerts,
 				`<ansi fg="yellow-bold">This room holds the local coffer.</ansi> Type <ansi fg="command">coffer</ansi> to manage it.`,
 			)
+			zoneKey := strings.ToLower(d.Zone)
+			if winner, hasWinner := m.state.Winners[zoneKey]; hasWinner && winner.UserId == d.UserId {
+				rate := m.zoneTaxRate(zoneKey)
+				d.RoomAlerts = append(d.RoomAlerts,
+					fmt.Sprintf(`<ansi fg="yellow-bold">Set the zone tax rate (currently <ansi fg="white-bold">%d%%</ansi>) with <ansi fg="command">taxrate <0-100></ansi>.</ansi></ansi>`, rate),
+				)
+			}
 		} else if strings.EqualFold(t, officialOnlyTag) {
 			zoneKey := strings.ToLower(d.Zone)
 			if winner, hasWinner := m.state.Winners[zoneKey]; hasWinner {
@@ -693,6 +917,7 @@ func (m *ElectionsModule) onRoomLook(d rooms.RoomTemplateDetails) rooms.RoomTemp
 			}
 		}
 	}
+
 	return d
 }
 

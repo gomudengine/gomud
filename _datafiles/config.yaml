@@ -285,6 +285,12 @@ GamePlay:
   # - ContainerSizeMax -
   #   Maximum number of objects a container can hold before stuff overflows
   ContainerSizeMax: 10
+  # - FloorItemCountMax -
+  #   Maximum number of items allowed on the floor of a room at one time.
+  #   When a player or mob drops an item that would exceed this limit, the item
+  #   teleports back into their hands instead.
+  #   Set to 0 for no limit.
+  FloorItemCountMax: 10
   # Combat calculation bounds
   # Each value controls the minimum or maximum output of a particular combat
   # formula. The actual result scales between min and max based on the stat
