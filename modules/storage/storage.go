@@ -410,7 +410,7 @@ func buildStorageText(itemNames []string) string {
 	if err != nil {
 		layout = templates.NewPanelLayout("open", "single", 1, 1)
 		layout.AddPanelsToSlot(layout.AddSlot(), "storage")
-		layout.Panel("storage").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">In Storage</ansi> `).SetMinWidth(74)
+		layout.Panel("storage").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">In Storage</ansi> `).SetWidth(78)
 	}
 
 	panel := layout.Panel("storage")

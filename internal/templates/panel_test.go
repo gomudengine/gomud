@@ -10,11 +10,12 @@ import (
 )
 
 // makePanel is a test helper that builds a Panel directly without loading YAML.
-func makePanel(id, title string, minWidth int, b borderStyle, rows []PanelRow) *Panel {
+// width is the border-inclusive total panel width (0 = size to content).
+func makePanel(id, title string, width int, b borderStyle, rows []PanelRow) *Panel {
 	return &Panel{
 		id:        id,
 		title:     title,
-		minWidth:  minWidth,
+		width:     width,
 		border:    b,
 		chars:     charsetSingle,
 		columns:   1,
@@ -24,11 +25,12 @@ func makePanel(id, title string, minWidth int, b borderStyle, rows []PanelRow) *
 }
 
 // makeMultiColPanel is a test helper for panels with columns > 1.
-func makeMultiColPanel(id, title string, minWidth, columns, columnGap int, b borderStyle, rows []PanelRow) *Panel {
+// width is the border-inclusive total panel width (0 = size to content).
+func makeMultiColPanel(id, title string, width, columns, columnGap int, b borderStyle, rows []PanelRow) *Panel {
 	return &Panel{
 		id:        id,
 		title:     title,
-		minWidth:  minWidth,
+		width:     width,
 		border:    b,
 		chars:     charsetSingle,
 		columns:   columns,
@@ -83,14 +85,16 @@ func TestPanelVisualWidth_EmptyString(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestPanelInnerWidth_UsesMinWidth(t *testing.T) {
-	p := makePanel("x", "X", 20, borderFull, []PanelRow{
+	// width=24 → innerWidth()=24-4=20; content "A: v"=4 < 20, so result=20.
+	p := makePanel("x", "X", 24, borderFull, []PanelRow{
 		{FullLabel: "A:", ShortLabel: "A:", Value: "v"},
 	})
 	assert.Equal(t, 20, panelInnerWidth(p))
 }
 
 func TestPanelInnerWidth_ExpandsBeyondMinWidth(t *testing.T) {
-	p := makePanel("x", "X", 5, borderFull, []PanelRow{
+	// width=9 → innerWidth()=5; content "Label:"(6)+1+"a long value here"(17)=24 > 5, so expands to 24.
+	p := makePanel("x", "X", 9, borderFull, []PanelRow{
 		{FullLabel: "Label:", ShortLabel: "L:", Value: "a long value here"},
 	})
 	// "Label:" (6) + 1 + "a long value here" (17) = 24
@@ -98,10 +102,9 @@ func TestPanelInnerWidth_ExpandsBeyondMinWidth(t *testing.T) {
 }
 
 func TestPanelInnerWidth_MultiColumn_EvenRows(t *testing.T) {
-	// colWidth = max(widestCell, (minWidth-gap)/2)
-	// widestCell = "Str:"(4)+1+"42(+3)"(6) = 11
-	// (30-2)/2 = 14 > 11, so colWidth=14, total=14*2+2=30
-	p := makeMultiColPanel("x", "X", 30, 2, 2, borderFull, []PanelRow{
+	// width=34 → innerWidth()=30; colTarget=(30-2)/2=14
+	// widestCell = "Str:"(4)+1+"42(+3)"(6) = 11 < 14, so colWidth=14, total=14*2+2=30
+	p := makeMultiColPanel("x", "X", 34, 2, 2, borderFull, []PanelRow{
 		{FullLabel: "Str:", ShortLabel: "S:", Value: "42(+3)"},
 		{FullLabel: "Vit:", ShortLabel: "V:", Value: "38(+0)"},
 	})
@@ -109,9 +112,9 @@ func TestPanelInnerWidth_MultiColumn_EvenRows(t *testing.T) {
 }
 
 func TestPanelInnerWidth_MultiColumn_ExpandsForWideCell(t *testing.T) {
-	// "Mysticism:"(10)+1+"42(+3)"(6) = 17
-	// (10-2)/2 = 4 < 17, so colWidth=17, total=17*2+2=36
-	p := makeMultiColPanel("x", "X", 10, 2, 2, borderFull, []PanelRow{
+	// width=14 → innerWidth()=10; colTarget=(10-2)/2=4
+	// "Mysticism:"(10)+1+"42(+3)"(6) = 17 > 4, so colWidth=17, total=17*2+2=36
+	p := makeMultiColPanel("x", "X", 14, 2, 2, borderFull, []PanelRow{
 		{FullLabel: "Mysticism:", ShortLabel: "Mys:", Value: "42(+3)"},
 		{FullLabel: "Mysticism:", ShortLabel: "Mys:", Value: "38(+0)"},
 	})
@@ -137,7 +140,7 @@ func TestChooseLabel_FallsBackToShortLabel(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestRenderPanel_FullBorder_Structure(t *testing.T) {
-	p := makePanel("info", "Info", 10, borderFull, []PanelRow{
+	p := makePanel("info", "Info", 14, borderFull, []PanelRow{
 		{FullLabel: "Name:", ShortLabel: "N:", Value: "Alice"},
 		{FullLabel: "Age:", ShortLabel: "A:", Value: "30"},
 	})
@@ -155,7 +158,7 @@ func TestRenderPanel_FullBorder_Structure(t *testing.T) {
 }
 
 func TestRenderPanel_OpenBorder_InteriorRowsOpen(t *testing.T) {
-	p := makePanel("info", "Info", 10, borderOpen, []PanelRow{
+	p := makePanel("info", "Info", 14, borderOpen, []PanelRow{
 		{FullLabel: "First:", ShortLabel: "F:", Value: "a"},
 		{FullLabel: "Middle:", ShortLabel: "M:", Value: "b"},
 		{FullLabel: "Last:", ShortLabel: "L:", Value: "c"},
@@ -172,7 +175,7 @@ func TestRenderPanel_OpenBorder_InteriorRowsOpen(t *testing.T) {
 }
 
 func TestRenderPanel_BlankRow(t *testing.T) {
-	p := makePanel("x", "X", 10, borderFull, []PanelRow{
+	p := makePanel("x", "X", 14, borderFull, []PanelRow{
 		{FullLabel: "A:", ShortLabel: "A:", Value: "1"},
 		{Blank: true},
 		{FullLabel: "B:", ShortLabel: "B:", Value: "2"},
@@ -184,7 +187,7 @@ func TestRenderPanel_BlankRow(t *testing.T) {
 }
 
 func TestRenderPanel_AllLinesEqualVisualWidth(t *testing.T) {
-	p := makePanel("x", "Title", 15, borderFull, []PanelRow{
+	p := makePanel("x", "Title", 19, borderFull, []PanelRow{
 		{FullLabel: "Short:", ShortLabel: "S:", Value: "v"},
 		{FullLabel: "A much longer label:", ShortLabel: "AML:", Value: "value"},
 	})
@@ -196,7 +199,7 @@ func TestRenderPanel_AllLinesEqualVisualWidth(t *testing.T) {
 }
 
 func TestRenderPanel_AnsiTagsDoNotAffectWidth(t *testing.T) {
-	p := makePanel("x", "X", 15, borderFull, []PanelRow{
+	p := makePanel("x", "X", 19, borderFull, []PanelRow{
 		{FullLabel: `<ansi fg="yellow">Name:</ansi>`, ShortLabel: "N:", Value: `<ansi fg="green">Alice</ansi>`},
 	})
 	got := renderPanel(p)
@@ -209,7 +212,7 @@ func TestRenderPanel_AnsiTagsDoNotAffectWidth(t *testing.T) {
 func TestRenderPanel_SetLabelWidth_AlignsValues(t *testing.T) {
 	// Labels of different lengths — without SetLabelWidth values start at different columns.
 	// With SetLabelWidth(12), every value starts at column 12+1=13.
-	p := makePanel("x", "X", 30, borderFull, []PanelRow{
+	p := makePanel("x", "X", 34, borderFull, []PanelRow{
 		{FullLabel: "Short:", ShortLabel: "S:", Value: "val1"},
 		{FullLabel: "Much Longer:", ShortLabel: "ML:", Value: "val2"},
 	})
@@ -234,7 +237,7 @@ func TestRenderPanel_SetLabelWidth_ExpandsInnerWidth(t *testing.T) {
 		{FullLabel: "A:", ShortLabel: "A:", Value: "v"},
 	})
 	p.labelWidth = 20
-	// inner = max(minWidth=0, labelWidth=20 + 1 + visualWidth("v")=1) = 22
+	// inner = max(innerWidth()=0, labelWidth=20 + 1 + visualWidth("v")=1) = 22
 	assert.Equal(t, 22, panelInnerWidth(p))
 
 	// All lines must have equal visual width.
@@ -246,7 +249,7 @@ func TestRenderPanel_SetLabelWidth_ExpandsInnerWidth(t *testing.T) {
 }
 
 func TestRenderPanel_ContentContainsLabelAndValue(t *testing.T) {
-	p := makePanel("x", "X", 15, borderFull, []PanelRow{
+	p := makePanel("x", "X", 19, borderFull, []PanelRow{
 		{FullLabel: "Name:", ShortLabel: "N:", Value: "Bob"},
 	})
 	got := renderPanel(p)
@@ -260,7 +263,7 @@ func TestRenderPanel_ContentContainsLabelAndValue(t *testing.T) {
 
 func TestRenderPanel_MultiColumn_EvenRows_LineCount(t *testing.T) {
 	// 4 rows paired into 2 content lines -> top + 2 + bottom = 4
-	p := makeMultiColPanel("x", "X", 30, 2, 2, borderFull, []PanelRow{
+	p := makeMultiColPanel("x", "X", 34, 2, 2, borderFull, []PanelRow{
 		{FullLabel: "Str:", ShortLabel: "S:", Value: "10"},
 		{FullLabel: "Vit:", ShortLabel: "V:", Value: "11"},
 		{FullLabel: "Spd:", ShortLabel: "Sp:", Value: "12"},
@@ -272,7 +275,7 @@ func TestRenderPanel_MultiColumn_EvenRows_LineCount(t *testing.T) {
 
 func TestRenderPanel_MultiColumn_OddRows_LineCount(t *testing.T) {
 	// 3 rows: pair(0,1) + lone(2) -> top + 2 + bottom = 4
-	p := makeMultiColPanel("x", "X", 30, 2, 2, borderFull, []PanelRow{
+	p := makeMultiColPanel("x", "X", 34, 2, 2, borderFull, []PanelRow{
 		{FullLabel: "Str:", ShortLabel: "S:", Value: "10"},
 		{FullLabel: "Vit:", ShortLabel: "V:", Value: "11"},
 		{FullLabel: "Spd:", ShortLabel: "Sp:", Value: "12"},
@@ -282,7 +285,7 @@ func TestRenderPanel_MultiColumn_OddRows_LineCount(t *testing.T) {
 }
 
 func TestRenderPanel_MultiColumn_BothCellsPresent(t *testing.T) {
-	p := makeMultiColPanel("x", "X", 30, 2, 2, borderFull, []PanelRow{
+	p := makeMultiColPanel("x", "X", 34, 2, 2, borderFull, []PanelRow{
 		{FullLabel: "Str:", ShortLabel: "S:", Value: "10"},
 		{FullLabel: "Vit:", ShortLabel: "V:", Value: "20"},
 	})
@@ -294,7 +297,7 @@ func TestRenderPanel_MultiColumn_BothCellsPresent(t *testing.T) {
 }
 
 func TestRenderPanel_MultiColumn_AllLinesEqualVisualWidth(t *testing.T) {
-	p := makeMultiColPanel("x", "Attrs", 30, 2, 2, borderFull, []PanelRow{
+	p := makeMultiColPanel("x", "Attrs", 34, 2, 2, borderFull, []PanelRow{
 		{FullLabel: "Strength:", ShortLabel: "Str:", Value: "42(+3)"},
 		{FullLabel: "Vitality:", ShortLabel: "Vit:", Value: "38(+0)"},
 		{FullLabel: "Speed:", ShortLabel: "Spd:", Value: "55(+5)"},
@@ -309,7 +312,7 @@ func TestRenderPanel_MultiColumn_AllLinesEqualVisualWidth(t *testing.T) {
 }
 
 func TestRenderPanel_MultiColumn_AnsiTagsDoNotAffectWidth(t *testing.T) {
-	p := makeMultiColPanel("x", "X", 30, 2, 2, borderFull, []PanelRow{
+	p := makeMultiColPanel("x", "X", 34, 2, 2, borderFull, []PanelRow{
 		{FullLabel: `<ansi fg="yellow">Str:</ansi>`, ShortLabel: "S:", Value: `<ansi fg="stat">42</ansi><ansi fg="statmod">(+3)</ansi>`},
 		{FullLabel: `<ansi fg="yellow">Vit:</ansi>`, ShortLabel: "V:", Value: `<ansi fg="stat">38</ansi><ansi fg="statmod">(+0)</ansi>`},
 		{FullLabel: `<ansi fg="yellow">Spd:</ansi>`, ShortLabel: "Sp:", Value: `<ansi fg="stat">55</ansi><ansi fg="statmod">(+5)</ansi>`},
@@ -336,10 +339,10 @@ func TestRenderPanel_MultiColumn_ShortLabelFallback(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestComposePanelGroup_TwoPanelsEqualHeight(t *testing.T) {
-	p1 := makePanel("a", "A", 10, borderFull, []PanelRow{
+	p1 := makePanel("a", "A", 14, borderFull, []PanelRow{
 		{FullLabel: "X:", ShortLabel: "X:", Value: "1"},
 	})
-	p2 := makePanel("b", "B", 10, borderFull, []PanelRow{
+	p2 := makePanel("b", "B", 14, borderFull, []PanelRow{
 		{FullLabel: "Y:", ShortLabel: "Y:", Value: "2"},
 	})
 	got := composePanelGroup([]*Panel{p1, p2}, 1)
@@ -350,12 +353,12 @@ func TestComposePanelGroup_TwoPanelsEqualHeight(t *testing.T) {
 }
 
 func TestComposePanelGroup_TwoPanelsUnequalHeight(t *testing.T) {
-	p1 := makePanel("a", "A", 10, borderFull, []PanelRow{
+	p1 := makePanel("a", "A", 14, borderFull, []PanelRow{
 		{FullLabel: "X:", ShortLabel: "X:", Value: "1"},
 		{FullLabel: "Y:", ShortLabel: "Y:", Value: "2"},
 		{FullLabel: "Z:", ShortLabel: "Z:", Value: "3"},
 	})
-	p2 := makePanel("b", "B", 10, borderFull, []PanelRow{
+	p2 := makePanel("b", "B", 14, borderFull, []PanelRow{
 		{FullLabel: "W:", ShortLabel: "W:", Value: "9"},
 	})
 	got := composePanelGroup([]*Panel{p1, p2}, 1)
@@ -368,10 +371,10 @@ func TestComposePanelGroup_TwoPanelsUnequalHeight(t *testing.T) {
 }
 
 func TestComposePanelGroup_GapIsRespected(t *testing.T) {
-	p1 := makePanel("a", "A", 5, borderFull, []PanelRow{
+	p1 := makePanel("a", "A", 9, borderFull, []PanelRow{
 		{FullLabel: "X:", ShortLabel: "X:", Value: "1"},
 	})
-	p2 := makePanel("b", "B", 5, borderFull, []PanelRow{
+	p2 := makePanel("b", "B", 9, borderFull, []PanelRow{
 		{FullLabel: "Y:", ShortLabel: "Y:", Value: "2"},
 	})
 	gap0 := composePanelGroup([]*Panel{p1, p2}, 0)
@@ -387,7 +390,7 @@ func TestComposePanelGroup_GapIsRespected(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestPanelLayout_PanelLookup(t *testing.T) {
-	p := makePanel("test", "Test", 10, borderFull, nil)
+	p := makePanel("test", "Test", 14, borderFull, nil)
 	layout := makeLayout(1, [][]*Panel{{p}})
 	assert.Equal(t, p, layout.Panel("test"))
 }
@@ -399,8 +402,8 @@ func TestPanelLayout_PanelLookup_PanicsOnMissing(t *testing.T) {
 
 func TestPanelLayout_Render_SingleSlot_TwoRows(t *testing.T) {
 	// One slot, two stacked rows -> lines from row1 then row2, no gap between slots.
-	p1 := makePanel("a", "A", 8, borderFull, []PanelRow{{FullLabel: "X:", ShortLabel: "X:", Value: "1"}})
-	p2 := makePanel("b", "B", 8, borderFull, []PanelRow{{FullLabel: "Y:", ShortLabel: "Y:", Value: "2"}})
+	p1 := makePanel("a", "A", 12, borderFull, []PanelRow{{FullLabel: "X:", ShortLabel: "X:", Value: "1"}})
+	p2 := makePanel("b", "B", 12, borderFull, []PanelRow{{FullLabel: "Y:", ShortLabel: "Y:", Value: "2"}})
 	layout := makeLayout(1, [][]*Panel{{p1}, {p2}})
 	output := layout.Render()
 	rendered := splitLines(output)
@@ -412,8 +415,8 @@ func TestPanelLayout_Render_SingleSlot_TwoRows(t *testing.T) {
 
 func TestPanelLayout_Render_TwoSlots_SameHeight(t *testing.T) {
 	// Two slots, each with one row of one panel, same height.
-	p1 := makePanel("a", "A", 8, borderFull, []PanelRow{{FullLabel: "X:", ShortLabel: "X:", Value: "1"}})
-	p2 := makePanel("b", "B", 8, borderFull, []PanelRow{{FullLabel: "Y:", ShortLabel: "Y:", Value: "2"}})
+	p1 := makePanel("a", "A", 12, borderFull, []PanelRow{{FullLabel: "X:", ShortLabel: "X:", Value: "1"}})
+	p2 := makePanel("b", "B", 12, borderFull, []PanelRow{{FullLabel: "Y:", ShortLabel: "Y:", Value: "2"}})
 	layout := makeLayout(1, [][]*Panel{{p1}}, [][]*Panel{{p2}})
 	output := layout.Render()
 	rendered := splitLines(output)
@@ -428,15 +431,15 @@ func TestPanelLayout_Render_TwoSlots_DifferentHeight(t *testing.T) {
 	// Left slot: 1 row with 3-content-row panel (5 lines).
 	// Right slot: 2 stacked rows, each with 1-content-row panel (3+3=6 lines).
 	// Final height = max(5, 6) = 6.
-	pLeft := makePanel("left", "Left", 10, borderFull, []PanelRow{
+	pLeft := makePanel("left", "Left", 14, borderFull, []PanelRow{
 		{FullLabel: "A:", ShortLabel: "A:", Value: "1"},
 		{FullLabel: "B:", ShortLabel: "B:", Value: "2"},
 		{FullLabel: "C:", ShortLabel: "C:", Value: "3"},
 	})
-	pTop := makePanel("top", "Top", 10, borderFull, []PanelRow{
+	pTop := makePanel("top", "Top", 14, borderFull, []PanelRow{
 		{FullLabel: "X:", ShortLabel: "X:", Value: "9"},
 	})
-	pBot := makePanel("bot", "Bot", 10, borderFull, []PanelRow{
+	pBot := makePanel("bot", "Bot", 14, borderFull, []PanelRow{
 		{FullLabel: "Y:", ShortLabel: "Y:", Value: "8"},
 	})
 	layout := makeLayout(1,
@@ -483,7 +486,7 @@ func TestCharsetForName_LiteralString_WrongLength_FallsBackToSingle(t *testing.T
 }
 
 func TestRenderPanel_Charset_Double(t *testing.T) {
-	p := makePanel("x", "X", 8, borderFull, []PanelRow{
+	p := makePanel("x", "X", 12, borderFull, []PanelRow{
 		{FullLabel: "A:", ShortLabel: "A:", Value: "1"},
 	})
 	p.chars = charsetDouble
@@ -497,7 +500,7 @@ func TestRenderPanel_Charset_Double(t *testing.T) {
 }
 
 func TestRenderPanel_Charset_Rounded(t *testing.T) {
-	p := makePanel("x", "X", 8, borderFull, []PanelRow{
+	p := makePanel("x", "X", 12, borderFull, []PanelRow{
 		{FullLabel: "A:", ShortLabel: "A:", Value: "1"},
 	})
 	p.chars = charsetRounded
@@ -512,7 +515,7 @@ func TestRenderPanel_Charset_Literal_DistinctLeftRight(t *testing.T) {
 	// Use a charset where VerticalLeft (║) != VerticalRight (│) and
 	// HorizontalTop (═) != HorizontalBottom (─) to verify each side uses the
 	// correct character.
-	p := makePanel("x", "X", 8, borderFull, []PanelRow{
+	p := makePanel("x", "X", 12, borderFull, []PanelRow{
 		{FullLabel: "A:", ShortLabel: "A:", Value: "1"},
 	})
 	p.chars = charsetForName("╔═╗║│╚─┘")
@@ -527,10 +530,10 @@ func TestRenderPanel_Charset_Literal_DistinctLeftRight(t *testing.T) {
 }
 
 func TestRenderPanel_PerPanelCharset_OverridesLayout(t *testing.T) {
-	pSingle := makePanel("a", "A", 8, borderFull, []PanelRow{
+	pSingle := makePanel("a", "A", 12, borderFull, []PanelRow{
 		{FullLabel: "X:", ShortLabel: "X:", Value: "1"},
 	})
-	pDouble := makePanel("b", "B", 8, borderFull, []PanelRow{
+	pDouble := makePanel("b", "B", 12, borderFull, []PanelRow{
 		{FullLabel: "Y:", ShortLabel: "Y:", Value: "2"},
 	})
 	pDouble.chars = charsetDouble
@@ -558,10 +561,10 @@ func TestRenderPanel_PerPanelCharset_OverridesLayout(t *testing.T) {
 }
 
 func TestRenderPanel_MaxWidth_WrapsValue(t *testing.T) {
-	// Value "hello world" (11 chars) with MaxWidth=5:
+	// Value "hello world" (11 chars) with WrapWidth=5:
 	// SplitStringOnSpaces produces ["hello", "world"] = 2 non-empty chunks.
-	p := makePanel("x", "X", 20, borderFull, []PanelRow{
-		{FullLabel: "Desc:", ShortLabel: "D:", Value: "hello world", MaxWidth: 5},
+	p := makePanel("x", "X", 24, borderFull, []PanelRow{
+		{FullLabel: "Desc:", ShortLabel: "D:", Value: "hello world", WrapWidth: 5},
 	})
 	got := renderPanel(p)
 	// top border + 2 content lines + bottom border = 4
@@ -577,8 +580,8 @@ func TestRenderPanel_MaxWidth_ContinuationAlignsWithValue(t *testing.T) {
 	// Continuation lines must be indented by panelPad + labelWidth + 1 spaces,
 	// which is the same offset as the value column on the first line.
 	// SplitStringOnSpaces("aaa bbb", 3) produces ["aaa", "bbb"] (2 non-empty chunks).
-	p := makePanel("x", "X", 30, borderFull, []PanelRow{
-		{FullLabel: "Label:", ShortLabel: "L:", Value: "aaa bbb", MaxWidth: 3},
+	p := makePanel("x", "X", 34, borderFull, []PanelRow{
+		{FullLabel: "Label:", ShortLabel: "L:", Value: "aaa bbb", WrapWidth: 3},
 	})
 	got := renderPanel(p)
 	require.Equal(t, 4, len(got), "should have one continuation line")
@@ -595,8 +598,8 @@ func TestRenderPanel_MaxWidth_ContinuationAlignsWithValue(t *testing.T) {
 }
 
 func TestRenderPanel_MaxWidth_AllLinesEqualVisualWidth(t *testing.T) {
-	p := makePanel("x", "X", 30, borderFull, []PanelRow{
-		{FullLabel: "Note:", ShortLabel: "N:", Value: "one two three four five", MaxWidth: 9},
+	p := makePanel("x", "X", 34, borderFull, []PanelRow{
+		{FullLabel: "Note:", ShortLabel: "N:", Value: "one two three four five", WrapWidth: 9},
 	})
 	got := renderPanel(p)
 	w0 := panelVisualWidth(got[0])
@@ -606,9 +609,9 @@ func TestRenderPanel_MaxWidth_AllLinesEqualVisualWidth(t *testing.T) {
 }
 
 func TestRenderPanel_MaxWidth_Zero_NoWrap(t *testing.T) {
-	// MaxWidth=0 means no wrapping; behaves identically to a plain Add row.
-	p := makePanel("x", "X", 20, borderFull, []PanelRow{
-		{FullLabel: "A:", ShortLabel: "A:", Value: "hello world", MaxWidth: 0},
+	// WrapWidth=0 means no explicit wrapping; behaves like a plain Add row.
+	p := makePanel("x", "X", 24, borderFull, []PanelRow{
+		{FullLabel: "A:", ShortLabel: "A:", Value: "hello world", WrapWidth: 0},
 	})
 	got := renderPanel(p)
 	// top + 1 content + bottom = 3
@@ -619,8 +622,8 @@ func TestRenderPanel_MaxWidth_Zero_NoWrap(t *testing.T) {
 func TestRenderPanel_MaxWidth_AnsiTagsHandled(t *testing.T) {
 	// ANSI tags must not be mangled across split boundaries.
 	value := `<ansi fg="yellow">hello</ansi> <ansi fg="green">world</ansi>`
-	p := makePanel("x", "X", 30, borderFull, []PanelRow{
-		{FullLabel: "A:", ShortLabel: "A:", Value: value, MaxWidth: 5},
+	p := makePanel("x", "X", 34, borderFull, []PanelRow{
+		{FullLabel: "A:", ShortLabel: "A:", Value: value, WrapWidth: 5},
 	})
 	got := renderPanel(p)
 	// Should produce at least 2 content lines.
@@ -633,7 +636,7 @@ func TestRenderPanel_MaxWidth_AnsiTagsHandled(t *testing.T) {
 }
 
 func TestRenderPanel_TitleUsedVerbatim(t *testing.T) {
-	p := makePanel("x", `<ansi fg="20">MyTitle</ansi>`, 15, borderFull, []PanelRow{
+	p := makePanel("x", `<ansi fg="20">MyTitle</ansi>`, 19, borderFull, []PanelRow{
 		{FullLabel: "A:", ShortLabel: "A:", Value: "1"},
 	})
 	got := renderPanel(p)
@@ -642,7 +645,7 @@ func TestRenderPanel_TitleUsedVerbatim(t *testing.T) {
 }
 
 func TestPanelLayout_Render_Margin(t *testing.T) {
-	p := makePanel("a", "A", 8, borderFull, []PanelRow{
+	p := makePanel("a", "A", 12, borderFull, []PanelRow{
 		{FullLabel: "X:", ShortLabel: "X:", Value: "1"},
 	})
 	layout := makeLayout(1, [][]*Panel{{p}})
@@ -657,21 +660,21 @@ func TestPanelLayout_Render_NestedLayout_StatusShape(t *testing.T) {
 	// Mirrors the status page shape:
 	// Slot 0: [info] (tall)
 	// Slot 1: [attributes] stacked above [wealth, training] (same total height)
-	info := makePanel("info", "Info", 10, borderFull, []PanelRow{
+	info := makePanel("info", "Info", 14, borderFull, []PanelRow{
 		{FullLabel: "A:", ShortLabel: "A:", Value: "1"},
 		{FullLabel: "B:", ShortLabel: "B:", Value: "2"},
 		{FullLabel: "C:", ShortLabel: "C:", Value: "3"},
 		{FullLabel: "D:", ShortLabel: "D:", Value: "4"},
 	})
-	attrs := makePanel("attrs", "Attrs", 20, borderFull, []PanelRow{
+	attrs := makePanel("attrs", "Attrs", 24, borderFull, []PanelRow{
 		{FullLabel: "Str:", ShortLabel: "S:", Value: "10"},
 		{FullLabel: "Vit:", ShortLabel: "V:", Value: "11"},
 	})
-	wealth := makePanel("wealth", "Wealth", 10, borderFull, []PanelRow{
+	wealth := makePanel("wealth", "Wealth", 14, borderFull, []PanelRow{
 		{FullLabel: "Gold:", ShortLabel: "G:", Value: "100"},
 		{FullLabel: "Bank:", ShortLabel: "B:", Value: "500"},
 	})
-	training := makePanel("training", "Training", 10, borderFull, []PanelRow{
+	training := makePanel("training", "Training", 14, borderFull, []PanelRow{
 		{FullLabel: "Trn:", ShortLabel: "T:", Value: "3"},
 		{FullLabel: "Sta:", ShortLabel: "S:", Value: "1"},
 	})

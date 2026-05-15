@@ -10,4 +10,4 @@ slots:
       - panels:
           - id: conditions
             title: '<ansi fg="black-bold">.:</ansi><ansi fg="20">Conditions</ansi>'
-            min_width: 74
+            width: 78

@@ -20,16 +20,24 @@ pairing automatically.
 - [API reference](#api-reference)
   - [LoadPanelLayout](#loadpanellayout)
   - [NewPanelLayout](#newpanellayout)
+  - [ListPanelLayouts](#listpanellayouts)
+  - [ValidatePanelLayout](#validatepanellayout)
+  - [PreviewPanelLayout](#previewpanellayout)
+  - [SavePanelLayout](#savepanellayout)
   - [PanelLayout.AddSlot](#panellayoutaddslot)
   - [PanelLayout.AddPanelsToSlot](#panellayoutaddpanelstoslot)
   - [PanelLayout.Panel](#panellayoutpanel)
   - [PanelLayout.Render](#panellayoutrender)
   - [Panel.Add](#paneladd)
+  - [Panel.AddWithWrapWidth](#paneladdwithwrapwidth)
   - [Panel.AddBlank](#paneladdblank)
   - [Panel.SetTitle](#panelsettitle)
+  - [Panel.SetWidth](#panelsetwidth)
   - [Panel.SetMinWidth](#panelsetminwidth)
+  - [Panel.SetLabelWidth](#panelsetlabelwidth)
   - [Panel.SetColumns](#panelsetcolumns)
   - [Panel.SetColumnGap](#panelsetcolumngap)
+  - [Panel.SetCharset](#panelsetcharset)
 - [Width and ANSI tags](#width-and-ansi-tags)
 - [Border styles](#border-styles)
 - [Character sets](#character-sets)
@@ -91,12 +99,12 @@ layout.AddPanelsToSlot(slot, "info", "stats")
 
 layout.Panel("info").
     SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Info</ansi> `).
-    SetMinWidth(28).
+    SetWidth(30).
     Add(`<ansi fg="yellow">Name:</ansi>`, `<ansi fg="yellow">N:</ansi>`, character.Name)
 
 layout.Panel("stats").
     SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Stats</ansi> `).
-    SetMinWidth(30).
+    SetWidth(32).
     SetColumns(2).
     Add(`<ansi fg="yellow">Strength:</ansi>`, `<ansi fg="yellow">Str:</ansi>`, fmt.Sprintf("%d", str)).
     Add(`<ansi fg="yellow">Vitality:</ansi>`, `<ansi fg="yellow">Vit:</ansi>`, fmt.Sprintf("%d", vit))
@@ -125,6 +133,7 @@ _datafiles/<world>/panel-layouts/<path>.yaml
 | `charset` | string | `"single"` | `"single"`, `"double"`, `"rounded"`, or an 8-character literal — see [Character sets](#character-sets) |
 | `gap` | int | `0` | Spaces between panels in the same row and between slots |
 | `margin` | int | `0` | Spaces prepended to every output line |
+| `default_color` | string | `""` | Optional ANSI color name or code to wrap the entire rendered output |
 | `slots` | list | — | Ordered list of slot definitions |
 
 ### Slot, row, and panel fields
@@ -137,7 +146,7 @@ Each slot contains a list of rows. Each row contains a list of panels.
 | `slots[].rows[].panels` | list | — | Ordered list of panel definitions in this row |
 | `panels[].id` | string | — | **Required.** Identifier used in `layout.Panel(id)` |
 | `panels[].title` | string | `""` | Title string rendered verbatim into the top border. May contain ANSI tags. |
-| `panels[].min_width` | int | `0` | Minimum inner content width; expands if content is wider |
+| `panels[].width` | int | `0` | Border-inclusive total panel width. The panel targets this exact outer width and wraps values to fit. Expands only when a label+value pair cannot fit. `0` means size to content. |
 | `panels[].columns` | int | `1` | `1` or `2` — see [Multi-column panels](#multi-column-panels) |
 | `panels[].column_gap` | int | `2` | Spaces between columns when `columns: 2` |
 | `panels[].charset` | string | _(layout charset)_ | Optional per-panel charset override: `"single"`, `"double"`, `"rounded"`, or an 8-character literal |
@@ -163,22 +172,22 @@ slots:
       - panels:
           - id: info
             title: '<ansi fg="black-bold">.:</ansi><ansi fg="20">Info</ansi>'
-            min_width: 30
+            width: 32
 
   - rows:
       - panels:
           - id: attributes
             title: '<ansi fg="black-bold">.:</ansi><ansi fg="20">Attributes</ansi>'
-            min_width: 42
+            width: 44
             columns: 2
             column_gap: 2
       - panels:
           - id: wealth
             title: '<ansi fg="black-bold">.:</ansi><ansi fg="20">Wealth</ansi>'
-            min_width: 19
+            width: 21
           - id: training
             title: '<ansi fg="black-bold">.:</ansi><ansi fg="20">Training</ansi>'
-            min_width: 20
+            width: 22
 ```
 
 This produces:
@@ -241,6 +250,81 @@ layout := templates.NewPanelLayout("full", "rounded", 1, 1)
 
 ---
 
+### ListPanelLayouts
+
+```go
+func ListPanelLayouts() ([]PanelLayoutInfo, error)
+```
+
+Returns all panel layout files found under the `panel-layouts/` subdirectory of
+the data files directory. Each `PanelLayoutInfo` entry has:
+
+- `Name` — relative path without the `.yaml` extension (e.g. `"character/status"`)
+- `YAML` — raw file content
+
+```go
+layouts, err := templates.ListPanelLayouts()
+```
+
+---
+
+### ValidatePanelLayout
+
+```go
+func ValidatePanelLayout(yamlData string) ([]PanelValidationIssue, error)
+```
+
+Parses the given YAML and returns a slice of structural issues. An empty slice
+means the layout is valid. A non-nil error means the YAML itself could not be
+parsed. Each `PanelValidationIssue` has a `Message` field describing the
+problem.
+
+```go
+issues, err := templates.ValidatePanelLayout(rawYAML)
+if err != nil {
+    // YAML parse failure
+}
+for _, issue := range issues {
+    fmt.Println(issue.Message)
+}
+```
+
+---
+
+### PreviewPanelLayout
+
+```go
+func PreviewPanelLayout(yamlData string, stripAnsi bool) (string, error)
+```
+
+Parses the given YAML definition and renders a text preview by filling every
+panel with dummy rows. When `stripAnsi` is `true`, ANSI tags are stripped from
+titles and dummy values use plain text. When `false`, titles are kept verbatim
+and dummy values include ANSI colour tags.
+
+```go
+preview, err := templates.PreviewPanelLayout(rawYAML, true)
+```
+
+---
+
+### SavePanelLayout
+
+```go
+func SavePanelLayout(name, yamlData string) error
+```
+
+Writes `yamlData` to the panel layout file for the given `name` (relative to
+`panel-layouts/`, without the `.yaml` extension). The file must already exist;
+this function does not create new layout files. The YAML is validated before
+writing.
+
+```go
+err := templates.SavePanelLayout("character/status", updatedYAML)
+```
+
+---
+
 ### PanelLayout.AddSlot
 
 ```go
@@ -285,9 +369,8 @@ layout.AddPanelsToSlot(rightSlot, "wealth", "training")
 func (l *PanelLayout) Panel(id string) *Panel
 ```
 
-Returns the panel with the given id. Panics with a descriptive message if the
-id does not exist. This is intentional — a missing panel id is a programming
-error that should surface immediately.
+Returns the panel with the given id. If the id does not exist, an error is
+logged and a no-op panel is returned so the caller continues without panicking.
 
 ```go
 layout.Panel("info").
@@ -331,6 +414,23 @@ layout.Panel("info").
 
 ---
 
+### Panel.AddWithWrapWidth
+
+```go
+func (p *Panel) AddWithWrapWidth(fullLabel, shortLabel, value string, wrapWidth int) *Panel
+```
+
+Appends a label+value row with an explicit value wrap width. When the value's
+visual width exceeds `wrapWidth`, it is wrapped onto continuation lines indented
+to align with the value column of the first line. Returns the panel for chaining.
+
+```go
+layout.Panel("info").
+    AddWithWrapWidth(`<ansi fg="yellow">Desc:</ansi>`, `<ansi fg="yellow">D:</ansi>`, longDescription, 40)
+```
+
+---
+
 ### Panel.AddBlank
 
 ```go
@@ -349,28 +449,10 @@ layout.Panel("info").
 
 ---
 
-### Panel.SetCharset
-
-```go
-func (p *Panel) SetCharset(name string)
-```
-
-Overrides the border character set for this panel. When set, this panel uses
-its own charset regardless of the layout-level setting. Accepts a named preset
-(`"single"`, `"double"`, `"rounded"`) or an 8-character literal string. An
-unrecognised value falls back to `"single"`.
-
-```go
-layout.Panel("highlight").SetCharset("double")
-layout.Panel("custom").SetCharset("╔═╗║│╚─┘")
-```
-
----
-
 ### Panel.SetTitle
 
 ```go
-func (p *Panel) SetTitle(title string)
+func (p *Panel) SetTitle(title string) *Panel
 ```
 
 Sets the title string rendered verbatim into the top border of the panel. May
@@ -398,17 +480,45 @@ layout.Panel("info").SetTitle("")
 
 ---
 
-### Panel.SetMinWidth
+### Panel.SetWidth
 
 ```go
-func (p *Panel) SetMinWidth(w int)
+func (p *Panel) SetWidth(w int) *Panel
 ```
 
-Sets the minimum inner content width in terminal characters. The panel expands
-automatically when any row's content is wider.
+Sets the total border-inclusive panel width. The panel targets this exact outer
+width and wraps values to fit within it. The panel expands beyond this width
+only when a label+value pair cannot fit otherwise. A value of `0` (the default)
+means size to content.
 
 ```go
-layout.Panel("info").SetMinWidth(30)
+layout.Panel("info").SetWidth(32)
+```
+
+---
+
+### Panel.SetMinWidth
+
+`SetMinWidth` does not exist. Use [`SetWidth`](#panelsetwidth) instead, which
+sets the border-inclusive total width. To achieve a minimum-width effect, set
+`width` in YAML or call `SetWidth` with the desired outer width; the panel
+expands automatically when content is wider.
+
+---
+
+### Panel.SetLabelWidth
+
+```go
+func (p *Panel) SetLabelWidth(w int) *Panel
+```
+
+Sets a fixed visual width that all labels are padded to. When non-zero, every
+label is right-padded with spaces to this width before rendering, so values
+always start at the same column regardless of label length. ANSI tags in labels
+are accounted for correctly. Returns the panel for chaining.
+
+```go
+layout.Panel("info").SetLabelWidth(12)
 ```
 
 ---
@@ -416,7 +526,7 @@ layout.Panel("info").SetMinWidth(30)
 ### Panel.SetColumns
 
 ```go
-func (p *Panel) SetColumns(n int)
+func (p *Panel) SetColumns(n int) *Panel
 ```
 
 Sets the number of label+value pairs per rendered line. Supported values are
@@ -431,7 +541,7 @@ layout.Panel("attributes").SetColumns(2)
 ### Panel.SetColumnGap
 
 ```go
-func (p *Panel) SetColumnGap(n int)
+func (p *Panel) SetColumnGap(n int) *Panel
 ```
 
 Sets the number of spaces between the two columns when `columns` is `2`.
@@ -439,6 +549,24 @@ Defaults to `2`.
 
 ```go
 layout.Panel("attributes").SetColumns(2).SetColumnGap(3)
+```
+
+---
+
+### Panel.SetCharset
+
+```go
+func (p *Panel) SetCharset(name string) *Panel
+```
+
+Overrides the border character set for this panel. When set, this panel uses
+its own charset regardless of the layout-level setting. Accepts a named preset
+(`"single"`, `"double"`, `"rounded"`) or an 8-character literal string. An
+unrecognised value falls back to `"single"`.
+
+```go
+layout.Panel("highlight").SetCharset("double")
+layout.Panel("custom").SetCharset("╔═╗║│╚─┘")
 ```
 
 ---
@@ -505,8 +633,8 @@ When `columns` is set to `2`, rows are paired during rendering:
 - An odd trailing row spans the full panel width.
 
 The inner width is computed as `colWidth*2 + columnGap`, where `colWidth` is
-the maximum of `(minWidth-columnGap)/2` and the widest single cell across all
-rows.
+the maximum of `(targetInnerWidth-columnGap)/2` and the widest single cell
+across all rows.
 
 ```go
 layout.Panel("attributes").

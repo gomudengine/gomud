@@ -19,7 +19,7 @@
 #   id         - used in Go code: layout.Panel("id").Add(...)
 #   title      - the full title string rendered verbatim into the top border;
 #                may contain ANSI tags - visual width is measured with tags stripped
-#   min_width  - minimum inner content width; expands if content is wider
+#   width      - total border-inclusive panel width; expands if content is wider
 #   columns    - optional (default 1): pair rows side by side within the panel
 #   column_gap - optional (default 2): spaces between paired columns
 
@@ -33,19 +33,19 @@ slots:
       - panels:
           - id: info
             title: '<ansi fg="black-bold">.:</ansi><ansi fg="20">Info</ansi>'
-            min_width: 25
+            width: 29
 
   - rows:
       - panels:
           - id: attributes
             title: '<ansi fg="black-bold">.:</ansi><ansi fg="20">Attributes</ansi>'
-            min_width: 42
+            width: 46
             columns: 2
             column_gap: 2
       - panels:
           - id: wealth
             title: '<ansi fg="black-bold">.:</ansi><ansi fg="20">Wealth</ansi>'
-            min_width: 19
+            width: 23
           - id: training
             title: '<ansi fg="black-bold">.:</ansi><ansi fg="20">Training</ansi>'
-            min_width: 20
+            width: 24

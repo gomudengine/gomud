@@ -17,7 +17,7 @@ func buildDescriptionPanel(c *characters.Character) string {
 	if err != nil {
 		layout = templates.NewPanelLayout("open", "single", 1, 1)
 		layout.AddPanelsToSlot(layout.AddSlot(), "desc")
-		layout.Panel("desc").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Description</ansi> `).SetMinWidth(74)
+		layout.Panel("desc").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Description</ansi> `).SetWidth(78)
 	}
 
 	panel := layout.Panel("desc")
@@ -34,7 +34,7 @@ func buildCorpseDescriptionPanel(c *characters.Character) string {
 	if err != nil {
 		layout = templates.NewPanelLayout("open", "single", 1, 1)
 		layout.AddPanelsToSlot(layout.AddSlot(), "desc")
-		layout.Panel("desc").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Description</ansi> `).SetMinWidth(74)
+		layout.Panel("desc").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Description</ansi> `).SetWidth(78)
 	}
 
 	skulls := `<ansi fg="red-bold">☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠</ansi>`
@@ -55,7 +55,7 @@ func buildInventoryLookPanel(equipment *characters.Worn, itemNames []string) str
 	if err != nil {
 		layout = templates.NewPanelLayout("open", "single", 1, 1)
 		layout.AddPanelsToSlot(layout.AddSlot(), "equip")
-		layout.Panel("equip").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Equipment</ansi> `).SetMinWidth(74)
+		layout.Panel("equip").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Equipment</ansi> `).SetWidth(78)
 	}
 	layout.Panel("equip").SetLabelWidth(9)
 
@@ -118,7 +118,7 @@ func buildPetPanel(c *characters.Character, isOwner bool) string {
 		if err != nil {
 			layout = templates.NewPanelLayout("open", "single", 1, 1)
 			layout.AddPanelsToSlot(layout.AddSlot(), "desc")
-			layout.Panel("desc").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Description</ansi> `).SetMinWidth(74)
+			layout.Panel("desc").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Description</ansi> `).SetWidth(78)
 		}
 
 		panel := layout.Panel("desc")
@@ -139,7 +139,7 @@ func buildPetPanel(c *characters.Character, isOwner bool) string {
 			if err != nil {
 				layout = templates.NewPanelLayout("open", "single", 1, 1)
 				layout.AddPanelsToSlot(layout.AddSlot(), "abilities")
-				layout.Panel("abilities").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Abilities</ansi> `).SetMinWidth(74)
+				layout.Panel("abilities").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Abilities</ansi> `).SetWidth(78)
 			}
 
 			panel := layout.Panel("abilities")

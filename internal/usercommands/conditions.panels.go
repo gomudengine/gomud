@@ -15,7 +15,7 @@ func buildConditionsPanel(user *users.UserRecord) string {
 	if err != nil {
 		layout = templates.NewPanelLayout("open", "single", 1, 1)
 		layout.AddPanelsToSlot(layout.AddSlot(), "conditions")
-		layout.Panel("conditions").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Conditions</ansi> `).SetMinWidth(74)
+		layout.Panel("conditions").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Conditions</ansi> `).SetWidth(78)
 	}
 
 	charBuffs := user.Character.GetBuffs()

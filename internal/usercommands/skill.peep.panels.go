@@ -64,11 +64,11 @@ func buildPeepLayoutInline() *templates.PanelLayout {
 
 	layout.Panel("info").
 		SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Info</ansi> `).
-		SetMinWidth(30)
+		SetWidth(34)
 
 	layout.Panel("attributes").
 		SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Attributes</ansi> `).
-		SetMinWidth(42).
+		SetWidth(46).
 		SetColumns(2).
 		SetColumnGap(2)
 

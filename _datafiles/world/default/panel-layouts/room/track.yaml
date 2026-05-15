@@ -10,4 +10,4 @@ slots:
       - panels:
           - id: track
             title: '<ansi fg="black-bold">.:</ansi><ansi fg="20">Recent Visitors</ansi>'
-            min_width: 74
+            width: 78

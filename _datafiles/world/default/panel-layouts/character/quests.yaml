@@ -12,4 +12,4 @@ slots:
       - panels:
           - id: quests
             title: '<ansi fg="black-bold">.:</ansi><ansi fg="20">Quests</ansi>'
-            min_width: 74
+            width: 78

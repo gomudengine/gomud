@@ -10,5 +10,4 @@ slots:
       - panels:
           - id: magic
             title: '<ansi fg="black-bold">.:</ansi><ansi fg="20">Magical Effects</ansi>'
-            min_width: 74
-            max_width: 60
+            width: 78

@@ -82,22 +82,24 @@ func charsetForName(name string) borderChars {
 // PanelRow is one label+value line inside a panel.
 // The renderer uses FullLabel when it fits the panel width, ShortLabel otherwise.
 // Set Blank to true to insert an empty spacer line; label and value are ignored.
-// When MaxWidth > 0, the value is word-wrapped at that visual width; continuation
+// When WrapWidth > 0, the value is word-wrapped at that visual width; continuation
 // lines are indented to align with the value column of the first line.
 type PanelRow struct {
 	FullLabel  string
 	ShortLabel string
 	Value      string
 	Blank      bool
-	MaxWidth   int
+	WrapWidth  int
 }
 
 // Panel holds the rows for one titled box. Obtain via PanelLayout.Panel(id).
+// width is the total border-inclusive panel width (border chars + padding + content).
+// When width > 0, the panel targets that exact outer width and wraps values to fit;
+// it will expand beyond width only when a label+value pair cannot fit otherwise.
 type Panel struct {
 	id         string
 	title      string // raw title string, may contain ANSI tags; used verbatim in the top border
-	minWidth   int
-	maxWidth   int // if > 0, value fields are wrapped at this visual width using SplitStringOnSpaces
+	width      int    // border-inclusive target width; 0 means size to content
 	border     borderStyle
 	chars      borderChars
 	columns    int // 1 (default) or 2: how many label+value pairs share a line
@@ -106,28 +108,39 @@ type Panel struct {
 	rows       []PanelRow
 }
 
+// innerWidth returns the target inner content width derived from p.width.
+// Returns 0 when p.width is 0 (size-to-content mode).
+func (p *Panel) innerWidth() int {
+	if p.width <= 0 {
+		return 0
+	}
+	w := p.width - 2 - 2*panelPad // subtract 2 border chars and 2 padding chars
+	if w < 0 {
+		w = 0
+	}
+	return w
+}
+
 // Add appends a label+value row and returns the panel for chaining.
-// If the panel has a non-zero MaxWidth set, the value will be wrapped at that width.
+// When the panel has a non-zero width, values are wrapped to fit within the panel.
 func (p *Panel) Add(fullLabel, shortLabel, value string) *Panel {
 	p.rows = append(p.rows, PanelRow{
 		FullLabel:  fullLabel,
 		ShortLabel: shortLabel,
 		Value:      value,
-		MaxWidth:   p.maxWidth,
 	})
 	return p
 }
 
-// AddWithMaxWidth appends a label+value row with an explicit maximum value width,
-// overriding the panel-level MaxWidth for this row.
-// When the value's visual width exceeds maxWidth, it is wrapped onto continuation
+// AddWithWrapWidth appends a label+value row with an explicit value wrap width.
+// When the value's visual width exceeds wrapWidth, it is wrapped onto continuation
 // lines indented to align with the value column of the first line.
-func (p *Panel) AddWithMaxWidth(fullLabel, shortLabel, value string, maxWidth int) *Panel {
+func (p *Panel) AddWithWrapWidth(fullLabel, shortLabel, value string, wrapWidth int) *Panel {
 	p.rows = append(p.rows, PanelRow{
 		FullLabel:  fullLabel,
 		ShortLabel: shortLabel,
 		Value:      value,
-		MaxWidth:   maxWidth,
+		WrapWidth:  wrapWidth,
 	})
 	return p
 }
@@ -260,8 +273,7 @@ func (l *PanelLayout) Render() string {
 type panelDef struct {
 	ID        string `yaml:"id"`
 	Title     string `yaml:"title"`
-	MinWidth  int    `yaml:"min_width"`
-	MaxWidth  int    `yaml:"max_width"`  // optional; when > 0, value fields are wrapped at this visual width
+	Width     int    `yaml:"width"`      // border-inclusive total panel width; 0 means size to content
 	Columns   int    `yaml:"columns"`    // optional, default 1
 	ColumnGap int    `yaml:"column_gap"` // optional, default 2
 	Charset   string `yaml:"charset"`    // optional, overrides layout-level charset
@@ -344,14 +356,10 @@ func (p *Panel) SetCharset(name string) *Panel { p.chars = charsetForName(name);
 // SetTitle sets the panel's title string verbatim.
 func (p *Panel) SetTitle(title string) *Panel { p.title = title; return p }
 
-// SetMinWidth sets the panel's minimum inner content width.
-func (p *Panel) SetMinWidth(w int) *Panel { p.minWidth = w; return p }
-
-// SetMaxWidth sets the panel's value wrap width.
-// When non-zero, value fields added via Add are wrapped at this visual width
-// using word-boundary splitting. Continuation lines are indented to align
-// with the value column of the first line.
-func (p *Panel) SetMaxWidth(w int) *Panel { p.maxWidth = w; return p }
+// SetWidth sets the total border-inclusive panel width.
+// The panel will target this exact outer width and wrap values to fit within it.
+// The panel will expand beyond this width only when a label+value pair cannot fit.
+func (p *Panel) SetWidth(w int) *Panel { p.width = w; return p }
 
 // SetLabelWidth sets a fixed visual width that all labels are padded to.
 // When non-zero, every label is right-padded with spaces to this width before
@@ -480,11 +488,8 @@ func ValidatePanelLayout(yamlData string) ([]PanelValidationIssue, error) {
 				if pd.Columns < 0 {
 					add(fmt.Sprintf("%s (id=%q): columns must be >= 0", loc, pd.ID))
 				}
-				if pd.MinWidth < 0 {
-					add(fmt.Sprintf("%s (id=%q): min_width must be >= 0", loc, pd.ID))
-				}
-				if pd.MaxWidth < 0 {
-					add(fmt.Sprintf("%s (id=%q): max_width must be >= 0", loc, pd.ID))
+				if pd.Width < 0 {
+					add(fmt.Sprintf("%s (id=%q): width must be >= 0", loc, pd.ID))
 				}
 				if pd.Charset != "" && !validCharsets[pd.Charset] && len([]rune(pd.Charset)) != 8 {
 					add(fmt.Sprintf("%s (id=%q): unknown charset %q", loc, pd.ID, pd.Charset))
@@ -554,8 +559,7 @@ func PreviewPanelLayout(yamlData string, stripAnsi bool) (string, error) {
 				p := &Panel{
 					id:        pd.ID,
 					title:     title,
-					minWidth:  pd.MinWidth,
-					maxWidth:  pd.MaxWidth,
+					width:     pd.Width,
 					border:    border,
 					chars:     panelChars,
 					columns:   cols,
@@ -692,8 +696,7 @@ func LoadPanelLayout(name string) (*PanelLayout, error) {
 				p := &Panel{
 					id:        pd.ID,
 					title:     pd.Title,
-					minWidth:  pd.MinWidth,
-					maxWidth:  pd.MaxWidth,
+					width:     pd.Width,
 					border:    border,
 					chars:     panelChars,
 					columns:   cols,
@@ -720,12 +723,17 @@ func panelVisualWidth(s string) int {
 }
 
 // panelInnerWidth calculates the inner content width for a panel.
-// For single-column panels it is the max of minWidth and the widest row.
-// For multi-column panels it is the max of minWidth and twice the widest
-// half-column (each half = label+1+value), plus the column gap.
+// When p.width > 0, the target inner width is p.innerWidth(); the panel will
+// use that target but expand if content cannot fit.
+// For single-column panels the result is the max of the target and the widest row,
+// where wrapped rows contribute only their wrap width (not the full value width).
+// For multi-column panels the result is the max of the target and
+// twice the widest half-column (each half = label+1+value), plus the column gap.
 func panelInnerWidth(p *Panel) int {
-	width := p.minWidth
+	target := p.innerWidth()
+
 	if p.columns < 2 {
+		width := target
 		for _, row := range p.rows {
 			if row.Blank {
 				continue
@@ -735,8 +743,23 @@ func panelInnerWidth(p *Panel) int {
 				lw = p.labelWidth
 			}
 			vw := panelVisualWidth(row.Value)
-			if row.MaxWidth > 0 && vw > row.MaxWidth {
-				vw = row.MaxWidth
+			// When the panel has a target width, compute the available value
+			// width and treat that as the effective wrap width for sizing.
+			// Only apply wrapping if there is actually space for the label.
+			effectiveWrap := row.WrapWidth
+			if target > 0 {
+				availForValue := target - lw - 1
+				if availForValue >= 1 {
+					// There is room for at least one char of value after the label.
+					if effectiveWrap <= 0 || availForValue < effectiveWrap {
+						effectiveWrap = availForValue
+					}
+				}
+				// If availForValue < 1, the label alone is wider than the target;
+				// don't apply any wrap — let the content drive expansion.
+			}
+			if effectiveWrap > 0 && vw > effectiveWrap {
+				vw = effectiveWrap
 			}
 			needed := lw + 1 + vw
 			if needed > width {
@@ -758,15 +781,22 @@ func panelInnerWidth(p *Panel) int {
 			widestCell = cell
 		}
 	}
-	colWidth := (p.minWidth - p.columnGap) / 2
+	colTarget := (target - p.columnGap) / 2
+	if colTarget < 0 {
+		colTarget = 0
+	}
+	colWidth := colTarget
 	if widestCell > colWidth {
 		colWidth = widestCell
 	}
 	total := colWidth*2 + p.columnGap
-	if total > width {
-		width = total
+	if total > target && target > 0 {
+		return total
 	}
-	return width
+	if target > total {
+		return target
+	}
+	return total
 }
 
 // chooseLabel returns the label to use for a row given the available inner width.
@@ -876,9 +906,9 @@ func renderPanel(p *Panel) []string {
 }
 
 // renderSingleColumnLines renders one content row for a single-column panel,
-// returning one or more lines. When row.MaxWidth > 0 and the value exceeds that
-// width, the value is split and continuation lines are indented to align with
-// the value column of the first line.
+// returning one or more lines. When a wrap width is determined (from the row's
+// WrapWidth or the panel's target width), the value is split and continuation
+// lines are indented to align with the value column of the first line.
 func renderSingleColumnLines(p *Panel, row PanelRow, inner int, isFirst, isLast bool) []string {
 	c := p.chars
 	borderLine := func(content string) string {
@@ -904,9 +934,20 @@ func renderSingleColumnLines(p *Panel, row PanelRow, inner int, isFirst, isLast 
 	// Layout: panelPad + label + " " + value
 	valueIndent := panelPad + lw + 1
 
+	// Determine the effective wrap width for this row.
+	// If the row has an explicit WrapWidth, use it.
+	// Otherwise, if the panel has a target width, wrap to the available value space.
+	effectiveWrap := row.WrapWidth
+	if effectiveWrap <= 0 && p.width > 0 {
+		availForValue := inner - lw - 1
+		if availForValue > 0 {
+			effectiveWrap = availForValue
+		}
+	}
+
 	var chunks []string
-	if row.MaxWidth > 0 {
-		for _, chunk := range ansitags.SplitStringOnSpaces(row.Value, row.MaxWidth, true) {
+	if effectiveWrap > 0 {
+		for _, chunk := range ansitags.SplitStringOnSpaces(row.Value, effectiveWrap, true) {
 			if panelVisualWidth(chunk) > 0 {
 				chunks = append(chunks, chunk)
 			}

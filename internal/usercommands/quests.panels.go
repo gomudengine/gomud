@@ -27,7 +27,7 @@ func buildQuestsPanel(rows []questRow, questsFound, questsTotal int) string {
 	if err != nil {
 		layout = templates.NewPanelLayout("open", "single", 1, 1)
 		layout.AddPanelsToSlot(layout.AddSlot(), "quests")
-		layout.Panel("quests").SetMinWidth(74)
+		layout.Panel("quests").SetWidth(78)
 	}
 	layout.Panel("quests").SetTitle(title)
 

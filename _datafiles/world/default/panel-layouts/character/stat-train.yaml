@@ -10,4 +10,4 @@ slots:
       - panels:
           - id: train
             title: '<ansi fg="black-bold">.:</ansi><ansi fg="20">Base Value</ansi>'
-            min_width: 38
+            width: 42

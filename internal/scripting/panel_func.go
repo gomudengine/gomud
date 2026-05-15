@@ -30,7 +30,7 @@ func PanelLayoutLoad(name string) *ScriptPanelLayout {
 //	var layout = PanelLayoutNew({ border: "full", charset: "rounded", gap: 1, margin: 1 });
 //	var slot = layout.AddSlot();
 //	slot.AddRow(["myPanel"]);
-//	layout.Panel("myPanel").SetTitle(' <ansi fg="20">Stats</ansi> ').SetMinWidth(30);
+//	layout.Panel("myPanel").SetTitle(' <ansi fg="20">Stats</ansi> ').SetWidth(34);
 //	layout.Panel("myPanel").Add("Str:", "S:", "42");
 //	SendText(layout.Render());
 func PanelLayoutNew(opts ...map[string]any) *ScriptPanelLayout {
@@ -137,20 +137,12 @@ func (p *ScriptPanel) SetTitle(title string) *ScriptPanel {
 	return p
 }
 
-// SetMinWidth sets the panel's minimum inner content width.
+// SetWidth sets the panel's total border-inclusive width.
+// The panel will target this exact outer width and wrap values to fit within it.
+// The panel will expand beyond this width only when a label+value pair cannot fit.
 // Returns the panel for chaining.
-func (p *ScriptPanel) SetMinWidth(w int) *ScriptPanel {
-	p.panel.SetMinWidth(w)
-	return p
-}
-
-// SetMaxWidth sets the panel's value wrap width.
-// When non-zero, values added via Add are wrapped at this visual width using
-// word-boundary splitting. Continuation lines are indented to align with the
-// value column of the first line.
-// Returns the panel for chaining.
-func (p *ScriptPanel) SetMaxWidth(w int) *ScriptPanel {
-	p.panel.SetMaxWidth(w)
+func (p *ScriptPanel) SetWidth(w int) *ScriptPanel {
+	p.panel.SetWidth(w)
 	return p
 }
 
@@ -176,12 +168,12 @@ func (p *ScriptPanel) Add(fullLabel, shortLabel, value string) *ScriptPanel {
 	return p
 }
 
-// AddWithMaxWidth appends a label+value row with a maximum value width.
-// When the value's visual width exceeds maxWidth, it is wrapped onto continuation
+// AddWithWrapWidth appends a label+value row with a maximum value wrap width.
+// When the value's visual width exceeds wrapWidth, it is wrapped onto continuation
 // lines indented to align with the value column of the first line.
 // Returns the panel for chaining.
-func (p *ScriptPanel) AddWithMaxWidth(fullLabel, shortLabel, value string, maxWidth int) *ScriptPanel {
-	p.panel.AddWithMaxWidth(fullLabel, shortLabel, value, maxWidth)
+func (p *ScriptPanel) AddWithWrapWidth(fullLabel, shortLabel, value string, wrapWidth int) *ScriptPanel {
+	p.panel.AddWithWrapWidth(fullLabel, shortLabel, value, wrapWidth)
 	return p
 }
 

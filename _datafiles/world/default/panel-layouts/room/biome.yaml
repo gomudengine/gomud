@@ -10,5 +10,4 @@ slots:
       - panels:
           - id: biome
             title: '<ansi fg="black-bold">.:</ansi> Biome Info'
-            min_width: 74
-            max_width: 60
+            width: 78

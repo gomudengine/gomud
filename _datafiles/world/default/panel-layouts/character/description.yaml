@@ -10,5 +10,4 @@ slots:
       - panels:
           - id: desc
             title: '<ansi fg="black-bold">.:</ansi><ansi fg="20">Description</ansi>'
-            min_width: 74
-            max_width: 74
+            width: 78

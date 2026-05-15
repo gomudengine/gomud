@@ -21,7 +21,7 @@ func buildInspectPanel(inspectLevel int, itm *items.Item, iSpec *items.ItemSpec)
 		if err != nil {
 			layout = templates.NewPanelLayout("open", "single", 1, 1)
 			layout.AddPanelsToSlot(layout.AddSlot(), "basic")
-			layout.Panel("basic").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Basic Info</ansi> `).SetMinWidth(74)
+			layout.Panel("basic").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Basic Info</ansi> `).SetWidth(78)
 		}
 		layout.Panel("basic").SetLabelWidth(13)
 
@@ -41,7 +41,7 @@ func buildInspectPanel(inspectLevel int, itm *items.Item, iSpec *items.ItemSpec)
 		if err != nil {
 			layout = templates.NewPanelLayout("open", "single", 1, 1)
 			layout.AddPanelsToSlot(layout.AddSlot(), "stats")
-			layout.Panel("stats").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Specific Stats</ansi> `).SetMinWidth(74)
+			layout.Panel("stats").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Specific Stats</ansi> `).SetWidth(78)
 		}
 		layout.Panel("stats").SetLabelWidth(13)
 
@@ -89,7 +89,7 @@ func buildInspectPanel(inspectLevel int, itm *items.Item, iSpec *items.ItemSpec)
 		if err != nil {
 			layout = templates.NewPanelLayout("open", "single", 1, 1)
 			layout.AddPanelsToSlot(layout.AddSlot(), "mods")
-			layout.Panel("mods").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Modifiers</ansi> `).SetMinWidth(74)
+			layout.Panel("mods").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Modifiers</ansi> `).SetWidth(78)
 		}
 		layout.Panel("mods").SetLabelWidth(13)
 
@@ -188,7 +188,7 @@ func buildInspectPanel(inspectLevel int, itm *items.Item, iSpec *items.ItemSpec)
 		if err != nil {
 			layout = templates.NewPanelLayout("open", "single", 1, 1)
 			layout.AddPanelsToSlot(layout.AddSlot(), "magic")
-			layout.Panel("magic").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Magical Effects</ansi> `).SetMinWidth(74)
+			layout.Panel("magic").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Magical Effects</ansi> `).SetWidth(78)
 		}
 		layout.Panel("magic").SetLabelWidth(13)
 
@@ -245,7 +245,7 @@ func buildTrackPanel(visitors []trackingInfo) string {
 	if err != nil {
 		layout = templates.NewPanelLayout("open", "single", 1, 1)
 		layout.AddPanelsToSlot(layout.AddSlot(), "track")
-		layout.Panel("track").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Recent Visitors</ansi> `).SetMinWidth(74)
+		layout.Panel("track").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Recent Visitors</ansi> `).SetWidth(78)
 	}
 
 	p := layout.Panel("track")
@@ -303,7 +303,7 @@ func buildInsideContainerPanel(itemNames []string, itemNamesFormatted []string) 
 	if err != nil {
 		layout = templates.NewPanelLayout("open", "single", 1, 0)
 		layout.AddPanelsToSlot(layout.AddSlot(), "inside")
-		layout.Panel("inside").SetMinWidth(74)
+		layout.Panel("inside").SetWidth(78)
 	}
 
 	p := layout.Panel("inside")
@@ -351,7 +351,7 @@ func buildTrainPanel(data TrainingOptions) string {
 	if err != nil {
 		layout = templates.NewPanelLayout("open", "single", 1, 1)
 		layout.AddPanelsToSlot(layout.AddSlot(), "train")
-		layout.Panel("train").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Skills Taught Here</ansi> `).SetMinWidth(74)
+		layout.Panel("train").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Skills Taught Here</ansi> `).SetWidth(78)
 	}
 	layout.Panel("train").SetLabelWidth(12)
 
@@ -385,7 +385,7 @@ func buildBiomePanel(biome *rooms.BiomeInfo) string {
 	if err != nil {
 		layout = templates.NewPanelLayout("open", "single", 1, 0)
 		layout.AddPanelsToSlot(layout.AddSlot(), "biome")
-		layout.Panel("biome").SetTitle(` <ansi fg="black-bold">.:</ansi> Biome Info `).SetMinWidth(74)
+		layout.Panel("biome").SetTitle(` <ansi fg="black-bold">.:</ansi> Biome Info `).SetWidth(78)
 	}
 	layout.Panel("biome").SetLabelWidth(13)
 

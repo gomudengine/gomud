@@ -12,12 +12,12 @@ slots:
       - panels:
           - id: info
             title: '<ansi fg="black-bold">.:</ansi><ansi fg="20">Info</ansi>'
-            min_width: 25
+            width: 29
 
   - rows:
       - panels:
           - id: attributes
             title: '<ansi fg="black-bold">.:</ansi><ansi fg="20">Attributes</ansi>'
-            min_width: 42
+            width: 46
             columns: 2
             column_gap: 2

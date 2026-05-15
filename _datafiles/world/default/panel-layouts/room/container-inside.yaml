@@ -10,4 +10,4 @@ slots:
   - rows:
       - panels:
           - id: inside
-            min_width: 74
+            width: 78

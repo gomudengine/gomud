@@ -44,7 +44,7 @@ func buildJobsPanel(user *users.UserRecord) string {
 	if err != nil {
 		layout = templates.NewPanelLayout("open", "single", 1, 1)
 		layout.AddPanelsToSlot(layout.AddSlot(), "jobs")
-		layout.Panel("jobs").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Jobs</ansi> `).SetMinWidth(74)
+		layout.Panel("jobs").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Jobs</ansi> `).SetWidth(78)
 	}
 
 	if len(rows) == 0 {
