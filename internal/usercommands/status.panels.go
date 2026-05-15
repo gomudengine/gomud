@@ -68,12 +68,12 @@ func buildStatusPanel(user *users.UserRecord) string {
 	addStat(`<ansi fg="yellow">Percept:   </ansi>`, `<ansi fg="yellow">Per:</ansi>`, c.Stats.Perception.Value, c.StatMod("perception"))
 
 	layout.Panel("wealth").
-		Add(`<ansi fg="yellow">Gold:</ansi>`, `<ansi fg="yellow">G:</ansi>`, util.FormatNumber(c.Gold)).
-		Add(`<ansi fg="yellow">Bank:</ansi>`, `<ansi fg="yellow">B:</ansi>`, util.FormatNumber(c.Bank))
+		Add(`<ansi fg="yellow">Gold:</ansi>`, `<ansi fg="yellow">G:</ansi>`, `<ansi fg="gold">`+util.FormatNumber(c.Gold)+`</ansi>`).
+		Add(`<ansi fg="yellow">Bank:</ansi>`, `<ansi fg="yellow">B:</ansi>`, `<ansi fg="gold">`+util.FormatNumber(c.Bank)+`</ansi>`)
 
 	layout.Panel("training").
-		Add(`<ansi fg="yellow">Train Pts:</ansi>`, `<ansi fg="yellow">Trn:</ansi>`, fmt.Sprintf(`%d`, c.TrainingPoints)).
-		Add(`<ansi fg="yellow">Stat Pts: </ansi>`, `<ansi fg="yellow">Sta:</ansi>`, fmt.Sprintf(`%d`, c.StatPoints))
+		Add(`<ansi fg="yellow">Train Pts:</ansi>`, `<ansi fg="yellow">Trn:</ansi>`, fmt.Sprintf(`<ansi fg="157">%d</ansi>`, c.TrainingPoints)).
+		Add(`<ansi fg="yellow">Stat Pts: </ansi>`, `<ansi fg="yellow">Sta:</ansi>`, fmt.Sprintf(`<ansi fg="217">%d</ansi>`, c.StatPoints))
 
 	header := fmt.Sprintf(` <ansi fg="black-bold">.:</ansi> <ansi fg="username">%s</ansi> the <ansi fg="%s">%s</ansi> %s`,
 		c.Name, c.AlignmentName(), c.AlignmentName(), profession)

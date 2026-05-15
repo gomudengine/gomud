@@ -11,38 +11,42 @@ pairing automatically.
 
 ## Table of contents
 
-- [Concepts](#concepts)
-- [Quick start](#quick-start)
-- [YAML layout files](#yaml-layout-files)
-  - [Top-level fields](#top-level-fields)
-  - [Slot, row, and panel fields](#slot-row-and-panel-fields)
-  - [Full example](#full-example)
-- [API reference](#api-reference)
-  - [LoadPanelLayout](#loadpanellayout)
-  - [NewPanelLayout](#newpanellayout)
-  - [ListPanelLayouts](#listpanellayouts)
-  - [ValidatePanelLayout](#validatepanellayout)
-  - [PreviewPanelLayout](#previewpanellayout)
-  - [SavePanelLayout](#savepanellayout)
-  - [PanelLayout.AddSlot](#panellayoutaddslot)
-  - [PanelLayout.AddPanelsToSlot](#panellayoutaddpanelstoslot)
-  - [PanelLayout.Panel](#panellayoutpanel)
-  - [PanelLayout.Render](#panellayoutrender)
-  - [Panel.Add](#paneladd)
-  - [Panel.AddWithWrapWidth](#paneladdwithwrapwidth)
-  - [Panel.AddBlank](#paneladdblank)
-  - [Panel.SetTitle](#panelsettitle)
-  - [Panel.SetWidth](#panelsetwidth)
-  - [Panel.SetMinWidth](#panelsetminwidth)
-  - [Panel.SetLabelWidth](#panelsetlabelwidth)
-  - [Panel.SetColumns](#panelsetcolumns)
-  - [Panel.SetColumnGap](#panelsetcolumngap)
-  - [Panel.SetCharset](#panelsetcharset)
-- [Width and ANSI tags](#width-and-ansi-tags)
-- [Border styles](#border-styles)
-- [Character sets](#character-sets)
-- [Multi-column panels](#multi-column-panels)
-- [Margin](#margin)
+- [Panel Layout — Go Reference](#panel-layout--go-reference)
+  - [Table of contents](#table-of-contents)
+  - [Concepts](#concepts)
+  - [Quick start](#quick-start)
+    - [Using a YAML file](#using-a-yaml-file)
+    - [Building entirely in Go](#building-entirely-in-go)
+  - [YAML layout files](#yaml-layout-files)
+    - [Top-level fields](#top-level-fields)
+    - [Slot, row, and panel fields](#slot-row-and-panel-fields)
+    - [Full example](#full-example)
+  - [API reference](#api-reference)
+    - [LoadPanelLayout](#loadpanellayout)
+    - [NewPanelLayout](#newpanellayout)
+    - [ListPanelLayouts](#listpanellayouts)
+    - [ValidatePanelLayout](#validatepanellayout)
+    - [PreviewPanelLayout](#previewpanellayout)
+    - [SavePanelLayout](#savepanellayout)
+    - [PanelLayout.AddSlot](#panellayoutaddslot)
+    - [PanelLayout.AddPanelsToSlot](#panellayoutaddpanelstoslot)
+    - [PanelLayout.Panel](#panellayoutpanel)
+    - [PanelLayout.Render](#panellayoutrender)
+    - [Panel.Add](#paneladd)
+    - [Panel.AddWithWrapWidth](#paneladdwithwrapwidth)
+    - [Panel.AddBlank](#paneladdblank)
+    - [Panel.SetTitle](#panelsettitle)
+    - [Panel.SetWidth](#panelsetwidth)
+    - [Panel.SetMinWidth](#panelsetminwidth)
+    - [Panel.SetLabelWidth](#panelsetlabelwidth)
+    - [Panel.SetColumns](#panelsetcolumns)
+    - [Panel.SetColumnGap](#panelsetcolumngap)
+    - [Panel.SetCharset](#panelsetcharset)
+  - [Width and ANSI tags](#width-and-ansi-tags)
+  - [Border styles](#border-styles)
+  - [Character sets](#character-sets)
+  - [Multi-column panels](#multi-column-panels)
+  - [Margin](#margin)
 
 ---
 
@@ -161,6 +165,10 @@ Each slot contains a list of rows. Each row contains a list of panels.
 # charset: "double"  - ╔═╗ ║ ║ ╚═╝
 # charset: "rounded" - ╭─╮ │ │ ╰─╯
 # charset: literal   - 8 chars: TopLeft HorizontalTop TopRight VerticalLeft VerticalRight BottomLeft HorizontalBottom BottomRight
+# Examples: 
+#          ┏━┓┃┃┗━┛
+#          ╒═╕││╘═╛
+#          ╓─╖║║╙─╜
 
 border: open
 charset: single
