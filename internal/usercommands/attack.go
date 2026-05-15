@@ -44,7 +44,7 @@ func Attack(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 		if attackMobInstanceId == 0 {
 			for _, uId := range room.GetPlayers(rooms.FindFightingPlayer) {
 				u := users.GetByUserId(uId)
-				if u.Character.Aggro == nil {
+				if u == nil || u.Character.Aggro == nil {
 					continue
 				}
 

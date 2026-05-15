@@ -8,25 +8,21 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/templates"
 	"github.com/GoMudEngine/GoMud/internal/term"
-	"github.com/GoMudEngine/GoMud/internal/util"
 )
 
 // buildDescriptionPanel renders the character/description template as a panel.
 // It accepts a *characters.Character and the viewing user's id.
 func buildDescriptionPanel(c *characters.Character) string {
-	layout := templates.NewPanelLayout("open", "single", 1, 1)
-	slot := layout.AddSlot()
-	layout.AddPanelsToSlot(slot, "desc")
-
-	layout.Panel("desc").
-		SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Description</ansi> `).
-		SetMinWidth(74)
+	layout, err := templates.LoadPanelLayout("character/description")
+	if err != nil {
+		layout = templates.NewPanelLayout("open", "single", 1, 1)
+		layout.AddPanelsToSlot(layout.AddSlot(), "desc")
+		layout.Panel("desc").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Description</ansi> `).SetMinWidth(74)
+	}
 
 	panel := layout.Panel("desc")
 
-	for _, line := range util.SplitString(c.GetDescription(), 72) {
-		panel.Add(``, ``, line)
-	}
+	panel.Add(``, ``, c.GetDescription())
 	panel.Add(``, ``, c.GetHealthAppearance())
 
 	return layout.Render() + term.CRLFStr
@@ -34,21 +30,18 @@ func buildDescriptionPanel(c *characters.Character) string {
 
 // buildCorpseDescriptionPanel renders the character/description-corpse template as a panel.
 func buildCorpseDescriptionPanel(c *characters.Character) string {
-	layout := templates.NewPanelLayout("open", "single", 1, 1)
-	slot := layout.AddSlot()
-	layout.AddPanelsToSlot(slot, "desc")
-
-	layout.Panel("desc").
-		SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Description</ansi> `).
-		SetMinWidth(74)
+	layout, err := templates.LoadPanelLayout("character/description")
+	if err != nil {
+		layout = templates.NewPanelLayout("open", "single", 1, 1)
+		layout.AddPanelsToSlot(layout.AddSlot(), "desc")
+		layout.Panel("desc").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Description</ansi> `).SetMinWidth(74)
+	}
 
 	skulls := `<ansi fg="red-bold">☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠ ☠</ansi>`
 
 	panel := layout.Panel("desc")
 	panel.Add(``, ``, skulls)
-	for _, line := range util.SplitString(c.GetDescription(), 72) {
-		panel.Add(``, ``, fmt.Sprintf(`<ansi fg="8">%s</ansi>`, line))
-	}
+	panel.Add(``, ``, fmt.Sprintf(`<ansi fg="8">%s</ansi>`, c.GetDescription()))
 	panel.Add(``, ``, `<ansi fg="8">This is a corpse. They are dead.</ansi>`)
 	panel.Add(``, ``, skulls)
 
@@ -58,14 +51,13 @@ func buildCorpseDescriptionPanel(c *characters.Character) string {
 // buildInventoryLookPanel renders the character/inventory-look template as a panel.
 // equipment is *characters.Worn, itemNames is the list of carried item display names.
 func buildInventoryLookPanel(equipment *characters.Worn, itemNames []string) string {
-	layout := templates.NewPanelLayout("open", "single", 1, 1)
-	slot := layout.AddSlot()
-	layout.AddPanelsToSlot(slot, "equip")
-
-	layout.Panel("equip").
-		SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Equipment</ansi> `).
-		SetMinWidth(74).
-		SetLabelWidth(9)
+	layout, err := templates.LoadPanelLayout("character/equipment-look")
+	if err != nil {
+		layout = templates.NewPanelLayout("open", "single", 1, 1)
+		layout.AddPanelsToSlot(layout.AddSlot(), "equip")
+		layout.Panel("equip").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Equipment</ansi> `).SetMinWidth(74)
+	}
+	layout.Panel("equip").SetLabelWidth(9)
 
 	panel := layout.Panel("equip")
 
@@ -122,12 +114,12 @@ func buildPetPanel(c *characters.Character, isOwner bool) string {
 
 	// Description panel
 	{
-		layout := templates.NewPanelLayout("open", "single", 1, 1)
-		slot := layout.AddSlot()
-		layout.AddPanelsToSlot(slot, "desc")
-		layout.Panel("desc").
-			SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Description</ansi> `).
-			SetMinWidth(74)
+		layout, err := templates.LoadPanelLayout("character/description")
+		if err != nil {
+			layout = templates.NewPanelLayout("open", "single", 1, 1)
+			layout.AddPanelsToSlot(layout.AddSlot(), "desc")
+			layout.Panel("desc").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Description</ansi> `).SetMinWidth(74)
+		}
 
 		panel := layout.Panel("desc")
 		panel.Add(``, ``,
@@ -143,12 +135,12 @@ func buildPetPanel(c *characters.Character, isOwner bool) string {
 	// Abilities panel (owner only)
 	if isOwner {
 		if ab := c.Pet.GetCurrentAbilityDisplay(); ab != nil {
-			layout := templates.NewPanelLayout("open", "single", 1, 1)
-			slot := layout.AddSlot()
-			layout.AddPanelsToSlot(slot, "abilities")
-			layout.Panel("abilities").
-				SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Abilities</ansi> `).
-				SetMinWidth(74)
+			layout, err := templates.LoadPanelLayout("character/pet")
+			if err != nil {
+				layout = templates.NewPanelLayout("open", "single", 1, 1)
+				layout.AddPanelsToSlot(layout.AddSlot(), "abilities")
+				layout.Panel("abilities").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Abilities</ansi> `).SetMinWidth(74)
+			}
 
 			panel := layout.Panel("abilities")
 

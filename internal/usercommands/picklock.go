@@ -180,6 +180,10 @@ func Picklock(rest string, user *users.UserRecord, room *rooms.Room, flags event
 	entered += r
 
 	for i := 0; i < len(entered); i++ {
+		if i >= len(sequence) {
+			entered = ``
+			break
+		}
 		if entered[i] == '*' {
 			continue
 		}

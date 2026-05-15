@@ -1033,7 +1033,7 @@ func room_Edit_Containers(rest string, user *users.UserRecord, room *rooms.Room,
 					return true, nil
 				}
 
-				if question.Response != `skip` {
+				if question.Response != `skip` && len(question.Response) > 0 {
 
 					removeItem := false
 					if question.Response[0] == '-' {

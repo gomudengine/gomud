@@ -105,11 +105,12 @@ func Portal(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 				fmt.Sprintf(`<ansi fg="username">%s</ansi> draws a quick symbol in the air, and is sucked into a portal!`, user.Character.Name),
 				user.UserId,
 			)
-			newRoom := rooms.LoadRoom(portalTargetRoomId)
-			newRoom.SendText(
-				fmt.Sprintf(`<ansi fg="username">%s</ansi> suddenly pops into existence!`, user.Character.Name),
-				user.UserId,
-			)
+			if newRoom := rooms.LoadRoom(portalTargetRoomId); newRoom != nil {
+				newRoom.SendText(
+					fmt.Sprintf(`<ansi fg="username">%s</ansi> suddenly pops into existence!`, user.Character.Name),
+					user.UserId,
+				)
+			}
 		} else {
 			user.SendText("Oops, portal sad!")
 		}

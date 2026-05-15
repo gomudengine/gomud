@@ -329,6 +329,10 @@ func spell_Create(rest string, user *users.UserRecord, room *rooms.Room, flags e
 	}
 
 	spellSpec := spells.GetSpell(spellId)
+	if spellSpec == nil {
+		user.SendText("Error: spell spec not found after creation.")
+		return true, nil
+	}
 
 	user.SendText(``)
 	user.SendText(`  <ansi bg="red" fg="white-bold">SPELL CREATED</ansi>`)

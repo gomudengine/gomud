@@ -180,7 +180,7 @@ func TestRenderPanel_BlankRow(t *testing.T) {
 	got := renderPanel(p)
 	require.Equal(t, 5, len(got))
 	inner := panelInnerWidth(p)
-	assert.Equal(t, "│"+strings.Repeat(" ", inner+2*panelPad)+"│", got[2])
+	assert.Equal(t, charsetSingle.VerticalLeft+strings.Repeat(" ", inner+2*panelPad)+charsetSingle.VerticalRight, got[2])
 }
 
 func TestRenderPanel_AllLinesEqualVisualWidth(t *testing.T) {
@@ -462,6 +462,26 @@ func TestCharsetForName(t *testing.T) {
 	assert.Equal(t, charsetRounded, charsetForName("rounded"))
 }
 
+func TestCharsetForName_LiteralString(t *testing.T) {
+	// 8-rune literal: TL HTop TR VL VR BL HBottom BR
+	got := charsetForName("╔═╗║│╚─┘")
+	assert.Equal(t, "╔", got.TopLeft)
+	assert.Equal(t, "═", got.Horizontal)
+	assert.Equal(t, "╗", got.TopRight)
+	assert.Equal(t, "║", got.VerticalLeft)
+	assert.Equal(t, "│", got.VerticalRight)
+	assert.Equal(t, "╚", got.BottomLeft)
+	assert.Equal(t, "─", got.HorizontalBottom)
+	assert.Equal(t, "┘", got.BottomRight)
+}
+
+func TestCharsetForName_LiteralString_WrongLength_FallsBackToSingle(t *testing.T) {
+	// 7 runes – not 8 – should fall back to single
+	assert.Equal(t, charsetSingle, charsetForName("╔═╗║│╚┘"))
+	// 9 runes – not 8 – should fall back to single
+	assert.Equal(t, charsetSingle, charsetForName("╔═╗║║╚╝═─"))
+}
+
 func TestRenderPanel_Charset_Double(t *testing.T) {
 	p := makePanel("x", "X", 8, borderFull, []PanelRow{
 		{FullLabel: "A:", ShortLabel: "A:", Value: "1"},
@@ -470,7 +490,8 @@ func TestRenderPanel_Charset_Double(t *testing.T) {
 	got := renderPanel(p)
 	assert.True(t, strings.HasPrefix(got[0], "\u2554"), "double top-left corner")
 	assert.True(t, strings.HasSuffix(got[0], "\u2557"), "double top-right corner")
-	assert.True(t, strings.HasPrefix(got[1], "\u2551"), "double vertical")
+	assert.True(t, strings.HasPrefix(got[1], "\u2551"), "double vertical-left")
+	assert.True(t, strings.HasSuffix(got[1], "\u2551"), "double vertical-right")
 	assert.True(t, strings.HasPrefix(got[len(got)-1], "\u255a"), "double bottom-left corner")
 	assert.True(t, strings.HasSuffix(got[len(got)-1], "\u255d"), "double bottom-right corner")
 }
@@ -487,8 +508,25 @@ func TestRenderPanel_Charset_Rounded(t *testing.T) {
 	assert.True(t, strings.HasSuffix(got[len(got)-1], "\u256f"), "rounded bottom-right corner")
 }
 
+func TestRenderPanel_Charset_Literal_DistinctLeftRight(t *testing.T) {
+	// Use a charset where VerticalLeft (║) != VerticalRight (│) and
+	// HorizontalTop (═) != HorizontalBottom (─) to verify each side uses the
+	// correct character.
+	p := makePanel("x", "X", 8, borderFull, []PanelRow{
+		{FullLabel: "A:", ShortLabel: "A:", Value: "1"},
+	})
+	p.chars = charsetForName("╔═╗║│╚─┘")
+	got := renderPanel(p)
+	assert.True(t, strings.HasPrefix(got[1], "\u2551"), "content row left border is VerticalLeft")
+	assert.True(t, strings.HasSuffix(got[1], "\u2502"), "content row right border is VerticalRight")
+	assert.True(t, strings.HasPrefix(got[0], "\u2554"), "top border uses TopLeft")
+	assert.True(t, strings.Contains(got[0], "\u2550"), "top border uses HorizontalTop")
+	assert.True(t, strings.HasPrefix(got[len(got)-1], "\u255a"), "bottom border uses BottomLeft")
+	assert.True(t, strings.Contains(got[len(got)-1], "\u2500"), "bottom border uses HorizontalBottom")
+	assert.True(t, strings.HasSuffix(got[len(got)-1], "\u2518"), "bottom border uses BottomRight")
+}
+
 func TestRenderPanel_PerPanelCharset_OverridesLayout(t *testing.T) {
-	// Two panels in the same layout: one single (default), one double (override).
 	pSingle := makePanel("a", "A", 8, borderFull, []PanelRow{
 		{FullLabel: "X:", ShortLabel: "X:", Value: "1"},
 	})
@@ -519,8 +557,82 @@ func TestRenderPanel_PerPanelCharset_OverridesLayout(t *testing.T) {
 	}
 }
 
+func TestRenderPanel_MaxWidth_WrapsValue(t *testing.T) {
+	// Value "hello world" (11 chars) with MaxWidth=5:
+	// SplitStringOnSpaces produces ["hello", "world"] = 2 non-empty chunks.
+	p := makePanel("x", "X", 20, borderFull, []PanelRow{
+		{FullLabel: "Desc:", ShortLabel: "D:", Value: "hello world", MaxWidth: 5},
+	})
+	got := renderPanel(p)
+	// top border + 2 content lines + bottom border = 4
+	require.Equal(t, 4, len(got), "should have a continuation line")
+	assert.Contains(t, got[1], "Desc:")
+	assert.Contains(t, got[1], "hello")
+	assert.Contains(t, got[2], "world")
+	// Continuation line must NOT contain the label.
+	assert.NotContains(t, got[2], "Desc:")
+}
+
+func TestRenderPanel_MaxWidth_ContinuationAlignsWithValue(t *testing.T) {
+	// Continuation lines must be indented by panelPad + labelWidth + 1 spaces,
+	// which is the same offset as the value column on the first line.
+	// SplitStringOnSpaces("aaa bbb", 3) produces ["aaa", "bbb"] (2 non-empty chunks).
+	p := makePanel("x", "X", 30, borderFull, []PanelRow{
+		{FullLabel: "Label:", ShortLabel: "L:", Value: "aaa bbb", MaxWidth: 3},
+	})
+	got := renderPanel(p)
+	require.Equal(t, 4, len(got), "should have one continuation line")
+
+	// Expected indent: panelPad + visualWidth("Label:") + 1
+	expectedIndent := panelPad + panelVisualWidth("Label:") + 1
+
+	// Strip ANSI and border from the continuation line, then count leading spaces.
+	line2 := ansitags.Parse(got[2], ansitags.StripTags)
+	line2Runes := []rune(line2)
+	line2Body := string(line2Runes[1:]) // remove leading border rune (│)
+	actualIndent := len([]rune(line2Body)) - len([]rune(strings.TrimLeft(line2Body, " ")))
+	assert.Equal(t, expectedIndent, actualIndent, "continuation line should be indented to value column")
+}
+
+func TestRenderPanel_MaxWidth_AllLinesEqualVisualWidth(t *testing.T) {
+	p := makePanel("x", "X", 30, borderFull, []PanelRow{
+		{FullLabel: "Note:", ShortLabel: "N:", Value: "one two three four five", MaxWidth: 9},
+	})
+	got := renderPanel(p)
+	w0 := panelVisualWidth(got[0])
+	for i, line := range got {
+		assert.Equal(t, w0, panelVisualWidth(line), "line %d visual width differs", i)
+	}
+}
+
+func TestRenderPanel_MaxWidth_Zero_NoWrap(t *testing.T) {
+	// MaxWidth=0 means no wrapping; behaves identically to a plain Add row.
+	p := makePanel("x", "X", 20, borderFull, []PanelRow{
+		{FullLabel: "A:", ShortLabel: "A:", Value: "hello world", MaxWidth: 0},
+	})
+	got := renderPanel(p)
+	// top + 1 content + bottom = 3
+	require.Equal(t, 3, len(got))
+	assert.Contains(t, got[1], "hello world")
+}
+
+func TestRenderPanel_MaxWidth_AnsiTagsHandled(t *testing.T) {
+	// ANSI tags must not be mangled across split boundaries.
+	value := `<ansi fg="yellow">hello</ansi> <ansi fg="green">world</ansi>`
+	p := makePanel("x", "X", 30, borderFull, []PanelRow{
+		{FullLabel: "A:", ShortLabel: "A:", Value: value, MaxWidth: 5},
+	})
+	got := renderPanel(p)
+	// Should produce at least 2 content lines.
+	require.GreaterOrEqual(t, len(got), 4)
+	// All lines must have equal visual width.
+	w0 := panelVisualWidth(got[0])
+	for i, line := range got {
+		assert.Equal(t, w0, panelVisualWidth(line), "line %d visual width differs", i)
+	}
+}
+
 func TestRenderPanel_TitleUsedVerbatim(t *testing.T) {
-	// Title is used as-is; no prefix/suffix is added by the renderer.
 	p := makePanel("x", `<ansi fg="20">MyTitle</ansi>`, 15, borderFull, []PanelRow{
 		{FullLabel: "A:", ShortLabel: "A:", Value: "1"},
 	})

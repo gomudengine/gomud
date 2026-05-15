@@ -1,0 +1,13 @@
+# Panel layout for the skills command.
+
+border: open
+charset: single
+gap: 1
+margin: 1
+
+slots:
+  - rows:
+      - panels:
+          - id: skills
+            title: '<ansi fg="black-bold">.:</ansi><ansi fg="20">Skills</ansi>'
+            min_width: 74

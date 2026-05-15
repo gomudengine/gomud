@@ -19,5 +19,5 @@ slots:
   - rows:
       - panels:
           - id: equipment
-            title: ' <ansi fg="black-bold">.:</ansi><ansi fg="20">Equipment</ansi> '
+            title: '<ansi fg="black-bold">.:</ansi><ansi fg="20">Equipment</ansi>'
             min_width: 74

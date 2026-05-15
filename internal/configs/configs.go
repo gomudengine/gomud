@@ -173,9 +173,16 @@ func (c *Config) buildDotPaths(v reflect.Value, prefix string, result map[string
 		}
 	default:
 		// For non-struct fields, store the value using the accumulated prefix.
-		// Sanitize to ensure all values are JSON-encodable (YAML unmarshaling
-		// can produce map[interface{}]interface{} inside slices and nested maps).
-		result[prefix] = sanitizeForJSON(v.Interface())
+		// Preserve typed config values so that typeLookups records the correct
+		// type name (e.g. "configs.ConfigSliceString") and SetVal can round-trip
+		// them. Only sanitize values that are not already a known config type.
+		if cs, ok := v.Interface().(ConfigSliceString); ok {
+			result[prefix] = cs
+		} else {
+			// Sanitize to ensure all values are JSON-encodable (YAML unmarshaling
+			// can produce map[interface{}]interface{} inside slices and nested maps).
+			result[prefix] = sanitizeForJSON(v.Interface())
+		}
 	}
 }
 

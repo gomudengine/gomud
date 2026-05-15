@@ -40,13 +40,12 @@ func buildJobsPanel(user *users.UserRecord) string {
 		return strings.Compare(rows[i].name, rows[j].name) == -1
 	})
 
-	layout := templates.NewPanelLayout("open", "single", 1, 1)
-	slot := layout.AddSlot()
-	layout.AddPanelsToSlot(slot, "jobs")
-
-	layout.Panel("jobs").
-		SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Jobs</ansi> `).
-		SetMinWidth(74)
+	layout, err := templates.LoadPanelLayout("character/jobs")
+	if err != nil {
+		layout = templates.NewPanelLayout("open", "single", 1, 1)
+		layout.AddPanelsToSlot(layout.AddSlot(), "jobs")
+		layout.Panel("jobs").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Jobs</ansi> `).SetMinWidth(74)
+	}
 
 	if len(rows) == 0 {
 		layout.Panel("jobs").Add(``, ``, `No jobs. Train skills to unlock professions.`)

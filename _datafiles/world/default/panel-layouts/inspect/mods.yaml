@@ -1,0 +1,14 @@
+# Panel layout for the item inspect - modifiers section.
+
+border: open
+charset: single
+gap: 1
+margin: 1
+
+slots:
+  - rows:
+      - panels:
+          - id: mods
+            title: '<ansi fg="black-bold">.:</ansi><ansi fg="20">Modifiers</ansi>'
+            min_width: 74
+            max_width: 60

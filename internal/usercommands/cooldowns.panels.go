@@ -13,13 +13,12 @@ import (
 func buildCooldownsPanel(user *users.UserRecord) string {
 	allCooldowns := user.Character.GetAllCooldowns()
 
-	layout := templates.NewPanelLayout("open", "single", 1, 1)
-	slot := layout.AddSlot()
-	layout.AddPanelsToSlot(slot, "cooldowns")
-
-	layout.Panel("cooldowns").
-		SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Cooldowns</ansi> `).
-		SetMinWidth(74)
+	layout, err := templates.LoadPanelLayout("character/cooldowns")
+	if err != nil {
+		layout = templates.NewPanelLayout("open", "single", 1, 1)
+		layout.AddPanelsToSlot(layout.AddSlot(), "cooldowns")
+		layout.Panel("cooldowns").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Cooldowns</ansi> `).SetMinWidth(74)
+	}
 
 	if len(allCooldowns) == 0 {
 		layout.Panel("cooldowns").Add(``, ``, `<ansi fg="black-bold">None</ansi>`)

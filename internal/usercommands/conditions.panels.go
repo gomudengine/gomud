@@ -11,13 +11,12 @@ import (
 )
 
 func buildConditionsPanel(user *users.UserRecord) string {
-	layout := templates.NewPanelLayout("open", "single", 1, 1)
-	slot := layout.AddSlot()
-	layout.AddPanelsToSlot(slot, "conditions")
-
-	layout.Panel("conditions").
-		SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Conditions</ansi> `).
-		SetMinWidth(74)
+	layout, err := templates.LoadPanelLayout("character/conditions")
+	if err != nil {
+		layout = templates.NewPanelLayout("open", "single", 1, 1)
+		layout.AddPanelsToSlot(layout.AddSlot(), "conditions")
+		layout.Panel("conditions").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Conditions</ansi> `).SetMinWidth(74)
+	}
 
 	charBuffs := user.Character.GetBuffs()
 	if len(charBuffs) == 0 {

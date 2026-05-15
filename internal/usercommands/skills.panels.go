@@ -12,13 +12,12 @@ import (
 func buildSkillsPanel(user *users.UserRecord) string {
 	allSkills := user.Character.GetSkills()
 
-	layout := templates.NewPanelLayout("open", "single", 1, 1)
-	slot := layout.AddSlot()
-	layout.AddPanelsToSlot(slot, "skills")
-
-	layout.Panel("skills").
-		SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Skills</ansi> `).
-		SetMinWidth(74)
+	layout, err := templates.LoadPanelLayout("character/skills")
+	if err != nil {
+		layout = templates.NewPanelLayout("open", "single", 1, 1)
+		layout.AddPanelsToSlot(layout.AddSlot(), "skills")
+		layout.Panel("skills").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Skills</ansi> `).SetMinWidth(74)
+	}
 
 	if len(allSkills) == 0 {
 		layout.Panel("skills").Add(``, ``, `No Skills! Visit a guild or training center to train.`)

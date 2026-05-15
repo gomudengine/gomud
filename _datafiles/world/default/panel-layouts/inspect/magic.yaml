@@ -1,0 +1,14 @@
+# Panel layout for the item inspect - magical effects section.
+
+border: open
+charset: single
+gap: 1
+margin: 1
+
+slots:
+  - rows:
+      - panels:
+          - id: magic
+            title: '<ansi fg="black-bold">.:</ansi><ansi fg="20">Magical Effects</ansi>'
+            min_width: 74
+            max_width: 60

@@ -119,7 +119,9 @@ func (p *ScriptPanel) SetLabelWidth(w int) *ScriptPanel {
 }
 
 // SetCharset overrides the border character set for this panel.
-// Recognised values: "single", "double", "rounded".
+// Accepts a named preset ("single", "double", "rounded") or an 8-rune literal
+// string in the order: TopLeft, HorizontalTop, TopRight, VerticalLeft, VerticalRight,
+// BottomLeft, HorizontalBottom, BottomRight. Example: "\u2554\u2550\u2557\u2551\u2502\u255a\u2500\u2518".
 // If not called, the panel uses the layout-level charset.
 // Returns the panel for chaining.
 func (p *ScriptPanel) SetCharset(name string) *ScriptPanel {
@@ -142,6 +144,16 @@ func (p *ScriptPanel) SetMinWidth(w int) *ScriptPanel {
 	return p
 }
 
+// SetMaxWidth sets the panel's value wrap width.
+// When non-zero, values added via Add are wrapped at this visual width using
+// word-boundary splitting. Continuation lines are indented to align with the
+// value column of the first line.
+// Returns the panel for chaining.
+func (p *ScriptPanel) SetMaxWidth(w int) *ScriptPanel {
+	p.panel.SetMaxWidth(w)
+	return p
+}
+
 // SetColumns sets the number of label+value pairs per line (1 or 2).
 // Returns the panel for chaining.
 func (p *ScriptPanel) SetColumns(n int) *ScriptPanel {
@@ -161,6 +173,15 @@ func (p *ScriptPanel) SetColumnGap(n int) *ScriptPanel {
 // Returns the panel for chaining.
 func (p *ScriptPanel) Add(fullLabel, shortLabel, value string) *ScriptPanel {
 	p.panel.Add(fullLabel, shortLabel, value)
+	return p
+}
+
+// AddWithMaxWidth appends a label+value row with a maximum value width.
+// When the value's visual width exceeds maxWidth, it is wrapped onto continuation
+// lines indented to align with the value column of the first line.
+// Returns the panel for chaining.
+func (p *ScriptPanel) AddWithMaxWidth(fullLabel, shortLabel, value string, maxWidth int) *ScriptPanel {
+	p.panel.AddWithMaxWidth(fullLabel, shortLabel, value, maxWidth)
 	return p
 }
 

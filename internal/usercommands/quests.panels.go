@@ -23,13 +23,13 @@ func buildQuestsPanel(rows []questRow, questsFound, questsTotal int) string {
 		questsFound, questsTotal,
 	)
 
-	layout := templates.NewPanelLayout("open", "single", 1, 1)
-	slot := layout.AddSlot()
-	layout.AddPanelsToSlot(slot, "quests")
-
-	layout.Panel("quests").
-		SetTitle(title).
-		SetMinWidth(74)
+	layout, err := templates.LoadPanelLayout("character/quests")
+	if err != nil {
+		layout = templates.NewPanelLayout("open", "single", 1, 1)
+		layout.AddPanelsToSlot(layout.AddSlot(), "quests")
+		layout.Panel("quests").SetMinWidth(74)
+	}
+	layout.Panel("quests").SetTitle(title)
 
 	panel := layout.Panel("quests")
 

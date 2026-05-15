@@ -47,8 +47,8 @@ func Bump(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 
 	if pickPlayerId > 0 || pickMobInstanceId > 0 {
 
-		if !user.Character.TryCooldown(skills.Brawling.String(`bump`), "1 real minute") {
-			user.SendText(fmt.Sprintf("You need to wait %d rounds before you can do that again!", user.Character.GetCooldown(skills.Brawling.String(`bump`))))
+		if !user.Character.TryCooldown(skills.Skulduggery.String(`bump`), "1 real minute") {
+			user.SendText(fmt.Sprintf("You need to wait %d rounds before you can do that again!", user.Character.GetCooldown(skills.Skulduggery.String(`bump`))))
 			return true, nil
 		}
 

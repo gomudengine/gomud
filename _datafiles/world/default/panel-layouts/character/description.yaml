@@ -1,0 +1,14 @@
+# Panel layout for looking at a character or corpse - description display.
+
+border: open
+charset: single
+gap: 1
+margin: 1
+
+slots:
+  - rows:
+      - panels:
+          - id: desc
+            title: '<ansi fg="black-bold">.:</ansi><ansi fg="20">Description</ansi>'
+            min_width: 74
+            max_width: 74
