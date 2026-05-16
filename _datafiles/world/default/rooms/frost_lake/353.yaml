@@ -13,6 +13,8 @@ maplegend: Shore
 exits:
   east:
     roomid: 352
+  north:
+    roomid: 1072
   west:
     roomid: 354
 idlemessages:

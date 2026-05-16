@@ -1480,6 +1480,32 @@
         white-space: nowrap;
     }
     .re-tag-add-btn:hover { color: var(--color-text); border-color: var(--color-text-dim); }
+    /* Indicator borders matching the map canvas room border colors */
+    .info-section-mobs {
+        border: 1px solid rgb(255, 90, 90);
+        border-radius: 4px;
+        padding: 4px 6px;
+        margin: 2px -6px;
+    }
+    .info-section-tags {
+        border: 1px solid #8dffff;
+        border-radius: 4px;
+        padding: 4px 6px;
+        margin: 2px -6px;
+    }
+    .re-editor-section-mobs {
+        border: 1px solid rgb(255, 90, 90);
+        border-radius: 4px;
+        padding: 8px 10px;
+        margin: -8px -10px;
+    }
+    .re-editor-section-tags {
+        border: 1px solid #8dffff;
+        border-radius: 4px;
+        padding: 8px 10px;
+        margin: -8px -10px;
+    }
+
     /* Clickable tags row in info panel */
     .info-tags-editable {
         cursor: pointer;
@@ -1884,7 +1910,7 @@
                     <input class="room-editor-input" type="text" id="room-editor-maplegend" placeholder="One-word legend label (optional)" autocomplete="off">
                 </div>
             </div>
-            <div class="room-editor-field">
+            <div class="room-editor-field re-editor-section-tags">
                 <label class="room-editor-label">Tags</label>
                 <div class="re-tag-wrap" id="room-editor-tags"></div>
                 <div style="display:flex;gap:6px;align-items:center;margin-top:5px;flex-wrap:wrap">
@@ -1910,7 +1936,7 @@
                     <button class="room-editor-noun-add" id="room-editor-noun-add">+ Add noun</button>
                 </div>
             </div>
-            <div class="room-editor-field">
+            <div class="room-editor-field re-editor-section-mobs">
                 <label class="room-editor-label">Spawn Info</label>
                 <div id="room-editor-spawn-list"></div>
                 <div style="display:flex;gap:6px;margin-top:2px">

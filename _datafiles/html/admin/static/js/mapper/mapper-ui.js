@@ -317,7 +317,7 @@ var MapperUI = (function() {
                     var tipText = mod ? 'module: ' + mod : t;
                     return '<span class="info-badge" title="' + escapeHtml(tipText) + '">' + escapeHtml(t) + '</span>';
                 }).join(' ');
-                html += '<div class="info-row"><span class="info-label">Tags</span><span class="info-value info-badges info-tags-editable" id="info-tags-link" title="Click to edit tags">' + tagBadges + '</span></div>';
+                html += '<div class="info-row info-section-tags"><span class="info-label">Tags</span><span class="info-value info-badges info-tags-editable" id="info-tags-link" title="Click to edit tags">' + tagBadges + '</span></div>';
             } else {
                 html += '<div class="info-row"><span class="info-label">Tags</span><span class="info-value"><button class="info-tags-add" id="info-tags-link">+ add tags</button></span></div>';
             }
@@ -330,7 +330,7 @@ var MapperUI = (function() {
 
             if (mobSpawns.length > 0) {
                 html += '<hr class="info-divider">';
-                html += '<div class="info-row info-row-block"><span class="info-label">Mob Spawns</span>';
+                html += '<div class="info-row info-row-block info-section-mobs"><span class="info-label">Mob Spawns</span>';
                 html += '<table class="info-spawn-table"><tbody>';
                 mobSpawns.forEach(function(entry) {
                     html += '<tr><td class="info-desc-snippet" style="font-style:normal" ' +

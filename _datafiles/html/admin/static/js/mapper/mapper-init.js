@@ -363,6 +363,18 @@
     //  Keyboard shortcuts
     // =====================================================================
 
+    function _isEditingOrModal() {
+        var tag = document.activeElement && document.activeElement.tagName;
+        if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return true;
+        var backdrops = ['zone-picker-backdrop', 'zone-name-backdrop', 'unmapped-backdrop',
+                         'mapper-settings-backdrop', 'room-editor-backdrop', 'exit-draw-backdrop'];
+        for (var i = 0; i < backdrops.length; i++) {
+            var el = document.getElementById(backdrops[i]);
+            if (el && el.classList.contains('visible')) return true;
+        }
+        return false;
+    }
+
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             var settingsBackdrop = document.getElementById('mapper-settings-backdrop');
@@ -376,9 +388,7 @@
             MapperCtxMenu.hide();
         }
         if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-            // Skip if focus is on an input/select so text fields still work
-            var tag = document.activeElement && document.activeElement.tagName;
-            if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+            if (_isEditingOrModal()) return;
             e.preventDefault();
             var cam = MapperState.camera;
             var step = BASE_STEP_2D * cam.spacingScale2d * cam.zoomScale;
@@ -390,7 +400,23 @@
             MapperRender.scheduleRender();
             return;
         }
+        if (e.key === ',' || e.key === '.') {
+            if (_isEditingOrModal()) return;
+            var levels2 = MapperState.data.zLevels;
+            var idx2 = levels2.indexOf(MapperState.camera.activeZ2d);
+            if (e.key === '.' && idx2 < levels2.length - 1) {
+                MapperState.camera.activeZ2d = levels2[idx2 + 1];
+                MapperUI.updateZButtons();
+                MapperRender.render();
+            } else if (e.key === ',' && idx2 > 0) {
+                MapperState.camera.activeZ2d = levels2[idx2 - 1];
+                MapperUI.updateZButtons();
+                MapperRender.render();
+            }
+            return;
+        }
         if (e.key === 'Delete' || e.key === 'Backspace') {
+            if (_isEditingOrModal()) return;
             if (MapperState.selected.size > 0) {
                 var ids = Array.from(MapperState.selected);
                 var proceed = ids.length === 1 || confirm('Delete ' + ids.length + ' selected rooms? All exits to/from them will be removed.');
