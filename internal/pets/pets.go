@@ -17,16 +17,15 @@ import (
 )
 
 type Pet struct {
-	Name           string         `yaml:"name,omitempty"`           // Name of the pet (player provided hopefully)
-	NameStyle      string         `yaml:"namestyle,omitempty"`      // Optional color pattern to apply
-	Type           string         `yaml:"type"`                     // type of pet
-	Food           Food           `yaml:"food,omitempty"`           // how much food the pet has
-	Level          int            `yaml:"level,omitempty"`          // Pet level (1-10)
-	LastMealRound  uint8          `yaml:"lastmealround,omitempty"`  // When the pet was last fed
-	LastLevelCheck string         `yaml:"lastlevelcheck,omitempty"` // "{year}.{day}" of last daily tick
-	Abilities      []PetAbility   `yaml:"abilities,omitempty"`      // Refreshed from definition file on Validate()
-	AttackMessages CombatMessages `yaml:"attackmessages,omitempty"` // Optional custom combat messages
-	Items          []items.Item   `yaml:"items,omitempty"`          // Items held by this pet
+	Name           string       `yaml:"name,omitempty"`           // Name of the pet (player provided hopefully)
+	NameStyle      string       `yaml:"namestyle,omitempty"`      // Optional color pattern to apply
+	Type           string       `yaml:"type"`                     // type of pet
+	Food           Food         `yaml:"food,omitempty"`           // how much food the pet has
+	Level          int          `yaml:"level,omitempty"`          // Pet level (1-10)
+	LastMealRound  uint8        `yaml:"lastmealround,omitempty"`  // When the pet was last fed
+	LastLevelCheck string       `yaml:"lastlevelcheck,omitempty"` // "{year}.{day}" of last daily tick
+	Abilities      []PetAbility `yaml:"abilities,omitempty"`      // Refreshed from definition file on Validate()
+	Items          []items.Item `yaml:"items,omitempty"`          // Items held by this pet
 
 	cachedAbility *PetAbility `yaml:"-"` // cached current ability
 	cachedLevel   int         `yaml:"-"` // level when cache was set
@@ -164,13 +163,17 @@ func (p *Pet) GetDiceRoll() (attacks int, dCount int, dSides int, bonus int, buf
 	return d.Attacks, d.DiceCount, d.SideCount, d.BonusDamage, d.CritBuffIds
 }
 
-// GetCombatMessages returns the effective combat messages for this pet.
-// Any empty slot in the pet's own AttackMessages is filled in from the
-// built-in defaults. targetType is the ANSI fg colour prefix (e.g. "mob" or
-// "user") used when building the default fallback strings.
+// GetCombatMessages returns the effective combat messages for the current
+// ability level. Any empty slot in the ability's AttackMessages is filled in
+// from the built-in defaults. targetType is the ANSI fg colour prefix (e.g.
+// "mob" or "user") used when building the default fallback strings.
 func (p *Pet) GetCombatMessages(targetType string) CombatMessages {
 	defaults := DefaultCombatMessages(targetType)
-	custom := p.AttackMessages
+
+	var custom CombatMessages
+	if ab := p.GetCurrentAbility(); ab != nil {
+		custom = ab.AttackMessages
+	}
 
 	result := CombatMessages{
 		ToOwner:  custom.ToOwner,
@@ -384,7 +387,6 @@ func (p *Pet) Validate() error {
 			p.Abilities = make([]PetAbility, len(def.Abilities))
 			copy(p.Abilities, def.Abilities)
 			p.NameStyle = def.NameStyle
-			p.AttackMessages = def.AttackMessages
 			p.clearAbilityCache()
 		}
 	}
@@ -395,6 +397,7 @@ func (p *Pet) Validate() error {
 		if p.Abilities[i].BuffIds == nil {
 			p.Abilities[i].BuffIds = []int{}
 		}
+
 	}
 
 	return nil

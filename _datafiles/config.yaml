@@ -282,6 +282,11 @@ GamePlay:
   #   Default is in-game time, not real time. To use real time, use the following
   #   format: {num} real {unit} - Example: 1 real day
   ShopRestockRate: 6 hours
+  # - MercHirePricePerLevel -
+  #   Gold cost multiplied by mob level when auto-calculating the hire price of
+  #   a mercenary that has no explicit price set in the shop definition.
+  #   Example: a level 5 mob with the default of 250 costs 1250 gold to hire.
+  MercHirePricePerLevel: 250
   # - ContainerSizeMax -
   #   Maximum number of objects a container can hold before stuff overflows
   ContainerSizeMax: 10

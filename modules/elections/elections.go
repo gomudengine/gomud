@@ -9,6 +9,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/colorpatterns"
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/gametime"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -854,7 +855,7 @@ func (m *ElectionsModule) onShopList(r usercommands.ShopListRequest) usercommand
 				base = item.GetSpec().Value
 			} else if si.MobId > 0 {
 				if mobSpec := mobs.GetMobSpec(mobs.MobId(si.MobId)); mobSpec != nil {
-					base = 250 * mobSpec.Character.Level
+					base = int(configs.GetGamePlayConfig().MercHirePricePerLevel) * mobSpec.Character.Level
 				}
 			} else if si.BuffId > 0 {
 				base = 1000

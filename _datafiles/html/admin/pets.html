@@ -92,10 +92,13 @@
     .level-conflict-hint { font-size: 0.75rem; color: var(--color-error-text); margin-top: 0.2rem; display: none; }
     .ability-card.level-conflict .level-conflict-hint { display: block; }
 
-    /* attack messages collapsible */
-    #attackMsgDetails > summary { outline: none; }
-    #attackMsgDetails > summary span::before { content: '\25B6\00A0'; }
-    #attackMsgDetails[open] > summary span::before { content: '\25BC\00A0'; }
+    /* attack messages collapsible (per ability) */
+    .ab-attack-msgs { margin-top: 0.5rem; }
+    .ab-attack-msgs > summary { outline: none; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-subtle); cursor: pointer; padding: 0.4rem 0; border-bottom: 1px solid var(--color-border-light); list-style: none; display: flex; align-items: center; justify-content: space-between; user-select: none; }
+    .ab-attack-msgs > summary::-webkit-details-marker { display: none; }
+    .ab-attack-msgs > summary span::before { content: '\25B6\00A0'; }
+    .ab-attack-msgs[open] > summary span::before { content: '\25BC\00A0'; }
+    .ab-attack-msgs .form-grid { margin-top: 0.5rem; }
 
     /* help modal */
     .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000; align-items: center; justify-content: center; }
@@ -156,40 +159,6 @@
                     <div class="field-hint">Leave blank to use default. Prefix with <code>:</code> for a color pattern.</div>
                 </div>
 
-                <div class="section-title span2" style="margin-bottom:0"><!-- spacer --></div>
-
-                <details id="attackMsgDetails" class="span2" style="grid-column:1/-1;margin-bottom:0.25rem">
-                    <summary style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:0.55rem 0;border-bottom:1px solid var(--color-border-light);font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--color-text-subtle);list-style:none;user-select:none">
-                        <span>Attack Messages</span>
-                        <button type="button" class="btn-help" onclick="event.preventDefault();openAttackMsgModal()">? Help</button>
-                    </summary>
-                    <div class="form-grid" style="margin-top:0.75rem">
-                        <div class="field span2">
-                            <div class="field-hint" style="margin-bottom:0.5rem">Optional custom combat messages. Leave empty to use built-in defaults. Use <code>{petname}</code>, <code>{damage}</code>, and <code>{targetname}</code> as tokens. These messages only apply when the pet has a damage dice roll defined in one of its abilities.</div>
-                        </div>
-                        <div class="field span2">
-                            <label>To Owner (hit)</label>
-                            <input type="text" id="fMsgToOwner" placeholder="e.g. {petname} leaps at {targetname} and bites for {damage} damage!" />
-                            <div class="field-hint">Sent to the pet owner when the attack lands.</div>
-                        </div>
-                        <div class="field span2">
-                            <label>To Target (hit)</label>
-                            <input type="text" id="fMsgToTarget" placeholder="e.g. {petname} sinks its teeth into you for {damage} damage!" />
-                            <div class="field-hint">Sent to the player being attacked (player targets only).</div>
-                        </div>
-                        <div class="field span2">
-                            <label>To Room (hit)</label>
-                            <input type="text" id="fMsgToRoom" placeholder="e.g. {petname} savages {targetname} for {damage} damage!" />
-                            <div class="field-hint">Sent to observers in the room when the attack lands.</div>
-                        </div>
-                        <div class="field span2">
-                            <label>Miss</label>
-                            <input type="text" id="fMsgMiss" placeholder="e.g. {petname} snaps at {targetname} but finds only air." />
-                            <div class="field-hint">Sent to the pet owner when the attack misses.</div>
-                        </div>
-                    </div>
-                </details>
-
                 <div class="section-title">Abilities <button type="button" class="btn-add-sm" style="float:right;margin-top:-0.1rem" onclick="addAbility()">+ Add Ability</button></div>
 
                 <div class="field span2">
@@ -224,7 +193,7 @@
         <p><strong>To Target</strong> &mdash; sent to the player being attacked (only when the target is a player).</p>
         <p><strong>To Room</strong> &mdash; sent to everyone else in the room observing the attack.</p>
         <p><strong>Miss</strong> &mdash; sent to the owner when the pet&rsquo;s attack misses. <code>{damage}</code> is <code>0</code> in miss messages.</p>
-        <p>Leave any field empty to use the built-in default message for that slot.</p>
+        <p>Leave any field empty to use the built-in default message for that slot. Messages are only shown when the ability has a damage dice roll defined.</p>
         <p><strong>Examples</strong></p>
         <div class="modal-example">{petname} leaps at {targetname} and bites for {damage} damage!</div>
         <div class="modal-example">{petname} snaps at {targetname} but finds only air.</div>
@@ -318,15 +287,6 @@
         document.getElementById('fName').value      = p.name || p.Name || '';
         document.getElementById('fNameStyle').value = p.namestyle || p.NameStyle || '';
 
-        // Attack messages
-        const am = p.attackmessages || p.AttackMessages || {};
-        document.getElementById('fMsgToOwner').value  = am.toowner  || am.ToOwner  || '';
-        document.getElementById('fMsgToTarget').value = am.totarget || am.ToTarget || '';
-        document.getElementById('fMsgToRoom').value   = am.toroom   || am.ToRoom   || '';
-        document.getElementById('fMsgMiss').value     = am.miss     || am.Miss     || '';
-        const hasAnyMsg = !!(am.toowner || am.ToOwner || am.totarget || am.ToTarget || am.toroom || am.ToRoom || am.miss || am.Miss);
-        document.getElementById('attackMsgDetails').open = hasAnyMsg;
-
         // Abilities
         document.getElementById('abilitiesList').innerHTML = '';
         const abilities = p.abilities || p.Abilities || [];
@@ -360,6 +320,10 @@
         const dmg = ab.damage || ab.Damage || {};
         const sm = ab.statmods || ab.StatMods || {};
         const buffIds = ab.buffids || ab.BuffIds || [];
+        const am = ab.attackmessages || ab.AttackMessages || {};
+        const diceRollVal = buildDiceRollStr(dmg);
+        const combatChanceVal = ab.combatchance != null ? ab.combatchance : (ab.CombatChance != null ? ab.CombatChance : 0);
+        const hasAnyMsg = !!(am.toowner || am.ToOwner || am.totarget || am.ToTarget || am.toroom || am.ToRoom || am.miss || am.Miss);
 
         card.innerHTML = `
             <div class="ability-card-header">
@@ -371,7 +335,7 @@
                     <label>Level Granted</label>
                     <input type="number" class="ab-level" min="1" max="10" value="${ab.levelgranted || ab.LevelGranted || 1}" oninput="checkLevelConflicts()" />
                     <div class="field-hint">Pet level at which this ability unlocks (1-10).</div>
-                    <div class="level-conflict-hint">Duplicate level — each ability must have a unique level.</div>
+                    <div class="level-conflict-hint">Duplicate level &mdash; each ability must have a unique level.</div>
                 </div>
                 <div class="field">
                     <label>Carry Capacity</label>
@@ -380,15 +344,48 @@
                 <div class="field">
                     <label>Combat Chance</label>
                     <div class="slider-wrap">
-                        <input type="range" class="ab-combatchance" min="0" max="100" value="${ab.combatchance != null ? ab.combatchance : (ab.CombatChance != null ? ab.CombatChance : 0)}" oninput="this.nextElementSibling.textContent=this.value+'%'" />
-                        <span class="slider-val">${ab.combatchance != null ? ab.combatchance : (ab.CombatChance != null ? ab.CombatChance : 0)}%</span>
+                        <input type="range" class="ab-combatchance" min="0" max="100" value="${combatChanceVal}" oninput="onCombatChanceInput(this)" />
+                        <span class="slider-val">${combatChanceVal}%</span>
                     </div>
-                    <div class="field-hint">Percent chance (0-100) the pet joins each combat round.</div>
+                    <div class="field-hint">Percent chance (0-100) the pet joins each combat round. Damage and attack messages are shown when this is 1% or higher.</div>
                 </div>
-                <div class="field span2">
+                <div class="field span2 ab-combat-wrap" style="display:${combatChanceVal >= 1 ? '' : 'none'}">
                     <label>Damage Dice Roll</label>
-                    <input type="text" class="ab-diceroll" value="${escAttr(buildDiceRollStr(dmg))}" placeholder="e.g. 1d6+2" />
+                    <input type="text" class="ab-diceroll" value="${escAttr(diceRollVal)}" placeholder="e.g. 1d6+2" oninput="onDiceRollInput(this)" />
                     <div class="field-hint">Format: [attacks@]NdS[+bonus][#critBuffId,...]</div>
+                </div>
+                <div class="field span2 ab-attack-msgs-wrap" style="display:${combatChanceVal >= 1 && diceRollVal ? '' : 'none'}">
+                    <details class="ab-attack-msgs" ${hasAnyMsg ? 'open' : ''}>
+                        <summary>
+                            <span>Attack Messages</span>
+                            <button type="button" class="btn-help" onclick="event.preventDefault();openAttackMsgModal()">? Help</button>
+                        </summary>
+                        <div class="form-grid" style="margin-top:0.5rem">
+                            <div class="field span2">
+                                <div class="field-hint" style="margin-bottom:0.4rem">Optional custom messages for this ability level. Leave empty to use built-in defaults. Tokens: <code>{petname}</code>, <code>{damage}</code>, <code>{targetname}</code>.</div>
+                            </div>
+                            <div class="field span2">
+                                <label>To Owner (hit)</label>
+                                <input type="text" class="ab-msg-toowner" value="${escAttr(am.toowner || am.ToOwner || '')}" placeholder="e.g. {petname} leaps at {targetname} and bites for {damage} damage!" />
+                                <div class="field-hint">Sent to the pet owner when the attack lands.</div>
+                            </div>
+                            <div class="field span2">
+                                <label>To Target (hit)</label>
+                                <input type="text" class="ab-msg-totarget" value="${escAttr(am.totarget || am.ToTarget || '')}" placeholder="e.g. {petname} sinks its teeth into you for {damage} damage!" />
+                                <div class="field-hint">Sent to the player being attacked (player targets only).</div>
+                            </div>
+                            <div class="field span2">
+                                <label>To Room (hit)</label>
+                                <input type="text" class="ab-msg-toroom" value="${escAttr(am.toroom || am.ToRoom || '')}" placeholder="e.g. {petname} savages {targetname} for {damage} damage!" />
+                                <div class="field-hint">Sent to observers in the room when the attack lands.</div>
+                            </div>
+                            <div class="field span2">
+                                <label>Miss</label>
+                                <input type="text" class="ab-msg-miss" value="${escAttr(am.miss || am.Miss || '')}" placeholder="e.g. {petname} snaps at {targetname} but finds only air." />
+                                <div class="field-hint">Sent to the pet owner when the attack misses.</div>
+                            </div>
+                        </div>
+                    </details>
                 </div>
                 <div class="field span2">
                     <label>Stat Modifiers</label>
@@ -423,6 +420,25 @@
     window.addAbility = function () {
         appendAbilityCard({});
         checkLevelConflicts();
+    };
+
+    // Called when the dice roll input changes: show/hide attack messages section.
+    window.onDiceRollInput = function (input) {
+        const card = input.closest('.ability-card');
+        const hasDice = input.value.trim() !== '';
+        card.querySelector('.ab-attack-msgs-wrap').style.display = hasDice ? '' : 'none';
+    };
+
+    // Called when the combat chance slider changes: show/hide dice roll and
+    // attack messages sections.
+    window.onCombatChanceInput = function (slider) {
+        const card = slider.closest('.ability-card');
+        const val = parseInt(slider.value, 10);
+        slider.nextElementSibling.textContent = val + '%';
+        const combatActive = val >= 1;
+        card.querySelector('.ab-combat-wrap').style.display = combatActive ? '' : 'none';
+        const hasDice = card.querySelector('.ab-diceroll').value.trim() !== '';
+        card.querySelector('.ab-attack-msgs-wrap').style.display = (combatActive && hasDice) ? '' : 'none';
     };
 
     window.checkLevelConflicts = function () {
@@ -536,13 +552,31 @@
             const mods     = collectStatMods(card.querySelector('.ab-statmods'));
             const buffIds  = collectBuffIds(card.querySelector('.ab-buffids'));
 
+            let attackMessages;
+            if (diceRoll) {
+                const toowner  = card.querySelector('.ab-msg-toowner').value.trim();
+                const totarget = card.querySelector('.ab-msg-totarget').value.trim();
+                const toroom   = card.querySelector('.ab-msg-toroom').value.trim();
+                const miss     = card.querySelector('.ab-msg-miss').value.trim();
+                if (toowner || totarget || toroom || miss) {
+                    attackMessages = {};
+                    if (toowner)  attackMessages.toowner  = toowner;
+                    if (totarget) attackMessages.totarget = totarget;
+                    if (toroom)   attackMessages.toroom   = toroom;
+                    if (miss)     attackMessages.miss     = miss;
+                }
+            }
+
+            const combatChance = parseInt(card.querySelector('.ab-combatchance').value, 10) || 0;
+
             abilities.push({
-                levelgranted: parseInt(card.querySelector('.ab-level').value, 10) || 1,
-                combatchance: parseInt(card.querySelector('.ab-combatchance').value, 10) || 0,
-                damage:       diceRoll ? { diceroll: diceRoll } : undefined,
-                statmods:     Object.keys(mods).length ? mods : undefined,
-                buffids:      buffIds.length ? buffIds : undefined,
-                capacity:     parseInt(card.querySelector('.ab-capacity').value, 10) || 0,
+                levelgranted:   parseInt(card.querySelector('.ab-level').value, 10) || 1,
+                combatchance:   combatChance,
+                damage:         diceRoll ? { diceroll: diceRoll } : undefined,
+                attackmessages: attackMessages,
+                statmods:       Object.keys(mods).length ? mods : undefined,
+                buffids:        buffIds.length ? buffIds : undefined,
+                capacity:       parseInt(card.querySelector('.ab-capacity').value, 10) || 0,
             });
         });
 
@@ -550,19 +584,6 @@
             type:      document.getElementById('fType').value.trim().toLowerCase(),
             name:      document.getElementById('fName').value.trim(),
             namestyle: document.getElementById('fNameStyle').value.trim(),
-            attackmessages: (function() {
-                const toowner  = document.getElementById('fMsgToOwner').value.trim();
-                const totarget = document.getElementById('fMsgToTarget').value.trim();
-                const toroom   = document.getElementById('fMsgToRoom').value.trim();
-                const miss     = document.getElementById('fMsgMiss').value.trim();
-                if (!toowner && !totarget && !toroom && !miss) return undefined;
-                const m = {};
-                if (toowner)  m.toowner  = toowner;
-                if (totarget) m.totarget = totarget;
-                if (toroom)   m.toroom   = toroom;
-                if (miss)     m.miss     = miss;
-                return m;
-            })(),
             abilities: abilities.length ? abilities : undefined,
         };
     }

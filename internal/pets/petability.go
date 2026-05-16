@@ -6,10 +6,11 @@ import (
 )
 
 type PetAbility struct {
-	LevelGranted int               `yaml:"levelgranted,omitempty"`
-	CombatChance int               `yaml:"combatchance,omitempty"` // odds (out of 100) that it will join in this round of combat
-	Damage       items.Damage      `yaml:"damage,omitempty"`
-	StatMods     statmods.StatMods `yaml:"statmods,omitempty"`
-	BuffIds      []int             `yaml:"buffids,omitempty"`
-	Capacity     int               `yaml:"capacity,omitempty"`
+	LevelGranted   int               `yaml:"levelgranted,omitempty"`
+	CombatChance   int               `yaml:"combatchance,omitempty"` // odds (out of 100) that it will join in this round of combat
+	Damage         items.Damage      `yaml:"damage,omitempty"`
+	AttackMessages CombatMessages    `yaml:"attackmessages,omitempty"` // Optional custom combat messages for this ability level
+	StatMods       statmods.StatMods `yaml:"statmods,omitempty"`
+	BuffIds        []int             `yaml:"buffids,omitempty"`
+	Capacity       int               `yaml:"capacity,omitempty"`
 }

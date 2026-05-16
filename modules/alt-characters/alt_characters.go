@@ -598,7 +598,7 @@ func (m *AltCharactersModule) characterCommand(rest string, user *users.UserReco
 			char.Validate()
 
 			gearValue := char.GetGearValue()
-			charValue := gearValue + (250 * char.Level)
+			charValue := gearValue + (int(configs.GetGamePlayConfig().MercHirePricePerLevel) * char.Level)
 
 			mudlog.Debug(`Hire Alt`, `UserId`, user.UserId, `alt-name`, char.Name, `gear-value`, gearValue, `level`, char.Level, `total`, charValue)
 

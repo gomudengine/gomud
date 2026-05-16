@@ -103,8 +103,7 @@
                     <tr><td>type <span class="required">required</span></td><td>string</td><td>Unique pet type identifier (e.g. <code>wolf</code>). Lowercased on save.</td></tr>
                     <tr><td>name</td><td>string</td><td>Display name shown when the player has not named their pet.</td></tr>
                     <tr><td>namestyle</td><td>string</td><td>Optional color pattern applied to the pet name (e.g. <code>:rainbow</code>).</td></tr>
-                    <tr><td>abilities</td><td>object[]</td><td>Array of ability definitions. Each ability has <code>levelgranted</code>, <code>combatchance</code>, <code>damage</code>, <code>statmods</code>, <code>buffids</code>, and <code>capacity</code>.</td></tr>
-                    <tr><td>attackmessages</td><td>object</td><td>Optional custom combat messages. Fields: <code>toowner</code>, <code>totarget</code>, <code>toroom</code>, <code>miss</code> (all strings). Supports tokens <code>{petname}</code>, <code>{damage}</code>, <code>{targetname}</code>. Omit or leave fields empty to use built-in defaults.</td></tr>
+                    <tr><td>abilities</td><td>object[]</td><td>Array of ability definitions. Each ability has <code>levelgranted</code>, <code>combatchance</code>, <code>damage</code>, <code>attackmessages</code>, <code>statmods</code>, <code>buffids</code>, and <code>capacity</code>. <code>attackmessages</code> is only meaningful when <code>damage</code> is set; fields: <code>toowner</code>, <code>totarget</code>, <code>toroom</code>, <code>miss</code>. When <code>damage</code> is set, <code>combatchance</code> is enforced to be at least 1.</td></tr>
                 </tbody>
             </table>
 

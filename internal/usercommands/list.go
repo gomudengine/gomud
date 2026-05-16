@@ -8,6 +8,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/colorpatterns"
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -223,7 +224,7 @@ func List(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 
 				price := stockMerc.Price
 				if price == 0 {
-					price = 250 * mobInfo.Character.Level
+					price = int(configs.GetGamePlayConfig().MercHirePricePerLevel) * mobInfo.Character.Level
 				} else if price < 0 {
 					price = 0
 				}
@@ -597,7 +598,7 @@ func List(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 
 				price := stockMerc.Price
 				if price == 0 {
-					price = 250 * mobInfo.Character.Level
+					price = int(configs.GetGamePlayConfig().MercHirePricePerLevel) * mobInfo.Character.Level
 				} else if price < 0 {
 					price = 0
 				}

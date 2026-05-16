@@ -17,10 +17,11 @@ type GamePlay struct {
 	LivesOnLevelUp ConfigInt `yaml:"LivesOnLevelUp"` // # lives gained on level up
 	PricePerLife   ConfigInt `yaml:"PricePerLife"`   // Price in gold to buy new lives
 	// Shops/Containers
-	ShopRestockRate   ConfigString `yaml:"ShopRestockRate"`   // Default time it takes to restock 1 quantity in shops
-	ContainerSizeMax  ConfigInt    `yaml:"ContainerSizeMax"`  // How many objects containers can hold before overflowing
-	FloorItemCountMax ConfigInt    `yaml:"FloorItemCountMax"` // Maximum items allowed on the floor at once (0 = no limit)
-	Combat            CombatConfig `yaml:"Combat"`
+	ShopRestockRate       ConfigString `yaml:"ShopRestockRate"`       // Default time it takes to restock 1 quantity in shops
+	MercHirePricePerLevel ConfigInt    `yaml:"MercHirePricePerLevel"` // Gold cost per mob level when auto-calculating mercenary hire price
+	ContainerSizeMax      ConfigInt    `yaml:"ContainerSizeMax"`      // How many objects containers can hold before overflowing
+	FloorItemCountMax     ConfigInt    `yaml:"FloorItemCountMax"`     // Maximum items allowed on the floor at once (0 = no limit)
+	Combat                CombatConfig `yaml:"Combat"`
 
 	// PVP Restrictions
 	PVP GameplayPVP `yaml:"PVP"`
@@ -130,6 +131,10 @@ func (g *GamePlay) Validate() {
 
 	if g.ShopRestockRate == `` {
 		g.ShopRestockRate = `6 hours`
+	}
+
+	if g.MercHirePricePerLevel < 1 {
+		g.MercHirePricePerLevel = 250
 	}
 
 	if g.ContainerSizeMax < 1 {
