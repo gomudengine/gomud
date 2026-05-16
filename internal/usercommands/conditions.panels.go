@@ -37,7 +37,7 @@ func buildConditionsPanel(user *users.UserRecord) string {
 
 	for _, buff := range charBuffs {
 		spec := buffs.GetBuffSpec(buff.BuffId)
-		_, roundsLeft := buffs.GetDurations(buff, spec)
+		roundsLeft, _ := buffs.GetDurations(buff, spec)
 		name, description := spec.VisibleNameDesc()
 		rows = append(rows, condRow{
 			name:        name,

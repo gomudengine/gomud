@@ -108,6 +108,11 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 						before := fmt.Sprintf(`<ansi fg="%s">%s</ansi>`, alignmentBefore, alignmentBefore)
 						after := fmt.Sprintf(`<ansi fg="%s">%s</ansi>`, alignmentAfter, alignmentAfter)
 						user.SendText(fmt.Sprintf(`<ansi fg="231">Your alignment has shifted from %s to %s!</ansi>`, before, after))
+						events.AddToQueue(events.AlignmentChanged{
+							UserId:       uId,
+							AlignmentOld: alignmentBefore,
+							AlignmentNew: alignmentAfter,
+						})
 					}
 				}
 

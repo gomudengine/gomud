@@ -35,6 +35,22 @@ type BuffsTriggered struct {
 
 func (b BuffsTriggered) Type() string { return `BuffsTriggered` }
 
+type BuffsAdded struct {
+	UserId        int
+	MobInstanceId int
+	BuffIds       []int
+}
+
+func (b BuffsAdded) Type() string { return `BuffsAdded` }
+
+type BuffsRemoved struct {
+	UserId        int
+	MobInstanceId int
+	BuffIds       []int
+}
+
+func (b BuffsRemoved) Type() string { return `BuffsRemoved` }
+
 // Used for giving/taking quest progress
 type Quest struct {
 	UserId     int
@@ -422,6 +438,15 @@ type CLIRequest struct {
 }
 
 func (c CLIRequest) Type() string { return `CLIRequest` }
+
+// Fired when a player's alignment name changes (e.g. from decay or combat)
+type AlignmentChanged struct {
+	UserId       int
+	AlignmentOld string
+	AlignmentNew string
+}
+
+func (a AlignmentChanged) Type() string { return `AlignmentChanged` }
 
 // Fired when a player successfully purchases something from a shop.
 type Purchase struct {

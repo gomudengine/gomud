@@ -18,49 +18,81 @@ func TestGetDurations(t *testing.T) {
 		wantTotal  int
 	}{
 		{
-			name: "Normal case",
+			// Fresh buff, RoundCounter=0: all triggers remain, next trigger in RoundInterval rounds
+			name: "Normal case, fresh buff",
 			args: args{
-				buff: &Buff{TriggersLeft: 5},
-				spec: &BuffSpec{RoundInterval: 3},
+				buff: &Buff{TriggersLeft: 5, TriggersInitial: 5, RoundCounter: 0},
+				spec: &BuffSpec{TriggerCount: 5, RoundInterval: 3},
 			},
-			wantRounds: 15,
+			wantRounds: 15, // (5-1)*3 + (3-0) = 12 + 3 = 15
+			wantTotal:  15,
+		},
+		{
+			// Mid-interval: RoundCounter=2, RoundInterval=3 -> 1 round until next trigger
+			name: "Mid-interval",
+			args: args{
+				buff: &Buff{TriggersLeft: 5, TriggersInitial: 5, RoundCounter: 2},
+				spec: &BuffSpec{TriggerCount: 5, RoundInterval: 3},
+			},
+			wantRounds: 13, // (5-1)*3 + (3-2) = 12 + 1 = 13
+			wantTotal:  15,
+		},
+		{
+			// Just triggered: RoundCounter is a multiple of RoundInterval
+			name: "Just triggered",
+			args: args{
+				buff: &Buff{TriggersLeft: 4, TriggersInitial: 5, RoundCounter: 3},
+				spec: &BuffSpec{TriggerCount: 5, RoundInterval: 3},
+			},
+			wantRounds: 12, // (4-1)*3 + (3-0) = 9 + 3 = 12
 			wantTotal:  15,
 		},
 		{
 			name: "One trigger left",
 			args: args{
-				buff: &Buff{TriggersLeft: 1},
-				spec: &BuffSpec{RoundInterval: 2},
+				buff: &Buff{TriggersLeft: 1, TriggersInitial: 4, RoundCounter: 0},
+				spec: &BuffSpec{TriggerCount: 4, RoundInterval: 2},
 			},
-			wantRounds: 2,
-			wantTotal:  2,
+			wantRounds: 2, // (1-1)*2 + (2-0) = 0 + 2 = 2
+			wantTotal:  8,
 		},
 		{
 			name: "Zero triggers left",
 			args: args{
-				buff: &Buff{TriggersLeft: 0},
-				spec: &BuffSpec{RoundInterval: 5},
+				buff: &Buff{TriggersLeft: 0, TriggersInitial: 5, RoundCounter: 0},
+				spec: &BuffSpec{TriggerCount: 5, RoundInterval: 5},
 			},
 			wantRounds: 0,
-			wantTotal:  0,
+			wantTotal:  25,
 		},
 		{
 			name: "Zero round interval",
 			args: args{
-				buff: &Buff{TriggersLeft: 4},
-				spec: &BuffSpec{RoundInterval: 0},
+				buff: &Buff{TriggersLeft: 4, TriggersInitial: 4, RoundCounter: 0},
+				spec: &BuffSpec{TriggerCount: 4, RoundInterval: 0},
 			},
 			wantRounds: 0,
 			wantTotal:  0,
 		},
 		{
+			// TriggersLeft overridden beyond TriggerCount: totalRounds uses TriggersInitial
 			name: "Overridden trigger count",
 			args: args{
-				buff: &Buff{TriggersLeft: 80},
+				buff: &Buff{TriggersLeft: 80, TriggersInitial: 80, RoundCounter: 0},
 				spec: &BuffSpec{TriggerCount: 20, RoundInterval: 1},
 			},
-			wantRounds: 80,
-			wantTotal:  80,
+			wantRounds: 80, // (80-1)*1 + (1-0) = 79 + 1 = 80
+			wantTotal:  80, // uses TriggersInitial=80, not spec.TriggerCount=20
+		},
+		{
+			// Old save with no TriggersInitial: falls back to spec.TriggerCount
+			name: "Legacy buff, no TriggersInitial",
+			args: args{
+				buff: &Buff{TriggersLeft: 3, TriggersInitial: 0, RoundCounter: 0},
+				spec: &BuffSpec{TriggerCount: 5, RoundInterval: 2},
+			},
+			wantRounds: 6, // (3-1)*2 + (2-0) = 4 + 2 = 6
+			wantTotal:  10, // falls back to spec.TriggerCount=5 * 2
 		},
 	}
 	for _, tt := range tests {

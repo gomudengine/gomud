@@ -132,14 +132,51 @@
         /* ---- Stats grid (inside Overview) ---- */
         #cw-stats-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-columns: repeat(3, 1fr);
             gap: 3px 6px;
             padding: 4px 0 2px;
             border-top: 1px solid var(--t-border);
             border-bottom: 1px solid var(--t-border);
         }
 
-        /* ---- Points row (below stats grid) ---- */
+        .cw-stat-cell {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: baseline;
+            gap: 3px;
+            cursor: help;
+        }
+
+        .cw-stat-cell:hover .cw-stat-abbr,
+        .cw-stat-cell:hover .cw-stat-num {
+            color: var(--t-accent);
+        }
+
+        .cw-stat-abbr {
+            font-size: 0.64em;
+            color: var(--t-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .cw-stat-num {
+            font-size: 0.78em;
+            color: var(--t-text);
+            font-weight: bold;
+            text-align: right;
+        }
+
+        .cw-stat-mod {
+            font-size: 0.68em;
+            color: var(--t-text-secondary);
+            font-weight: normal;
+            cursor: help;
+            visibility: hidden;
+        }
+
+        .cw-stat-mod.visible {
+            visibility: visible;
+        }
         #cw-points-row {
             display: flex;
             gap: 6px;
@@ -187,55 +224,58 @@
             color: var(--t-accent);
         }
 
-        .cw-stat-cell {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            gap: 3px;
-            cursor: help;
-        }
-
-        .cw-stat-cell:hover .cw-stat-abbr,
-        .cw-stat-cell:hover .cw-stat-num {
-            color: var(--t-accent);
-        }
-
-        .cw-stat-abbr {
-            font-size: 0.64em;
-            color: var(--t-text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            flex-shrink: 0;
-        }
-
-        .cw-stat-num {
-            font-size: 0.78em;
-            color: var(--t-text);
-            font-weight: bold;
-        }
-
-        .cw-stat-mod {
-            font-size: 0.68em;
-            color: var(--t-text-secondary);
-            font-weight: normal;
-            cursor: help;
-        }
-
         #cw-stat-tooltip {
             position: fixed;
             z-index: 99999;
             pointer-events: none;
             background: var(--t-bg-surface);
-            border: 1px solid var(--t-accent-dim);
+            border: 1px solid var(--t-border-accent);
             border-radius: 6px;
             box-shadow: 0 4px 16px rgba(0,0,0,0.7);
-            padding: 6px 9px;
+            padding: 8px 10px;
+            min-width: 140px;
+            max-width: 240px;
             font-size: 0.75em;
             color: var(--t-text-secondary);
-            font-style: italic;
-            max-width: 200px;
             display: none;
         }
+
+        .cw-tt-name {
+            font-size: 0.85em;
+            font-weight: bold;
+            color: var(--t-text);
+            margin-bottom: 4px;
+            line-height: 1.3;
+        }
+
+        .cw-tt-divider {
+            border: none;
+            border-top: 1px solid var(--t-border-accent);
+            margin: 5px 0;
+        }
+
+        .cw-tt-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 8px;
+            line-height: 1.6;
+        }
+
+        .cw-tt-row-label {
+            color: var(--t-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            font-size: 0.88em;
+            flex-shrink: 0;
+        }
+
+        .cw-tt-row-value {
+            color: var(--t-text);
+            text-align: right;
+        }
+
+        .cw-affect-item { cursor: default; }
 
         /* ---- Quests tab ---- */
         #cw-quests {
@@ -612,11 +652,16 @@
         document.body.appendChild(statTooltip);
     }
 
-    function showStatTooltip(el, text) {
+    function showStatTooltip(el, html) {
         ensureStatTooltip();
         clearTimeout(statHideTimer);
-        statTooltip.textContent = text;
+        statTooltip.innerHTML = html;
         statTooltip.style.display = 'block';
+        _positionStatTooltip(el);
+    }
+
+    function _positionStatTooltip(el) {
+        if (!statTooltip) { return; }
         const rect = el.getBoundingClientRect();
         const ttW  = statTooltip.offsetWidth;
         const ttH  = statTooltip.offsetHeight;
@@ -627,7 +672,6 @@
         left = Math.max(8, left);
         let top = rect.top;
         if (top + ttH > vh - 8) { top = vh - ttH - 8; }
-        statTooltip.style.left = Math.max(8, top) + 'px';
         statTooltip.style.left = left + 'px';
         statTooltip.style.top  = Math.max(8, top) + 'px';
     }
@@ -673,7 +717,7 @@
             '<div class="cw-stat-cell">' +
                 '<span class="cw-stat-abbr">' + d.abbr + '</span>' +
                 '<span class="cw-stat-num" id="cw-stat-' + d.key + '">\u2014</span>' +
-                '<span class="cw-stat-mod" id="cw-stat-mod-' + d.key + '" style="display:none"></span>' +
+                '<span class="cw-stat-mod" id="cw-stat-mod-' + d.key + '"></span>' +
             '</div>'
         ).join('');
         const pointsRow =
@@ -836,10 +880,11 @@
             const modEl = document.getElementById('cw-stat-mod-' + def.key);
             if (modEl) {
                 if (mod) {
-                    modEl.textContent   = '(' + mod + ')';
-                    modEl.style.display = '';
+                    modEl.textContent = '(' + mod + ')';
+                    modEl.classList.add('visible');
                 } else {
-                    modEl.style.display = 'none';
+                    modEl.textContent = '';
+                    modEl.classList.remove('visible');
                 }
             }
         });
@@ -1030,8 +1075,38 @@
 
             let durPct = 100;
             if (!perma && aff.duration_max > 0) {
-                durPct = Math.max(0, Math.min(100, Math.round((aff.duration_cur / aff.duration_max) * 100)));
+                durPct = Math.max(0, Math.min(100, Math.round((aff.duration_left / aff.duration_max) * 100)));
             }
+
+            let timeLabel;
+            if (perma) {
+                timeLabel = 'Unlimited';
+            } else {
+                const secs = aff.duration_left;
+                if (secs <= 0) {
+                    timeLabel = 'Expiring';
+                } else if (secs < 60) {
+                    timeLabel = secs + 's remaining';
+                } else if (secs < 3600) {
+                    timeLabel = Math.ceil(secs / 60) + 'm remaining';
+                } else {
+                    timeLabel = Math.ceil(secs / 3600) + 'h remaining';
+                }
+            }
+
+            const tooltipHtml = (() => {
+                let h = '<div class="cw-tt-name">' + (aff.name || key) + '</div>';
+                if (aff.description) {
+                    h += '<hr class="cw-tt-divider">' +
+                         '<div>' + aff.description + '</div>';
+                }
+                h += '<hr class="cw-tt-divider">' +
+                     '<div class="cw-tt-row">' +
+                         '<span class="cw-tt-row-label">Time left</span>' +
+                         '<span class="cw-tt-row-value">' + timeLabel + '</span>' +
+                     '</div>';
+                return h;
+            })();
 
             const item = document.createElement('div');
             item.className = 'cw-affect-item' + (debuff ? ' debuff' : '');
@@ -1044,6 +1119,10 @@
                 '<div class="cw-affect-dur-track">' +
                     '<div class="cw-affect-dur-fill' + (perma ? ' permanent' : '') + '" style="width:' + durPct + '%"></div>' +
                 '</div>';
+
+            item.addEventListener('mouseenter', () => showStatTooltip(item, tooltipHtml));
+            item.addEventListener('mouseleave', hideStatTooltip);
+            item.addEventListener('mousemove', () => { if (statTooltip && statTooltip.style.display === 'block') { _positionStatTooltip(item); } });
 
             panel.appendChild(item);
         });

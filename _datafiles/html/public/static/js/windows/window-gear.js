@@ -118,9 +118,12 @@
             text-overflow: ellipsis;
         }
 
-        .gw-equip-name.empty  { color: var(--t-text-dim); font-style: italic; }
-        .gw-equip-row.empty  { cursor: default; }
+        .gw-equip-name.empty     { color: var(--t-text-dim); font-style: italic; }
+        .gw-equip-row.empty       { cursor: default; }
         .gw-equip-row.empty:hover { background: transparent; }
+        .gw-equip-name.disabled   { color: #ff0000; font-style: italic; opacity: 1.0; font-weight: bold; }
+        .gw-equip-row.disabled    { cursor: default; opacity: 0.45; }
+        .gw-equip-row.disabled:hover { background: transparent; }
         .gw-equip-name.cursed { color: var(--t-cursed-text); }
         .gw-equip-name.quest  { color: var(--t-quest-text); }
 
@@ -371,6 +374,13 @@
         ensureTooltip();
         clearTimeout(hideTimer);
 
+        if (item._disabledHint) {
+            tooltip.innerHTML = '<div class="gw-tt-hint">This slot is unavailable to you.</div>';
+            tooltip.style.display = 'block';
+            positionTooltip(rowEl);
+            return;
+        }
+
         const details     = (item.details && item.details.length > 0) ? item.details.join(', ') : null;
         const detailClass = item.details && item.details.includes('cursed') ? 'cursed'
                           : item.details && item.details.includes('quest')  ? 'quest' : '';
@@ -442,7 +452,7 @@
     // Context menu helpers
     // -----------------------------------------------------------------------
     function _equipMenuItems(item) {
-        if (!item || !item.name) { return null; }
+        if (!item || !item.name || item._disabledHint) { return null; }
         return [
             { label: 'look '   + item.name, cmd: 'look '   + item.name },
             { label: 'remove ' + item.name, cmd: 'remove ' + item.name },
@@ -576,15 +586,27 @@
             if (!rowEl || !nameEl || !badgeEl) { return; }
 
             if (!item || !item.name || item.name === '-nothing-') {
-                nameEl.textContent = item && item.name === '-nothing-' ? '-nothing-' : 'empty';
+                nameEl.textContent = 'empty';
                 nameEl.className   = 'gw-equip-name empty';
                 badgeEl.style.display = 'none';
+                rowEl.classList.remove('disabled');
                 rowEl.classList.add('empty');
                 rowItemData.delete(rowEl);
                 return;
             }
 
+            if (item.name === '-disabled-') {
+                nameEl.textContent = 'disabled';
+                nameEl.className   = 'gw-equip-name disabled';
+                badgeEl.style.display = 'none';
+                rowEl.classList.remove('empty');
+                rowEl.classList.add('disabled');
+                rowItemData.set(rowEl, { name: 'Slot Unavailable', _disabledHint: true });
+                return;
+            }
+
             rowEl.classList.remove('empty');
+            rowEl.classList.remove('disabled');
             rowItemData.set(rowEl, item);
 
             const isCursed = item.details && item.details.includes('cursed');

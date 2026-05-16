@@ -15,8 +15,9 @@ type Buff struct {
 	OnStartWaiting bool   `yaml:"onstartwaiting,omitempty"` // Is the onstart event waiting to trigger?
 	PermaBuff      bool   `yaml:"permabuff,omitempty"`      // Is this buff from a worn item or race?
 	// Need to instance track the following:
-	RoundCounter int `yaml:"roundcounter,omitempty"` // How many rounds have passed. Triggers on (RoundCounter%RoundInterval == 0)
-	TriggersLeft int `yaml:"triggersleft,omitempty"` // How many times it triggers
+	RoundCounter    int `yaml:"roundcounter,omitempty"`    // How many rounds have passed. Triggers on (RoundCounter%RoundInterval == 0)
+	TriggersLeft    int `yaml:"triggersleft,omitempty"`    // How many times it triggers
+	TriggersInitial int `yaml:"triggersinitial,omitempty"` // The trigger count when the buff was first applied (may differ from spec if overridden)
 }
 
 func (b *Buff) StatMod(statName string) int {
@@ -175,23 +176,27 @@ func (bs *Buffs) AddBuff(buffId int, isPermanent bool, triggerCountOverride ...i
 	if buffInfo := GetBuffSpec(buffId); buffInfo != nil {
 
 		newBuff := Buff{
-			BuffId:       buffInfo.BuffId,
-			RoundCounter: 0,
-			PermaBuff:    false,
-			TriggersLeft: buffInfo.TriggerCount,
+			BuffId:          buffInfo.BuffId,
+			RoundCounter:    0,
+			PermaBuff:       false,
+			TriggersLeft:    buffInfo.TriggerCount,
+			TriggersInitial: buffInfo.TriggerCount,
 		}
 
 		if len(triggerCountOverride) > 0 && triggerCountOverride[0] > 0 {
 			newBuff.TriggersLeft = triggerCountOverride[0]
+			newBuff.TriggersInitial = triggerCountOverride[0]
 		}
 
 		if isPermanent {
 			newBuff.TriggersLeft = TriggersLeftUnlimited
+			newBuff.TriggersInitial = TriggersLeftUnlimited
 			newBuff.PermaBuff = true
 		}
 
 		if idx, ok := bs.buffIds[buffId]; ok {
 			bs.List[idx].TriggersLeft = newBuff.TriggersLeft
+			bs.List[idx].TriggersInitial = newBuff.TriggersInitial
 			bs.List[idx].PermaBuff = newBuff.PermaBuff
 			return true
 		}
@@ -318,8 +323,23 @@ func (bs *Buffs) Prune() (prunedBuffs []*Buff) {
 
 func GetDurations(buff *Buff, spec *BuffSpec) (roundsLeft int, totalRounds int) {
 
-	totalRounds = buff.TriggersLeft * spec.RoundInterval
-	roundsLeft = totalRounds
+	if spec.RoundInterval <= 0 {
+		return 0, 0
+	}
+
+	initialTriggers := buff.TriggersInitial
+	if initialTriggers <= 0 {
+		initialTriggers = spec.TriggerCount
+	}
+	totalRounds = initialTriggers * spec.RoundInterval
+
+	if buff.TriggersLeft <= 0 {
+		return 0, totalRounds
+	}
+
+	roundsIntoInterval := buff.RoundCounter % spec.RoundInterval
+	roundsUntilNextTrigger := spec.RoundInterval - roundsIntoInterval
+	roundsLeft = (buff.TriggersLeft-1)*spec.RoundInterval + roundsUntilNextTrigger
 
 	return roundsLeft, totalRounds
 }

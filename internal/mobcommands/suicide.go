@@ -167,10 +167,15 @@ func Suicide(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 					mudlog.Debug("Alignment", "user Alignment", user.Character.Alignment, "mob Alignment", mob.Character.Alignment, `alignmentAdj`, alignmentAdj, `alignmentBefore`, alignmentBefore, `alignmentAfter`, alignmentAfter)
 
 					if alignmentBefore != alignmentAfter {
-						alignmentBefore = fmt.Sprintf(`<ansi fg="%s">%s</ansi>`, alignmentBefore, alignmentBefore)
-						alignmentAfter = fmt.Sprintf(`<ansi fg="%s">%s</ansi>`, alignmentAfter, alignmentAfter)
-						updateTxt := fmt.Sprintf(`<ansi fg="231">Your alignment has shifted from %s to %s!</ansi>`, alignmentBefore, alignmentAfter)
+						before := fmt.Sprintf(`<ansi fg="%s">%s</ansi>`, alignmentBefore, alignmentBefore)
+						after := fmt.Sprintf(`<ansi fg="%s">%s</ansi>`, alignmentAfter, alignmentAfter)
+						updateTxt := fmt.Sprintf(`<ansi fg="231">Your alignment has shifted from %s to %s!</ansi>`, before, after)
 						user.SendText(updateTxt)
+						events.AddToQueue(events.AlignmentChanged{
+							UserId:       user.UserId,
+							AlignmentOld: alignmentBefore,
+							AlignmentNew: alignmentAfter,
+						})
 					}
 
 					// Chance to learn to tame the creature.
@@ -247,10 +252,15 @@ func Suicide(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 						mudlog.Debug("Alignment", "user Alignment", user.Character.Alignment, "mob Alignment", mob.Character.Alignment, `alignmentAdj`, alignmentAdj, `alignmentBefore`, alignmentBefore, `alignmentAfter`, alignmentAfter)
 
 						if alignmentBefore != alignmentAfter {
-							alignmentBefore = fmt.Sprintf(`<ansi fg="%s">%s</ansi>`, alignmentBefore, alignmentBefore)
-							alignmentAfter = fmt.Sprintf(`<ansi fg="%s">%s</ansi>`, alignmentAfter, alignmentAfter)
-							updateTxt := fmt.Sprintf(`<ansi fg="231">Your alignment has shifted from %s to %s!</ansi>`, alignmentBefore, alignmentAfter)
+							before := fmt.Sprintf(`<ansi fg="%s">%s</ansi>`, alignmentBefore, alignmentBefore)
+							after := fmt.Sprintf(`<ansi fg="%s">%s</ansi>`, alignmentAfter, alignmentAfter)
+							updateTxt := fmt.Sprintf(`<ansi fg="231">Your alignment has shifted from %s to %s!</ansi>`, before, after)
 							user.SendText(updateTxt)
+							events.AddToQueue(events.AlignmentChanged{
+								UserId:       user.UserId,
+								AlignmentOld: alignmentBefore,
+								AlignmentNew: alignmentAfter,
+							})
 						}
 
 						// Chance to learn to tame the creature.

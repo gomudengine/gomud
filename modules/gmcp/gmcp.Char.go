@@ -48,6 +48,9 @@ func init() {
 	events.RegisterListener(events.CharacterStatsChanged{}, g.statsChangeHandler)
 	events.RegisterListener(events.CharacterChanged{}, g.charChangeHandler)
 	events.RegisterListener(events.BuffsTriggered{}, g.buffTriggeredHandler)
+	events.RegisterListener(events.BuffsAdded{}, g.buffsAddedHandler)
+	events.RegisterListener(events.BuffsRemoved{}, g.buffsRemovedHandler)
+	events.RegisterListener(events.AlignmentChanged{}, g.alignmentChangedHandler)
 
 	events.RegisterListener(events.Quest{}, g.questProgressHandler, events.Last)
 
@@ -130,6 +133,63 @@ func (g *GMCPCharModule) buffTriggeredHandler(e events.Event) events.ListenerRet
 	events.AddToQueue(GMCPCharUpdate{
 		UserId:     evt.UserId,
 		Identifier: `Char.Affects`,
+	})
+
+	return events.Continue
+}
+
+func (g *GMCPCharModule) alignmentChangedHandler(e events.Event) events.ListenerReturn {
+
+	evt, typeOk := e.(events.AlignmentChanged)
+	if !typeOk {
+		return events.Continue
+	}
+
+	if evt.UserId == 0 {
+		return events.Continue
+	}
+
+	events.AddToQueue(GMCPCharUpdate{
+		UserId:     evt.UserId,
+		Identifier: `Char.Info`,
+	})
+
+	return events.Continue
+}
+
+func (g *GMCPCharModule) buffsAddedHandler(e events.Event) events.ListenerReturn {
+
+	evt, typeOk := e.(events.BuffsAdded)
+	if !typeOk {
+		return events.Continue
+	}
+
+	if evt.UserId == 0 {
+		return events.Continue
+	}
+
+	events.AddToQueue(GMCPCharUpdate{
+		UserId:     evt.UserId,
+		Identifier: `Char`,
+	})
+
+	return events.Continue
+}
+
+func (g *GMCPCharModule) buffsRemovedHandler(e events.Event) events.ListenerReturn {
+
+	evt, typeOk := e.(events.BuffsRemoved)
+	if !typeOk {
+		return events.Continue
+	}
+
+	if evt.UserId == 0 {
+		return events.Continue
+	}
+
+	events.AddToQueue(GMCPCharUpdate{
+		UserId:     evt.UserId,
+		Identifier: `Char`,
 	})
 
 	return events.Continue
@@ -610,14 +670,14 @@ func (g *GMCPCharModule) GetCharNode(user *users.UserRecord, gmcpModule string) 
 				continue
 			}
 
-			timeLeft, timeMax := -1, -1
+			timeCur, timeMax := -1, -1
 
 			if !buff.PermaBuff {
 				roundsLeft, totalRounds := buffs.GetDurations(buff, buffSpec)
 				timeMax = c.RoundsToSeconds(totalRounds)
-				timeLeft = c.RoundsToSeconds(roundsLeft)
-				if timeLeft < 0 {
-					timeLeft = 0
+				timeCur = c.RoundsToSeconds(roundsLeft)
+				if timeCur < 0 {
+					timeCur = 0
 				}
 			}
 
@@ -631,7 +691,7 @@ func (g *GMCPCharModule) GetCharNode(user *users.UserRecord, gmcpModule string) 
 				Name:         name,
 				Description:  desc,
 				DurationMax:  timeMax,
-				DurationLeft: timeLeft,
+				DurationLeft: timeCur,
 				Type:         buffSource,
 			}
 
@@ -898,6 +958,13 @@ type GMCPCharModule_Payload_Inventory_Item struct {
 
 func newInventory_Item(itm items.Item) GMCPCharModule_Payload_Inventory_Item {
 
+	if itm.IsDisabled() {
+		return GMCPCharModule_Payload_Inventory_Item{
+			Name:    `-disabled-`,
+			Details: []string{},
+		}
+	}
+
 	itmSpec := itm.GetSpec()
 	d := GMCPCharModule_Payload_Inventory_Item{
 		Id:      itm.ShorthandId(),
@@ -968,7 +1035,7 @@ type GMCPCharModule_Payload_Affect struct {
 	Name         string         `json:"name"`
 	Description  string         `json:"description"`
 	DurationMax  int            `json:"duration_max"`
-	DurationLeft int            `json:"duration_cur"`
+	DurationLeft int            `json:"duration_left"`
 	Type         string         `json:"type"`
 	Mods         map[string]int `json:"affects"`
 }

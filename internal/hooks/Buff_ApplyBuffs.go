@@ -83,5 +83,9 @@ func ApplyBuffs(e events.Event) events.ListenerReturn {
 
 	events.AddToQueue(events.BuffsTriggered{UserId: evt.UserId, MobInstanceId: evt.MobInstanceId, BuffIds: []int{evt.BuffId}})
 
+	if evt.UserId != 0 {
+		events.AddToQueue(events.BuffsAdded{UserId: evt.UserId, BuffIds: []int{evt.BuffId}})
+	}
+
 	return events.Continue
 }

@@ -57,7 +57,7 @@ Sent when active buffs or debuffs change. The payload is an object keyed by effe
   <ansi fg="cyan">description</ansi>   <ansi fg="green">string</ansi>                        - Short description of what the effect does
   <ansi fg="cyan">type</ansi>          <ansi fg="green">string</ansi>                        - Source category (e.g. "spell", "item", "unknown")
   <ansi fg="cyan">duration_max</ansi>  <ansi fg="yellow">number</ansi>                        - Total duration in seconds (-1 if permanent)
-  <ansi fg="cyan">duration_cur</ansi>  <ansi fg="yellow">number</ansi>                        - Remaining duration in seconds (-1 if permanent)
+  <ansi fg="cyan">duration_left</ansi>  <ansi fg="yellow">number</ansi>                        - Remaining duration in seconds (-1 if permanent)
   <ansi fg="cyan">affects</ansi>       <ansi fg="blue-bold">object</ansi>(<ansi fg="green">string</ansi>-><ansi fg="yellow">number</ansi>)  - Map of stat names to their modifier values
 
 <ansi fg="yellow-bold">Char.Inventory</ansi>

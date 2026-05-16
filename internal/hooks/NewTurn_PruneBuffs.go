@@ -36,8 +36,10 @@ func PruneBuffs(e events.Event) events.ListenerReturn {
 
 				logOff = false
 				if buffsToPrune := user.Character.Buffs.Prune(); len(buffsToPrune) > 0 {
+					prunedIds := make([]int, 0, len(buffsToPrune))
 					for _, buffInfo := range buffsToPrune {
 						scripting.TryBuffScriptEvent(`onEnd`, uId, 0, buffInfo.BuffId)
+						prunedIds = append(prunedIds, buffInfo.BuffId)
 
 						if buffInfo.BuffId == 0 { // Log them out // logoff // logout
 							if !user.Character.HasAdjective(`zombie`) { // if they are currently a zombie, we don't log them out from this buff being removed
@@ -49,6 +51,8 @@ func PruneBuffs(e events.Event) events.ListenerReturn {
 					user.Character.Validate()
 
 					events.AddToQueue(events.CharacterVitalsChanged{UserId: uId})
+					events.AddToQueue(events.BuffsTriggered{UserId: uId, BuffIds: prunedIds})
+					events.AddToQueue(events.BuffsRemoved{UserId: uId, BuffIds: prunedIds})
 
 					if logOff {
 						mudlog.Info("MEDITATION LOGOFF")
