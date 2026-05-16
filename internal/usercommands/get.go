@@ -114,6 +114,10 @@ func Get(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 						Item:   matchItem,
 						Gained: true,
 					})
+
+					events.AddToQueue(events.PetItemChange{
+						UserId: user.UserId,
+					})
 				}
 
 				user.SendText(

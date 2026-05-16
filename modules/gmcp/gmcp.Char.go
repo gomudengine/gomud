@@ -55,6 +55,8 @@ func init() {
 	events.RegisterListener(events.Quest{}, g.questProgressHandler, events.Last)
 
 	events.RegisterListener(events.PetLevelChange{}, g.petLevelChangeHandler)
+	events.RegisterListener(events.PetFed{}, g.petFedHandler)
+	events.RegisterListener(events.PetItemChange{}, g.petItemChangeHandler)
 
 	events.RegisterListener(events.MobDeath{}, g.killsChangedHandler)
 	events.RegisterListener(events.PlayerDeath{}, g.killsChangedHandler)
@@ -198,6 +200,44 @@ func (g *GMCPCharModule) buffsRemovedHandler(e events.Event) events.ListenerRetu
 func (g *GMCPCharModule) petLevelChangeHandler(e events.Event) events.ListenerReturn {
 
 	evt, typeOk := e.(events.PetLevelChange)
+	if !typeOk {
+		return events.Continue
+	}
+
+	if evt.UserId == 0 {
+		return events.Continue
+	}
+
+	events.AddToQueue(GMCPCharUpdate{
+		UserId:     evt.UserId,
+		Identifier: `Char.Pets`,
+	})
+
+	return events.Continue
+}
+
+func (g *GMCPCharModule) petItemChangeHandler(e events.Event) events.ListenerReturn {
+
+	evt, typeOk := e.(events.PetItemChange)
+	if !typeOk {
+		return events.Continue
+	}
+
+	if evt.UserId == 0 {
+		return events.Continue
+	}
+
+	events.AddToQueue(GMCPCharUpdate{
+		UserId:     evt.UserId,
+		Identifier: `Char.Pets`,
+	})
+
+	return events.Continue
+}
+
+func (g *GMCPCharModule) petFedHandler(e events.Event) events.ListenerReturn {
+
+	evt, typeOk := e.(events.PetFed)
 	if !typeOk {
 		return events.Continue
 	}

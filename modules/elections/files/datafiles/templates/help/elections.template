@@ -39,9 +39,9 @@
 
   <ansi fg="yellow">The Coffer</ansi>
 
-  Each zone may have a coffer room (tagged <ansi fg="cyan">coffer</ansi>). A portion
-  of every purchase made in that zone flows into the coffer.
-  Only the current title-holder for that zone can deposit or
+  Each zone may have a coffer room. A portion of every 
+  purchase made in that zone flows into the coffer. Only 
+  the current title-holder for that zone can deposit or
   withdraw gold from the coffer.
 
     <ansi fg="command">coffer</ansi>                   - View the coffer balance.

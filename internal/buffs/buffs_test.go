@@ -91,7 +91,7 @@ func TestGetDurations(t *testing.T) {
 				buff: &Buff{TriggersLeft: 3, TriggersInitial: 0, RoundCounter: 0},
 				spec: &BuffSpec{TriggerCount: 5, RoundInterval: 2},
 			},
-			wantRounds: 6, // (3-1)*2 + (2-0) = 4 + 2 = 6
+			wantRounds: 6,  // (3-1)*2 + (2-0) = 4 + 2 = 6
 			wantTotal:  10, // falls back to spec.TriggerCount=5 * 2
 		},
 	}

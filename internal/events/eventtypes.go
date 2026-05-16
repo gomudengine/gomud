@@ -288,6 +288,20 @@ type PetLevelChange struct {
 
 func (p PetLevelChange) Type() string { return `PetLevelChange` }
 
+// Fired when a player feeds their pet
+type PetFed struct {
+	UserId int
+}
+
+func (p PetFed) Type() string { return `PetFed` }
+
+// Fired when an item is given to or removed from a pet
+type PetItemChange struct {
+	UserId int
+}
+
+func (p PetItemChange) Type() string { return `PetItemChange` }
+
 type PlayerDrop struct {
 	UserId int
 	RoomId int

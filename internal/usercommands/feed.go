@@ -50,6 +50,10 @@ func Feed(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 
 	user.Character.Pet.Food.Add()
 
+	events.AddToQueue(events.PetFed{
+		UserId: user.UserId,
+	})
+
 	user.SendText(fmt.Sprintf(`You feed the <ansi fg="itemname">%s</ansi> to %s. They gobble it up!`, matchItem.DisplayName(), user.Character.Pet.DisplayName()))
 	room.SendText(fmt.Sprintf(`<ansi fg="username">%s</ansi> feeds some <ansi fg="itemname">%s</ansi> to %s.`, user.Character.Name, matchItem.DisplayName(), user.Character.Pet.DisplayName()), user.UserId)
 
