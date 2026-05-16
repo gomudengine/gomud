@@ -91,6 +91,27 @@
     .ability-remove:hover { color: var(--color-danger); }
     .level-conflict-hint { font-size: 0.75rem; color: var(--color-error-text); margin-top: 0.2rem; display: none; }
     .ability-card.level-conflict .level-conflict-hint { display: block; }
+
+    /* attack messages collapsible */
+    #attackMsgDetails > summary { outline: none; }
+    #attackMsgDetails > summary span::before { content: '\25B6\00A0'; }
+    #attackMsgDetails[open] > summary span::before { content: '\25BC\00A0'; }
+
+    /* help modal */
+    .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000; align-items: center; justify-content: center; }
+    .modal-backdrop.open { display: flex; }
+    .modal-box { background: var(--color-surface-white); border: 1px solid var(--color-border); border-radius: 8px; padding: 1.5rem; max-width: 540px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.18); }
+    .modal-box h3 { margin: 0 0 0.75rem; font-size: 1rem; }
+    .modal-box p { font-size: 0.85rem; color: var(--color-text-tertiary); margin-bottom: 0.5rem; }
+    .token-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-bottom: 1rem; }
+    .token-table th { background: var(--color-border-faint); padding: 0.4rem 0.6rem; text-align: left; font-weight: 600; border: 1px solid var(--color-border); }
+    .token-table td { padding: 0.4rem 0.6rem; border: 1px solid var(--color-border); vertical-align: top; }
+    .token-table td:first-child { font-family: monospace; color: var(--color-primary); }
+    .modal-example { background: var(--color-code-bg); color: var(--color-code-text); font-family: monospace; font-size: 0.8rem; padding: 0.6rem 0.8rem; border-radius: 4px; margin-bottom: 0.5rem; white-space: pre-wrap; word-break: break-all; }
+    .modal-close { margin-top: 1rem; padding: 0.4rem 1rem; background: var(--color-primary); color: var(--color-surface-white); border: none; border-radius: 4px; font-size: 0.875rem; cursor: pointer; }
+    .modal-close:hover { background: var(--color-primary-hover); }
+    .btn-help { padding: 0.35rem 0.55rem; border: 1px solid var(--color-border-medium); border-radius: 4px; background: var(--color-page-bg); cursor: pointer; font-size: 0.8rem; line-height: 1; flex-shrink: 0; color: var(--color-text-muted); }
+    .btn-help:hover { background: var(--color-hover-tint); border-color: var(--color-hover-tint-border); }
 </style>
 
 <h1>Pets</h1>
@@ -135,6 +156,40 @@
                     <div class="field-hint">Leave blank to use default. Prefix with <code>:</code> for a color pattern.</div>
                 </div>
 
+                <div class="section-title span2" style="margin-bottom:0"><!-- spacer --></div>
+
+                <details id="attackMsgDetails" class="span2" style="grid-column:1/-1;margin-bottom:0.25rem">
+                    <summary style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:0.55rem 0;border-bottom:1px solid var(--color-border-light);font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--color-text-subtle);list-style:none;user-select:none">
+                        <span>Attack Messages</span>
+                        <button type="button" class="btn-help" onclick="event.preventDefault();openAttackMsgModal()">? Help</button>
+                    </summary>
+                    <div class="form-grid" style="margin-top:0.75rem">
+                        <div class="field span2">
+                            <div class="field-hint" style="margin-bottom:0.5rem">Optional custom combat messages. Leave empty to use built-in defaults. Use <code>{petname}</code>, <code>{damage}</code>, and <code>{targetname}</code> as tokens. These messages only apply when the pet has a damage dice roll defined in one of its abilities.</div>
+                        </div>
+                        <div class="field span2">
+                            <label>To Owner (hit)</label>
+                            <input type="text" id="fMsgToOwner" placeholder="e.g. {petname} leaps at {targetname} and bites for {damage} damage!" />
+                            <div class="field-hint">Sent to the pet owner when the attack lands.</div>
+                        </div>
+                        <div class="field span2">
+                            <label>To Target (hit)</label>
+                            <input type="text" id="fMsgToTarget" placeholder="e.g. {petname} sinks its teeth into you for {damage} damage!" />
+                            <div class="field-hint">Sent to the player being attacked (player targets only).</div>
+                        </div>
+                        <div class="field span2">
+                            <label>To Room (hit)</label>
+                            <input type="text" id="fMsgToRoom" placeholder="e.g. {petname} savages {targetname} for {damage} damage!" />
+                            <div class="field-hint">Sent to observers in the room when the attack lands.</div>
+                        </div>
+                        <div class="field span2">
+                            <label>Miss</label>
+                            <input type="text" id="fMsgMiss" placeholder="e.g. {petname} snaps at {targetname} but finds only air." />
+                            <div class="field-hint">Sent to the pet owner when the attack misses.</div>
+                        </div>
+                    </div>
+                </details>
+
                 <div class="section-title">Abilities <button type="button" class="btn-add-sm" style="float:right;margin-top:-0.1rem" onclick="addAbility()">+ Add Ability</button></div>
 
                 <div class="field span2">
@@ -148,6 +203,33 @@
                 </div>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Attack Messages help modal -->
+<div id="attackMsgModal" class="modal-backdrop" onclick="closeAttackMsgModal(event)">
+    <div class="modal-box">
+        <h3>Combat Message Tokens</h3>
+        <p>Each message field supports the following tokens, which are replaced at runtime:</p>
+        <table class="token-table">
+            <thead><tr><th>Token</th><th>Replaced with</th></tr></thead>
+            <tbody>
+                <tr><td>{petname}</td><td>The pet&rsquo;s display name (may include ANSI colour tags).</td></tr>
+                <tr><td>{damage}</td><td>The integer damage dealt (plain text, e.g. <code>12</code>).</td></tr>
+                <tr><td>{targetname}</td><td>The target&rsquo;s formatted name (includes ANSI colour tags matching the target type).</td></tr>
+            </tbody>
+        </table>
+        <p><strong>Message slots</strong></p>
+        <p><strong>To Owner</strong> &mdash; sent to the player who owns the pet when the attack lands.</p>
+        <p><strong>To Target</strong> &mdash; sent to the player being attacked (only when the target is a player).</p>
+        <p><strong>To Room</strong> &mdash; sent to everyone else in the room observing the attack.</p>
+        <p><strong>Miss</strong> &mdash; sent to the owner when the pet&rsquo;s attack misses. <code>{damage}</code> is <code>0</code> in miss messages.</p>
+        <p>Leave any field empty to use the built-in default message for that slot.</p>
+        <p><strong>Examples</strong></p>
+        <div class="modal-example">{petname} leaps at {targetname} and bites for {damage} damage!</div>
+        <div class="modal-example">{petname} snaps at {targetname} but finds only air.</div>
+        <div class="modal-example">You feel a sudden pain as {petname} sinks its teeth into you for {damage} damage!</div>
+        <button class="modal-close" onclick="closeAttackMsgModal(null)">Close</button>
     </div>
 </div>
 
@@ -235,6 +317,15 @@
         document.getElementById('fType').value      = p.type || p.Type || '';
         document.getElementById('fName').value      = p.name || p.Name || '';
         document.getElementById('fNameStyle').value = p.namestyle || p.NameStyle || '';
+
+        // Attack messages
+        const am = p.attackmessages || p.AttackMessages || {};
+        document.getElementById('fMsgToOwner').value  = am.toowner  || am.ToOwner  || '';
+        document.getElementById('fMsgToTarget').value = am.totarget || am.ToTarget || '';
+        document.getElementById('fMsgToRoom').value   = am.toroom   || am.ToRoom   || '';
+        document.getElementById('fMsgMiss').value     = am.miss     || am.Miss     || '';
+        const hasAnyMsg = !!(am.toowner || am.ToOwner || am.totarget || am.ToTarget || am.toroom || am.ToRoom || am.miss || am.Miss);
+        document.getElementById('attackMsgDetails').open = hasAnyMsg;
 
         // Abilities
         document.getElementById('abilitiesList').innerHTML = '';
@@ -459,6 +550,19 @@
             type:      document.getElementById('fType').value.trim().toLowerCase(),
             name:      document.getElementById('fName').value.trim(),
             namestyle: document.getElementById('fNameStyle').value.trim(),
+            attackmessages: (function() {
+                const toowner  = document.getElementById('fMsgToOwner').value.trim();
+                const totarget = document.getElementById('fMsgToTarget').value.trim();
+                const toroom   = document.getElementById('fMsgToRoom').value.trim();
+                const miss     = document.getElementById('fMsgMiss').value.trim();
+                if (!toowner && !totarget && !toroom && !miss) return undefined;
+                const m = {};
+                if (toowner)  m.toowner  = toowner;
+                if (totarget) m.totarget = totarget;
+                if (toroom)   m.toroom   = toroom;
+                if (miss)     m.miss     = miss;
+                return m;
+            })(),
             abilities: abilities.length ? abilities : undefined,
         };
     }
@@ -568,6 +672,19 @@
 
     function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
     function escAttr(s) { return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+    // -------------------------------------------------------------------------
+    // Attack messages help modal
+    // -------------------------------------------------------------------------
+    window.openAttackMsgModal = function () {
+        document.getElementById('attackMsgModal').classList.add('open');
+    };
+
+    window.closeAttackMsgModal = function (evt) {
+        if (evt === null || evt.target === document.getElementById('attackMsgModal')) {
+            document.getElementById('attackMsgModal').classList.remove('open');
+        }
+    };
 
     init();
 })();

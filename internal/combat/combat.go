@@ -411,11 +411,13 @@ func calculateCombat(sourceChar characters.Character, targetChar characters.Char
 				if sourceChar.Pet.Exists() && petDmg.DiceRoll != `` {
 
 					pAttacks, pDCount, pDSides, pDBonus, critBuffs := sourceChar.Pet.GetDiceRoll()
+					combatMsgs := sourceChar.Pet.GetCombatMessages(string(targetType))
 
 					for p := 0; p < pAttacks; p++ {
 
 						if !Hits(0, targetChar.Stats.Speed.ValueAdj, 0) {
-							toAttackerMsg := fmt.Sprintf(`%s lunges at <ansi fg="%sname">%s</ansi> but misses!`, sourceChar.Pet.DisplayName(), string(targetType), targetChar.Name)
+							targetDisplayName := fmt.Sprintf(`<ansi fg="%sname">%s</ansi>`, string(targetType), targetChar.Name)
+							toAttackerMsg := combatMsgs.ApplyTokens(combatMsgs.Miss, sourceChar.Pet.DisplayName(), 0, targetDisplayName)
 							attackResult.SendToSource(toAttackerMsg)
 							continue
 						}
@@ -426,13 +428,16 @@ func calculateCombat(sourceChar characters.Character, targetChar characters.Char
 
 						attackResult.DamageToTarget += attackTargetDamage
 
-						toAttackerMsg := fmt.Sprintf(`%s jumps into the fray and deals <ansi fg="damage">%d damage</ansi> to <ansi fg="%sname">%s</ansi>!`, sourceChar.Pet.DisplayName(), attackTargetDamage, string(targetType), targetChar.Name)
+						targetDisplayName := fmt.Sprintf(`<ansi fg="%sname">%s</ansi>`, string(targetType), targetChar.Name)
+						petDisplayName := sourceChar.Pet.DisplayName()
+
+						toAttackerMsg := combatMsgs.ApplyTokens(combatMsgs.ToOwner, petDisplayName, attackTargetDamage, targetDisplayName)
 						attackResult.SendToSource(toAttackerMsg)
 
-						toDefenderMsg := fmt.Sprintf(`%s jumps into the fray and deals <ansi fg="damage">%d damage</ansi> to you!`, sourceChar.Pet.DisplayName(), attackTargetDamage)
+						toDefenderMsg := combatMsgs.ApplyTokens(combatMsgs.ToTarget, petDisplayName, attackTargetDamage, targetDisplayName)
 						attackResult.SendToTarget(toDefenderMsg)
 
-						toAttackerRoomMsg := fmt.Sprintf(`%s jumps into the fray and deals <ansi fg="damage">%d damage</ansi> to <ansi fg="%sname">%s</ansi>!`, sourceChar.Pet.DisplayName(), attackTargetDamage, string(targetType), targetChar.Name)
+						toAttackerRoomMsg := combatMsgs.ApplyTokens(combatMsgs.ToRoom, petDisplayName, attackTargetDamage, targetDisplayName)
 						attackResult.SendToTargetRoom(toAttackerRoomMsg)
 
 						// pets doing max damage are considered "crits" and will always apply any special critBuffs

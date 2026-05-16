@@ -11,65 +11,16 @@ import (
 
 func Gearup(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
-	wornItems := map[items.ItemType]items.Item{}
-	wearNewItems := map[items.ItemType]items.Item{}
+	upgrades := user.Character.BestUpgrades()
 
-	allWornItems := user.Character.Equipment.GetAllItems()
-
-	for _, itm := range allWornItems {
-		wornItems[itm.GetSpec().Type] = itm
-	}
-
-	allBackpackItems := user.Character.GetAllBackpackItems()
-	wearableCount := 0
-
-	for _, itm := range allBackpackItems {
-		itmSpec := itm.GetSpec()
-
-		if itmSpec.Type != items.Weapon && itmSpec.Subtype != items.Wearable {
-			continue
-		}
-
-		if itmSpec.Type == items.Weapon {
-			// If it requires 2 hands, make sure it won't remove an offhand item!
-			if user.Character.HandsRequired(itm) == 2 {
-				if _, ok := wornItems[items.Offhand]; ok {
-					continue
-				}
+	if len(upgrades) == 0 {
+		wearableCount := 0
+		for _, itm := range user.Character.GetAllBackpackItems() {
+			spec := itm.GetSpec()
+			if spec.Type == items.Weapon || spec.Subtype == items.Wearable {
+				wearableCount++
 			}
 		}
-
-		if itmSpec.Type == items.Offhand {
-			// If it's offhand, make sure it won't remove an equipped two handed weapon
-			if currentWeapon, ok := wornItems[items.Weapon]; ok {
-				if user.Character.HandsRequired(currentWeapon) == 2 {
-					continue
-
-				}
-			}
-		}
-
-		// Keep track of how many wearble items they hold
-		wearableCount++
-
-		// Skip items if something is already in that slot.
-		if _, ok := wornItems[itmSpec.Type]; ok {
-			continue
-		}
-
-		// If we've chosen something to wear in that slot already, consider this as a better option.
-		if plannedItem, ok := wearNewItems[itmSpec.Type]; ok {
-			if itmSpec.Value > plannedItem.GetSpec().Value {
-				wearNewItems[itmSpec.Type] = itm
-			}
-			continue
-		}
-
-		// Getting here means there's nothing currently worn, so just accept the offering.
-		wearNewItems[itmSpec.Type] = itm
-	}
-
-	if len(wearNewItems) == 0 {
 		if wearableCount == 0 {
 			user.SendText("You have nothing to wear.")
 		} else {
@@ -78,7 +29,7 @@ func Gearup(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 		return true, nil
 	}
 
-	for _, itm := range wearNewItems {
+	for _, itm := range upgrades {
 		user.Command(fmt.Sprintf(`wear !%d`, itm.ItemId), -1)
 	}
 

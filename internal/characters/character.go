@@ -1875,6 +1875,127 @@ func (c *Character) GetAllBackpackItems() []items.Item {
 	return append([]items.Item{}, c.Items...)
 }
 
+// BestUpgrades returns a map of equipment slot -> best backpack item that
+// beats whatever is currently worn in that slot (or fills an empty slot).
+// The caller receives only slots where an upgrade exists; worn items that
+// already beat every backpack alternative are omitted.
+//
+// Two-handed weapon / offhand mutual-exclusion is respected: a two-handed
+// weapon candidate is skipped when an offhand item is already worn (or
+// already chosen as an upgrade), and an offhand candidate is skipped when a
+// two-handed weapon is already worn (or already chosen).
+func (c *Character) BestUpgrades() map[items.ItemType]items.Item {
+
+	wornItems := map[items.ItemType]items.Item{}
+	for _, itm := range c.Equipment.GetAllItems() {
+		wornItems[itm.GetSpec().Type] = itm
+	}
+
+	// Pass 1: find the highest-Value backpack item for each slot.
+	bestBySlot := map[items.ItemType]items.Item{}
+	for _, itm := range c.Items {
+		itmSpec := itm.GetSpec()
+		if itmSpec.Type != items.Weapon && itmSpec.Subtype != items.Wearable {
+			continue
+		}
+		if prev, ok := bestBySlot[itmSpec.Type]; !ok || itmSpec.Value > prev.GetSpec().Value {
+			bestBySlot[itmSpec.Type] = itm
+		}
+	}
+
+	// Pass 2: keep only slots where the best backpack item beats what is worn
+	// (or fills an empty, non-disabled slot), then enforce the two-handed /
+	// offhand mutual exclusion.
+	upgrades := map[items.ItemType]items.Item{}
+	for slotType, candidate := range bestBySlot {
+		worn, isWorn := wornItems[slotType]
+		if isWorn && candidate.GetSpec().Value <= worn.GetSpec().Value {
+			continue
+		}
+		// Skip disabled slots (ItemId == -1 means the race cannot use this slot).
+		switch slotType {
+		case items.Weapon:
+			if c.Equipment.Weapon.IsDisabled() {
+				continue
+			}
+		case items.Offhand:
+			if c.Equipment.Offhand.IsDisabled() {
+				continue
+			}
+		case items.Head:
+			if c.Equipment.Head.IsDisabled() {
+				continue
+			}
+		case items.Neck:
+			if c.Equipment.Neck.IsDisabled() {
+				continue
+			}
+		case items.Body:
+			if c.Equipment.Body.IsDisabled() {
+				continue
+			}
+		case items.Belt:
+			if c.Equipment.Belt.IsDisabled() {
+				continue
+			}
+		case items.Gloves:
+			if c.Equipment.Gloves.IsDisabled() {
+				continue
+			}
+		case items.Ring:
+			if c.Equipment.Ring.IsDisabled() {
+				continue
+			}
+		case items.Legs:
+			if c.Equipment.Legs.IsDisabled() {
+				continue
+			}
+		case items.Feet:
+			if c.Equipment.Feet.IsDisabled() {
+				continue
+			}
+		}
+		upgrades[slotType] = candidate
+	}
+
+	// Resolve two-handed weapon vs offhand conflict.
+	// "Effective offhand" = currently worn offhand that is NOT being replaced.
+	effectiveOffhand := false
+	if _, upgrading := upgrades[items.Offhand]; !upgrading {
+		if _, worn := wornItems[items.Offhand]; worn {
+			effectiveOffhand = true
+		}
+	} else {
+		effectiveOffhand = true
+	}
+
+	if weaponUpgrade, ok := upgrades[items.Weapon]; ok {
+		if c.HandsRequired(weaponUpgrade) == 2 && effectiveOffhand {
+			delete(upgrades, items.Weapon)
+		}
+	}
+
+	// "Effective weapon" = currently worn weapon that is NOT being replaced.
+	effectiveTwoHanded := false
+	if _, upgrading := upgrades[items.Weapon]; !upgrading {
+		if wornWeapon, worn := wornItems[items.Weapon]; worn {
+			if c.HandsRequired(wornWeapon) == 2 {
+				effectiveTwoHanded = true
+			}
+		}
+	} else {
+		if c.HandsRequired(upgrades[items.Weapon]) == 2 {
+			effectiveTwoHanded = true
+		}
+	}
+
+	if effectiveTwoHanded {
+		delete(upgrades, items.Offhand)
+	}
+
+	return upgrades
+}
+
 func (c *Character) GetAllWornItems() []items.Item {
 	wornItems := []items.Item{}
 	if c.Equipment.Weapon.ItemId > 0 {
