@@ -13,6 +13,13 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
 
+const (
+	jobsBarLength       = 39  // number of characters in the progress bar
+	jobsExperienceWidth = 11  // fixed column width for the experience title
+	jobsBarFull         = `█` // character used for the filled portion of the bar
+	jobsBarEmpty        = `░` // character used for the empty portion of the bar
+)
+
 func buildJobsPanel(user *users.UserRecord) string {
 	allRanks := user.Character.GetAllSkillRanks()
 
@@ -26,7 +33,7 @@ func buildJobsPanel(user *users.UserRecord) string {
 
 	rows := make([]jobRow, 0)
 	for _, rank := range skills.GetProfessionRanks(allRanks) {
-		barFull, barEmpty := util.ProgressBar(rank.Completion, 39)
+		barFull, barEmpty := util.ProgressBar(rank.Completion, jobsBarLength, jobsBarFull, jobsBarEmpty)
 		rows = append(rows, jobRow{
 			name:       rank.Profession,
 			experience: rank.ExperienceTitle,
@@ -62,13 +69,14 @@ func buildJobsPanel(user *users.UserRecord) string {
 	panel := layout.Panel("jobs").SetLabelWidth(maxNameWidth)
 	for _, r := range rows {
 		value := fmt.Sprintf(
-			`<ansi fg="white-bold">%-11s</ansi> <ansi fg="green">%s</ansi><ansi fg="black-bold">%s</ansi> <ansi fg="cyan-bold">%s</ansi>`,
-			r.experience, r.barFull, r.barEmpty, r.completion,
+			`<ansi fg="white-bold">%s</ansi> <ansi fg="green">%s</ansi><ansi fg="black-bold">%s</ansi> <ansi fg="cyan-bold">%s</ansi>`,
+			fmt.Sprintf(`%-*s`, jobsExperienceWidth, r.experience), r.barFull, r.barEmpty, r.completion,
 		)
-		panel.Add(
+		panel.AddWithWrapWidth(
 			fmt.Sprintf(`<ansi fg="yellow-bold">%s</ansi>`, r.name),
 			fmt.Sprintf(`<ansi fg="yellow-bold">%s</ansi>`, r.name),
 			value,
+			-1,
 		)
 	}
 

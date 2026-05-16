@@ -135,6 +135,8 @@ func (p *Panel) Add(fullLabel, shortLabel, value string) *Panel {
 // AddWithWrapWidth appends a label+value row with an explicit value wrap width.
 // When the value's visual width exceeds wrapWidth, it is wrapped onto continuation
 // lines indented to align with the value column of the first line.
+// Pass -1 to disable wrapping entirely for this row, even when the panel has a
+// fixed width that would otherwise trigger automatic wrapping.
 func (p *Panel) AddWithWrapWidth(fullLabel, shortLabel, value string, wrapWidth int) *Panel {
 	p.rows = append(p.rows, PanelRow{
 		FullLabel:  fullLabel,
@@ -746,8 +748,9 @@ func panelInnerWidth(p *Panel) int {
 			// When the panel has a target width, compute the available value
 			// width and treat that as the effective wrap width for sizing.
 			// Only apply wrapping if there is actually space for the label.
+			// WrapWidth < 0 disables wrapping for this row entirely.
 			effectiveWrap := row.WrapWidth
-			if target > 0 {
+			if effectiveWrap >= 0 && target > 0 {
 				availForValue := target - lw - 1
 				if availForValue >= 1 {
 					// There is room for at least one char of value after the label.
@@ -935,10 +938,11 @@ func renderSingleColumnLines(p *Panel, row PanelRow, inner int, isFirst, isLast 
 	valueIndent := panelPad + lw + 1
 
 	// Determine the effective wrap width for this row.
-	// If the row has an explicit WrapWidth, use it.
-	// Otherwise, if the panel has a target width, wrap to the available value space.
+	// WrapWidth < 0 disables wrapping entirely for this row.
+	// WrapWidth > 0 uses that as the explicit wrap width.
+	// WrapWidth == 0 falls back to the panel's target width.
 	effectiveWrap := row.WrapWidth
-	if effectiveWrap <= 0 && p.width > 0 {
+	if effectiveWrap == 0 && p.width > 0 {
 		availForValue := inner - lw - 1
 		if availForValue > 0 {
 			effectiveWrap = availForValue
