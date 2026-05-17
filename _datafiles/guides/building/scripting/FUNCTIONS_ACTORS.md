@@ -571,7 +571,19 @@ Returns the shorthand ID string to refer to the mob or player ( `@123` or `#122`
 Uncurses any objects the target has equipped
 
 ## [ActorObject.GetPet()](/internal/scripting/actor_func.go)
-Returns the pet object for the actor, or null
+Returns the [PetObject](FUNCTIONS_PETS.md) for this actor, or `null` if the actor has no pet.
+
+_Note: Only meaningful for user actors. Mob actors always return `null`._
+
+_Note: The returned PetObject is a live reference. Mutations such as `SetName()`, `Feed()`, and `Starve()` take effect immediately on the owner's character data._
+
+**Example:**
+```javascript
+var pet = actor.GetPet();
+if (pet !== null) {
+    room.SendText(pet.Name() + ' is here!');
+}
+```
 
 ## [ActorObject.GrantXP(xpAmt int, reason string)](/internal/scripting/actor_func.go)
 Gives experience points to the actor

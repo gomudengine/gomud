@@ -336,6 +336,13 @@ func TryCommand(cmd string, rest string, userId int, flags events.EventFlag) (bo
 			}
 		}
 
+		// Check if the pet script intercepts this command
+		if user.Character.Pet.Exists() {
+			if handled, err := scripting.TryPetCommand(cmd, rest, user.UserId); err == nil && handled {
+				return true, nil
+			}
+		}
+
 		// Check if the "rest" is an item the character has
 		matchingItem, found := user.Character.FindInBackpack(rest)
 		if !found {

@@ -1,4 +1,5 @@
 type: owl
+roundactchance: 10
 abilities:
   - levelgranted: 1
     statmods:

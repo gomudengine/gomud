@@ -100,6 +100,25 @@
     .ab-attack-msgs[open] > summary span::before { content: '\25BC\00A0'; }
     .ab-attack-msgs .form-grid { margin-top: 0.5rem; }
 
+    /* script editor */
+    .script-toggle {
+        display: flex; align-items: center; gap: 0.6rem; cursor: pointer;
+        font-size: 0.85rem; color: var(--color-primary); font-weight: 600; padding: 0.5rem 0;
+        user-select: none;
+    }
+    .script-toggle::before { content: "\25B6"; font-size: 0.65rem; transition: transform 0.15s; }
+    .script-toggle.open::before { transform: rotate(90deg); }
+    .script-area { display: none; margin-top: 0.5rem; }
+    .script-area.open { display: block; }
+    .script-area textarea {
+        width: 100%; min-height: 480px; font-family: monospace; font-size: 0.82rem;
+        padding: 0.6rem 0.75rem; border: 1px solid var(--color-border-medium); border-radius: 4px;
+        resize: vertical; background: var(--color-primary); color: var(--color-code-text); line-height: 1.55;
+    }
+    .script-area textarea:focus { outline: 2px solid var(--color-accent-link); outline-offset: 1px; }
+    .script-hint { font-size: 0.75rem; color: var(--color-text-faint); margin-top: 0.3rem; }
+    .script-error { font-size: 0.78rem; color: var(--color-error-text); margin-top: 0.3rem; }
+
     /* help modal */
     .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000; align-items: center; justify-content: center; }
     .modal-backdrop.open { display: flex; }
@@ -159,11 +178,34 @@
                     <div class="field-hint">Leave blank to use default. Prefix with <code>:</code> for a color pattern.</div>
                 </div>
 
+                <div class="field span2">
+                    <label>Round Act Chance</label>
+                    <div class="slider-wrap">
+                        <input type="range" id="fRoundActChance" min="0" max="100" value="0"
+                               oninput="document.getElementById('fRoundActChanceVal').textContent = this.value + '%'" />
+                        <span class="slider-val" id="fRoundActChanceVal">0%</span>
+                    </div>
+                    <div class="field-hint">Chance per round (0&ndash;100%) that the pet&rsquo;s <code>PetAct()</code> script function is called. Set to 0 to disable scripted ambient behaviour. Not called while the owner is in combat.</div>
+                </div>
+
                 <div class="section-title">Abilities <button type="button" class="btn-add-sm" style="float:right;margin-top:-0.1rem" onclick="addAbility()">+ Add Ability</button></div>
 
                 <div class="field span2">
                     <div id="abilitiesList"></div>
                     <div class="field-hint">Each ability unlocks at a given pet level. Pets level 1-10 based on hunger.</div>
+                </div>
+
+                <!-- Script editor -->
+                <div class="span2" style="border-top: 1px solid var(--color-border-light); padding-top: 1rem; margin-top: 0.5rem;">
+                    <div class="script-toggle" id="script-toggle" onclick="toggleScript()">Script</div>
+                    <div class="script-area" id="script-area">
+                        <div style="display:flex;justify-content:flex-end;margin-bottom:0.4rem;">
+                            <button class="btn-add-sm" style="font-size:0.78rem;padding:0.25rem 0.7rem;" onclick="openScriptWizard()">+ Add Function</button>
+                        </div>
+                        <textarea id="f-script" spellcheck="false" placeholder="// JavaScript for this pet's events (PetAct, onCommand)&#10;// Leave blank to delete the script file."></textarea>
+                        <div id="script-error" class="script-error"></div>
+                        <div class="script-hint">Saved as a <code>.js</code> file alongside the pet&rsquo;s <code>.yaml</code> definition. Clear the field and save to delete the script.</div>
+                    </div>
                 </div>
 
                 <div class="btn-row">
@@ -209,6 +251,7 @@
     let petsData = {}; // type -> Pet
     let activeType = null;
     let isNew = false;
+    let scriptSync = null;
 
     const KNOWN_STATMODS = [
         'strength', 'speed', 'smarts', 'vitality', 'mysticism', 'perception',
@@ -221,6 +264,7 @@
         if (!res.ok) { showStatus('error', 'Failed to load pets: ' + res.error); return; }
         petsData = (res.data && res.data.data) || {};
         renderList();
+        scriptSync = ScriptEditor.init('f-script');
         const hashType = decodeURIComponent(location.hash.slice(1));
         if (hashType && petsData[hashType]) selectPet(hashType);
     }
@@ -286,6 +330,31 @@
         document.getElementById('fType').value      = p.type || p.Type || '';
         document.getElementById('fName').value      = p.name || p.Name || '';
         document.getElementById('fNameStyle').value = p.namestyle || p.NameStyle || '';
+        const rac = p.roundactchance != null ? p.roundactchance : (p.RoundActChance != null ? p.RoundActChance : 0);
+        document.getElementById('fRoundActChance').value = rac;
+        document.getElementById('fRoundActChanceVal').textContent = rac + '%';
+
+        // Script
+        const script = p.GetScript ? p.GetScript() : (p._script || '');
+        document.getElementById('f-script').value = script;
+        if (scriptSync) scriptSync();
+        const hasScript = script.length > 0;
+        document.getElementById('script-toggle').classList.toggle('open', hasScript);
+        document.getElementById('script-area').classList.toggle('open', hasScript);
+
+        // Load script from API for existing pets
+        if (!isNew && activeType) {
+            AdminAPI.get('/admin/api/v1/pets/' + encodeURIComponent(activeType) + '/script').then(res => {
+                if (res.ok) {
+                    const scriptContent = (res.data && res.data.data && res.data.data.script) || '';
+                    document.getElementById('f-script').value = scriptContent;
+                    if (scriptSync) scriptSync();
+                    const hasScript2 = scriptContent.length > 0;
+                    document.getElementById('script-toggle').classList.toggle('open', hasScript2);
+                    document.getElementById('script-area').classList.toggle('open', hasScript2);
+                }
+            });
+        }
 
         // Abilities
         document.getElementById('abilitiesList').innerHTML = '';
@@ -581,10 +650,11 @@
         });
 
         return {
-            type:      document.getElementById('fType').value.trim().toLowerCase(),
-            name:      document.getElementById('fName').value.trim(),
-            namestyle: document.getElementById('fNameStyle').value.trim(),
-            abilities: abilities.length ? abilities : undefined,
+            type:           document.getElementById('fType').value.trim().toLowerCase(),
+            name:           document.getElementById('fName').value.trim(),
+            namestyle:      document.getElementById('fNameStyle').value.trim(),
+            roundactchance: parseInt(document.getElementById('fRoundActChance').value, 10) || 0,
+            abilities:      abilities.length ? abilities : undefined,
         };
     }
 
@@ -608,6 +678,16 @@
         const btn = document.getElementById('btnSave');
         btn.disabled = true; btn.textContent = 'Saving\u2026';
 
+        const scriptContent = document.getElementById('f-script').value;
+
+        if (scriptContent.trim().length > 0) {
+            const check = await ScriptWizard.validateScript(scriptContent);
+            if (!check.valid) {
+                btn.disabled = false; btn.textContent = 'Save';
+                return;
+            }
+        }
+
         let res;
         if (isNew) {
             res = await AdminAPI.post('/admin/api/v1/pets', payload);
@@ -625,6 +705,11 @@
         const saved = (res.data && res.data.data) || payload;
         const savedType = saved.type || saved.Type || payload.type;
 
+        const scriptRes = await AdminAPI.put('/admin/api/v1/pets/' + encodeURIComponent(savedType) + '/script', { script: scriptContent });
+        if (!scriptRes.ok) {
+            showStatus('error', 'Pet saved but script update failed: ' + scriptRes.error);
+        }
+
         petsData[savedType] = saved;
         if (isNew) {
             activeType = savedType;
@@ -641,6 +726,20 @@
             highlightRow(activeType);
         }
         showStatus('success', 'Pet type "' + savedType + '" saved.');
+    };
+
+    // -------------------------------------------------------------------------
+    // Script toggle
+    // -------------------------------------------------------------------------
+    window.toggleScript = function () {
+        const toggle = document.getElementById('script-toggle');
+        const area = document.getElementById('script-area');
+        toggle.classList.toggle('open');
+        area.classList.toggle('open');
+    };
+
+    window.openScriptWizard = function () {
+        ScriptWizard.open({ scriptType: 'pet', textareaId: 'f-script', syncFn: scriptSync });
     };
 
     window.deletePet = async function () {

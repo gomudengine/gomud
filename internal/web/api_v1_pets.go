@@ -7,6 +7,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/pets"
+	"github.com/GoMudEngine/GoMud/internal/scripting"
 )
 
 // GET /admin/api/v1/pets
@@ -96,6 +97,54 @@ func apiV1DeletePet(w http.ResponseWriter, r *http.Request) {
 		writeAPIError(w, http.StatusNotFound, err.Error())
 		return
 	}
+
+	writeJSON(w, http.StatusOK, APIResponse[struct{}]{Success: true})
+}
+
+// GET /admin/api/v1/pets/{petname}/script
+func apiV1GetPetScript(w http.ResponseWriter, r *http.Request) {
+	petName := strings.ToLower(strings.TrimSpace(r.PathValue("petname")))
+	if petName == "" {
+		writeAPIError(w, http.StatusBadRequest, "petname is required")
+		return
+	}
+
+	all := pets.GetAllPetSpecs()
+	spec, ok := all[petName]
+	if !ok {
+		writeAPIError(w, http.StatusNotFound, "pet type not found: "+petName)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, APIResponse[map[string]string]{
+		Success: true,
+		Data:    map[string]string{"script": spec.GetScript()},
+	})
+}
+
+// PUT /admin/api/v1/pets/{petname}/script
+func apiV1PutPetScript(w http.ResponseWriter, r *http.Request) {
+	petName := strings.ToLower(strings.TrimSpace(r.PathValue("petname")))
+	if petName == "" {
+		writeAPIError(w, http.StatusBadRequest, "petname is required")
+		return
+	}
+
+	var body struct {
+		Script string `json:"script"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeAPIError(w, http.StatusBadRequest, "malformed request body: "+err.Error())
+		return
+	}
+
+	if err := pets.SavePetScript(petName, body.Script); err != nil {
+		writeAPIError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Invalidate the cached VM so the next invocation picks up the new script
+	scripting.InvalidatePetVM(petName)
 
 	writeJSON(w, http.StatusOK, APIResponse[struct{}]{Success: true})
 }

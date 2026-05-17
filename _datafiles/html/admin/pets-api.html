@@ -14,6 +14,7 @@
     .method-get    { background: var(--color-success-bg); color: var(--color-success-text); }
     .method-post   { background: var(--color-info-bg); color: var(--color-info-text); }
     .method-patch  { background: var(--color-warning-bg); color: var(--color-warning-text); }
+    .method-put    { background: var(--color-warning-bg); color: var(--color-warning-text); }
     .method-delete { background: var(--color-error-bg); color: var(--color-error-text); }
     .api-path { font-family: monospace; font-size: 0.9rem; color: var(--color-primary); }
     .api-desc { font-size: 0.85rem; color: var(--color-text-muted); margin-left: auto; text-align: right; }
@@ -42,13 +43,15 @@
     .params-table td { padding: 0.4rem 0.6rem; border: 1px solid var(--color-border); vertical-align: top; }
     .params-table td:first-child { font-family: monospace; color: var(--color-primary); }
     .required { color: var(--color-error-text); font-size: 0.75rem; font-weight: 600; }
+    .section-label { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-subtle); margin: 1rem 0 0.4rem; }
 </style>
 
 <h1>Pets API Reference</h1>
-<p class="subtitle">REST endpoints for listing, creating, updating, and deleting pet type definitions. <a href="/admin/pets">View / Edit</a></p>
+<p class="subtitle">REST endpoints for listing, creating, updating, deleting, and scripting pet type definitions. <a href="/admin/pets">View / Edit</a></p>
 
 <div class="api-list">
 
+    <!-- GET /admin/api/v1/pets -->
     <details class="api-entry">
         <summary>
             <span class="method method-get">GET</span>
@@ -65,21 +68,21 @@
                     <div class="resp-body"><div class="curl-block">{
   "success": true,
   "data": {
-    "wolf": {
-      "type": "wolf",
-      "name": "Wolf",
-      "capacity": 0,
-      "damage": { "diceroll": "1d6", "attacks": 1 },
-      "statmods": { "strength": 2 },
-      "buffids": [12]
+    "dog": {
+      "type": "dog",
+      "roundactchance": 10,
+      "abilities": [
+        { "levelgranted": 1, "combatchance": 10, "damage": { "diceroll": "1d2" } },
+        { "levelgranted": 2, "combatchance": 11, "statmods": { "strength": 1 }, "damage": { "diceroll": "1d3" } }
+      ]
     },
     "mule": {
       "type": "mule",
-      "name": "Mule",
-      "capacity": 5,
-      "damage": null,
-      "statmods": null,
-      "buffids": null
+      "roundactchance": 0,
+      "abilities": [
+        { "levelgranted": 1, "capacity": 1 },
+        { "levelgranted": 2, "capacity": 2 }
+      ]
     }
   }
 }</div></div>
@@ -88,6 +91,7 @@
         </div>
     </details>
 
+    <!-- POST /admin/api/v1/pets -->
     <details class="api-entry">
         <summary>
             <span class="method method-post">POST</span>
@@ -95,7 +99,7 @@
             <span class="api-desc">Create a new pet type</span>
         </summary>
         <div class="api-body">
-            <p>Creates a new pet type definition. The <code>type</code> field is the unique identifier and is lowercased automatically. Returns <code>409</code> if the type already exists.</p>
+            <p>Creates a new pet type definition. The <code>type</code> field is the unique identifier and is lowercased automatically. Returns <code>400</code> if the type already exists.</p>
 
             <table class="params-table">
                 <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
@@ -103,7 +107,17 @@
                     <tr><td>type <span class="required">required</span></td><td>string</td><td>Unique pet type identifier (e.g. <code>wolf</code>). Lowercased on save.</td></tr>
                     <tr><td>name</td><td>string</td><td>Display name shown when the player has not named their pet.</td></tr>
                     <tr><td>namestyle</td><td>string</td><td>Optional color pattern applied to the pet name (e.g. <code>:rainbow</code>).</td></tr>
-                    <tr><td>abilities</td><td>object[]</td><td>Array of ability definitions. Each ability has <code>levelgranted</code>, <code>combatchance</code>, <code>damage</code>, <code>attackmessages</code>, <code>statmods</code>, <code>buffids</code>, and <code>capacity</code>. <code>attackmessages</code> is only meaningful when <code>damage</code> is set; fields: <code>toowner</code>, <code>totarget</code>, <code>toroom</code>, <code>miss</code>. When <code>damage</code> is set, <code>combatchance</code> is enforced to be at least 1.</td></tr>
+                    <tr><td>roundactchance</td><td>int</td><td>0&ndash;100 chance per round that <code>PetAct()</code> is invoked. Defaults to <code>0</code> (disabled). Not called while the owner is in combat.</td></tr>
+                    <tr><td>abilities</td><td>object[]</td><td>
+                        Array of ability objects. Each entry may contain:<br>
+                        &bull; <code>levelgranted</code> (int) &mdash; pet level at which this ability unlocks (1&ndash;10)<br>
+                        &bull; <code>combatchance</code> (int, 0&ndash;100) &mdash; percent chance per combat round the pet attacks<br>
+                        &bull; <code>damage</code> (<code>{diceroll: string}</code>) &mdash; damage dice roll (e.g. <code>"1d6+2"</code>)<br>
+                        &bull; <code>attackmessages</code> (<code>{toowner, totarget, toroom, miss}</code>) &mdash; optional custom combat messages; tokens: <code>{petname}</code>, <code>{damage}</code>, <code>{targetname}</code><br>
+                        &bull; <code>statmods</code> (object) &mdash; stat bonuses granted to the owner (e.g. <code>{"strength": 2}</code>)<br>
+                        &bull; <code>buffids</code> (int[]) &mdash; buff IDs permanently applied to the owner<br>
+                        &bull; <code>capacity</code> (int) &mdash; number of items the pet can carry
+                    </td></tr>
                 </tbody>
             </table>
 
@@ -112,30 +126,32 @@
      <span class="flag">-d</span> <span class="str">'{
   "type": "wolf",
   "name": "Wolf",
-  "capacity": 0,
-  "damage": { "diceroll": "1d6", "attacks": 1 },
-  "statmods": { "strength": 2 },
-  "buffids": [12]
+  "roundactchance": 10,
+  "abilities": [
+    { "levelgranted": 1, "combatchance": 15, "damage": { "diceroll": "1d6" }, "statmods": { "strength": 1 } },
+    { "levelgranted": 5, "combatchance": 20, "damage": { "diceroll": "1d8" }, "statmods": { "strength": 3 } }
+  ]
 }'</span> \
      <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/pets</span></div>
 
             <div class="response-examples">
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-ok">201</span> <span class="resp-label">Created</span></summary>
-                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"type":"wolf","name":"Wolf","capacity":0,...}}</div></div>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"type":"wolf","name":"Wolf","roundactchance":10,"abilities":[...]}}</div></div>
                 </details>
                 <details class="resp-entry">
-                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request</span></summary>
+                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request &mdash; missing type</span></summary>
                     <div class="resp-body"><div class="curl-block">{"success":false,"error":"type is required"}</div></div>
                 </details>
                 <details class="resp-entry">
-                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Conflict - type already exists</span></summary>
+                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request &mdash; type already exists</span></summary>
                     <div class="resp-body"><div class="curl-block">{"success":false,"error":"pet type \"wolf\" already exists"}</div></div>
                 </details>
             </div>
         </div>
     </details>
 
+    <!-- PATCH /admin/api/v1/pets/{petname} -->
     <details class="api-entry">
         <summary>
             <span class="method method-patch">PATCH</span>
@@ -143,7 +159,7 @@
             <span class="api-desc">Update a pet type</span>
         </summary>
         <div class="api-body">
-            <p><code>{petname}</code> is the pet type identifier (e.g. <code>wolf</code>). Fields in the request body overwrite the existing definition. The <code>type</code> is always preserved from the URL.</p>
+            <p><code>{petname}</code> is the pet type identifier (e.g. <code>wolf</code>). The request body is merged over the existing definition. The <code>type</code> is always preserved from the URL.</p>
 
             <table class="params-table">
                 <thead><tr><th>Parameter</th><th>In</th><th>Description</th></tr></thead>
@@ -152,29 +168,27 @@
                 </tbody>
             </table>
 
+            <p>Request body accepts the same fields as POST: <code>name</code>, <code>namestyle</code>, <code>roundactchance</code>, <code>abilities</code>. The <code>type</code> field in the body is ignored; the URL value is always used.</p>
+
             <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> <span class="flag">-X</span> PATCH \
      <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
-     <span class="flag">-d</span> <span class="str">'{
-  "name": "Dire Wolf",
-  "capacity": 2,
-  "damage": { "diceroll": "2d6", "attacks": 2 },
-  "statmods": { "strength": 4, "speed": 2 }
-}'</span> \
+     <span class="flag">-d</span> <span class="str">'{"name":"Dire Wolf","roundactchance":15}'</span> \
      <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/pets/wolf</span></div>
 
             <div class="response-examples">
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
-                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"type":"wolf","name":"Dire Wolf","capacity":2,...}}</div></div>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"type":"wolf","name":"Dire Wolf","roundactchance":15,"abilities":[...]}}</div></div>
                 </details>
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-err">404</span> <span class="resp-label">Not Found</span></summary>
-                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"pet type \"wolf\" not found"}</div></div>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"pet type not found: wolf"}</div></div>
                 </details>
             </div>
         </div>
     </details>
 
+    <!-- DELETE /admin/api/v1/pets/{petname} -->
     <details class="api-entry">
         <summary>
             <span class="method method-delete">DELETE</span>
@@ -182,7 +196,7 @@
             <span class="api-desc">Delete a pet type</span>
         </summary>
         <div class="api-body">
-            <p><code>{petname}</code> is the pet type identifier. Removes the YAML file from disk and unregisters the type from memory.</p>
+            <p><code>{petname}</code> is the pet type identifier. Removes the YAML definition and any associated <code>.js</code> script file from disk, and unregisters the type from memory.</p>
 
             <table class="params-table">
                 <thead><tr><th>Parameter</th><th>In</th><th>Description</th></tr></thead>
@@ -202,6 +216,86 @@
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-err">404</span> <span class="resp-label">Not Found</span></summary>
                     <div class="resp-body"><div class="curl-block">{"success":false,"error":"pet type \"wolf\" not found"}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <!-- GET /admin/api/v1/pets/{petname}/script -->
+    <details class="api-entry">
+        <summary>
+            <span class="method method-get">GET</span>
+            <span class="api-path">/admin/api/v1/pets/{petname}/script</span>
+            <span class="api-desc">Retrieve the script for a pet type</span>
+        </summary>
+        <div class="api-body">
+            <p>Returns the JavaScript source for the pet type's script file. The script lives alongside the pet's YAML definition (e.g. <code>pets/wolf.js</code>). Returns an empty string if no script file exists on disk.</p>
+
+            <table class="params-table">
+                <thead><tr><th>Parameter</th><th>In</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td>petname <span class="required">required</span></td><td>path</td><td>Pet type identifier.</td></tr>
+                </tbody>
+            </table>
+
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/pets/wolf/script</span></div>
+
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{
+  "success": true,
+  "data": {
+    "script": "function PetAct(pet, actor, room) {\n    room.SendText(pet.NameSimple() + ' howls.');\n}\n"
+  }
+}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">404</span> <span class="resp-label">Not Found</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"pet type not found: wolf"}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <!-- PUT /admin/api/v1/pets/{petname}/script -->
+    <details class="api-entry">
+        <summary>
+            <span class="method method-put">PUT</span>
+            <span class="api-path">/admin/api/v1/pets/{petname}/script</span>
+            <span class="api-desc">Save or delete the script for a pet type</span>
+        </summary>
+        <div class="api-body">
+            <p>Writes the provided JavaScript to the pet's script file alongside its YAML definition (e.g. <code>pets/wolf.js</code>). Send an empty string to delete the script file. The in-memory VM cache for this pet type is invalidated automatically so the new script is used on the next invocation.</p>
+
+            <table class="params-table">
+                <thead><tr><th>Parameter / Field</th><th>In</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td>petname <span class="required">required</span></td><td>path</td><td>Pet type identifier.</td></tr>
+                    <tr><td>script <span class="required">required</span></td><td>body (JSON)</td><td>JavaScript source string. Pass <code>""</code> to remove the script file.</td></tr>
+                </tbody>
+            </table>
+
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> <span class="flag">-X</span> PUT \
+     <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
+     <span class="flag">-d</span> <span class="str">'{
+  "script": "function PetAct(pet, actor, room) {\n    room.SendText(pet.NameSimple() + \" howls at the moon.\");\n}\n"
+}'</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/pets/wolf/script</span></div>
+
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"petname is required"}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">500</span> <span class="resp-label">Internal Server Error</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"..."}</div></div>
                 </details>
             </div>
         </div>
