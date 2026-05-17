@@ -23,7 +23,7 @@ func Pet(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 
 	if args[0] == `name` {
 
-		if !user.Character.Pet.Exists() {
+		if !user.Character.Pet.Exists() || user.Character.Pet.IsMissing() {
 			user.SendText(`You have no pet to name.`)
 			return true, nil
 		}
@@ -69,12 +69,8 @@ func Pet(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 	}
 
 	petUserId := room.FindByPetName(rest)
-	if petUserId == 0 && rest == `pet` && user.Character.Pet.Exists() {
+	if petUserId == 0 && rest == `pet` && user.Character.Pet.Exists() && !user.Character.Pet.IsMissing() {
 		petUserId = user.UserId
-	}
-	if petUserId == 0 {
-		user.SendText(`Can't find that to pet.`)
-		return true, nil
 	}
 
 	petUser := users.GetByUserId(petUserId)

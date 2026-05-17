@@ -1207,7 +1207,7 @@ func (r *Room) GetMobs(findTypes ...FindFlag) []int {
 			continue
 		}
 
-		if typeFlag&FindHasPet == FindHasPet && mob.Character.Pet.Exists() {
+		if typeFlag&FindHasPet == FindHasPet && mob.Character.Pet.Exists() && !mob.Character.Pet.IsMissing() {
 			mobMatches = append(mobMatches, mobId)
 			continue
 		}
@@ -1297,7 +1297,7 @@ func (r *Room) GetPlayers(findTypes ...FindFlag) []int {
 			continue
 		}
 
-		if typeFlag&FindHasPet == FindHasPet && user.Character.Pet.Exists() {
+		if typeFlag&FindHasPet == FindHasPet && user.Character.Pet.Exists() && !user.Character.Pet.IsMissing() {
 			playerMatches = append(playerMatches, userId)
 			continue
 		}

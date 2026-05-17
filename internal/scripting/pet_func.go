@@ -13,6 +13,7 @@ func setPetFunctions(vm *goja.Runtime) {
 // mutations are reflected immediately without any extra save call.
 type ScriptPet struct {
 	petRecord *pets.Pet
+	userId    int
 }
 
 // Type returns the pet's type identifier (e.g. "dog", "cat", "owl").
@@ -120,6 +121,41 @@ func (p ScriptPet) ItemCount() int {
 	return 0
 }
 
+// IsMissing returns true if the pet is currently absent (MissingCountdown > 0).
+func (p ScriptPet) IsMissing() bool {
+	if p.petRecord != nil {
+		return p.petRecord.IsMissing()
+	}
+	return false
+}
+
+// GoMissing causes the pet to go absent for the given number of rounds.
+// Pass 0 to return the pet immediately, firing PetReturn instead of PetLeave.
+// Any positive value fires PetLeave and begins the countdown.
+func (p ScriptPet) GoMissing(rounds int) {
+	if p.petRecord == nil {
+		return
+	}
+	if rounds <= 0 {
+		if !p.petRecord.IsMissing() {
+			return
+		}
+		p.petRecord.GoMissing(0)
+		if p.userId > 0 {
+			TryPetScriptEvent(`PetReturn`, p.userId)
+		}
+		return
+	}
+	if !p.petRecord.IsMissing() {
+		p.petRecord.GoMissing(rounds)
+		if p.userId > 0 {
+			TryPetScriptEvent(`PetLeave`, p.userId)
+		}
+	} else {
+		p.petRecord.GoMissing(rounds)
+	}
+}
+
 // HasScript returns true if this pet type has a script file on disk.
 func (p ScriptPet) HasScript() bool {
 	if p.petRecord != nil {
@@ -143,9 +179,15 @@ func (p ScriptPet) getScript() string {
 
 // GetPet returns a ScriptPet wrapping the given pet pointer.
 // Returns nil if pet is nil or does not exist.
-func GetPet(pet *pets.Pet) *ScriptPet {
+// Pass the owner's userId as the optional second argument to enable
+// script-triggered events such as GoMissing.
+func GetPet(pet *pets.Pet, userId ...int) *ScriptPet {
 	if pet == nil || !pet.Exists() {
 		return nil
 	}
-	return &ScriptPet{petRecord: pet}
+	sp := &ScriptPet{petRecord: pet}
+	if len(userId) > 0 {
+		sp.userId = userId[0]
+	}
+	return sp
 }

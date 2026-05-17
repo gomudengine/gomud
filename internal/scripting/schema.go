@@ -406,6 +406,28 @@ func petScriptType() *ScriptTypeDef {
 				Stub:            "function PetAct(pet, actor, room) {\n\n}\n",
 			},
 			{
+				Name:        "PetLeave",
+				Description: "Called when the pet goes missing (GoMissing is invoked with a positive value). Shares the same signature as PetAct.",
+				Params: []ScriptFuncParam{
+					{Name: "pet", Type: "PetObject", Description: "The pet."},
+					{Name: "actor", Type: "ActorObject", Description: "The owner of the pet."},
+					{Name: "room", Type: "RoomObject", Description: "The room the pet and owner are in."},
+				},
+				ReturnSemantics: "Return value is ignored.",
+				Stub:            "function PetLeave(pet, actor, room) {\n\n}\n",
+			},
+			{
+				Name:        "PetReturn",
+				Description: "Called when the pet returns after its MissingCountdown reaches zero. Shares the same signature as PetAct.",
+				Params: []ScriptFuncParam{
+					{Name: "pet", Type: "PetObject", Description: "The pet."},
+					{Name: "actor", Type: "ActorObject", Description: "The owner of the pet."},
+					{Name: "room", Type: "RoomObject", Description: "The room the pet and owner are in."},
+				},
+				ReturnSemantics: "Return value is ignored.",
+				Stub:            "function PetReturn(pet, actor, room) {\n\n}\n",
+			},
+			{
 				Name:        "onCommand",
 				Description: "Called when any command is typed by the pet's owner.",
 				Params: []ScriptFuncParam{

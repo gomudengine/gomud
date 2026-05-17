@@ -19,16 +19,17 @@ import (
 )
 
 type Pet struct {
-	Name           string       `yaml:"name,omitempty"`           // Name of the pet (player provided hopefully)
-	NameStyle      string       `yaml:"namestyle,omitempty"`      // Optional color pattern to apply
-	Type           string       `yaml:"type"`                     // type of pet
-	RoundActChance int          `yaml:"roundactchance,omitempty"` // 0-100 chance per round to fire PetAct script
-	Food           Food         `yaml:"food,omitempty"`           // how much food the pet has
-	Level          int          `yaml:"level,omitempty"`          // Pet level (1-10)
-	LastMealRound  uint8        `yaml:"lastmealround,omitempty"`  // When the pet was last fed
-	LastLevelCheck string       `yaml:"lastlevelcheck,omitempty"` // "{year}.{day}" of last daily tick
-	Abilities      []PetAbility `yaml:"abilities,omitempty"`      // Refreshed from definition file on Validate()
-	Items          []items.Item `yaml:"items,omitempty"`          // Items held by this pet
+	Name             string       `yaml:"name,omitempty"`             // Name of the pet (player provided hopefully)
+	NameStyle        string       `yaml:"namestyle,omitempty"`        // Optional color pattern to apply
+	Type             string       `yaml:"type"`                       // type of pet
+	RoundActChance   int          `yaml:"roundactchance,omitempty"`   // 0-100 chance per round to fire PetAct script
+	Food             Food         `yaml:"food,omitempty"`             // how much food the pet has
+	Level            int          `yaml:"level,omitempty"`            // Pet level (1-10)
+	LastMealRound    uint8        `yaml:"lastmealround,omitempty"`    // When the pet was last fed
+	LastLevelCheck   string       `yaml:"lastlevelcheck,omitempty"`   // "{year}.{day}" of last daily tick
+	Abilities        []PetAbility `yaml:"abilities,omitempty"`        // Refreshed from definition file on Validate()
+	Items            []items.Item `yaml:"items,omitempty"`            // Items held by this pet
+	MissingCountdown int          `yaml:"missingcountdown,omitempty"` // When non-zero, pet is absent
 
 	cachedAbility *PetAbility `yaml:"-"` // cached current ability
 	cachedLevel   int         `yaml:"-"` // level when cache was set
@@ -84,6 +85,30 @@ func (p *Pet) StatMod(statName string) int {
 
 func (p *Pet) Exists() bool {
 	return p.Type != ``
+}
+
+// IsMissing returns true when the pet is temporarily absent.
+func (p *Pet) IsMissing() bool {
+	return p.MissingCountdown > 0
+}
+
+// GoMissing sets the missing countdown to the given number of rounds.
+// A value of zero clears the missing state immediately.
+func (p *Pet) GoMissing(rounds int) {
+	if rounds < 0 {
+		rounds = 0
+	}
+	p.MissingCountdown = rounds
+}
+
+// DecrementMissing decrements the missing countdown by one.
+// Returns true if the countdown just reached zero (pet is returning this round).
+func (p *Pet) DecrementMissing() bool {
+	if p.MissingCountdown <= 0 {
+		return false
+	}
+	p.MissingCountdown--
+	return p.MissingCountdown == 0
 }
 
 func (p *Pet) DisplayName() string {

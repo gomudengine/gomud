@@ -21,6 +21,8 @@ take effect immediately and are persisted the next time the character is saved.
   - [PetObject.GetCapacity() int](#petobjectgetcapacity-int)
   - [PetObject.ItemCount() int](#petobjectitemcount-int)
   - [PetObject.HasScript() bool](#petobjecthasscript-bool)
+  - [PetObject.IsMissing() bool](#petobjectismissing-bool)
+  - [PetObject.GoMissing(rounds int)](#petobjectgomissingrounds-int)
 
 ---
 
@@ -200,3 +202,54 @@ Returns `true` if this pet type has a script file on disk.
 
 Useful in generic scripts that want to check whether a pet will respond to
 events before attempting to trigger them.
+
+---
+
+## [PetObject.IsMissing() bool](/internal/scripting/pet_func.go)
+Returns `true` when the pet is temporarily absent (`MissingCountdown > 0`).
+
+While missing, the pet does not appear in room descriptions, does not
+participate in combat, does not contribute stat or buff bonuses, and does not
+respond to commands or `PetAct` ticks.
+
+**Example:**
+```javascript
+var pet = actor.GetPet();
+if (pet !== null && pet.IsMissing()) {
+    actor.SendText('Your pet has wandered off somewhere...');
+}
+```
+
+---
+
+## [PetObject.GoMissing(rounds int)](/internal/scripting/pet_func.go)
+Causes the pet to go absent for the given number of rounds, or returns it
+immediately when called with `0`.
+
+- **Positive value**: sets the countdown, fires `PetLeave()`, and hides the
+  pet from all game systems until the countdown reaches zero.
+- **Zero**: clears the countdown immediately and fires `PetReturn()`. Has no
+  effect if the pet is not currently missing.
+
+| Argument | Explanation |
+| --- | --- |
+| rounds | Rounds to be absent, or `0` to return immediately. Negative values are treated as `0`. |
+
+**Example:**
+```javascript
+function PetAct(pet, actor, room) {
+    // 1% chance per round for the pet to wander off for 10 rounds
+    if (RandInt(1, 100) === 1) {
+        pet.GoMissing(10);
+    }
+}
+
+// Return the pet early from a script command
+function onCommand_recall(rest, pet, actor, room) {
+    if (pet.IsMissing()) {
+        pet.GoMissing(0);
+        actor.SendText('Your pet bounds back to your side!');
+    }
+    return true;
+}
+```
