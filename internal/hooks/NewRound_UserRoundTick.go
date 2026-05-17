@@ -97,6 +97,12 @@ func UserRoundTick(e events.Event) events.ListenerReturn {
 					user.Command(`zombieact`)
 				}
 
+				// Fire PetAct script using the pet type's configured RoundActChance.
+				// Not called while the owner is in combat.
+				if user.Character.Pet.Exists() && user.Character.Aggro == nil && user.Character.Pet.RoundActChance > 0 && util.Rand(100) < user.Character.Pet.RoundActChance {
+					scripting.TryPetScriptEvent(`PetAct`, uId)
+				}
+
 				// Roundtick any cooldowns
 				user.Character.Cooldowns.RoundTick()
 

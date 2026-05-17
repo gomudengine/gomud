@@ -90,6 +90,7 @@ func Setup(scriptLoadTimeoutMs int, scriptRoomTimeoutMs int) {
 	scriptBuffTimeout = t
 	scriptItemTimeout = t
 	scriptMobTimeout = t
+	scriptPetTimeout = t
 	scriptSpellTimeout = t
 }
 
@@ -99,6 +100,7 @@ func setAllScriptingFunctions(vm *goja.Runtime) {
 	setActorFunctions(vm)
 	setSpellFunctions(vm)
 	setItemFunctions(vm)
+	setPetFunctions(vm)
 	setUtilFunctions(vm)
 	setModuleFunctions(vm)
 	setPanelFunctions(vm)
@@ -141,6 +143,7 @@ func PruneVMs(forceClear ...bool) {
 		ClearMobVMs()
 		ClearBuffVMs()
 		ClearItemVMs()
+		ClearPetVMs()
 		ClearSpellVMs()
 	} else {
 		PruneRoomVMs()

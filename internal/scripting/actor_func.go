@@ -9,7 +9,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
-	"github.com/GoMudEngine/GoMud/internal/pets"
 	"github.com/GoMudEngine/GoMud/internal/races"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/skills"
@@ -711,12 +710,11 @@ func (a ScriptActor) Uncurse() []*ScriptItem {
 	return retList
 }
 
-func (a ScriptActor) GetPet() *pets.Pet {
-
-	if a.characterRecord.Pet.Exists() {
-		return &a.characterRecord.Pet
+func (a ScriptActor) GetPet() *ScriptPet {
+	if !a.characterRecord.Pet.Exists() {
+		return nil
 	}
-	return nil
+	return GetPet(&a.characterRecord.Pet)
 }
 
 func (a ScriptActor) GrantXP(xpAmt int, reason string) {

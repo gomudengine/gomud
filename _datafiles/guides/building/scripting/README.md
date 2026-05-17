@@ -14,6 +14,9 @@ See [Item Scripting](SCRIPTING_ITEMS.md)
 # Buff Scripting
 See [Buff Scripting](SCRIPTING_BUFFS.md)
 
+# Pet Scripting
+See [Pet Scripting](SCRIPTING_PETS.md)
+
 # Spell Scripting
 See [Spell Scripting](SCRIPTING_SPELLS.md)
 
@@ -26,6 +29,8 @@ See [Spell Scripting](SCRIPTING_SPELLS.md)
 [RoomObject Functions](FUNCTIONS_ROOMS.md) - Functions that query or alter room data.
 
 [ItemObject Functions](FUNCTIONS_ITEMS.md) - Functions that query or alter item data.
+
+[PetObject Functions](FUNCTIONS_PETS.md) - Functions that query or alter pet data.
 
 [Utility Functions](FUNCTIONS_UTIL.md) - Helper and info functions.
 

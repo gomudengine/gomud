@@ -141,10 +141,12 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("PATCH /admin/api/v1/races/{raceId}", doBasicAuth(RunWithMUDLocked(apiV1PatchRace)))
 	mux.HandleFunc("DELETE /admin/api/v1/races/{raceId}", doBasicAuth(RunWithMUDLocked(apiV1DeleteRace)))
 
-	// Pets
+	// Pets - script sub-route before wildcard {petname}
 	mux.HandleFunc("GET /admin/api/v1/pets/ranks", doBasicAuth(RunWithMUDLocked(apiV1GetPetRanks)))
 	mux.HandleFunc("GET /admin/api/v1/pets", doBasicAuth(RunWithMUDLocked(apiV1GetPets)))
 	mux.HandleFunc("POST /admin/api/v1/pets", doBasicAuth(RunWithMUDLocked(apiV1CreatePet)))
+	mux.HandleFunc("GET /admin/api/v1/pets/{petname}/script", doBasicAuth(RunWithMUDLocked(apiV1GetPetScript)))
+	mux.HandleFunc("PUT /admin/api/v1/pets/{petname}/script", doBasicAuth(RunWithMUDLocked(apiV1PutPetScript)))
 	mux.HandleFunc("PATCH /admin/api/v1/pets/{petname}", doBasicAuth(RunWithMUDLocked(apiV1PatchPet)))
 	mux.HandleFunc("DELETE /admin/api/v1/pets/{petname}", doBasicAuth(RunWithMUDLocked(apiV1DeletePet)))
 

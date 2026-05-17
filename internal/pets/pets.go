@@ -2,6 +2,8 @@ package pets
 
 import (
 	"fmt"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/buffs"
@@ -20,6 +22,7 @@ type Pet struct {
 	Name           string       `yaml:"name,omitempty"`           // Name of the pet (player provided hopefully)
 	NameStyle      string       `yaml:"namestyle,omitempty"`      // Optional color pattern to apply
 	Type           string       `yaml:"type"`                     // type of pet
+	RoundActChance int          `yaml:"roundactchance,omitempty"` // 0-100 chance per round to fire PetAct script
 	Food           Food         `yaml:"food,omitempty"`           // how much food the pet has
 	Level          int          `yaml:"level,omitempty"`          // Pet level (1-10)
 	LastMealRound  uint8        `yaml:"lastmealround,omitempty"`  // When the pet was last fed
@@ -362,6 +365,26 @@ func (p *Pet) Id() string {
 	return p.Type
 }
 
+func (p *Pet) GetScriptPath() string {
+	return util.FilePath(configs.GetFilePathsConfig().DataFiles.String(), `/`, `pets`, `/`, strings.Replace(p.Filepath(), `.yaml`, `.js`, 1))
+}
+
+func (p *Pet) HasScript() bool {
+	scriptPath := p.GetScriptPath()
+	_, err := os.Stat(scriptPath)
+	return err == nil
+}
+
+func (p *Pet) GetScript() string {
+	scriptPath := p.GetScriptPath()
+	if _, err := os.Stat(scriptPath); err == nil {
+		if bytes, err := util.ReadFile(scriptPath); err == nil {
+			return string(bytes)
+		}
+	}
+	return ``
+}
+
 func (p *Pet) Validate() error {
 
 	if p.Items == nil {
@@ -387,6 +410,7 @@ func (p *Pet) Validate() error {
 			p.Abilities = make([]PetAbility, len(def.Abilities))
 			copy(p.Abilities, def.Abilities)
 			p.NameStyle = def.NameStyle
+			p.RoundActChance = def.RoundActChance
 			p.clearAbilityCache()
 		}
 	}

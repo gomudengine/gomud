@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -48,6 +49,10 @@ func DeletePetSpec(petType string) error {
 	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("removing pet file: %w", err)
 	}
+	scriptPath := p.GetScriptPath()
+	if err := os.Remove(scriptPath); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("removing pet script: %w", err)
+	}
 	delete(petTypes, petType)
 	return nil
 }
@@ -62,4 +67,27 @@ func CreatePetSpec(p *Pet) error {
 		return fmt.Errorf("pet type %q already exists", p.Type)
 	}
 	return SavePetSpec(p)
+}
+
+// SavePetScript writes (or removes) the JavaScript script file for a pet type.
+func SavePetScript(petType string, content string) error {
+	petType = strings.ToLower(strings.TrimSpace(petType))
+	p, ok := petTypes[petType]
+	if !ok {
+		return fmt.Errorf("pet type %q not found", petType)
+	}
+
+	scriptPath := p.GetScriptPath()
+
+	if content == "" {
+		if err := os.Remove(scriptPath); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("removing pet script: %w", err)
+		}
+		return nil
+	}
+
+	if err := os.MkdirAll(filepath.Dir(scriptPath), os.ModePerm); err != nil {
+		return fmt.Errorf("creating pet scripts directory: %w", err)
+	}
+	return util.WriteFile(scriptPath, []byte(content), 0644)
 }
