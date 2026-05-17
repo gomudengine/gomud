@@ -199,7 +199,7 @@ func Go(rest string, user *users.UserRecord, room *rooms.Room, flags events.Even
 					))
 
 				// Tell the old room they are leaving
-				if user.Character.Pet.Exists() {
+				if user.Character.Pet.Exists() && !user.Character.Pet.IsMissing() {
 
 					room.SendText(
 						fmt.Sprintf(string(c.ExitRoomMessageWrapper),
@@ -216,7 +216,7 @@ func Go(rest string, user *users.UserRecord, room *rooms.Room, flags events.Even
 				}
 
 				// Tell everyone if the pet is following
-				if user.Character.Pet.Exists() {
+				if user.Character.Pet.Exists() && !user.Character.Pet.IsMissing() {
 
 					user.SendText(fmt.Sprintf(`%s follows you.`, user.Character.Pet.DisplayName()))
 

@@ -133,3 +133,60 @@ function onCommand_pet(rest, pet, actor, room) {
     return false;
 }
 ```
+
+---
+
+```javascript
+function PetLeave(pet, actor, room) {
+}
+```
+
+`PetLeave()` is called immediately when
+[PetObject.GoMissing()](FUNCTIONS_PETS.md#petobjectgomissingrounds-int) is
+invoked. Use it to emit a message or trigger effects when the pet disappears.
+
+The pet is already marked as missing when this fires, so `pet.IsMissing()`
+returns `true` inside the handler.
+
+There is no return value.
+
+| Argument | Explanation |
+| --- | --- |
+| pet | [PetObject](FUNCTIONS_PETS.md) — the pet. |
+| actor | [ActorObject](FUNCTIONS_ACTORS.md) — the player who owns the pet. |
+| room | [RoomObject](FUNCTIONS_ROOMS.md) — the room both are in. |
+
+**Example:**
+```javascript
+function PetLeave(pet, actor, room) {
+    room.SendText(pet.NameSimple() + ' darts into the shadows and disappears!');
+}
+```
+
+---
+
+```javascript
+function PetReturn(pet, actor, room) {
+}
+```
+
+`PetReturn()` is called the round the pet's `MissingCountdown` reaches zero.
+Use it to announce the pet's return or apply any effects.
+
+The countdown has already reached zero when this fires, so `pet.IsMissing()`
+returns `false` inside the handler.
+
+There is no return value.
+
+| Argument | Explanation |
+| --- | --- |
+| pet | [PetObject](FUNCTIONS_PETS.md) — the pet. |
+| actor | [ActorObject](FUNCTIONS_ACTORS.md) — the player who owns the pet. |
+| room | [RoomObject](FUNCTIONS_ROOMS.md) — the room both are in. |
+
+**Example:**
+```javascript
+function PetReturn(pet, actor, room) {
+    room.SendText(pet.NameSimple() + ' trots back to your side.');
+}
+```

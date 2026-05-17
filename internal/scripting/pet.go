@@ -42,7 +42,7 @@ func TryPetScriptEvent(eventName string, userId int) (bool, error) {
 		return false, errors.New("user has no pet")
 	}
 
-	sPet := GetPet(&user.Character.Pet)
+	sPet := GetPet(&user.Character.Pet, userId)
 	if sPet == nil {
 		return false, errors.New("pet not found")
 	}
@@ -112,7 +112,7 @@ func TryPetCommand(cmd string, rest string, userId int) (bool, error) {
 		return false, ErrEventNotFound
 	}
 
-	sPet := GetPet(&user.Character.Pet)
+	sPet := GetPet(&user.Character.Pet, userId)
 	if sPet == nil {
 		return false, ErrEventNotFound
 	}

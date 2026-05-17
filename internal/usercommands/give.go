@@ -224,7 +224,7 @@ func Give(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 	// Look for any pets in the room
 	//
 	petUserId := room.FindByPetName(giveWho)
-	if petUserId == 0 && giveWho == `pet` && user.Character.Pet.Exists() {
+	if petUserId == 0 && giveWho == `pet` && user.Character.Pet.Exists() && !user.Character.Pet.IsMissing() {
 		petUserId = user.UserId
 	}
 	if petUserId > 0 {

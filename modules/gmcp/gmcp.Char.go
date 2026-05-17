@@ -515,7 +515,7 @@ func (g *GMCPCharModule) GetCharNode(user *users.UserRecord, gmcpModule string) 
 
 		payload.Pets = []GMCPCharModule_Payload_Pet{}
 
-		if user.Character.Pet.Exists() {
+		if user.Character.Pet.Exists() && !user.Character.Pet.IsMissing() {
 
 			p := GMCPCharModule_Payload_Pet{
 				Name:     user.Character.Pet.Name,

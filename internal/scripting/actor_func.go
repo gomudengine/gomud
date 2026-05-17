@@ -714,7 +714,7 @@ func (a ScriptActor) GetPet() *ScriptPet {
 	if !a.characterRecord.Pet.Exists() {
 		return nil
 	}
-	return GetPet(&a.characterRecord.Pet)
+	return GetPet(&a.characterRecord.Pet, a.userId)
 }
 
 func (a ScriptActor) GrantXP(xpAmt int, reason string) {

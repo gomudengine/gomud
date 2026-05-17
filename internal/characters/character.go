@@ -1442,7 +1442,11 @@ func (c *Character) MovementCost() int {
 }
 
 func (c *Character) StatMod(statName string) int {
-	return c.Equipment.StatMod(statName) + c.Buffs.StatMod(statName) + c.Pet.StatMod(statName)
+	petMod := 0
+	if !c.Pet.IsMissing() {
+		petMod = c.Pet.StatMod(statName)
+	}
+	return c.Equipment.StatMod(statName) + c.Buffs.StatMod(statName) + petMod
 }
 
 // returns true if something has changed.
@@ -2262,7 +2266,7 @@ func (c *Character) reapplyPermabuffs(removedItems ...items.Item) {
 	}
 
 	// Apply any buffs from pet
-	if c.Pet.Exists() {
+	if c.Pet.Exists() && !c.Pet.IsMissing() {
 		for _, buffId := range c.Pet.GetBuffs() {
 			buffIdCount[buffId] = 100 // Don't allow pet buffs to be removed, keep this number high
 		}

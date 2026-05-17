@@ -12,7 +12,7 @@ import (
 
 func Feed(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
-	if !user.Character.Pet.Exists() {
+	if !user.Character.Pet.Exists() || user.Character.Pet.IsMissing() {
 		user.SendText(`You don't have a pet to feed.`)
 		return true, nil
 	}
