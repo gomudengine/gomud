@@ -26,6 +26,7 @@ var (
 )
 
 func setUtilFunctions(vm *goja.Runtime) {
+	vm.Set(`RandInt`, RandInt)
 	vm.Set(`UtilGetRoundNumber`, UtilGetRoundNumber)
 	vm.Set(`UtilFindMatchIn`, UtilFindMatchIn)
 	vm.Set(`UtilGetSecondsToRounds`, UtilGetSecondsToRounds)
@@ -112,6 +113,16 @@ func UtilStripPrepositions(input string) string {
 
 func UtilDiceRoll(diceQty int, diceSides int) int {
 	return util.RollDice(diceQty, diceSides)
+}
+
+func RandInt(min int, max int) int {
+	if min > max {
+		min, max = max, min
+	}
+	if min == max {
+		return min
+	}
+	return min + util.Rand(max-min+1)
 }
 
 func UtilGetTime() gametime.GameDate {

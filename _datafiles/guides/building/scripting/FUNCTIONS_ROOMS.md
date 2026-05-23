@@ -13,6 +13,7 @@
   - [RoomObject.SetPermData(key string, value any)](#roomobjectsetpermdatakey-string-value-any)
   - [RoomObject.GetPermData(key string) any](#roomobjectgetpermdatakey-string-any)
   - [RoomObject.GetItems() \[\]ItemObject](#roomobjectgetitems-itemobject)
+  - [RoomObject.GetStashItems() \[\]ItemObject](#roomobjectgetstashitems-itemobject)
   - [RoomObject.DestroyItem(itm ScriptItem) ](#roomobjectdestroyitemitm-scriptitem-)
   - [RoomObject.SpawnItem(itemId int, inStash bool) \[\]ItemObject](#roomobjectspawnitemitemid-int-instash-bool-itemobject)
   - [RoomObject.GetMob(mobId int \[, createIfMissing bool\]) Actor](#roomobjectgetmobmobid-int--createifmissing-bool-actor)
@@ -127,6 +128,11 @@ _Note: This is useful for long term saving/retrieving data between room scripts,
 
 ## [RoomObject.GetItems() []ItemObject](/internal/scripting/room_func.go)
 Returns an array of items on the floor of the room.
+
+_Note: See [/scripting/docs/FUNCTIONS_ITEMS.md](FUNCTIONS_ITEMS.md) for details on ItemObject objects._
+
+## [RoomObject.GetStashItems() []ItemObject](/internal/scripting/room_func.go)
+Returns an array of items in the room's stash (hidden items not visible to players in normal room descriptions).
 
 _Note: See [/scripting/docs/FUNCTIONS_ITEMS.md](FUNCTIONS_ITEMS.md) for details on ItemObject objects._
 

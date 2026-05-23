@@ -67,6 +67,14 @@ func (r ScriptRoom) GetItems() []ScriptItem {
 	return itms
 }
 
+func (r ScriptRoom) GetStashItems() []ScriptItem {
+	itms := make([]ScriptItem, 0, 5)
+	for _, item := range r.roomRecord.Stash {
+		itms = append(itms, newScriptItem(item))
+	}
+	return itms
+}
+
 func (r ScriptRoom) DestroyItem(itm ScriptItem) {
 	r.roomRecord.RemoveItem(*itm.itemRecord, false)
 }
