@@ -250,9 +250,7 @@ func swapToAlt(u *users.UserRecord, targetAltName string) bool {
 func (m *AltCharactersModule) onRoomLook(d rooms.RoomTemplateDetails) rooms.RoomTemplateDetails {
 	for _, t := range d.Tags {
 		if strings.EqualFold(t, characterTag) {
-			d.RoomAlerts = append(d.RoomAlerts,
-				`      <ansi fg="yellow-bold">This is a character room!</ansi> Type <ansi fg="command">character</ansi> to interact.`,
-			)
+			d.Alert(`<ansi fg="yellow-bold">This is a character room!</ansi> Type <ansi fg="command">character</ansi> to interact.`)
 			return d
 		}
 	}

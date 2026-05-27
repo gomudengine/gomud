@@ -25,7 +25,7 @@ import (
 // Example registration from a module:
 //
 //	rooms.OnRoomLook.Register(func(d rooms.RoomTemplateDetails) rooms.RoomTemplateDetails {
-//	    d.RoomAlerts = append(d.RoomAlerts, "You can fish here!")
+//	    d.Alert("You can fish here!")
 //	    return d
 //	})
 var OnRoomLook util.Hook[RoomTemplateDetails]
@@ -47,9 +47,20 @@ type RoomTemplateDetails struct {
 	IsDark         bool
 	IsNight        bool
 	TrackingString string
-	RoomAlerts     []string // Messages to show below room description as a special alert
-	ShowPvp        bool     // Whether to display that the room is PVP
-	Tags           []string // Tags applied to the room
+	RoomAlerts     [][]string // Messages to show below room description as a special alert
+	ShowPvp        bool       // Whether to display that the room is PVP
+	Tags           []string   // Tags applied to the room
+}
+
+// Alert appends one alert group to RoomAlerts. Each argument becomes one line
+// within the same header/footer bracket when rendered. A single string
+// containing "\n" is automatically split into multiple lines of the same group.
+func (d *RoomTemplateDetails) Alert(lines ...string) {
+	var group []string
+	for _, line := range lines {
+		group = append(group, strings.Split(line, "\n")...)
+	}
+	d.RoomAlerts = append(d.RoomAlerts, group)
 }
 
 func GetDetails(r *Room, user *users.UserRecord, tinymap ...[]string) RoomTemplateDetails {
@@ -99,15 +110,15 @@ func GetDetails(r *Room, user *users.UserRecord, tinymap ...[]string) RoomTempla
 	//
 
 	if len(r.SkillTraining) > 0 {
-		details.RoomAlerts = append(details.RoomAlerts, `<ansi fg="yellow-bold">You can train here!</ansi> Type <ansi fg="command">train</ansi> to see what training is available.`)
+		details.Alert(`<ansi fg="yellow-bold">You can train here!</ansi> Type <ansi fg="command">train</ansi> to see what training is available.`)
 	}
 
 	if r.IsBank {
-		details.RoomAlerts = append(details.RoomAlerts, `          <ansi fg="yellow-bold">This is a bank!</ansi> Type <ansi fg="command">bank</ansi> to deposit/withdraw.`)
+		details.Alert(`<ansi fg="yellow-bold">This is a bank!</ansi> Type <ansi fg="command">bank</ansi> to deposit/withdraw.`)
 	}
 
 	if r.RoomId == -1 {
-		details.RoomAlerts = append(details.RoomAlerts, `      <ansi fg="yellow-bold">Type <ansi fg="command">start</ansi> to begin playing.</ansi>`)
+		details.Alert(`<ansi fg="yellow-bold">Type <ansi fg="command">start</ansi> to begin playing.</ansi>`)
 	}
 
 	//
@@ -222,15 +233,7 @@ func GetDetails(r *Room, user *users.UserRecord, tinymap ...[]string) RoomTempla
 		// No current plans to allow them to overwrite existing alerts.
 		if mutSpec.AlertModifier != nil {
 
-			alertText := mutSpec.AlertModifier.Text
-
-			// center the text
-			if len(mutSpec.AlertModifier.Text) < 65 {
-				padding := (65 - len(mutSpec.AlertModifier.Text)) >> 1
-				alertText = strings.Repeat(` `, padding) + alertText
-			}
-
-			details.RoomAlerts = append(details.RoomAlerts, colorpatterns.ApplyColorPattern(alertText, mutSpec.AlertModifier.ColorPattern))
+			details.Alert(colorpatterns.ApplyColorPattern(mutSpec.AlertModifier.Text, mutSpec.AlertModifier.ColorPattern))
 
 		}
 	}

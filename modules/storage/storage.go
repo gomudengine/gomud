@@ -225,9 +225,7 @@ func (m *StorageModule) onAutoComplete(req suggestions.AutoCompleteRequest) sugg
 func (m *StorageModule) onRoomLook(d rooms.RoomTemplateDetails) rooms.RoomTemplateDetails {
 	for _, t := range d.Tags {
 		if strings.EqualFold(t, storageTag) {
-			d.RoomAlerts = append(d.RoomAlerts,
-				` <ansi fg="yellow-bold">This is an item storage location!</ansi> Type <ansi fg="command">storage</ansi> to store/unstore.`,
-			)
+			d.Alert(`<ansi fg="yellow-bold">This is an item storage location!</ansi> Type <ansi fg="command">storage</ansi> to store/unstore.`)
 			return d
 		}
 	}

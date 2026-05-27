@@ -165,9 +165,7 @@ func (g *GamblingModule) onRoomLook(d rooms.RoomTemplateDetails) rooms.RoomTempl
 	for _, t := range d.Tags {
 		tl := strings.ToLower(t)
 		if tl == `slots` || tl == `slot machine` {
-			d.RoomAlerts = append(d.RoomAlerts,
-				`There is a <ansi fg="cyan-bold">slot machine</ansi> here! You can <ansi fg="command">look</ansi> at or <ansi fg="command">play</ansi> it.`,
-			)
+			d.Alert(`There is a <ansi fg="cyan-bold">slot machine</ansi> here! You can <ansi fg="command">look</ansi> at or <ansi fg="command">play</ansi> it.`)
 			return d
 		}
 	}
