@@ -129,10 +129,12 @@ func (reg *moduleAdminRegistrarImpl) RegisterAdminPage(
 		}
 
 		templateData := map[string]any{
-			"CONFIG":      configs.GetConfig(),
-			"STATS":       GetStats(),
-			"NAV":         buildAdminNav(),
-			"AUTHED_USER": GetAuthedUser(r),
+			"CONFIG":           configs.GetConfig(),
+			"STATS":            GetStats(),
+			"NAV":              buildAdminNav(),
+			"AUTHED_USER":      GetAuthedUser(r),
+			"WRITE_PERMISSION": pageWritePermissions[strings.TrimRight(r.URL.Path, "/")],
+			"READ_ONLY":        pageReadOnly(r),
 		}
 		if dataFunc != nil {
 			for k, v := range dataFunc(r) {
