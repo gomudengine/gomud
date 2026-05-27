@@ -1,0 +1,48 @@
+{{template "header" .}}
+
+<style>
+    .forbidden-box {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        padding: 4rem 1rem; text-align: center;
+    }
+    .forbidden-code {
+        font-size: 5rem; font-weight: 700; color: var(--color-error-text);
+        line-height: 1; margin-bottom: 0.5rem;
+    }
+    .forbidden-title {
+        font-size: 1.3rem; font-weight: 600; margin-bottom: 0.5rem;
+    }
+    .forbidden-msg {
+        font-size: 0.9rem; color: var(--color-text-muted); margin-bottom: 1.5rem;
+    }
+    .forbidden-perm {
+        display: inline-flex; align-items: center; gap: 0.5rem;
+        background: var(--color-surface-alt); border: 1px solid var(--color-border-strong);
+        border-radius: 6px; padding: 0.6rem 1.1rem; margin-bottom: 1.75rem;
+        font-size: 0.85rem; color: var(--color-text-tertiary);
+    }
+    .forbidden-perm code {
+        font-family: monospace; font-size: 0.9rem; font-weight: 700;
+        color: var(--color-primary); background: none; padding: 0;
+    }
+    .forbidden-back {
+        display: inline-block; padding: 0.45rem 1.1rem; border-radius: 4px;
+        background: var(--color-primary); color: var(--color-surface-white);
+        text-decoration: none; font-size: 0.875rem; font-weight: 600;
+    }
+    .forbidden-back:hover { background: var(--color-primary-hover); }
+</style>
+
+<div class="forbidden-box">
+    <div class="forbidden-code">403</div>
+    <div class="forbidden-title">Access Denied</div>
+    <div class="forbidden-msg">Your account does not have permission to access this page.</div>
+    {{if .REQUIRED_PERMISSION}}
+    <div class="forbidden-perm">
+        Required permission: <code>{{.REQUIRED_PERMISSION}}</code>
+    </div>
+    {{end}}
+    <a class="forbidden-back" href="/admin/">Return to Dashboard</a>
+</div>
+
+{{template "footer" .}}

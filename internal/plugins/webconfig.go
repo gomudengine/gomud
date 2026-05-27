@@ -24,10 +24,11 @@ type AdminWebPage struct {
 
 // AdminAPIRoute describes an admin API endpoint contributed by a module.
 type AdminAPIRoute struct {
-	Method  string
-	Slug    string
-	Path    string // "/admin/api/v1/<slug>"
-	Handler ModuleAPIHandler
+	Method        string
+	Slug          string
+	Path          string // "/admin/api/v1/<slug>"
+	Handler       ModuleAPIHandler
+	PermissionKey string // if non-empty, required permission key for this endpoint
 }
 
 type WebConfig struct {
@@ -35,6 +36,7 @@ type WebConfig struct {
 	pages          map[string]WebPage // path=>WebPage
 	adminPages     []AdminWebPage
 	adminAPIRoutes []AdminAPIRoute
+	permissions    []ModulePermission
 }
 
 type WebPage struct {
@@ -89,16 +91,31 @@ func (w *WebConfig) AdminPage(name, slug, htmlFile string, addToNav bool, navGro
 	})
 }
 
+// RegisterPermissions declares permission keys that this module contributes.
+// Call this during module initialisation for any write permission keys used in
+// AdminAPIEndpoint calls so they appear in the admin permission picker.
+func (w *WebConfig) RegisterPermissions(perms ...ModulePermission) {
+	w.permissions = append(w.permissions, perms...)
+}
+
 // AdminAPIEndpoint registers an HTTP handler under /admin/api/v1/<slug>.
 //
-//   - method  - HTTP method string: "GET", "POST", "PATCH", "DELETE", etc.
-//   - slug    - path suffix, e.g. "mudmail" -> /admin/api/v1/mudmail
-//   - handler - the handler function
-func (w *WebConfig) AdminAPIEndpoint(method, slug string, handler ModuleAPIHandler) {
+//   - method        - HTTP method string: "GET", "POST", "PATCH", "DELETE", etc.
+//   - slug          - path suffix, e.g. "mudmail" -> /admin/api/v1/mudmail
+//   - handler       - the handler function
+//   - permissionKey - if non-empty, the permission key required to call this
+//     endpoint. Conventionally "<module>.write" for mutating methods.
+//     Leave empty for GET (read) endpoints.
+func (w *WebConfig) AdminAPIEndpoint(method, slug string, handler ModuleAPIHandler, permissionKey ...string) {
+	permKey := ""
+	if len(permissionKey) > 0 {
+		permKey = permissionKey[0]
+	}
 	w.adminAPIRoutes = append(w.adminAPIRoutes, AdminAPIRoute{
-		Method:  method,
-		Slug:    slug,
-		Path:    "/admin/api/v1/" + slug,
-		Handler: handler,
+		Method:        method,
+		Slug:          slug,
+		Path:          "/admin/api/v1/" + slug,
+		Handler:       handler,
+		PermissionKey: permKey,
 	})
 }

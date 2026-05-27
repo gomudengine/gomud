@@ -80,8 +80,12 @@ type ModuleAdminRegistrar interface {
 	// navParent, if non-empty, nests the page as a sub-item under that parent within the group.
 	RegisterAdminPage(name, slug, htmlContent string, addToNav bool, navGroup, navParent string, dataFunc func(*http.Request) map[string]any)
 	// RegisterAdminAPIEndpoint registers a module API handler.
+	// permissionKey, if non-empty, is required to call this endpoint.
 	// handler receives the request and returns (statusCode, success, data).
-	RegisterAdminAPIEndpoint(method, slug string, handler func(*http.Request) (int, bool, any))
+	RegisterAdminAPIEndpoint(method, slug, permissionKey string, handler func(*http.Request) (int, bool, any))
+	// RegisterPermission adds a single module-contributed permission key to the
+	// catalog so it appears in the admin permission picker.
+	RegisterPermission(key, description, category string)
 }
 
 // moduleAdminRegistrarImpl holds module-contributed nav and API routes.
@@ -125,9 +129,12 @@ func (reg *moduleAdminRegistrarImpl) RegisterAdminPage(
 		}
 
 		templateData := map[string]any{
-			"CONFIG": configs.GetConfig(),
-			"STATS":  GetStats(),
-			"NAV":    buildAdminNav(),
+			"CONFIG":           configs.GetConfig(),
+			"STATS":            GetStats(),
+			"NAV":              buildAdminNav(),
+			"AUTHED_USER":      GetAuthedUser(r),
+			"WRITE_PERMISSION": pageWritePermissions[strings.TrimRight(r.URL.Path, "/")],
+			"READ_ONLY":        pageReadOnly(r),
 		}
 		if dataFunc != nil {
 			for k, v := range dataFunc(r) {
@@ -230,7 +237,7 @@ func (reg *moduleAdminRegistrarImpl) RegisterAdminPage(
 
 // RegisterAdminAPIEndpoint registers a module API endpoint on internalMux.
 func (reg *moduleAdminRegistrarImpl) RegisterAdminAPIEndpoint(
-	method, slug string,
+	method, slug, permissionKey string,
 	handler func(*http.Request) (int, bool, any),
 ) {
 	path := "/admin/api/v1/" + slug
@@ -240,7 +247,19 @@ func (reg *moduleAdminRegistrarImpl) RegisterAdminAPIEndpoint(
 		writeJSON(w, status, APIResponse[any]{Success: success, Data: data})
 	}
 
-	internalMux.HandleFunc(method+" "+path, doBasicAuth(RunWithMUDLocked(h)))
+	var wrapped http.HandlerFunc
+	if permissionKey != "" {
+		wrapped = doBasicAuth(RequirePermission(permissionKey, RunWithMUDLocked(h)))
+	} else {
+		wrapped = doBasicAuth(RunWithMUDLocked(h))
+	}
+
+	internalMux.HandleFunc(method+" "+path, wrapped)
+}
+
+// RegisterPermission adds a module-contributed permission key to the catalog.
+func (reg *moduleAdminRegistrarImpl) RegisterPermission(key, description, category string) {
+	registerModulePermission(key, description, category)
 }
 
 type WebPlugin interface {

@@ -2,11 +2,55 @@ package web
 
 import (
 	"net/http"
+	"strings"
 	"text/template"
 
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
+	"github.com/GoMudEngine/GoMud/internal/users"
 )
+
+// pageWritePermissions maps admin page URL paths to the write permission key
+// that governs mutations on that page. Pages without a write permission (e.g.
+// read-only views) are not listed.
+var pageWritePermissions = map[string]string{
+	"/admin/audio":                 "audio.write",
+	"/admin/biomes":                "biomes.write",
+	"/admin/buffs":                 "buffs.write",
+	"/admin/color-aliases":         "color-aliases.write",
+	"/admin/colorpatterns":         "colorpatterns.write",
+	"/admin/config":                "config.write",
+	"/admin/conversations":         "conversations.write",
+	"/admin/gametime":              "gametime.write",
+	"/admin/items":                 "items.write",
+	"/admin/items-attack-messages": "items.write",
+	"/admin/keywords":              "keywords.write",
+	"/admin/mobs":                  "mobs.write",
+	"/admin/mutators":              "mutators.write",
+	"/admin/panels":                "panels.write",
+	"/admin/pets":                  "pets.write",
+	"/admin/quests":                "quests.write",
+	"/admin/races":                 "races.write",
+	"/admin/rooms":                 "rooms.write",
+	"/admin/spells":                "spells.write",
+	"/admin/telemetry":             "telemetry.write",
+	"/admin/users":                 "users.write",
+	"/admin/mapper":                "rooms.write",
+}
+
+// pageReadOnly returns true when the authenticated user is a mod who lacks the
+// write permission for the current admin page. Admins always have full access.
+func pageReadOnly(r *http.Request) bool {
+	u := GetAuthedUser(r)
+	if u == nil || u.Role == users.RoleAdmin {
+		return false
+	}
+	writeKey, ok := pageWritePermissions[strings.TrimRight(r.URL.Path, "/")]
+	if !ok {
+		return false
+	}
+	return !u.HasPermission(writeKey)
+}
 
 // serveAdminTemplate is a helper that parses and executes a named admin HTML
 // template, merging any extra data into the standard template data map.
@@ -24,10 +68,14 @@ func serveAdminTemplate(w http.ResponseWriter, r *http.Request, filename string,
 		return
 	}
 
+	writeKey := pageWritePermissions[strings.TrimRight(r.URL.Path, "/")]
 	templateData := map[string]any{
-		"CONFIG": configs.GetConfig(),
-		"STATS":  GetStats(),
-		"NAV":    buildAdminNav(),
+		"CONFIG":           configs.GetConfig(),
+		"STATS":            GetStats(),
+		"NAV":              buildAdminNav(),
+		"AUTHED_USER":      GetAuthedUser(r),
+		"WRITE_PERMISSION": writeKey,
+		"READ_ONLY":        pageReadOnly(r),
 	}
 	for k, v := range extra {
 		templateData[k] = v

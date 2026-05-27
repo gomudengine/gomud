@@ -37,6 +37,7 @@
     .status-err { background: var(--color-error-bg); color: var(--color-error-text); }
     .resp-label { font-size: 0.8rem; color: var(--color-text-tertiary); }
     .domain { color: var(--color-api-str); }
+    .perm-badge { font-size: 0.72rem; font-family: monospace; padding: 0.1rem 0.4rem; border-radius: 3px; font-weight: 600; background: var(--color-border-faint); color: var(--color-text-tertiary); margin-left: 0.5rem; }
 </style>
 
 <h1>Mobs API Reference</h1>
@@ -49,6 +50,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/mobs</span>
             <span class="api-desc">Return all mob specs</span>
+            <span class="perm-badge">mobs.read</span>
         </summary>
         <div class="api-body">
             <p>Returns an array of every loaded mob specification. Each entry includes a <code>HasScript</code> boolean indicating whether a JavaScript file exists for the mob.</p>
@@ -68,6 +70,7 @@
             <span class="method method-post">POST</span>
             <span class="api-path">/admin/api/v1/mobs</span>
             <span class="api-desc">Create a new mob</span>
+            <span class="perm-badge">mobs.write</span>
         </summary>
         <div class="api-body">
             <p>Creates a new mob. The <code>MobId</code> is assigned automatically (next available). Returns the created spec.</p>
@@ -94,6 +97,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/mobs/{mobId}</span>
             <span class="api-desc">Get a single mob spec by ID or name</span>
+            <span class="perm-badge">mobs.read</span>
         </summary>
         <div class="api-body">
             <p><code>{mobId}</code> can be a numeric mob ID or a partial/full mob name (uses fuzzy matching).</p>
@@ -119,6 +123,7 @@
             <span class="method method-patch">PATCH</span>
             <span class="api-path">/admin/api/v1/mobs/{mobId}</span>
             <span class="api-desc">Update mob properties</span>
+            <span class="perm-badge">mobs.write</span>
         </summary>
         <div class="api-body">
             <p>Merges the supplied fields into the existing spec. The <code>MobId</code> in the body is ignored - the path parameter is authoritative. The mob YAML file is overwritten and the in-memory cache is updated.</p>
@@ -149,6 +154,7 @@
             <span class="method method-delete">DELETE</span>
             <span class="api-path">/admin/api/v1/mobs/{mobId}</span>
             <span class="api-desc">Delete a mob and its script</span>
+            <span class="perm-badge">mobs.write</span>
         </summary>
         <div class="api-body">
             <p>Permanently removes the mob YAML and associated JS script from disk and from the in-memory cache.</p>
@@ -173,6 +179,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/mobs/{mobId}/script</span>
             <span class="api-desc">Get the mob's JavaScript</span>
+            <span class="perm-badge">mobs.read</span>
         </summary>
         <div class="api-body">
             <p>Returns the raw script content. <code>script</code> is an empty string if no script file exists. The script filename is derived from the mob's ID, name, and optional <code>ScriptTag</code>.</p>
@@ -192,6 +199,7 @@
             <span class="method method-put">PUT</span>
             <span class="api-path">/admin/api/v1/mobs/{mobId}/script</span>
             <span class="api-desc">Replace (or delete) the mob's JavaScript</span>
+            <span class="perm-badge">mobs.write</span>
         </summary>
         <div class="api-body">
             <p>Writes the provided <code>script</code> string to the mob's <code>.js</code> file. Send an empty string to delete the script file. The script directory is created automatically if it does not exist.</p>
@@ -222,6 +230,7 @@
             <span class="method method-put">PUT</span>
             <span class="api-path">/admin/api/v1/mobs/{mobId}/stock</span>
             <span class="api-desc">Add an entry to the mob's shop</span>
+            <span class="perm-badge">mobs.write</span>
         </summary>
         <div class="api-body">
             <p>Appends a shop entry to the mob's shop inventory and saves to disk. The entry can be an item, mob-for-hire, buff, or pet. Set exactly one of <code>ItemId</code>, <code>MobId</code>, <code>BuffId</code>, or <code>PetType</code>.</p>

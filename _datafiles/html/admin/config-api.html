@@ -37,6 +37,7 @@
     .status-ok  { background: var(--color-success-bg); color: var(--color-success-text); }
     .status-err { background: var(--color-error-bg); color: var(--color-error-text); }
     .resp-label { font-size: 0.8rem; color: var(--color-text-tertiary); }
+    .perm-badge { font-size: 0.72rem; font-family: monospace; padding: 0.1rem 0.4rem; border-radius: 3px; font-weight: 600; background: var(--color-border-faint); color: var(--color-text-tertiary); margin-left: 0.5rem; }
 </style>
 
 <h1>Config API Reference</h1>
@@ -49,6 +50,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/config</span>
             <span class="api-desc">Return all configuration values as a flat key/value map</span>
+            <span class="perm-badge">config.read</span>
         </summary>
         <div class="api-body">
             <p>Returns the full server configuration as a flat dot-path key/value map. Secrets are redacted.</p>
@@ -78,6 +80,7 @@
             <span class="method method-patch">PATCH</span>
             <span class="api-path">/admin/api/v1/config</span>
             <span class="api-desc">Update one or more configuration values</span>
+            <span class="perm-badge">config.write</span>
         </summary>
         <div class="api-body">
             <p>Accepts a JSON object of dot-path config keys to new string values. Locked keys are rejected and returned in the <code>rejected</code> list. Unknown keys return 400.</p>

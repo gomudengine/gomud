@@ -41,6 +41,7 @@
     .resp-label { font-size: 0.75rem; font-weight: 600; }
     .status-ok  { background: var(--color-success-bg); color: var(--color-success-text); padding: 0.15rem 0.45rem; border-radius: 3px; }
     .status-err { background: var(--color-error-bg); color: var(--color-error-text); padding: 0.15rem 0.45rem; border-radius: 3px; }
+    .perm-badge { font-size: 0.72rem; font-family: monospace; padding: 0.1rem 0.4rem; border-radius: 3px; font-weight: 600; background: var(--color-border-faint); color: var(--color-text-tertiary); margin-left: 0.5rem; }
 </style>
 
 <h1>Color Aliases API Reference</h1>
@@ -53,6 +54,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/color-aliases</span>
             <span class="api-desc">Return all color aliases</span>
+            <span class="perm-badge">colorpatterns.read</span>
         </summary>
         <div class="api-body">
             <p>Returns all currently loaded ANSI color aliases as a flat object mapping alias name to numeric color code (0–255).</p>
@@ -74,6 +76,7 @@
             <span class="method method-patch">PATCH</span>
             <span class="api-path">/admin/api/v1/color-aliases</span>
             <span class="api-desc">Set or update an alias</span>
+            <span class="perm-badge">color-aliases.write</span>
         </summary>
         <div class="api-body">
             <p>Sets a single alias to the given ANSI 256-color code. If the alias already exists it is overwritten. The change is persisted to <code>ansi-aliases.yaml</code> and aliases are reloaded immediately.</p>
@@ -105,6 +108,7 @@
             <span class="method method-delete">DELETE</span>
             <span class="api-path">/admin/api/v1/color-aliases/{alias}</span>
             <span class="api-desc">Delete an alias</span>
+            <span class="perm-badge">color-aliases.write</span>
         </summary>
         <div class="api-body">
             <p>Removes the named alias from <code>ansi-aliases.yaml</code> and reloads aliases. The alias name is URL-encoded in the path.</p>

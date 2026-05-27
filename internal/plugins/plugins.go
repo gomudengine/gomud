@@ -32,7 +32,17 @@ import (
 // via SetAdminRegistrar. This breaks the import cycle between web and plugins.
 type ModuleAdminRegistrar interface {
 	RegisterAdminPage(name, slug, htmlContent string, addToNav bool, navGroup, navParent string, dataFunc func(*http.Request) map[string]any)
-	RegisterAdminAPIEndpoint(method, slug string, handler func(*http.Request) (int, bool, any))
+	RegisterAdminAPIEndpoint(method, slug, permissionKey string, handler func(*http.Request) (int, bool, any))
+	// RegisterPermission adds a single module-contributed permission key to the
+	// catalog so it appears in the admin permission picker.
+	RegisterPermission(key, description, category string)
+}
+
+// ModulePermission describes a permission key contributed by a module.
+type ModulePermission struct {
+	Key         string
+	Description string
+	Category    string
 }
 
 var (
@@ -531,9 +541,14 @@ func Load(dataFilesPath string) {
 			}
 			for _, route := range p.Web.adminAPIRoutes {
 				route := route // capture
-				moduleAdminRegistrar.RegisterAdminAPIEndpoint(route.Method, route.Slug, func(r *http.Request) (int, bool, any) {
+				moduleAdminRegistrar.RegisterAdminAPIEndpoint(route.Method, route.Slug, route.PermissionKey, func(r *http.Request) (int, bool, any) {
 					return route.Handler(r)
 				})
+			}
+			if len(p.Web.permissions) > 0 {
+				for _, perm := range p.Web.permissions {
+					moduleAdminRegistrar.RegisterPermission(perm.Key, perm.Description, perm.Category)
+				}
 			}
 		}
 

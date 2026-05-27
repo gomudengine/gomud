@@ -37,6 +37,7 @@
     .schema-table th { background: var(--color-border-faint); padding: 0.4rem 0.6rem; text-align: left; font-weight: 600; border: 1px solid var(--color-border); }
     .schema-table td { padding: 0.4rem 0.6rem; border: 1px solid var(--color-border); vertical-align: top; }
     .schema-table td:first-child { font-family: monospace; color: var(--color-primary); }
+    .perm-badge { font-size: 0.72rem; font-family: monospace; padding: 0.1rem 0.4rem; border-radius: 3px; font-weight: 600; background: var(--color-border-faint); color: var(--color-text-tertiary); margin-left: 0.5rem; }
 </style>
 
 <h1>Stats API Reference</h1>
@@ -49,6 +50,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/stats/memory</span>
             <span class="api-desc">Return memory usage for all registered subsystems</span>
+            <span class="perm-badge">server.read</span>
         </summary>
         <div class="api-body">
             <p>
@@ -208,6 +210,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/connections</span>
             <span class="api-desc">Return port and connection counts</span>
+            <span class="perm-badge">server.read</span>
         </summary>
         <div class="api-body">
             <p>

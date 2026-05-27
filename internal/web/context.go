@@ -3,6 +3,8 @@ package web
 import (
 	"context"
 	"net/http"
+
+	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
 type contextKey int
@@ -10,6 +12,7 @@ type contextKey int
 const (
 	internalCallerKey contextKey = iota
 	testModeKey
+	authedUserKey
 )
 
 // withInternalContext returns a copy of ctx marked as an internal request.
@@ -34,4 +37,16 @@ func withTestModeContext(ctx context.Context) context.Context {
 func IsTestModeRequest(r *http.Request) bool {
 	v, _ := r.Context().Value(testModeKey).(bool)
 	return v
+}
+
+// withAuthedUser stores the authenticated UserRecord in the request context.
+func withAuthedUser(ctx context.Context, u *users.UserRecord) context.Context {
+	return context.WithValue(ctx, authedUserKey, u)
+}
+
+// GetAuthedUser retrieves the authenticated UserRecord from the request context.
+// Returns nil when no user is stored (e.g. internal requests).
+func GetAuthedUser(r *http.Request) *users.UserRecord {
+	u, _ := r.Context().Value(authedUserKey).(*users.UserRecord)
+	return u
 }

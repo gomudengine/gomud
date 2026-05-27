@@ -69,7 +69,12 @@ func init() {
 		"html/admin/automission-about.html", true, "Modules", "Auto Mission", nil)
 
 	m.plug.Web.AdminAPIEndpoint("GET", "automission-config", m.apiGetConfig)
-	m.plug.Web.AdminAPIEndpoint("PATCH", "automission-config", m.apiPatchConfig)
+	m.plug.Web.AdminAPIEndpoint("PATCH", "automission-config", m.apiPatchConfig, "automission.write")
+	m.plug.Web.RegisterPermissions(plugins.ModulePermission{
+		Key:         "automission.write",
+		Description: "Edit auto-mission configuration",
+		Category:    "Modules",
+	})
 
 	m.plug.AddUserCommand("mission", m.missionCommand, true, false)
 

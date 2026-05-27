@@ -35,6 +35,7 @@
     .status-ok  { background: var(--color-success-bg); color: var(--color-success-text); }
     .status-err { background: var(--color-error-bg); color: var(--color-error-text); }
     .resp-label { font-size: 0.8rem; color: var(--color-text-tertiary); }
+    .perm-badge { font-size: 0.72rem; font-family: monospace; padding: 0.1rem 0.4rem; border-radius: 3px; font-weight: 600; background: var(--color-border-faint); color: var(--color-text-tertiary); margin-left: 0.5rem; }
 </style>
 
 <h1>Buffs API Reference</h1>
@@ -47,6 +48,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/buffs</span>
             <span class="api-desc">Return all buff specs and flag descriptions</span>
+            <span class="perm-badge">buffs.read</span>
         </summary>
         <div class="api-body">
             <p>Returns two maps: <code>specs</code> (buffId &rarr; BuffSpec) and <code>flags</code> (flagName &rarr; description).</p>
@@ -66,6 +68,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/buffs/{buffId}</span>
             <span class="api-desc">Get a single buff spec</span>
+            <span class="perm-badge">buffs.read</span>
         </summary>
         <div class="api-body">
             <p><code>{buffId}</code> must be a numeric buff ID.</p>
@@ -89,6 +92,7 @@
             <span class="method method-patch">PATCH</span>
             <span class="api-path">/admin/api/v1/buffs/{buffId}</span>
             <span class="api-desc">Update buff properties</span>
+            <span class="perm-badge">buffs.write</span>
         </summary>
         <div class="api-body">
             <p>Merges the supplied fields into the existing spec. The <code>BuffId</code> in the body is ignored - the path parameter is authoritative. The buff is re-validated (including <code>TriggerRate</code> &rarr; <code>RoundInterval</code> conversion) before saving.</p>
@@ -119,6 +123,7 @@
             <span class="method method-delete">DELETE</span>
             <span class="api-path">/admin/api/v1/buffs/{buffId}</span>
             <span class="api-desc">Delete a buff and its script</span>
+            <span class="perm-badge">buffs.write</span>
         </summary>
         <div class="api-body">
             <p>Permanently removes the buff YAML and associated JS script from disk and from the in-memory cache.</p>
@@ -143,6 +148,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/buffs/{buffId}/script</span>
             <span class="api-desc">Get the buff's JavaScript</span>
+            <span class="perm-badge">buffs.read</span>
         </summary>
         <div class="api-body">
             <p>Returns the raw script content. <code>script</code> is an empty string if no script file exists.</p>
@@ -166,6 +172,7 @@
             <span class="method method-put">PUT</span>
             <span class="api-path">/admin/api/v1/buffs/{buffId}/script</span>
             <span class="api-desc">Replace (or delete) the buff's JavaScript</span>
+            <span class="perm-badge">buffs.write</span>
         </summary>
         <div class="api-body">
             <p>Writes the provided <code>script</code> string to the buff's <code>.js</code> file. Send an empty string to delete the script file.</p>

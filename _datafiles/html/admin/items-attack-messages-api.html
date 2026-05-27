@@ -33,6 +33,7 @@
     .status-ok  { background: var(--color-success-bg); color: var(--color-success-text); }
     .status-err { background: var(--color-error-bg); color: var(--color-error-text); }
     .resp-label { font-size: 0.8rem; color: var(--color-text-tertiary); }
+    .perm-badge { font-size: 0.72rem; font-family: monospace; padding: 0.1rem 0.4rem; border-radius: 3px; font-weight: 600; background: var(--color-border-faint); color: var(--color-text-tertiary); margin-left: 0.5rem; }
 </style>
 
 <h1>Attack Messages API Reference</h1>
@@ -45,6 +46,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/items/attack-messages</span>
             <span class="api-desc">Return all weapon attack message groups</span>
+            <span class="perm-badge">items.read</span>
         </summary>
         <div class="api-body">
             <p>Returns every weapon subtype's attack messages, keyed by subtype. Each subtype contains intensities (prepare, wait, miss, weak, normal, heavy, critical), each with Together and Separate proximity groups containing messages by target audience.</p>
@@ -64,6 +66,7 @@
             <span class="method method-put">PUT</span>
             <span class="api-path">/admin/api/v1/items/attack-messages/{subtype}/{intensity}/{proximity}/{target}</span>
             <span class="api-desc">Add a new attack message</span>
+            <span class="perm-badge">items.write</span>
         </summary>
         <div class="api-body">
             <p>Appends a new message to the specified subtype, intensity, proximity, and target. The message is saved to the YAML file immediately.</p>
@@ -95,6 +98,7 @@
             <span class="method method-delete">DELETE</span>
             <span class="api-path">/admin/api/v1/items/attack-messages/{subtype}/{intensity}/{proximity}/{target}/{index}</span>
             <span class="api-desc">Delete an attack message by index</span>
+            <span class="perm-badge">items.write</span>
         </summary>
         <div class="api-body">
             <p>Removes the message at the given zero-based index from the specified location. The change is saved to the YAML file immediately.</p>

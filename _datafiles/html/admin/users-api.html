@@ -14,6 +14,7 @@
     .method-get   { background: var(--color-success-bg); color: var(--color-success-text); }
     .method-post  { background: var(--color-info-bg); color: var(--color-info-text); }
     .method-patch { background: var(--color-warning-bg); color: var(--color-warning-text); }
+    .method-put   { background: var(--color-method-put-bg); color: var(--color-method-put-text); }
     .api-path { font-family: monospace; font-size: 0.9rem; color: var(--color-primary); }
     .api-desc { font-size: 0.85rem; color: var(--color-text-muted); margin-left: auto; text-align: right; }
     .api-body { padding: 0.75rem 1rem 1rem; border-top: 1px solid var(--color-border-light); background: var(--color-surface-alt); }
@@ -41,6 +42,7 @@
     .params-table td { padding: 0.4rem 0.6rem; border: 1px solid var(--color-border); vertical-align: top; }
     .params-table td:first-child { font-family: monospace; color: var(--color-primary); }
     .required { color: var(--color-error-text); font-size: 0.75rem; font-weight: 600; }
+    .perm-badge { font-size: 0.72rem; font-family: monospace; padding: 0.1rem 0.4rem; border-radius: 3px; font-weight: 600; background: var(--color-border-faint); color: var(--color-text-tertiary); margin-left: 0.5rem; }
 </style>
 
 <h1>Users API Reference</h1>
@@ -53,6 +55,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/users/search</span>
             <span class="api-desc">Search users by username</span>
+            <span class="perm-badge">users.read</span>
         </summary>
         <div class="api-body">
             <p>
@@ -132,6 +135,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/users/{userid}</span>
             <span class="api-desc">Get a user by ID</span>
+            <span class="perm-badge">users.read</span>
         </summary>
         <div class="api-body">
             <p>
@@ -195,6 +199,7 @@
             <span class="method method-patch">PATCH</span>
             <span class="api-path">/admin/api/v1/users/{userid}</span>
             <span class="api-desc">Update a user record</span>
+            <span class="perm-badge">users.write</span>
         </summary>
         <div class="api-body">
             <p>
@@ -264,6 +269,7 @@
             <span class="method method-post">POST</span>
             <span class="api-path">/admin/api/v1/users</span>
             <span class="api-desc">Create a new user</span>
+            <span class="perm-badge">users.write</span>
         </summary>
         <div class="api-body">
             <p>
@@ -338,6 +344,92 @@
                     <div class="resp-body">
                         <p>Returned when the username is already in use.</p>
                         <div class="curl-block">{"success":false,"error":"username already exists"}</div>
+                    </div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-get">GET</span>
+            <span class="api-path">/admin/api/v1/users/{userid}/permissions</span>
+            <span class="api-desc">Get a user's permission list</span>
+            <span class="perm-badge">users.read</span>
+        </summary>
+        <div class="api-body">
+            <p>Returns the list of permission keys assigned to the specified user. Only meaningful for users with the <code>mod</code> role.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="str">"http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/users/42/permissions"</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body">
+                        <div class="curl-block">{"success":true,"data":{"permissions":["mobs.read","rooms.read"]}}</div>
+                    </div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">404</span> <span class="resp-label">Not Found</span></summary>
+                    <div class="resp-body">
+                        <div class="curl-block">{"success":false,"error":"user not found"}</div>
+                    </div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-put">PUT</span>
+            <span class="api-path">/admin/api/v1/users/{userid}/permissions</span>
+            <span class="api-desc">Replace a user's permission list</span>
+            <span class="perm-badge">users.write</span>
+        </summary>
+        <div class="api-body">
+            <p>Replaces the full permission list for the specified user. All supplied keys must exist in the permission catalog. Admin users cannot be modified via this endpoint.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> <span class="flag">-X</span> PUT \
+     <span class="flag">-H</span> <span class="str">'Content-Type: application/json'</span> \
+     <span class="flag">-d</span> <span class="str">'{"permissions":["mobs.read","rooms.read","mobs.write"]}'</span> \
+     <span class="str">"http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/users/42/permissions"</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body">
+                        <div class="curl-block">{"success":true,"data":{"permissions":["mobs.read","rooms.read","mobs.write"]}}</div>
+                    </div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request - unknown key</span></summary>
+                    <div class="resp-body">
+                        <div class="curl-block">{"success":false,"error":"unknown permission key: invalid.key"}</div>
+                    </div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">403</span> <span class="resp-label">Forbidden - admin target</span></summary>
+                    <div class="resp-body">
+                        <div class="curl-block">{"success":false,"error":"admin permissions cannot be changed via this endpoint"}</div>
+                    </div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-get">GET</span>
+            <span class="api-path">/admin/api/v1/permissions</span>
+            <span class="api-desc">List all available permission keys</span>
+            <span class="perm-badge">users.read</span>
+        </summary>
+        <div class="api-body">
+            <p>Returns the full catalog of permission keys, sorted by category then key. Used to populate the permission picker in the user editor.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="str">"http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/permissions"</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body">
+                        <div class="curl-block">{"success":true,"data":[{"key":"audio.read","description":"View audio configuration","category":"Audio"},...]}</div>
                     </div>
                 </details>
             </div>

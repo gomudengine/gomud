@@ -76,8 +76,13 @@ func init() {
 	// Admin API endpoints.
 	m.plug.Web.AdminAPIEndpoint("GET", "mudmail", m.apiAdminListMudmail)
 	m.plug.Web.AdminAPIEndpoint("GET", "mudmail-body/{user_id}/{timestamp}", m.apiAdminGetMudmailBody)
-	m.plug.Web.AdminAPIEndpoint("POST", "mudmail", m.apiAdminSendMudmail)
-	m.plug.Web.AdminAPIEndpoint("DELETE", "mudmail", m.apiAdminDeleteMudmail)
+	m.plug.Web.AdminAPIEndpoint("POST", "mudmail", m.apiAdminSendMudmail, "mudmail.write")
+	m.plug.Web.AdminAPIEndpoint("DELETE", "mudmail", m.apiAdminDeleteMudmail, "mudmail.write")
+	m.plug.Web.RegisterPermissions(plugins.ModulePermission{
+		Key:         "mudmail.write",
+		Description: "Send and delete mudmail messages",
+		Category:    "Modules",
+	})
 
 	events.RegisterListener(events.PlayerSpawn{}, m.onPlayerSpawn)
 	events.RegisterListener(events.PlayerDespawn{}, m.onPlayerDespawn)
