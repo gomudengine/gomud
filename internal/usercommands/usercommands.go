@@ -415,6 +415,9 @@ func TryCommand(cmd string, rest string, userId int, flags events.EventFlag) (bo
 			handled, err := cmdInfo.Func(rest, user, room, flags)
 			return handled, err
 
+		} else if cmdInfo.AdminOnly {
+			user.SendText(fmt.Sprintf(`You don't have permission to use <ansi fg="command">%s</ansi>.`, cmd))
+			return true, nil
 		}
 	}
 

@@ -35,6 +35,7 @@
     .status-ok  { background: var(--color-success-bg); color: var(--color-success-text); }
     .status-err { background: var(--color-error-bg); color: var(--color-error-text); }
     .resp-label { font-size: 0.8rem; color: var(--color-text-tertiary); }
+    .perm-badge { font-size: 0.72rem; font-family: monospace; padding: 0.1rem 0.4rem; border-radius: 3px; font-weight: 600; background: var(--color-border-faint); color: var(--color-text-tertiary); margin-left: 0.5rem; }
 </style>
 
 <h1>Color Patterns API Reference</h1>
@@ -47,6 +48,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/colorpatterns</span>
             <span class="api-desc">Return all color patterns</span>
+            <span class="perm-badge">colorpatterns.read</span>
         </summary>
         <div class="api-body">
             <p>Returns a map of pattern name &rarr; array of ANSI 256-color codes.</p>
@@ -66,6 +68,7 @@
             <span class="method method-post">POST</span>
             <span class="api-path">/admin/api/v1/colorpatterns</span>
             <span class="api-desc">Create a new color pattern</span>
+            <span class="perm-badge">colorpatterns.write</span>
         </summary>
         <div class="api-body">
             <p>Creates a new color pattern. Returns <code>409 Conflict</code> if the name already exists.</p>
@@ -91,6 +94,7 @@
             <span class="method method-patch">PATCH</span>
             <span class="api-path">/admin/api/v1/colorpatterns</span>
             <span class="api-desc">Update one or more color patterns</span>
+            <span class="perm-badge">colorpatterns.write</span>
         </summary>
         <div class="api-body">
             <p>Body is a JSON object mapping pattern names to new color arrays. Creates the pattern if it does not exist.</p>
@@ -112,6 +116,7 @@
             <span class="method method-delete">DELETE</span>
             <span class="api-path">/admin/api/v1/colorpatterns</span>
             <span class="api-desc">Delete a color pattern by name</span>
+            <span class="perm-badge">colorpatterns.write</span>
         </summary>
         <div class="api-body">
             <p>Body must include the pattern name to delete.</p>

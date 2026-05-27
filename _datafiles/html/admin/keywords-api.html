@@ -32,6 +32,7 @@
     .status-ok  { background: var(--color-success-bg); color: var(--color-success-text); }
     .status-err { background: var(--color-error-bg); color: var(--color-error-text); }
     .resp-label { font-size: 0.8rem; color: var(--color-text-tertiary); }
+    .perm-badge { font-size: 0.72rem; font-family: monospace; padding: 0.1rem 0.4rem; border-radius: 3px; font-weight: 600; background: var(--color-border-faint); color: var(--color-text-tertiary); margin-left: 0.5rem; }
 </style>
 
 <h1>Keywords API Reference</h1>
@@ -44,6 +45,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/keywords</span>
             <span class="api-desc">Return all keywords data</span>
+            <span class="perm-badge">keywords.read</span>
         </summary>
         <div class="api-body">
             <p>Returns the full keywords configuration containing help topics, help aliases, command aliases, direction aliases, and map legend overrides.</p>
@@ -63,6 +65,7 @@
             <span class="method method-patch">PATCH</span>
             <span class="api-path">/admin/api/v1/keywords</span>
             <span class="api-desc">Update all keywords data</span>
+            <span class="perm-badge">keywords.write</span>
         </summary>
         <div class="api-body">
             <p>Replaces the entire keywords configuration. The request body must contain the full keywords structure with all five sections: <code>Help</code>, <code>HelpAliases</code>, <code>CommandAliases</code>, <code>DirectionAliases</code>, and <code>MapLegendOverrides</code>. The file is saved to disk and reloaded in memory.</p>

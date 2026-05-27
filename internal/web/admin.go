@@ -24,9 +24,10 @@ func adminIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	templateData := map[string]any{
-		"CONFIG": configs.GetConfig(),
-		"STATS":  GetStats(),
-		"NAV":    buildAdminNav(),
+		"CONFIG":      configs.GetConfig(),
+		"STATS":       GetStats(),
+		"NAV":         buildAdminNav(),
+		"AUTHED_USER": GetAuthedUser(r),
 	}
 
 	w.Header().Set("Cache-Control", "no-store")

@@ -53,8 +53,13 @@ func init() {
 	m.plug.Web.AdminPage("API Docs", "elections-api", "html/admin/elections-api.html", true, "Modules", "Elections", nil)
 
 	m.plug.Web.AdminAPIEndpoint("GET", "elections/zones", m.apiGetZones)
-	m.plug.Web.AdminAPIEndpoint("PATCH", "elections/zones/{zone}", m.apiPatchZone)
-	m.plug.Web.AdminAPIEndpoint("DELETE", "elections/zones/{zone}/official", m.apiDeleteZoneOfficial)
+	m.plug.Web.AdminAPIEndpoint("PATCH", "elections/zones/{zone}", m.apiPatchZone, "elections.write")
+	m.plug.Web.AdminAPIEndpoint("DELETE", "elections/zones/{zone}/official", m.apiDeleteZoneOfficial, "elections.write")
+	m.plug.Web.RegisterPermissions(plugins.ModulePermission{
+		Key:         "elections.write",
+		Description: "Edit zone tax rates, coffers, and officials",
+		Category:    "Modules",
+	})
 
 	m.plug.AddUserCommand(`election`, m.electionAdminCommand, true, true)
 	m.plug.AddUserCommand(`coffer`, m.cofferCommand, false, false)

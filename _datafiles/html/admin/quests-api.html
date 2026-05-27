@@ -35,6 +35,7 @@
     .status-err { background: var(--color-error-bg); color: var(--color-error-text); }
     .resp-label { font-size: 0.8rem; color: var(--color-text-tertiary); }
     code { background: var(--color-border-faint); padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.85em; }
+    .perm-badge { font-size: 0.72rem; font-family: monospace; padding: 0.1rem 0.4rem; border-radius: 3px; font-weight: 600; background: var(--color-border-faint); color: var(--color-text-tertiary); margin-left: 0.5rem; }
 </style>
 
 <h1>Quests API Reference</h1>
@@ -47,6 +48,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/quests</span>
             <span class="api-desc">Return all quest definitions</span>
+            <span class="perm-badge">quests.read</span>
         </summary>
         <div class="api-body">
             <p>Returns an array of every loaded quest, including secret quests.</p>
@@ -66,6 +68,7 @@
             <span class="method method-patch">PATCH</span>
             <span class="api-path">/admin/api/v1/quests</span>
             <span class="api-desc">Create or update a quest</span>
+            <span class="perm-badge">quests.write</span>
         </summary>
         <div class="api-body">
             <p>Upserts a quest. The <code>QuestId</code> field in the body is required and must be a positive integer. If the quest already exists it is replaced; if it does not exist it is created. The quest is saved to disk immediately.</p>
@@ -108,6 +111,7 @@
             <span class="method method-delete">DELETE</span>
             <span class="api-path">/admin/api/v1/quests/{questId}</span>
             <span class="api-desc">Delete a quest</span>
+            <span class="perm-badge">quests.write</span>
         </summary>
         <div class="api-body">
             <p>Permanently removes the quest YAML from disk and from the in-memory cache. <code>{questId}</code> must be a numeric quest ID.</p>

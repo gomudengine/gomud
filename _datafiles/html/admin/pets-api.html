@@ -44,6 +44,7 @@
     .params-table td:first-child { font-family: monospace; color: var(--color-primary); }
     .required { color: var(--color-error-text); font-size: 0.75rem; font-weight: 600; }
     .section-label { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-subtle); margin: 1rem 0 0.4rem; }
+    .perm-badge { font-size: 0.72rem; font-family: monospace; padding: 0.1rem 0.4rem; border-radius: 3px; font-weight: 600; background: var(--color-border-faint); color: var(--color-text-tertiary); margin-left: 0.5rem; }
 </style>
 
 <h1>Pets API Reference</h1>
@@ -57,6 +58,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/pets</span>
             <span class="api-desc">Return all pet type definitions</span>
+            <span class="perm-badge">pets.read</span>
         </summary>
         <div class="api-body">
             <p>Returns a map of <code>petType</code> &rarr; Pet object for every loaded pet type.</p>
@@ -97,6 +99,7 @@
             <span class="method method-post">POST</span>
             <span class="api-path">/admin/api/v1/pets</span>
             <span class="api-desc">Create a new pet type</span>
+            <span class="perm-badge">pets.write</span>
         </summary>
         <div class="api-body">
             <p>Creates a new pet type definition. The <code>type</code> field is the unique identifier and is lowercased automatically. Returns <code>400</code> if the type already exists.</p>
@@ -157,6 +160,7 @@
             <span class="method method-patch">PATCH</span>
             <span class="api-path">/admin/api/v1/pets/{petname}</span>
             <span class="api-desc">Update a pet type</span>
+            <span class="perm-badge">pets.write</span>
         </summary>
         <div class="api-body">
             <p><code>{petname}</code> is the pet type identifier (e.g. <code>wolf</code>). The request body is merged over the existing definition. The <code>type</code> is always preserved from the URL.</p>
@@ -194,6 +198,7 @@
             <span class="method method-delete">DELETE</span>
             <span class="api-path">/admin/api/v1/pets/{petname}</span>
             <span class="api-desc">Delete a pet type</span>
+            <span class="perm-badge">pets.write</span>
         </summary>
         <div class="api-body">
             <p><code>{petname}</code> is the pet type identifier. Removes the YAML definition and any associated <code>.js</code> script file from disk, and unregisters the type from memory.</p>
@@ -227,6 +232,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/pets/{petname}/script</span>
             <span class="api-desc">Retrieve the script for a pet type</span>
+            <span class="perm-badge">pets.read</span>
         </summary>
         <div class="api-body">
             <p>Returns the JavaScript source for the pet type's script file. The script lives alongside the pet's YAML definition (e.g. <code>pets/wolf.js</code>). Returns an empty string if no script file exists on disk.</p>
@@ -265,6 +271,7 @@
             <span class="method method-put">PUT</span>
             <span class="api-path">/admin/api/v1/pets/{petname}/script</span>
             <span class="api-desc">Save or delete the script for a pet type</span>
+            <span class="perm-badge">pets.write</span>
         </summary>
         <div class="api-body">
             <p>Writes the provided JavaScript to the pet's script file alongside its YAML definition (e.g. <code>pets/wolf.js</code>). Send an empty string to delete the script file. The in-memory VM cache for this pet type is invalidated automatically so the new script is used on the next invocation.</p>

@@ -41,6 +41,7 @@
     .params-table td { padding: 0.4rem 0.6rem; border: 1px solid var(--color-border); vertical-align: top; }
     .params-table td:first-child { font-family: monospace; color: var(--color-primary); }
     .required { color: var(--color-error-text); font-size: 0.75rem; font-weight: 600; }
+    .perm-badge { font-size: 0.72rem; font-family: monospace; padding: 0.1rem 0.4rem; border-radius: 3px; font-weight: 600; background: var(--color-border-faint); color: var(--color-text-tertiary); margin-left: 0.5rem; }
 </style>
 
 <h1>GameTime API Reference</h1>
@@ -53,6 +54,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/gametime</span>
             <span class="api-desc">Return all calendar configurations</span>
+            <span class="perm-badge">gametime.read</span>
         </summary>
         <div class="api-body">
             <p>Returns a map of all loaded calendar configurations, keyed by calendar name.</p>
@@ -87,6 +89,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/gametime/{calendar}</span>
             <span class="api-desc">Return a single calendar configuration</span>
+            <span class="perm-badge">gametime.read</span>
         </summary>
         <div class="api-body">
             <p>Returns the configuration for the named calendar.</p>
@@ -118,6 +121,7 @@
             <span class="method method-post">POST</span>
             <span class="api-path">/admin/api/v1/gametime</span>
             <span class="api-desc">Create a new calendar</span>
+            <span class="perm-badge">gametime.write</span>
         </summary>
         <div class="api-body">
             <p>Creates a new named calendar. Returns <code>400</code> if the name already exists or validation fails.</p>
@@ -174,6 +178,7 @@
             <span class="method method-patch">PATCH</span>
             <span class="api-path">/admin/api/v1/gametime/{calendar}</span>
             <span class="api-desc">Update an existing calendar</span>
+            <span class="perm-badge">gametime.write</span>
         </summary>
         <div class="api-body">
             <p>Updates the named calendar. The request body is a <code>CalendarConfig</code> object; fields provided overwrite the existing values. The calendar name is always taken from the URL.</p>
@@ -223,6 +228,7 @@
             <span class="method method-delete">DELETE</span>
             <span class="api-path">/admin/api/v1/gametime/{calendar}</span>
             <span class="api-desc">Delete a calendar</span>
+            <span class="perm-badge">gametime.write</span>
         </summary>
         <div class="api-body">
             <p>Removes the named calendar from memory and persists the change to <code>gametime.yaml</code>. The <code>default</code> calendar cannot be deleted.</p>

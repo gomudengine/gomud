@@ -25,9 +25,10 @@ func serveAdminTemplate(w http.ResponseWriter, r *http.Request, filename string,
 	}
 
 	templateData := map[string]any{
-		"CONFIG": configs.GetConfig(),
-		"STATS":  GetStats(),
-		"NAV":    buildAdminNav(),
+		"CONFIG":      configs.GetConfig(),
+		"STATS":       GetStats(),
+		"NAV":         buildAdminNav(),
+		"AUTHED_USER": GetAuthedUser(r),
 	}
 	for k, v := range extra {
 		templateData[k] = v

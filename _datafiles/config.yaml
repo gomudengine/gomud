@@ -597,25 +597,6 @@ Validation:
   - "join"
   - "register"
 
-################################################################################
-#
-#   Roles
-#   Roles are string identifiers that map to a number of command names.
-#   They are used to determine what admin commands a player has access to.
-#   Two roles are build in and cannot be changed:
-#     - "user" - Has no admin commands
-#     - "admin" - Has all admin commands
-#   Role sub-commands should be separated by a dot: room.info
-#   Roles are more permissive the more they prefix.
-#   Example: room prefixes room.info so would permit that action as well.
-#   Role checks must be implemented wherever role-based restriction is desired:
-#   if user.HasRolePermission(`room`) { /* Do something */ }
-#
-################################################################################
-Roles:
-  builder: ["room.info", "build"]
-  helper: ["paz", "teleport.playername", "locate"]
-
 
 ################################################################################
 #

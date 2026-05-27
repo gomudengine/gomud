@@ -40,6 +40,7 @@
     .params-table td { padding: 0.4rem 0.6rem; border: 1px solid var(--color-border); vertical-align: top; }
     .params-table td:first-child { font-family: monospace; color: var(--color-primary); }
     .required { color: var(--color-error-text); font-size: 0.75rem; font-weight: 600; }
+    .perm-badge { font-size: 0.72rem; font-family: monospace; padding: 0.1rem 0.4rem; border-radius: 3px; font-weight: 600; background: var(--color-border-faint); color: var(--color-text-tertiary); margin-left: 0.5rem; }
 </style>
 
 <h1>Conversations API Reference</h1>
@@ -53,6 +54,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/conversations</span>
             <span class="api-desc">List all conversation files</span>
+            <span class="perm-badge">conversations.read</span>
         </summary>
         <div class="api-body">
             <p>Returns a sorted array of every conversation file on disk. Each entry identifies the file by <code>zone</code> and <code>mob_id</code>; it does not include the conversation content. Use the single-file GET endpoint to retrieve content.</p>
@@ -80,6 +82,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/conversations/{zone}/{mobId}</span>
             <span class="api-desc">Fetch a single conversation file</span>
+            <span class="perm-badge">conversations.read</span>
         </summary>
         <div class="api-body">
             <p>Returns the full contents of one conversation file, identified by its zone name and the numeric mob ID. The response includes the <code>zone</code>, <code>mob_id</code>, and a <code>conversations</code> array of script objects.</p>
@@ -138,6 +141,7 @@
             <span class="method method-put">PUT</span>
             <span class="api-path">/admin/api/v1/conversations/{zone}/{mobId}</span>
             <span class="api-desc">Create or replace a conversation file</span>
+            <span class="perm-badge">conversations.write</span>
         </summary>
         <div class="api-body">
             <p>Writes the full conversation file for the given zone and mob ID. The request body must be a JSON array of script objects (the <code>conversations</code> array, not the outer envelope). If the file does not exist it is created along with the zone directory; if it does exist it is fully replaced. Returns <code>201</code> on creation and <code>200</code> on update.</p>
@@ -207,6 +211,7 @@
             <span class="method method-delete">DELETE</span>
             <span class="api-path">/admin/api/v1/conversations/{zone}/{mobId}</span>
             <span class="api-desc">Delete a conversation file</span>
+            <span class="perm-badge">conversations.write</span>
         </summary>
         <div class="api-body">
             <p>Removes the YAML file for the given zone and mob ID from disk and invalidates the in-memory existence cache. If the zone directory becomes empty after deletion it is also removed. The operation is idempotent in the sense that a missing file returns <code>404</code> rather than silently succeeding.</p>

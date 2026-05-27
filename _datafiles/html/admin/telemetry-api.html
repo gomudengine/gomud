@@ -40,6 +40,7 @@
     .params-table tr:last-child td { border-bottom: none; }
     .param-name { font-family: monospace; color: var(--color-primary); }
     .param-opt  { font-size: 0.72rem; color: var(--color-text-faint); }
+    .perm-badge { font-size: 0.72rem; font-family: monospace; padding: 0.1rem 0.4rem; border-radius: 3px; font-weight: 600; background: var(--color-border-faint); color: var(--color-text-tertiary); margin-left: 0.5rem; }
 </style>
 
 <h1>Telemetry API Reference</h1>
@@ -52,6 +53,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/telemetry</span>
             <span class="api-desc">Query telemetry records</span>
+            <span class="perm-badge">server.read</span>
         </summary>
         <div class="api-body">
             <p>Returns an array of <code>Record</code> objects matching the supplied filters. All parameters are optional; omitting a parameter matches any value for that field. Results are sorted by <code>count</code> descending by default.</p>
@@ -106,6 +108,7 @@
             <span class="method method-delete">DELETE</span>
             <span class="api-path">/admin/api/v1/telemetry</span>
             <span class="api-desc">Clear matching telemetry records</span>
+            <span class="perm-badge">telemetry.write</span>
         </summary>
         <div class="api-body">
             <p>Removes all records matching the supplied filters and saves the result to disk. Omit all parameters to clear every record. Accepts the same filter parameters as <code>GET</code> except <code>groupby</code>, <code>sort</code>, and <code>limit</code>.</p>

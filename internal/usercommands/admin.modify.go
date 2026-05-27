@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/templates"
@@ -28,7 +27,7 @@ func Modify(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 		return true, nil
 	}
 
-	// modify permission <username> <newperms>
+	// modify role <username> <newrole>
 	if args[0] == `role` {
 
 		if !user.HasRolePermission(`modify.role`) {
@@ -39,11 +38,8 @@ func Modify(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 		searchUser := args[1]
 		newRole := args[2]
 
-		allRoles := configs.GetRolesConfig()
-		_, roleExists := allRoles[newRole]
-
-		if newRole != users.RoleAdmin && newRole != users.RoleUser && !roleExists {
-			user.SendText(`<ansi fg="alert-4">Invalid permission type.</ansi>`)
+		if newRole != users.RoleAdmin && newRole != users.RoleUser && newRole != users.RoleMod {
+			user.SendText(`<ansi fg="alert-4">Invalid role. Valid roles: user, mod, admin</ansi>`)
 			return true, nil
 		}
 
@@ -54,12 +50,12 @@ func Modify(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 			if strings.EqualFold(searchUser, u.Username) {
 
 				if u.Role == users.RoleAdmin {
-					user.SendText(`<ansi fg="alert-4">Admin permissions cannot be removed this way.</ansi>`)
+					user.SendText(`<ansi fg="alert-4">Admin role cannot be removed this way.</ansi>`)
 					return true, nil
 				}
 
 				if u.Role == newRole {
-					user.SendText(`<ansi fg="alert-4">That permission is already set for this user.</ansi>`)
+					user.SendText(`<ansi fg="alert-4">That role is already set for this user.</ansi>`)
 					return true, nil
 				}
 
@@ -81,12 +77,12 @@ func Modify(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 				if strings.EqualFold(searchUser, u.Username) {
 
 					if u.Role == users.RoleAdmin {
-						user.SendText(`<ansi fg="alert-4">Admin permissions cannot be removed this way.</ansi>`)
+						user.SendText(`<ansi fg="alert-4">Admin role cannot be removed this way.</ansi>`)
 						return false
 					}
 
 					if u.Role == newRole {
-						user.SendText(`<ansi fg="alert-4">That permission is already set for this user.</ansi>`)
+						user.SendText(`<ansi fg="alert-4">That role is already set for this user.</ansi>`)
 						return false
 					}
 

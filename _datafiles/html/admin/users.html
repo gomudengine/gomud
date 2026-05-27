@@ -132,6 +132,7 @@
     /* role badge */
     .role-badge { display: inline-block; font-size: 0.72rem; padding: 0.15rem 0.45rem; border-radius: 3px; font-weight: 600; text-transform: uppercase; }
     .role-admin { background: var(--color-error-bg); color: var(--color-error-text); }
+    .role-mod   { background: var(--color-method-put-bg); color: var(--color-method-put-text); }
     .role-user  { background: var(--color-success-bg); color: var(--color-success-text); }
     .role-guest { background: var(--color-border-faint); color: var(--color-text-muted); }
 
@@ -278,8 +279,9 @@
                 </div>
                 <div class="field">
                     <label>Role</label>
-                    <select id="f-role">
+                    <select id="f-role" onchange="onRoleChange()">
                         <option value="user">user</option>
+                        <option value="mod">mod</option>
                         <option value="admin">admin</option>
                         <option value="guest">guest</option>
                     </select>
@@ -320,6 +322,22 @@
                             <span class="toggle-track"></span>
                         </label>
                         <span class="toggle-label">Strip excess symbols for screen readers</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-card" id="perm-section" style="display:none;">
+                <div class="section-title">Permissions</div>
+                <div class="span2">
+                    <p id="perm-admin-note" style="display:none; font-size:0.85rem; color:var(--color-text-muted); font-style:italic; margin-bottom:0.5rem;">Admins have all permissions and cannot be restricted.</p>
+                    <p id="perm-user-note" style="display:none; font-size:0.85rem; color:var(--color-text-muted); font-style:italic; margin-bottom:0.5rem;">Regular users have no elevated permissions.</p>
+                    <div id="perm-mod-panel" style="display:none;">
+                        <p style="font-size:0.82rem; color:var(--color-text-muted); margin-bottom:0.75rem;">Select the permissions this moderator should have. Prefix-match applies: granting <code>room</code> also grants <code>room.edit</code>, <code>room.edit.exits</code>, etc.</p>
+                        <div id="perm-catalog" style="display:flex; flex-direction:column; gap:0.75rem;"></div>
+                        <div style="margin-top:1rem;">
+                            <button class="btn btn-primary" onclick="savePermissions()">Save Permissions</button>
+                            <span id="perm-status" style="margin-left:0.75rem; font-size:0.82rem;"></span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -645,6 +663,9 @@
     function fillForm(user) {
         const ch = user.Character || {};
 
+        _currentUserId = user.UserId;
+        _currentPerms  = [];
+
         document.getElementById('editor-title').textContent = user.Username || 'User';
         document.getElementById('user-id-display').textContent = 'ID: ' + user.UserId;
 
@@ -654,6 +675,9 @@
         document.getElementById('f-muted').checked        = !!user.Muted;
         document.getElementById('f-screenreader').checked  = !!user.ScreenReader;
         document.getElementById('f-password').value = '';
+
+        // Update permissions section based on role.
+        onRoleChange();
 
         // Joined (read-only)
         const joined = user.Joined ? new Date(user.Joined) : null;
@@ -1645,6 +1669,192 @@
 
     init();
 })();
+
+// ---- Permissions management ----
+
+var _permCatalog = null;   // full catalog from GET /admin/api/v1/permissions
+var _currentUserId = null; // user whose permissions are currently loaded
+var _currentPerms = [];    // permission keys held by the current user
+
+function _escPerm(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// onRoleChange reads the current role from the dropdown and _currentUserId
+// from the global, then shows/hides the appropriate sub-panel.
+function onRoleChange() {
+    var role      = document.getElementById('f-role').value;
+    var section   = document.getElementById('perm-section');
+    var adminNote = document.getElementById('perm-admin-note');
+    var userNote  = document.getElementById('perm-user-note');
+    var modPanel  = document.getElementById('perm-mod-panel');
+
+    section.style.display = '';
+    adminNote.style.display = 'none';
+    userNote.style.display  = 'none';
+    modPanel.style.display  = 'none';
+
+    if (role === 'admin') {
+        adminNote.style.display = '';
+    } else if (role === 'mod') {
+        modPanel.style.display = '';
+        if (_currentUserId) {
+            loadPermissionsForUser(_currentUserId);
+        }
+    } else {
+        userNote.style.display = '';
+    }
+}
+
+// loadPermissionsForUser fetches the catalog and the user's current permissions
+// in parallel, then renders once both are available.
+function loadPermissionsForUser(userId) {
+    _currentUserId = userId;
+    _currentPerms  = [];
+
+    var catalogPromise = _permCatalog
+        ? Promise.resolve(_permCatalog)
+        : fetch('/admin/api/v1/permissions')
+            .then(function(r) { return r.json(); })
+            .then(function(resp) {
+                if (resp.success) { _permCatalog = resp.data; }
+                return _permCatalog;
+            });
+
+    var permsPromise = fetch('/admin/api/v1/users/' + userId + '/permissions')
+        .then(function(r) { return r.json(); })
+        .then(function(resp) {
+            return resp.success ? (resp.data.permissions || []) : [];
+        });
+
+    Promise.all([catalogPromise, permsPromise])
+        .then(function(results) {
+            _currentPerms = results[1];
+            renderPermCatalog();
+        });
+}
+
+function renderPermCatalog() {
+    var container = document.getElementById('perm-catalog');
+    if (!container || !_permCatalog) return;
+    container.innerHTML = '';
+
+    // Select All / Deselect All bar.
+    var selectAllBar = document.createElement('div');
+    selectAllBar.style.cssText = 'display:flex;align-items:center;gap:0.6rem;padding:0.4rem 0.1rem;margin-bottom:0.5rem;border-bottom:1px solid var(--color-border);';
+    var selectAllCb = document.createElement('input');
+    selectAllCb.type = 'checkbox';
+    selectAllCb.id = 'perm-select-all';
+    var selectAllLabel = document.createElement('label');
+    selectAllLabel.htmlFor = 'perm-select-all';
+    selectAllLabel.style.cssText = 'font-size:0.82rem;font-weight:600;cursor:pointer;color:var(--color-text-tertiary);';
+    selectAllLabel.textContent = 'Select All';
+    selectAllBar.appendChild(selectAllCb);
+    selectAllBar.appendChild(selectAllLabel);
+    container.appendChild(selectAllBar);
+
+    selectAllCb.addEventListener('change', function() {
+        container.querySelectorAll('.perm-cb').forEach(function(cb) {
+            cb.checked = selectAllCb.checked;
+        });
+    });
+
+    // Group by category, preserving API order within each group.
+    var groups = {};
+    var catOrder = [];
+    _permCatalog.forEach(function(p) {
+        if (!groups[p.category]) {
+            groups[p.category] = [];
+            catOrder.push(p.category);
+        }
+        groups[p.category].push(p);
+    });
+
+    catOrder.forEach(function(cat) {
+        var grpDiv = document.createElement('div');
+        grpDiv.style.cssText = 'border:1px solid var(--color-border);border-radius:5px;padding:0.6rem 0.85rem;background:var(--color-surface-alt);';
+
+        var heading = document.createElement('div');
+        heading.style.cssText = 'font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-tertiary);margin-bottom:0.5rem;';
+        heading.textContent = cat;
+        grpDiv.appendChild(heading);
+
+        var grid = document.createElement('div');
+        grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:0.3rem 0.75rem;';
+
+        groups[cat].forEach(function(p) {
+            var label = document.createElement('label');
+            label.style.cssText = 'display:flex;align-items:flex-start;gap:0.4rem;cursor:pointer;font-size:0.82rem;line-height:1.4;';
+
+            var cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.className = 'perm-cb';
+            cb.dataset.key = p.key;
+            cb.checked = _currentPerms.indexOf(p.key) >= 0;
+            cb.style.marginTop = '0.2rem';
+
+            var info = document.createElement('span');
+            info.innerHTML =
+                '<strong style="font-family:monospace;font-size:0.8rem;">' + _escPerm(p.key) + '</strong>' +
+                '<br><span style="color:var(--color-text-muted);font-size:0.78rem;">' + _escPerm(p.description) + '</span>';
+
+            label.appendChild(cb);
+            label.appendChild(info);
+            grid.appendChild(label);
+        });
+
+        grpDiv.appendChild(grid);
+        container.appendChild(grpDiv);
+    });
+
+    updateSelectAllState();
+}
+
+function updateSelectAllState() {
+    var all = document.querySelectorAll('#perm-catalog .perm-cb');
+    var selectAllCb = document.getElementById('perm-select-all');
+    if (!selectAllCb || all.length === 0) return;
+    var checkedCount = 0;
+    all.forEach(function(cb) { if (cb.checked) checkedCount++; });
+    selectAllCb.indeterminate = false;
+    selectAllCb.checked = checkedCount === all.length;
+}
+
+function savePermissions() {
+    if (!_currentUserId) return;
+    var checkboxes = document.querySelectorAll('#perm-catalog .perm-cb');
+    var selected = [];
+    checkboxes.forEach(function(cb) {
+        if (cb.checked) selected.push(cb.dataset.key);
+    });
+
+    var statusEl = document.getElementById('perm-status');
+    statusEl.style.color = 'var(--color-text-muted)';
+    statusEl.textContent = 'Saving...';
+
+    fetch('/admin/api/v1/users/' + _currentUserId + '/permissions', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ permissions: selected })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(resp) {
+        if (resp.success) {
+            _currentPerms = resp.data.permissions || [];
+            statusEl.style.color = 'var(--color-success-text)';
+            statusEl.textContent = 'Saved.';
+            setTimeout(function() { statusEl.textContent = ''; }, 2000);
+        } else {
+            statusEl.style.color = 'var(--color-error-text)';
+            statusEl.textContent = resp.error || 'Error saving permissions.';
+        }
+    })
+    .catch(function() {
+        statusEl.style.color = 'var(--color-error-text)';
+        statusEl.textContent = 'Network error.';
+    });
+}
+
 </script>
 
 {{template "footer" .}}

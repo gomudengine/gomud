@@ -47,7 +47,6 @@ type Config struct {
 	Scripting    Scripting    `yaml:"Scripting"`
 	SpecialRooms SpecialRooms `yaml:"SpecialRooms"`
 	Validation   Validation   `yaml:"Validation"`
-	Roles        Roles        `yaml:"Roles"`
 	// Plugins is a special case
 	Modules Modules `yaml:"Modules"`
 
@@ -230,7 +229,6 @@ func (c *Config) Validate() {
 	c.SpecialRooms.Validate()
 	c.Validation.Validate()
 	c.Modules.Validate()
-	c.Roles.Validate()
 
 	// nothing to do with LootGoblinIncludeRecentRooms
 

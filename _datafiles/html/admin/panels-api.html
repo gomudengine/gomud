@@ -34,6 +34,7 @@
     .status-ok  { background: var(--color-success-bg); color: var(--color-success-text); }
     .status-err { background: var(--color-error-bg); color: var(--color-error-text); }
     .resp-label { font-size: 0.8rem; color: var(--color-text-tertiary); }
+    .perm-badge { font-size: 0.72rem; font-family: monospace; padding: 0.1rem 0.4rem; border-radius: 3px; font-weight: 600; background: var(--color-border-faint); color: var(--color-text-tertiary); margin-left: 0.5rem; }
 </style>
 
 <h1>Panel Layouts API Reference</h1>
@@ -160,6 +161,7 @@ slots:
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/panels</span>
             <span class="api-desc">Return all panel layout files</span>
+            <span class="perm-badge">panels.read</span>
         </summary>
         <div class="api-body">
             <p>Returns an array of every panel layout file found under the <code>panel-layouts/</code> data directory. Each entry includes the relative <code>name</code> (e.g. <code>character/status</code>) and the raw <code>yaml</code> content.</p>
@@ -180,6 +182,7 @@ slots:
             <span class="method method-post">POST</span>
             <span class="api-path">/admin/api/v1/panels/validate</span>
             <span class="api-desc">Validate a panel layout YAML</span>
+            <span class="perm-badge">panels.write</span>
         </summary>
         <div class="api-body">
             <p>Parses the supplied YAML and checks for structural problems: unknown border or charset values, missing or duplicate panel IDs, empty slots or rows, and negative numeric fields. Returns <code>valid: true</code> and an empty <code>issues</code> array when the layout is clean.</p>
@@ -210,6 +213,7 @@ slots:
             <span class="method method-post">POST</span>
             <span class="api-path">/admin/api/v1/panels/preview</span>
             <span class="api-desc">Render a plain-text preview of a panel layout</span>
+            <span class="perm-badge">panels.write</span>
         </summary>
         <div class="api-body">
             <p>Parses the supplied YAML, fills every panel with dummy rows, and returns the rendered plain-text output. ANSI tags in titles are stripped so the result is safe to display in a browser. Sole panels in a row receive 4 dummy rows; panels with horizontal siblings receive 2.</p>
@@ -236,6 +240,7 @@ slots:
             <span class="method method-put">PUT</span>
             <span class="api-path">/admin/api/v1/panels/{name}</span>
             <span class="api-desc">Overwrite an existing panel layout file</span>
+            <span class="perm-badge">panels.write</span>
         </summary>
         <div class="api-body">
             <p>Overwrites the panel layout file identified by <code>{name}</code> (e.g. <code>character/status</code>). The file must already exist; this endpoint does not create new layout files. The YAML is validated for parse errors before writing.</p>

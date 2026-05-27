@@ -35,6 +35,7 @@
     .status-ok  { background: var(--color-success-bg); color: var(--color-success-text); }
     .status-err { background: var(--color-error-bg); color: var(--color-error-text); }
     .resp-label { font-size: 0.8rem; color: var(--color-text-tertiary); }
+    .perm-badge { font-size: 0.72rem; font-family: monospace; padding: 0.1rem 0.4rem; border-radius: 3px; font-weight: 600; background: var(--color-border-faint); color: var(--color-text-tertiary); margin-left: 0.5rem; }
 </style>
 
 <h1>Mutators API Reference</h1>
@@ -47,6 +48,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/mutators</span>
             <span class="api-desc">Return all mutator specs</span>
+            <span class="perm-badge">mutators.read</span>
         </summary>
         <div class="api-body">
             <p>Returns an array of all loaded <code>MutatorSpec</code> objects.</p>
@@ -66,6 +68,7 @@
             <span class="method method-post">POST</span>
             <span class="api-path">/admin/api/v1/mutators</span>
             <span class="api-desc">Create a new mutator</span>
+            <span class="perm-badge">mutators.write</span>
         </summary>
         <div class="api-body">
             <p>Creates a new mutator spec. <code>MutatorId</code> is required and must be unique, lowercase alphanumeric with hyphens/underscores. Buff IDs are validated against loaded buff specs.</p>
@@ -92,6 +95,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/mutators/{mutatorId}</span>
             <span class="api-desc">Get a single mutator spec</span>
+            <span class="perm-badge">mutators.read</span>
         </summary>
         <div class="api-body">
             <p><code>{mutatorId}</code> is the string mutator ID (e.g. <code>desert-sun</code>).</p>
@@ -115,6 +119,7 @@
             <span class="method method-patch">PATCH</span>
             <span class="api-path">/admin/api/v1/mutators/{mutatorId}</span>
             <span class="api-desc">Update mutator properties</span>
+            <span class="perm-badge">mutators.write</span>
         </summary>
         <div class="api-body">
             <p>Merges the supplied fields into the existing spec. The <code>MutatorId</code> in the body is ignored - the path parameter is authoritative. Buff IDs and LightMod range are validated before saving.</p>
@@ -145,6 +150,7 @@
             <span class="method method-delete">DELETE</span>
             <span class="api-path">/admin/api/v1/mutators/{mutatorId}</span>
             <span class="api-desc">Delete a mutator</span>
+            <span class="perm-badge">mutators.write</span>
         </summary>
         <div class="api-body">
             <p>Permanently removes the mutator YAML from disk and from the in-memory cache.</p>

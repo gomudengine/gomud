@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/configs"
+	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/yaml.v2"
@@ -19,10 +20,9 @@ func TestDoBasicAuthRequiresAdminRole(t *testing.T) {
 	const password = "correct-password"
 
 	setupAuthTestUsers(t, password, map[string]string{
-		"adminuser":   users.RoleAdmin,
-		"builderuser": "builder",
-		"helperuser":  "helper",
-		"normaluser":  users.RoleUser,
+		"adminuser":  users.RoleAdmin,
+		"moduser":    users.RoleMod,
+		"normaluser": users.RoleUser,
 	})
 
 	tests := []struct {
@@ -38,14 +38,10 @@ func TestDoBasicAuthRequiresAdminRole(t *testing.T) {
 			wantCalled: true,
 		},
 		{
-			name:       "builder rejected",
-			username:   "builderuser",
-			wantStatus: http.StatusUnauthorized,
-		},
-		{
-			name:       "helper rejected",
-			username:   "helperuser",
-			wantStatus: http.StatusUnauthorized,
+			name:       "mod accepted",
+			username:   "moduser",
+			wantStatus: http.StatusOK,
+			wantCalled: true,
 		},
 		{
 			name:       "user rejected",
@@ -81,6 +77,9 @@ func TestDoBasicAuthRequiresAdminRole(t *testing.T) {
 
 func setupAuthTestUsers(t *testing.T, password string, roles map[string]string) {
 	t.Helper()
+
+	// Initialize the logger so that configs.ReloadConfig() doesn't panic.
+	mudlog.SetupLogger(nil, "DEBUG", "", false)
 
 	wd, err := os.Getwd()
 	if err != nil {
@@ -155,5 +154,8 @@ func setupAuthTestUsers(t *testing.T, password string, roles map[string]string) 
 }
 
 func resetAuthStateForTest() {
+	authCacheMu.Lock()
 	authCache = map[string]time.Time{}
+	authUserCache = map[string]*users.UserRecord{}
+	authCacheMu.Unlock()
 }

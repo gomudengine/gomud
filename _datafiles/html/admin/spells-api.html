@@ -36,6 +36,7 @@
     .status-ok  { background: var(--color-success-bg); color: var(--color-success-text); }
     .status-err { background: var(--color-error-bg); color: var(--color-error-text); }
     .resp-label { font-size: 0.8rem; color: var(--color-text-tertiary); }
+    .perm-badge { font-size: 0.72rem; font-family: monospace; padding: 0.1rem 0.4rem; border-radius: 3px; font-weight: 600; background: var(--color-border-faint); color: var(--color-text-tertiary); margin-left: 0.5rem; }
 </style>
 
 <h1>Spells API Reference</h1>
@@ -48,6 +49,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v2/spells</span>
             <span class="api-desc">Return all spell definitions</span>
+            <span class="perm-badge">spells.read</span>
         </summary>
         <div class="api-body">
             <p>Returns an array of all spell specs with a <code>HasScript</code> boolean.</p>
@@ -67,6 +69,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v2/spells/{spellId}</span>
             <span class="api-desc">Get a single spell</span>
+            <span class="perm-badge">spells.read</span>
         </summary>
         <div class="api-body">
             <p><code>{spellId}</code> is the spell's string identifier.</p>
@@ -90,6 +93,7 @@
             <span class="method method-post">POST</span>
             <span class="api-path">/admin/api/v2/spells</span>
             <span class="api-desc">Create a new spell</span>
+            <span class="perm-badge">spells.write</span>
         </summary>
         <div class="api-body">
             <p><code>SpellId</code> is required and must be unique.</p>
@@ -116,6 +120,7 @@
             <span class="method method-patch">PATCH</span>
             <span class="api-path">/admin/api/v2/spells/{spellId}</span>
             <span class="api-desc">Update spell properties</span>
+            <span class="perm-badge">spells.write</span>
         </summary>
         <div class="api-body">
             <p>Merges the supplied fields into the existing spec. The <code>SpellId</code> in the body is ignored.</p>
@@ -138,6 +143,7 @@
             <span class="method method-delete">DELETE</span>
             <span class="api-path">/admin/api/v2/spells/{spellId}</span>
             <span class="api-desc">Delete a spell and its script</span>
+            <span class="perm-badge">spells.write</span>
         </summary>
         <div class="api-body">
             <p>Permanently removes the spell YAML and associated JS script from disk and from the in-memory cache.</p>
@@ -158,6 +164,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v2/spells/{spellId}/script</span>
             <span class="api-desc">Get the spell's JavaScript</span>
+            <span class="perm-badge">spells.read</span>
         </summary>
         <div class="api-body">
             <p>Returns the raw script content. <code>script</code> is an empty string if no script file exists.</p>
@@ -177,6 +184,7 @@
             <span class="method method-put">PUT</span>
             <span class="api-path">/admin/api/v2/spells/{spellId}/script</span>
             <span class="api-desc">Replace (or delete) the spell's JavaScript</span>
+            <span class="perm-badge">spells.write</span>
         </summary>
         <div class="api-body">
             <p>Writes the provided <code>script</code> string to the spell's <code>.js</code> file. Send an empty string to delete the script file.</p>

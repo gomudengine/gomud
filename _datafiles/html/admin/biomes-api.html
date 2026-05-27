@@ -41,6 +41,7 @@
     .params-table td { padding: 0.4rem 0.6rem; border: 1px solid var(--color-border); vertical-align: top; }
     .params-table td:first-child { font-family: monospace; color: var(--color-primary); }
     .required { color: var(--color-error-text); font-size: 0.75rem; font-weight: 600; }
+    .perm-badge { font-size: 0.72rem; font-family: monospace; padding: 0.1rem 0.4rem; border-radius: 3px; font-weight: 600; background: var(--color-border-faint); color: var(--color-text-tertiary); margin-left: 0.5rem; }
 </style>
 
 <h1>Biomes API Reference</h1>
@@ -53,6 +54,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/biomes</span>
             <span class="api-desc">Return all biome definitions</span>
+            <span class="perm-badge">biomes.read</span>
         </summary>
         <div class="api-body">
             <p>Returns an array of all loaded biome definitions, sorted by <code>BiomeId</code>.</p>
@@ -98,6 +100,7 @@
             <span class="method method-post">POST</span>
             <span class="api-path">/admin/api/v1/biomes</span>
             <span class="api-desc">Create a new biome</span>
+            <span class="perm-badge">biomes.write</span>
         </summary>
         <div class="api-body">
             <p>Creates a new biome definition. The <code>BiomeId</code> is lowercased automatically. Returns <code>400</code> if the ID already exists or validation fails.</p>
@@ -152,6 +155,7 @@
             <span class="method method-patch">PATCH</span>
             <span class="api-path">/admin/api/v1/biomes/{biomeId}</span>
             <span class="api-desc">Update a biome</span>
+            <span class="perm-badge">biomes.write</span>
         </summary>
         <div class="api-body">
             <p><code>{biomeId}</code> is the biome identifier (e.g. <code>forest</code>). Fields in the request body overwrite the existing definition. The <code>BiomeId</code> is always preserved from the URL.</p>
@@ -194,6 +198,7 @@
             <span class="method method-delete">DELETE</span>
             <span class="api-path">/admin/api/v1/biomes/{biomeId}</span>
             <span class="api-desc">Delete a biome</span>
+            <span class="perm-badge">biomes.write</span>
         </summary>
         <div class="api-body">
             <p><code>{biomeId}</code> is the biome identifier. Removes the YAML file from disk and unregisters the biome from memory. The <code>default</code> biome cannot be deleted.</p>

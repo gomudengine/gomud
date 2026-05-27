@@ -34,6 +34,7 @@
     .status-ok  { background: var(--color-success-bg); color: var(--color-success-text); }
     .status-err { background: var(--color-error-bg); color: var(--color-error-text); }
     .resp-label { font-size: 0.8rem; color: var(--color-text-tertiary); }
+    .perm-badge { font-size: 0.72rem; font-family: monospace; padding: 0.1rem 0.4rem; border-radius: 3px; font-weight: 600; background: var(--color-border-faint); color: var(--color-text-tertiary); margin-left: 0.5rem; }
 </style>
 
 <h1>Races API Reference</h1>
@@ -46,6 +47,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/races</span>
             <span class="api-desc">Return all races</span>
+            <span class="perm-badge">races.read</span>
         </summary>
         <div class="api-body">
             <p>Returns a map of raceId &rarr; Race object.</p>
@@ -65,6 +67,7 @@
             <span class="method method-post">POST</span>
             <span class="api-path">/admin/api/v1/races</span>
             <span class="api-desc">Create a new race</span>
+            <span class="perm-badge">races.write</span>
         </summary>
         <div class="api-body">
             <p>Creates a new race. The server assigns the next available <code>RaceId</code>. Returns the created race.</p>
@@ -90,6 +93,7 @@
             <span class="method method-patch">PATCH</span>
             <span class="api-path">/admin/api/v1/races/{raceId}</span>
             <span class="api-desc">Update a race</span>
+            <span class="perm-badge">races.write</span>
         </summary>
         <div class="api-body">
             <p><code>{raceId}</code> must be a numeric race ID. Fields in the request body overwrite the existing race. The <code>RaceId</code> is preserved.</p>
@@ -115,6 +119,7 @@
             <span class="method method-delete">DELETE</span>
             <span class="api-path">/admin/api/v1/races/{raceId}</span>
             <span class="api-desc">Delete a race</span>
+            <span class="perm-badge">races.write</span>
         </summary>
         <div class="api-body">
             <p><code>{raceId}</code> must be a numeric race ID. Removes the race data file from disk.</p>

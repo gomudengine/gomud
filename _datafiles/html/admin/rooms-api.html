@@ -36,6 +36,7 @@
     .resp-label { font-size: 0.8rem; color: var(--color-text-tertiary); }
     .api-group-title { font-size: 1.1rem; font-weight: 700; margin: 1.5rem 0 0.5rem; color: var(--color-primary); }
     .api-group-title:first-child { margin-top: 0; }
+    .perm-badge { font-size: 0.72rem; font-family: monospace; padding: 0.1rem 0.4rem; border-radius: 3px; font-weight: 600; background: var(--color-border-faint); color: var(--color-text-tertiary); margin-left: 0.5rem; }
 </style>
 
 <h1>Rooms &amp; Zones API Reference</h1>
@@ -49,6 +50,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/tags</span>
             <span class="api-desc">List all registered room tags</span>
+            <span class="perm-badge">server.read</span>
         </summary>
         <div class="api-body">
             <p>Returns every room tag registered by loaded modules, each with its module name. Tags are sorted by module then by registration order.</p>
@@ -73,6 +75,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/zones</span>
             <span class="api-desc">List all zones with room counts</span>
+            <span class="perm-badge">rooms.read</span>
         </summary>
         <div class="api-body">
             <p>Returns an array of zone summaries sorted by name.</p>
@@ -86,6 +89,7 @@
             <span class="method method-post">POST</span>
             <span class="api-path">/admin/api/v1/zones</span>
             <span class="api-desc">Create a new zone</span>
+            <span class="perm-badge">zones.write</span>
         </summary>
         <div class="api-body">
             <p>Creates a new zone with a root room. <code>Name</code> must be at least 2 characters (letters, numbers, spaces, underscores).</p>
@@ -101,6 +105,7 @@
             <span class="method method-patch">PATCH</span>
             <span class="api-path">/admin/api/v1/zones/{zonename}</span>
             <span class="api-desc">Update zone configuration</span>
+            <span class="perm-badge">zones.write</span>
         </summary>
         <div class="api-body">
             <p>Merges supplied fields into the zone config. <code>Name</code> and <code>RoomId</code> cannot be changed.</p>
@@ -116,6 +121,7 @@
             <span class="method method-delete">DELETE</span>
             <span class="api-path">/admin/api/v1/zones/{zonename}</span>
             <span class="api-desc">Delete a zone and all its rooms</span>
+            <span class="perm-badge">zones.write</span>
         </summary>
         <div class="api-body">
             <p>Permanently deletes the zone, its configuration, and <strong>all rooms</strong> in the zone. Fails if any room in the zone has players present.</p>
@@ -130,6 +136,7 @@
             <span class="method method-post">POST</span>
             <span class="api-path">/admin/api/v1/zones/{zonename}/rename</span>
             <span class="api-desc">Rename a zone</span>
+            <span class="perm-badge">zones.write</span>
         </summary>
         <div class="api-body">
             <p>Renames a zone. Updates all room and mob YAML files on disk, renames the zone folders, and applies the new name to all in-memory state immediately. Fails if any room in the zone has players present or if <code>NewName</code> already exists.</p>
@@ -150,6 +157,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/rooms</span>
             <span class="api-desc">List rooms (paginated)</span>
+            <span class="perm-badge">rooms.read</span>
         </summary>
         <div class="api-body">
             <p>Returns a paginated list of room summaries. Query params: <code>zone</code> (filter by zone), <code>search</code> (filter by ID or title), <code>page</code> (default 1), <code>perPage</code> (default 50, max 200).</p>
@@ -169,6 +177,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/rooms/biomes</span>
             <span class="api-desc">List all biome definitions</span>
+            <span class="perm-badge">rooms.read</span>
         </summary>
         <div class="api-body">
             <p>Returns all loaded biome definitions for use in dropdowns.</p>
@@ -182,6 +191,7 @@
             <span class="method method-post">POST</span>
             <span class="api-path">/admin/api/v1/rooms</span>
             <span class="api-desc">Create a new room</span>
+            <span class="perm-badge">rooms.write</span>
         </summary>
         <div class="api-body">
             <p>Creates a new room in the specified zone with an auto-assigned ID and default title/description.</p>
@@ -197,6 +207,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/rooms/{roomId}</span>
             <span class="api-desc">Get full room template</span>
+            <span class="perm-badge">rooms.read</span>
         </summary>
         <div class="api-body">
             <p>Returns the complete room template data for editing. <code>{roomId}</code> must be a numeric ID.</p>
@@ -210,6 +221,7 @@
             <span class="method method-patch">PATCH</span>
             <span class="api-path">/admin/api/v1/rooms/{roomId}</span>
             <span class="api-desc">Update room properties</span>
+            <span class="perm-badge">rooms.write</span>
         </summary>
         <div class="api-body">
             <p>Merges supplied fields into the room template. <code>RoomId</code> in the body is ignored. Title and Description are required.</p>
@@ -225,6 +237,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/rooms/{roomId}/script</span>
             <span class="api-desc">Get room script</span>
+            <span class="perm-badge">rooms.read</span>
         </summary>
         <div class="api-body">
             <p>Returns the JavaScript source for the room's script file. <code>script</code> is an empty string if no script file exists.</p>
@@ -241,9 +254,10 @@
 
     <details class="api-entry">
         <summary>
-            <span class="method method-patch">PUT</span>
+            <span class="method method-put">PUT</span>
             <span class="api-path">/admin/api/v1/rooms/{roomId}/script</span>
             <span class="api-desc">Replace or delete room script</span>
+            <span class="perm-badge">rooms.write</span>
         </summary>
         <div class="api-body">
             <p>Writes the supplied JavaScript to the room's <code>.js</code> script file. Send an empty <code>script</code> string to delete the script file.</p>
@@ -259,6 +273,7 @@
             <span class="method method-delete">DELETE</span>
             <span class="api-path">/admin/api/v1/rooms/{roomId}</span>
             <span class="api-desc">Delete a room</span>
+            <span class="perm-badge">rooms.write</span>
         </summary>
         <div class="api-body">
             <p>Permanently removes a room's template and instance files. Cannot delete a zone's root room or a room with players present.</p>
@@ -278,6 +293,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/rooms/{roomId}/instance</span>
             <span class="api-desc">Get raw instance YAML</span>
+            <span class="perm-badge">rooms.read</span>
         </summary>
         <div class="api-body">
             <p>Returns the raw YAML content of the instance file for the room. The <code>instance</code> field is an empty string when no instance file exists &mdash; this is normal for most rooms and is not an error.</p>
@@ -298,9 +314,10 @@
 
     <details class="api-entry">
         <summary>
-            <span class="method method-patch">PUT</span>
+            <span class="method method-put">PUT</span>
             <span class="api-path">/admin/api/v1/rooms/{roomId}/instance</span>
             <span class="api-desc">Replace or delete instance file</span>
+            <span class="perm-badge">rooms.write</span>
         </summary>
         <div class="api-body">
             <p>Writes the supplied YAML string to the room's instance file under <code>rooms.instances/</code>. Send an empty <code>instance</code> string to delete the instance file.</p>
@@ -316,6 +333,7 @@
             <span class="method method-delete">DELETE</span>
             <span class="api-path">/admin/api/v1/rooms/{roomId}/instance</span>
             <span class="api-desc">Delete instance file</span>
+            <span class="perm-badge">rooms.write</span>
         </summary>
         <div class="api-body">
             <p>Removes the instance file for the room. Returns success even if no instance file existed.</p>

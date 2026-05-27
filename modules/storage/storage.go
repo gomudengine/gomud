@@ -79,7 +79,12 @@ func init() {
 	)
 
 	m.plug.Web.AdminAPIEndpoint("GET", "storage", m.apiAdminGetStorage)
-	m.plug.Web.AdminAPIEndpoint("DELETE", "storage", m.apiAdminDeleteStorageItem)
+	m.plug.Web.AdminAPIEndpoint("DELETE", "storage", m.apiAdminDeleteStorageItem, "storage.write")
+	m.plug.Web.RegisterPermissions(plugins.ModulePermission{
+		Key:         "storage.write",
+		Description: "Delete player storage items",
+		Category:    "Modules",
+	})
 
 	events.RegisterListener(events.PlayerDespawn{}, m.onPlayerDespawn)
 	events.RegisterListener(events.PlayerSpawn{}, m.onPlayerSpawn)

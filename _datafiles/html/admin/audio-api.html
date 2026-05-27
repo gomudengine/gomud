@@ -35,6 +35,7 @@
     .status-ok  { background: var(--color-success-bg); color: var(--color-success-text); }
     .status-err { background: var(--color-error-bg); color: var(--color-error-text); }
     .resp-label { font-size: 0.8rem; color: var(--color-text-tertiary); }
+    .perm-badge { font-size: 0.72rem; font-family: monospace; padding: 0.1rem 0.4rem; border-radius: 3px; font-weight: 600; background: var(--color-border-faint); color: var(--color-text-tertiary); margin-left: 0.5rem; }
 </style>
 
 <h1>Audio API Reference</h1>
@@ -47,6 +48,7 @@
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/audio</span>
             <span class="api-desc">Return sounds and music</span>
+            <span class="perm-badge">audio.read</span>
         </summary>
         <div class="api-body">
             <p>Returns two sections:</p>
@@ -70,6 +72,7 @@
             <span class="method method-patch">PATCH</span>
             <span class="api-path">/admin/api/v1/audio</span>
             <span class="api-desc">Replace the sounds configuration</span>
+            <span class="perm-badge">audio.write</span>
         </summary>
         <div class="api-body">
             <p>Replaces the entire sounds configuration with the provided map. The body must be a JSON object mapping identifiers to audio config objects. The updated configuration is written to <code>audio.yaml</code> and reloaded in memory.</p>
