@@ -10,6 +10,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/templates"
 	"github.com/GoMudEngine/GoMud/internal/term"
 	"github.com/GoMudEngine/GoMud/internal/util"
+	"github.com/GoMudEngine/ansitags"
 )
 
 func buildInspectPanel(inspectLevel int, itm *items.Item, iSpec *items.ItemSpec) string {
@@ -270,6 +271,34 @@ func buildTrackPanel(visitors []trackingInfo) string {
 	return layout.Render() + term.CRLFStr
 }
 
+const (
+	alertBorderDashes = 69
+	alertContentWidth = alertBorderDashes - 2 // one space padding on each side inside the border
+)
+
+var (
+	alertBorderTop     = `    <ansi fg="red">┌` + strings.Repeat(`─`, alertBorderDashes) + `┐</ansi>`
+	alertBorderBottom  = `    <ansi fg="red">└` + strings.Repeat(`─`, alertBorderDashes) + `┘</ansi>`
+	alertContentPrefix = `    <ansi fg="red">│</ansi> `
+)
+
+// wrapAlertLine splits a single alert line into visual chunks that each fit
+// within alertContentWidth visible characters, respecting ANSI tags.
+// Blank input produces a single empty string so blank lines are preserved.
+func wrapAlertLine(line string) []string {
+	chunks := ansitags.SplitStringOnSpaces(line, alertContentWidth, true)
+	var result []string
+	for _, chunk := range chunks {
+		if len(strings.TrimSpace(ansitags.Parse(chunk, ansitags.StripTags))) > 0 {
+			result = append(result, chunk)
+		}
+	}
+	if len(result) == 0 {
+		return []string{``}
+	}
+	return result
+}
+
 func buildRoomDescPanel(details rooms.RoomTemplateDetails) string {
 	var out strings.Builder
 
@@ -279,14 +308,18 @@ func buildRoomDescPanel(details rooms.RoomTemplateDetails) string {
 	}
 	out.WriteString(fmt.Sprintf(`<ansi fg="%s">%s</ansi>`, descColor, details.Description))
 
-	for _, alert := range details.RoomAlerts {
+	for _, group := range details.RoomAlerts {
 		out.WriteString(term.CRLFStr)
 		out.WriteString(term.CRLFStr)
-		out.WriteString(`    <ansi fg="red">┌───────────────────────────────────────────────────────────────────┐</ansi>`)
+		out.WriteString(alertBorderTop)
+		for _, line := range group {
+			for _, wline := range wrapAlertLine(line) {
+				out.WriteString(term.CRLFStr)
+				out.WriteString(alertContentPrefix + wline)
+			}
+		}
 		out.WriteString(term.CRLFStr)
-		out.WriteString(`      ` + alert)
-		out.WriteString(term.CRLFStr)
-		out.WriteString(`    <ansi fg="red">└───────────────────────────────────────────────────────────────────┘</ansi>`)
+		out.WriteString(alertBorderBottom)
 	}
 
 	if details.TrackingString != `` {

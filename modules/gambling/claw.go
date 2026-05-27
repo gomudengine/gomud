@@ -117,9 +117,7 @@ func (g *GamblingModule) pickClawPrize() *clawPrize {
 func (g *GamblingModule) onRoomLookClaw(d rooms.RoomTemplateDetails) rooms.RoomTemplateDetails {
 	for _, t := range d.Tags {
 		if strings.ToLower(t) == `claw machine` {
-			d.RoomAlerts = append(d.RoomAlerts,
-				`There is a <ansi fg="cyan-bold">claw machine</ansi> here! You can <ansi fg="command">look</ansi> at or <ansi fg="command">play</ansi> it.`,
-			)
+			d.Alert(`There is a <ansi fg="cyan-bold">claw machine</ansi> here! You can <ansi fg="command">look</ansi> at or <ansi fg="command">play</ansi> it.`)
 			return d
 		}
 	}

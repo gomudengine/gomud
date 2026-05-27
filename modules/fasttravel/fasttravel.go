@@ -108,10 +108,9 @@ func (m *FastTravelModule) onPlayerDespawn(e events.Event) events.ListenerReturn
 func (m *FastTravelModule) onRoomLook(d rooms.RoomTemplateDetails) rooms.RoomTemplateDetails {
 	for _, t := range d.Tags {
 		if strings.EqualFold(t, fastTravelTag) {
-			d.RoomAlerts = append(d.RoomAlerts,
-				`<ansi fg="yellow-bold">This is a fast travel station!</ansi>`+
-					"\n"+
-					`      <ansi fg="command">fasttravel</ansi> lists destinations, or <ansi fg="command">look fast travel</ansi> to examine it.`,
+			d.Alert(
+				`<ansi fg="yellow-bold">This is a fast travel station!</ansi>`,
+				`<ansi fg="command">fasttravel</ansi> lists destinations, or <ansi fg="command">look fast travel</ansi> to examine it.`,
 			)
 			return d
 		}

@@ -107,9 +107,7 @@ func (m *AutoMissionModule) onRoomLook(d rooms.RoomTemplateDetails) rooms.RoomTe
 	for _, tag := range allBoardTags {
 		for _, t := range d.Tags {
 			if strings.EqualFold(t, tag) {
-				d.RoomAlerts = append(d.RoomAlerts,
-					`<ansi fg="yellow-bold">There's a mission board here!</ansi> <ansi fg="command">mission list</ansi> lists missions.`,
-				)
+				d.Alert(`<ansi fg="yellow-bold">There's a mission board here!</ansi> <ansi fg="command">mission list</ansi> lists missions.`)
 				return d
 			}
 		}

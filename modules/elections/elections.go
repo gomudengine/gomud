@@ -890,31 +890,21 @@ func (m *ElectionsModule) onRoomLook(d rooms.RoomTemplateDetails) rooms.RoomTemp
 	for _, t := range d.Tags {
 		if strings.EqualFold(t, pollTag) {
 			if m.state.ActiveElection != nil {
-				d.RoomAlerts = append(d.RoomAlerts,
-					`<ansi fg="yellow-bold">This is a polling location!</ansi> <ansi fg="command">vote</ansi> for or <ansi fg="command">nominate</ansi> someone.`,
-				)
+				d.Alert(`<ansi fg="yellow-bold">This is a polling location!</ansi> <ansi fg="command">vote</ansi> for or <ansi fg="command">nominate</ansi> someone.`)
 			}
 		} else if strings.EqualFold(t, cofferTag) {
-			d.RoomAlerts = append(d.RoomAlerts,
-				`<ansi fg="yellow-bold">This room holds the local coffer.</ansi> Type <ansi fg="command">coffer</ansi> to manage it.`,
-			)
+			d.Alert(`<ansi fg="yellow-bold">This room holds the local coffer.</ansi> Type <ansi fg="command">coffer</ansi> to manage it.`)
 			zoneKey := strings.ToLower(d.Zone)
 			if winner, hasWinner := m.state.Winners[zoneKey]; hasWinner && winner.UserId == d.UserId {
 				rate := m.zoneTaxRate(zoneKey)
-				d.RoomAlerts = append(d.RoomAlerts,
-					fmt.Sprintf(`<ansi fg="yellow-bold">Set the zone tax rate (currently <ansi fg="white-bold">%d%%</ansi>) with <ansi fg="command">taxrate <0-100></ansi>.</ansi></ansi>`, rate),
-				)
+				d.Alert(fmt.Sprintf(`<ansi fg="yellow-bold">Set the zone tax rate (currently <ansi fg="white-bold">%d%%</ansi>) with <ansi fg="command">taxrate <0-100></ansi>.</ansi></ansi>`, rate))
 			}
 		} else if strings.EqualFold(t, officialOnlyTag) {
 			zoneKey := strings.ToLower(d.Zone)
 			if winner, hasWinner := m.state.Winners[zoneKey]; hasWinner {
-				d.RoomAlerts = append(d.RoomAlerts,
-					fmt.Sprintf(`<ansi fg="yellow-bold">This area is restricted to the <ansi fg="white-bold">%s</ansi> and their party.</ansi>`, winner.Title),
-				)
+				d.Alert(fmt.Sprintf(`<ansi fg="yellow-bold">This area is restricted to the <ansi fg="white-bold">%s</ansi> and their party.</ansi>`, winner.Title))
 			} else {
-				d.RoomAlerts = append(d.RoomAlerts,
-					`<ansi fg="yellow-bold">This area is restricted to elected officials only.</ansi>`,
-				)
+				d.Alert(`<ansi fg="yellow-bold">This area is restricted to elected officials only.</ansi>`)
 			}
 		}
 	}

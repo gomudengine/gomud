@@ -16,7 +16,7 @@ import "sync"
 // Example – registering a handler from a module:
 //
 //	rooms.OnRoomLook.Register(func(d rooms.RoomTemplateDetails) rooms.RoomTemplateDetails {
-//	    d.RoomAlerts = append(d.RoomAlerts, "You can fish here!")
+//	    d.Alert("You can fish here!")
 //	    return d
 //	})
 //
