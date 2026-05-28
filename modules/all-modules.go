@@ -13,6 +13,7 @@ import (
 	_ "github.com/GoMudEngine/GoMud/modules/clibridge"
 	_ "github.com/GoMudEngine/GoMud/modules/elections"
 	_ "github.com/GoMudEngine/GoMud/modules/fasttravel"
+	_ "github.com/GoMudEngine/GoMud/modules/fishing"
 	_ "github.com/GoMudEngine/GoMud/modules/follow"
 	_ "github.com/GoMudEngine/GoMud/modules/gambling"
 	_ "github.com/GoMudEngine/GoMud/modules/gmcp"
