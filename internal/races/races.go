@@ -132,23 +132,11 @@ func (r *Race) Validate() error {
 func (r Race) GetEnabledSlots() []string {
 
 	ret := []string{}
-	slots := []string{
-		string(items.Weapon),
-		string(items.Offhand),
-		string(items.Head),
-		string(items.Neck),
-		string(items.Body),
-		string(items.Belt),
-		string(items.Gloves),
-		string(items.Ring),
-		string(items.Legs),
-		string(items.Feet),
-	}
-
-	for _, slotName := range slots {
+	for _, slot := range items.AllEquipSlots() {
+		slotName := string(slot)
 		add := true
-		for _, slot := range r.DisabledSlots {
-			if slotName == slot {
+		for _, disabled := range r.DisabledSlots {
+			if slotName == disabled {
 				add = false
 				break
 			}

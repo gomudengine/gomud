@@ -187,16 +187,6 @@
                 <div class="section-title">Disabled Equipment Slots</div>
                 <div class="field-hint span2" style="grid-column:1/-1; margin-bottom:0.5rem;">Click a slot to toggle it. Dark slots are <strong>disabled</strong> for this race.</div>
                 <div class="slots-grid" id="slotsGrid">
-                    <label class="slot-item" onclick="toggleSlot(this)"><input type="checkbox" class="slot-cb" value="weapon" /> Weapon</label>
-                    <label class="slot-item" onclick="toggleSlot(this)"><input type="checkbox" class="slot-cb" value="offhand" /> Off-hand</label>
-                    <label class="slot-item" onclick="toggleSlot(this)"><input type="checkbox" class="slot-cb" value="head" /> Head</label>
-                    <label class="slot-item" onclick="toggleSlot(this)"><input type="checkbox" class="slot-cb" value="neck" /> Neck</label>
-                    <label class="slot-item" onclick="toggleSlot(this)"><input type="checkbox" class="slot-cb" value="body" /> Body</label>
-                    <label class="slot-item" onclick="toggleSlot(this)"><input type="checkbox" class="slot-cb" value="belt" /> Belt</label>
-                    <label class="slot-item" onclick="toggleSlot(this)"><input type="checkbox" class="slot-cb" value="gloves" /> Gloves</label>
-                    <label class="slot-item" onclick="toggleSlot(this)"><input type="checkbox" class="slot-cb" value="ring" /> Ring</label>
-                    <label class="slot-item" onclick="toggleSlot(this)"><input type="checkbox" class="slot-cb" value="legs" /> Legs</label>
-                    <label class="slot-item" onclick="toggleSlot(this)"><input type="checkbox" class="slot-cb" value="feet" /> Feet</label>
                 </div>
 
                 <div class="btn-row">
@@ -215,9 +205,15 @@ let isNew = false;
 
 // ---- Load ----
 async function loadRaces() {
-    const res = await AdminAPI.get('/admin/api/v1/races');
+    const [res, slotsRes] = await AdminAPI.all([
+        AdminAPI.get('/admin/api/v1/races'),
+        AdminAPI.get('/admin/api/v1/items/equip-slots'),
+    ]);
     if (!res.ok) { console.error('Failed to load races:', res.error); return; }
     racesData = (res.data && res.data.data) || {};
+    if (slotsRes.ok) {
+        buildSlotsGrid(slotsRes.data.data || []);
+    }
     renderList();
     DiceRollHelper.attach(document.getElementById('fDiceRoll'));
     const hashId = location.hash.slice(1);
@@ -408,6 +404,20 @@ function showStatus(type, msg) {
     bar.className = 'status-bar ' + type;
     bar.textContent = msg;
     if (type === 'success') setTimeout(() => { bar.className = 'status-bar'; }, 3000);
+}
+
+function buildSlotsGrid(slots) {
+    const grid = document.getElementById('slotsGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    for (const slot of slots) {
+        const label = slot.charAt(0).toUpperCase() + slot.slice(1);
+        const lbl = document.createElement('label');
+        lbl.className = 'slot-item';
+        lbl.setAttribute('onclick', 'toggleSlot(this)');
+        lbl.innerHTML = '<input type="checkbox" class="slot-cb" value="' + escAttr(slot) + '" /> ' + escHtml(label);
+        grid.appendChild(lbl);
+    }
 }
 
 function toggleSlot(label) {

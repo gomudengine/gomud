@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
-	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/templates"
 	"github.com/GoMudEngine/GoMud/internal/term"
@@ -136,39 +136,22 @@ func statusBonuses(user *users.UserRecord) (bool, error) {
 	sb.WriteString(`</ansi>`)
 	sb.WriteString(term.CRLFStr)
 
-	type slotItem struct {
-		SlotName string
-		Item     items.Item
-	}
-
-	slots := []slotItem{
-		{`Weapon`, user.Character.Equipment.Weapon},
-		{`Offhand`, user.Character.Equipment.Offhand},
-		{`Head`, user.Character.Equipment.Head},
-		{`Neck`, user.Character.Equipment.Neck},
-		{`Body`, user.Character.Equipment.Body},
-		{`Belt`, user.Character.Equipment.Belt},
-		{`Gloves`, user.Character.Equipment.Gloves},
-		{`Ring`, user.Character.Equipment.Ring},
-		{`Legs`, user.Character.Equipment.Legs},
-		{`Feet`, user.Character.Equipment.Feet},
-	}
-
 	sb.WriteString(term.CRLFStr)
 	sb.WriteString(` ┌─ <ansi fg="black-bold">.:</ansi><ansi fg="20">Equipment Bonuses</ansi> ──────────────────────────────────────────────────────┐`)
 
 	equipFound := false
-	for _, slot := range slots {
-		if slot.Item.ItemId < 1 {
+	for _, slot := range characters.AllSlots() {
+		itm := *user.Character.Equipment.Get(slot)
+		if itm.ItemId < 1 {
 			continue
 		}
-		spec := slot.Item.GetSpec()
+		spec := itm.GetSpec()
 		if len(spec.StatMods) == 0 {
 			continue
 		}
 		equipFound = true
 		sb.WriteString(term.CRLFStr)
-		sb.WriteString(fmt.Sprintf(`   <ansi fg="yellow">%-8s</ansi> %s`, slot.SlotName+`:`, slot.Item.DisplayName()))
+		sb.WriteString(fmt.Sprintf(`   <ansi fg="yellow">%-8s</ansi> %s`, characters.SlotLabel(slot), itm.DisplayName()))
 		sb.WriteString(term.CRLFStr)
 		sb.WriteString(`            `)
 		sb.WriteString(formatStatMods(spec.StatMods))

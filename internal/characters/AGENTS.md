@@ -29,6 +29,8 @@ The `internal/characters` package is the core character system for GoMud, handli
 - **Equipment slots**: Weapon, Offhand, Head, Neck, Body, Belt, Gloves, Ring, Legs, Feet
 - **Stat modifications**: Equipment provides stat bonuses aggregated across all slots
 - **Item management**: Worn item tracking and validation
+- **Slot accessors**: `Get(slot)` and `Set(slot, item)` are the only places that map an `items.ItemType` to a `Worn` struct field; all other code iterates via `AllSlots()`, `ArmorSlots()`, or `WeaponSlots()`
+- **Display labels**: `SlotLabel(slot)` returns the canonical UI label (e.g. `"Head:"`) so rendering code does not hard-code slot names
 
 ### Character States and Modifiers
 - **Alignment system** (`alignment.go`): Good/neutral/evil alignment with numeric values (-100 to +100)
@@ -116,3 +118,39 @@ Comprehensive test coverage in `*_test.go` files covering:
 - `MarkVisitedRoom`, `HasVisitedRoom`, and `ZoneVisitProgress` integration
 
 This package serves as the foundation for all character-related functionality in GoMud, providing a rich and flexible character model that supports both player and NPC needs.
+
+## How can new slots be added, removed, or changed?
+
+The slot system is designed so that adding, removing, or renaming a slot requires touching the fewest possible files. Follow these steps in order.
+
+### Adding a new slot
+
+1. **`internal/items/itemspec.go`** — Add the new `ItemType` constant (e.g. `Shoulders ItemType = "shoulders"`). Add it to `AllEquipSlots()`, and to `ArmorSlots()` or `WeaponSlots()` as appropriate. This is the single source of truth for the ordered slot list.
+
+2. **`internal/characters/worn.go`** — Add the new field to the `Worn` struct with a matching YAML tag. Add a case for it in `Get()` and `Set()`. Add it to `SlotLabel()`. No other functions in this file need changing — `StatMod`, `EnableAll`, `GetAllItems`, and the package-level helpers all loop via `AllSlots()` and will pick up the new slot automatically.
+
+3. **`internal/characters/character.go`** — The `Wear()` function contains an explicit `switch` for slot-specific equip logic. If the new slot has standard equip behavior (check disabled, displace old item, place new item), add a `case` for it alongside the existing simple armor cases (`Head` through `Feet`). If it has special behavior like `Weapon`/`Offhand`, add full case logic. All other functions in this file loop via `AllSlots()` and need no changes.
+
+4. **Race data files** — If any races should have the new slot disabled, add the slot name to their `disabledslots` list in the YAML data files under `_datafiles/races/`.
+
+5. **Item data files** — Create item specs with `type: newslot` under the appropriate folder in `_datafiles/items/` so items can be assigned to the new slot.
+
+### Removing a slot
+
+Reverse the steps above. Remove the constant from `AllEquipSlots()` (and `ArmorSlots()`/`WeaponSlots()`), remove the struct field and its `Get`/`Set`/`SlotLabel` cases, remove the `Wear()` case, and migrate or delete any item data files that used the slot type.
+
+### Renaming a slot
+
+Rename the `ItemType` constant value string and update the YAML tag on the `Worn` field to match. The constant name itself (e.g. `items.Shoulders`) can be renamed with a project-wide symbol rename. The string value (e.g. `"shoulders"`) is persisted in character save files and item data files, so a data migration is required if live saves exist.
+
+### Files that do NOT need changes for a new slot
+
+Because they loop via `AllSlots()` or delegate to `Worn.Get()`/`Set()`:
+- `Worn.StatMod`, `Worn.EnableAll`, `Worn.GetAllItems`
+- `Character.GetDefense`, `GetAllWornItems`, `GetGearValue`, `Validate`, `Uncurse`, `RemoveFromBody`, `BestUpgrades`, `SetRace`, `FindOnBody`
+- `internal/races/races.go` `GetEnabledSlots`
+- `internal/combat/armor_rank.go` `armorSlotSet`
+- `internal/usercommands/inventory.panels.go` equipment panel
+- `internal/usercommands/status.panels.go` stat bonuses panel
+- `internal/mobs/mobs.go` and `internal/combat/simulate.go` equipment validation loops
+- `modules/gmcp/gmcp.Char.go` — `buildWornPayload` iterates `items.AllEquipSlots()` automatically

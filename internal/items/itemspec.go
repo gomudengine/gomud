@@ -220,6 +220,45 @@ type ItemSpec struct {
 	KeyLockId       string            `yaml:"keylockid,omitempty"`   // Example: `778-north` - If it's a key, what lock does it open? roomid-exitname etc.
 }
 
+// AllEquipSlots returns every equipment slot ItemType in canonical display order.
+// This is the single authoritative definition used by the characters, races,
+// and combat packages to avoid per-package slot-list duplication.
+func AllEquipSlots() []ItemType {
+	return []ItemType{
+		Weapon,
+		Offhand,
+		Head,
+		Neck,
+		Body,
+		Belt,
+		Gloves,
+		Ring,
+		Legs,
+		Feet,
+	}
+}
+
+// WeaponSlots returns the slots that hold weapons.
+func WeaponSlots() []ItemType {
+	return []ItemType{Weapon, Offhand}
+}
+
+// ArmorSlots returns every equipment slot except Weapon — the slots that hold
+// armor and wearable items providing passive protection or stat benefits.
+func ArmorSlots() []ItemType {
+	return []ItemType{
+		Offhand,
+		Head,
+		Neck,
+		Body,
+		Belt,
+		Gloves,
+		Ring,
+		Legs,
+		Feet,
+	}
+}
+
 func (i Element) String() string {
 	return string(i)
 }

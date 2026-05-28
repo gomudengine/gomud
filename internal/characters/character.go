@@ -567,16 +567,10 @@ func (c *Character) GetAllSkillRanks() map[string]int {
 // Returns an integer representing a % damage reduction
 func (c *Character) GetDefense() int {
 
-	reduction := c.Equipment.Weapon.GetDefense() +
-		c.Equipment.Offhand.GetDefense() +
-		c.Equipment.Head.GetDefense() +
-		c.Equipment.Neck.GetDefense() +
-		c.Equipment.Body.GetDefense() +
-		c.Equipment.Belt.GetDefense() +
-		c.Equipment.Gloves.GetDefense() +
-		c.Equipment.Ring.GetDefense() +
-		c.Equipment.Legs.GetDefense() +
-		c.Equipment.Feet.GetDefense()
+	reduction := 0
+	for _, slot := range AllSlots() {
+		reduction += c.Equipment.Get(slot).GetDefense()
+	}
 
 	//reduction = int(float64(reduction) / 9)
 
@@ -870,17 +864,7 @@ func (c *Character) FindOnBody(itemName string) (items.Item, bool) {
 		return items.Item{}, false
 	}
 
-	partialMatch, fullMatch := items.FindMatchIn(itemName,
-		c.Equipment.Weapon,
-		c.Equipment.Offhand,
-		c.Equipment.Head,
-		c.Equipment.Neck,
-		c.Equipment.Body,
-		c.Equipment.Belt,
-		c.Equipment.Gloves,
-		c.Equipment.Ring,
-		c.Equipment.Legs,
-		c.Equipment.Feet)
+	partialMatch, fullMatch := items.FindMatchIn(itemName, c.Equipment.GetAllItems()...)
 
 	if fullMatch.ItemId != 0 {
 		return fullMatch, true
@@ -1658,16 +1642,9 @@ func (c *Character) Validate(recalcPermaBuffs ...bool) error {
 	for i := range c.Items {
 		c.Items[i].Validate()
 	}
-	c.Equipment.Weapon.Validate()
-	c.Equipment.Offhand.Validate()
-	c.Equipment.Head.Validate()
-	c.Equipment.Neck.Validate()
-	c.Equipment.Body.Validate()
-	c.Equipment.Belt.Validate()
-	c.Equipment.Gloves.Validate()
-	c.Equipment.Ring.Validate()
-	c.Equipment.Legs.Validate()
-	c.Equipment.Feet.Validate()
+	for _, slot := range AllSlots() {
+		c.Equipment.Get(slot).Validate()
+	}
 	// Done with validation
 
 	if raceInfo := races.GetRace(c.GetRaceId()); raceInfo != nil {
@@ -1679,60 +1656,17 @@ func (c *Character) Validate(recalcPermaBuffs ...bool) error {
 
 			for _, disabledSlot := range raceInfo.DisabledSlots {
 
-				var itemFoundInDisabledSlot items.Item = items.ItemDisabledSlot
-
-				switch items.ItemType(disabledSlot) {
-				case items.Weapon:
-					if c.Equipment.Weapon.ItemId > 0 { // Did we find somethign in a disabled slot?
-						itemFoundInDisabledSlot = c.Equipment.Weapon
-					}
-					c.Equipment.Weapon = items.ItemDisabledSlot
-				case items.Offhand:
-					if c.Equipment.Offhand.ItemId > 0 { // Did we find somethign in a disabled slot?
-						itemFoundInDisabledSlot = c.Equipment.Offhand
-					}
-					c.Equipment.Offhand = items.ItemDisabledSlot
-				case items.Head:
-					if c.Equipment.Head.ItemId > 0 { // Did we find somethign in a disabled slot?
-						itemFoundInDisabledSlot = c.Equipment.Head
-					}
-					c.Equipment.Head = items.ItemDisabledSlot
-				case items.Neck:
-					if c.Equipment.Neck.ItemId > 0 { // Did we find somethign in a disabled slot?
-						itemFoundInDisabledSlot = c.Equipment.Neck
-					}
-					c.Equipment.Neck = items.ItemDisabledSlot
-				case items.Body:
-					if c.Equipment.Body.ItemId > 0 { // Did we find somethign in a disabled slot?
-						itemFoundInDisabledSlot = c.Equipment.Body
-					}
-					c.Equipment.Body = items.ItemDisabledSlot
-				case items.Belt:
-					if c.Equipment.Belt.ItemId > 0 { // Did we find somethign in a disabled slot?
-						itemFoundInDisabledSlot = c.Equipment.Belt
-					}
-					c.Equipment.Belt = items.ItemDisabledSlot
-				case items.Gloves:
-					if c.Equipment.Gloves.ItemId > 0 { // Did we find somethign in a disabled slot?
-						itemFoundInDisabledSlot = c.Equipment.Gloves
-					}
-					c.Equipment.Gloves = items.ItemDisabledSlot
-				case items.Ring:
-					if c.Equipment.Ring.ItemId > 0 { // Did we find somethign in a disabled slot?
-						itemFoundInDisabledSlot = c.Equipment.Ring
-					}
-					c.Equipment.Ring = items.ItemDisabledSlot
-				case items.Legs:
-					if c.Equipment.Legs.ItemId > 0 { // Did we find somethign in a disabled slot?
-						itemFoundInDisabledSlot = c.Equipment.Legs
-					}
-					c.Equipment.Legs = items.ItemDisabledSlot
-				case items.Feet:
-					if c.Equipment.Feet.ItemId > 0 { // Did we find somethign in a disabled slot?
-						itemFoundInDisabledSlot = c.Equipment.Feet
-					}
-					c.Equipment.Feet = items.ItemDisabledSlot
+				slotType := items.ItemType(disabledSlot)
+				slotItem := c.Equipment.Get(slotType)
+				if slotItem == nil {
+					continue
 				}
+
+				var itemFoundInDisabledSlot items.Item = items.ItemDisabledSlot
+				if slotItem.ItemId > 0 {
+					itemFoundInDisabledSlot = *slotItem
+				}
+				c.Equipment.Set(slotType, items.ItemDisabledSlot)
 
 				if !itemFoundInDisabledSlot.IsDisabled() {
 					c.StoreItem(itemFoundInDisabledSlot)
@@ -1917,47 +1851,8 @@ func (c *Character) BestUpgrades() map[items.ItemType]items.Item {
 			continue
 		}
 		// Skip disabled slots (ItemId == -1 means the race cannot use this slot).
-		switch slotType {
-		case items.Weapon:
-			if c.Equipment.Weapon.IsDisabled() {
-				continue
-			}
-		case items.Offhand:
-			if c.Equipment.Offhand.IsDisabled() {
-				continue
-			}
-		case items.Head:
-			if c.Equipment.Head.IsDisabled() {
-				continue
-			}
-		case items.Neck:
-			if c.Equipment.Neck.IsDisabled() {
-				continue
-			}
-		case items.Body:
-			if c.Equipment.Body.IsDisabled() {
-				continue
-			}
-		case items.Belt:
-			if c.Equipment.Belt.IsDisabled() {
-				continue
-			}
-		case items.Gloves:
-			if c.Equipment.Gloves.IsDisabled() {
-				continue
-			}
-		case items.Ring:
-			if c.Equipment.Ring.IsDisabled() {
-				continue
-			}
-		case items.Legs:
-			if c.Equipment.Legs.IsDisabled() {
-				continue
-			}
-		case items.Feet:
-			if c.Equipment.Feet.IsDisabled() {
-				continue
-			}
+		if slotItem := c.Equipment.Get(slotType); slotItem != nil && slotItem.IsDisabled() {
+			continue
 		}
 		upgrades[slotType] = candidate
 	}
@@ -2002,70 +1897,20 @@ func (c *Character) BestUpgrades() map[items.ItemType]items.Item {
 
 func (c *Character) GetAllWornItems() []items.Item {
 	wornItems := []items.Item{}
-	if c.Equipment.Weapon.ItemId > 0 {
-		wornItems = append(wornItems, c.Equipment.Weapon)
-	}
-	if c.Equipment.Offhand.ItemId > 0 {
-		wornItems = append(wornItems, c.Equipment.Offhand)
-	}
-	if c.Equipment.Head.ItemId > 0 {
-		wornItems = append(wornItems, c.Equipment.Head)
-	}
-	if c.Equipment.Neck.ItemId > 0 {
-		wornItems = append(wornItems, c.Equipment.Neck)
-	}
-	if c.Equipment.Body.ItemId > 0 {
-		wornItems = append(wornItems, c.Equipment.Body)
-	}
-	if c.Equipment.Belt.ItemId > 0 {
-		wornItems = append(wornItems, c.Equipment.Belt)
-	}
-	if c.Equipment.Gloves.ItemId > 0 {
-		wornItems = append(wornItems, c.Equipment.Gloves)
-	}
-	if c.Equipment.Ring.ItemId > 0 {
-		wornItems = append(wornItems, c.Equipment.Ring)
-	}
-	if c.Equipment.Legs.ItemId > 0 {
-		wornItems = append(wornItems, c.Equipment.Legs)
-	}
-	if c.Equipment.Feet.ItemId > 0 {
-		wornItems = append(wornItems, c.Equipment.Feet)
+	for _, slot := range AllSlots() {
+		if itm := c.Equipment.Get(slot); itm.ItemId > 0 {
+			wornItems = append(wornItems, *itm)
+		}
 	}
 	return wornItems
 }
 
 func (c *Character) GetGearValue() int {
 	value := 0
-	if c.Equipment.Weapon.ItemId > 0 {
-		value += c.Equipment.Weapon.GetSpec().Value
-	}
-	if c.Equipment.Offhand.ItemId > 0 {
-		value += c.Equipment.Offhand.GetSpec().Value
-	}
-	if c.Equipment.Head.ItemId > 0 {
-		value += c.Equipment.Head.GetSpec().Value
-	}
-	if c.Equipment.Neck.ItemId > 0 {
-		value += c.Equipment.Neck.GetSpec().Value
-	}
-	if c.Equipment.Body.ItemId > 0 {
-		value += c.Equipment.Body.GetSpec().Value
-	}
-	if c.Equipment.Belt.ItemId > 0 {
-		value += c.Equipment.Belt.GetSpec().Value
-	}
-	if c.Equipment.Gloves.ItemId > 0 {
-		value += c.Equipment.Gloves.GetSpec().Value
-	}
-	if c.Equipment.Ring.ItemId > 0 {
-		value += c.Equipment.Ring.GetSpec().Value
-	}
-	if c.Equipment.Legs.ItemId > 0 {
-		value += c.Equipment.Legs.GetSpec().Value
-	}
-	if c.Equipment.Feet.ItemId > 0 {
-		value += c.Equipment.Feet.GetSpec().Value
+	for _, slot := range AllSlots() {
+		if itm := c.Equipment.Get(slot); itm.ItemId > 0 {
+			value += itm.GetSpec().Value
+		}
 	}
 	return value
 }
@@ -2216,33 +2061,15 @@ func (c *Character) Wear(i items.Item) (returnItems []items.Item, newItemWorn bo
 
 func (c *Character) RemoveFromBody(i items.Item) bool {
 
-	if i.Equals(c.Equipment.Weapon) {
-		c.Equipment.Weapon = items.Item{}
-	} else if i.Equals(c.Equipment.Offhand) {
-		c.Equipment.Offhand = items.Item{}
-	} else if i.Equals(c.Equipment.Head) {
-		c.Equipment.Head = items.Item{}
-	} else if i.Equals(c.Equipment.Neck) {
-		c.Equipment.Neck = items.Item{}
-	} else if i.Equals(c.Equipment.Body) {
-		c.Equipment.Body = items.Item{}
-	} else if i.Equals(c.Equipment.Belt) {
-		c.Equipment.Belt = items.Item{}
-	} else if i.Equals(c.Equipment.Gloves) {
-		c.Equipment.Gloves = items.Item{}
-	} else if i.Equals(c.Equipment.Ring) {
-		c.Equipment.Ring = items.Item{}
-	} else if i.Equals(c.Equipment.Legs) {
-		c.Equipment.Legs = items.Item{}
-	} else if i.Equals(c.Equipment.Feet) {
-		c.Equipment.Feet = items.Item{}
-	} else {
-		return false
+	for _, slot := range AllSlots() {
+		if i.Equals(*c.Equipment.Get(slot)) {
+			c.Equipment.Set(slot, items.Item{})
+			c.reapplyPermabuffs(i)
+			return true
+		}
 	}
 
-	c.reapplyPermabuffs(i)
-
-	return true
+	return false
 }
 
 // Used with SpawnInfo to gift spawning mobs with permabuffs
@@ -2314,54 +2141,12 @@ func (c *Character) Uncurse() []items.Item {
 
 	uncursedList := []items.Item{}
 
-	if c.Equipment.Weapon.IsCursed() {
-		c.Equipment.Weapon.Uncursed = true
-		uncursedList = append(uncursedList, c.Equipment.Weapon)
-	}
-
-	if c.Equipment.Offhand.IsCursed() {
-		c.Equipment.Offhand.Uncursed = true
-		uncursedList = append(uncursedList, c.Equipment.Offhand)
-	}
-
-	if c.Equipment.Head.IsCursed() {
-		c.Equipment.Head.Uncursed = true
-		uncursedList = append(uncursedList, c.Equipment.Head)
-	}
-
-	if c.Equipment.Neck.IsCursed() {
-		c.Equipment.Neck.Uncursed = true
-		uncursedList = append(uncursedList, c.Equipment.Neck)
-	}
-
-	if c.Equipment.Body.IsCursed() {
-		c.Equipment.Body.Uncursed = true
-		uncursedList = append(uncursedList, c.Equipment.Body)
-	}
-
-	if c.Equipment.Belt.IsCursed() {
-		c.Equipment.Belt.Uncursed = true
-		uncursedList = append(uncursedList, c.Equipment.Belt)
-	}
-
-	if c.Equipment.Gloves.IsCursed() {
-		c.Equipment.Gloves.Uncursed = true
-		uncursedList = append(uncursedList, c.Equipment.Gloves)
-	}
-
-	if c.Equipment.Ring.IsCursed() {
-		c.Equipment.Ring.Uncursed = true
-		uncursedList = append(uncursedList, c.Equipment.Ring)
-	}
-
-	if c.Equipment.Legs.IsCursed() {
-		c.Equipment.Legs.Uncursed = true
-		uncursedList = append(uncursedList, c.Equipment.Legs)
-	}
-
-	if c.Equipment.Feet.IsCursed() {
-		c.Equipment.Feet.Uncursed = true
-		uncursedList = append(uncursedList, c.Equipment.Feet)
+	for _, slot := range AllSlots() {
+		itm := c.Equipment.Get(slot)
+		if itm.IsCursed() {
+			itm.Uncursed = true
+			uncursedList = append(uncursedList, *itm)
+		}
 	}
 
 	return uncursedList

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -617,18 +618,7 @@ func (g *GMCPCharModule) GetCharNode(user *users.UserRecord, gmcpModule string) 
 				},
 			},
 
-			Worn: &GMCPCharModule_Payload_Inventory_Worn{
-				Weapon:  newInventory_Item(user.Character.Equipment.Weapon),
-				Offhand: newInventory_Item(user.Character.Equipment.Offhand),
-				Head:    newInventory_Item(user.Character.Equipment.Head),
-				Neck:    newInventory_Item(user.Character.Equipment.Neck),
-				Body:    newInventory_Item(user.Character.Equipment.Body),
-				Belt:    newInventory_Item(user.Character.Equipment.Belt),
-				Gloves:  newInventory_Item(user.Character.Equipment.Gloves),
-				Ring:    newInventory_Item(user.Character.Equipment.Ring),
-				Legs:    newInventory_Item(user.Character.Equipment.Legs),
-				Feet:    newInventory_Item(user.Character.Equipment.Feet),
-			},
+			Worn: buildWornPayload(user.Character.Equipment),
 		}
 
 		// Fill the items list
@@ -961,7 +951,7 @@ type GMCPCharModule_Enemy struct {
 // /////////////////
 type GMCPCharModule_Payload_Inventory struct {
 	Backpack *GMCPCharModule_Payload_Inventory_Backpack `json:"Backpack,omitempty"`
-	Worn     *GMCPCharModule_Payload_Inventory_Worn     `json:"Worn"`
+	Worn     GMCPCharModule_Payload_Inventory_Worn      `json:"Worn"`
 }
 
 type GMCPCharModule_Payload_Inventory_Backpack struct {
@@ -974,17 +964,18 @@ type GMCPCharModule_Payload_Inventory_Backpack_Summary struct {
 	Max   int `json:"max,omitempty"`
 }
 
-type GMCPCharModule_Payload_Inventory_Worn struct {
-	Weapon  GMCPCharModule_Payload_Inventory_Item `json:"weapon,omitempty"`
-	Offhand GMCPCharModule_Payload_Inventory_Item `json:"offhand,omitempty"`
-	Head    GMCPCharModule_Payload_Inventory_Item `json:"head,omitempty"`
-	Neck    GMCPCharModule_Payload_Inventory_Item `json:"neck,omitempty"`
-	Body    GMCPCharModule_Payload_Inventory_Item `json:"body,omitempty"`
-	Belt    GMCPCharModule_Payload_Inventory_Item `json:"belt,omitempty"`
-	Gloves  GMCPCharModule_Payload_Inventory_Item `json:"gloves,omitempty"`
-	Ring    GMCPCharModule_Payload_Inventory_Item `json:"ring,omitempty"`
-	Legs    GMCPCharModule_Payload_Inventory_Item `json:"legs,omitempty"`
-	Feet    GMCPCharModule_Payload_Inventory_Item `json:"feet,omitempty"`
+// GMCPCharModule_Payload_Inventory_Worn is keyed by slot name (e.g. "weapon",
+// "head") and serialises to the same JSON object shape that the named-struct
+// version produced. Using a map means the field set tracks items.AllEquipSlots()
+// automatically; no manual update is needed when slots are added or removed.
+type GMCPCharModule_Payload_Inventory_Worn map[string]GMCPCharModule_Payload_Inventory_Item
+
+func buildWornPayload(eq characters.Worn) GMCPCharModule_Payload_Inventory_Worn {
+	worn := make(GMCPCharModule_Payload_Inventory_Worn, len(items.AllEquipSlots()))
+	for _, slot := range items.AllEquipSlots() {
+		worn[string(slot)] = newInventory_Item(*eq.Get(slot))
+	}
+	return worn
 }
 
 type GMCPCharModule_Payload_Inventory_Item struct {
