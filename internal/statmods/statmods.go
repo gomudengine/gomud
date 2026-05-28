@@ -38,8 +38,14 @@ var (
 	ManaMax    StatName = `manamax`
 )
 
+var extraStatMods = map[StatName]string{}
+
+func RegisterStatMod(name StatName, description string) {
+	extraStatMods[name] = description
+}
+
 func GetStatMods() map[StatName]string {
-	return map[StatName]string{
+	result := map[StatName]string{
 		Picklock:          "Reduces the difficulty of a lock-picking attempt by this many pins.",
 		Tame:              "Increases the chance to successfully tame a creature.",
 		RacialBonusPrefix: "Flat bonus damage against a specific race in combat. Format: `racial-bonus-giant spider`.",
@@ -59,6 +65,10 @@ func GetStatMods() map[StatName]string {
 		HealthMax:         "Directly increases maximum HP (added after stat-based calculation).",
 		ManaMax:           "Directly increases maximum MP (added after stat-based calculation).",
 	}
+	for k, v := range extraStatMods {
+		result[k] = v
+	}
+	return result
 }
 
 func (s StatMods) Get(statName ...string) int {
