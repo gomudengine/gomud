@@ -72,16 +72,9 @@ func newSimMob(mobId mobs.MobId, forceLevel int) (*mobs.Mob, error) {
 		}
 	}
 
-	mob.Character.Equipment.Weapon.Validate()
-	mob.Character.Equipment.Offhand.Validate()
-	mob.Character.Equipment.Head.Validate()
-	mob.Character.Equipment.Neck.Validate()
-	mob.Character.Equipment.Body.Validate()
-	mob.Character.Equipment.Belt.Validate()
-	mob.Character.Equipment.Gloves.Validate()
-	mob.Character.Equipment.Ring.Validate()
-	mob.Character.Equipment.Legs.Validate()
-	mob.Character.Equipment.Feet.Validate()
+	for _, slot := range characters.AllSlots() {
+		mob.Character.Equipment.Get(slot).Validate()
+	}
 
 	mob.Validate()
 	mob.Character.Validate(true)

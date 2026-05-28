@@ -93,19 +93,16 @@ func wornBuffValue(spec items.ItemSpec) int {
 	return val
 }
 
-// armorSlots lists every item type that occupies an equipment slot and
-// provides passive protection or stat benefits.
-var armorSlots = map[items.ItemType]bool{
-	items.Offhand: true,
-	items.Head:    true,
-	items.Neck:    true,
-	items.Body:    true,
-	items.Belt:    true,
-	items.Gloves:  true,
-	items.Ring:    true,
-	items.Legs:    true,
-	items.Feet:    true,
-}
+// armorSlotSet is a set of every item type that occupies an equipment slot
+// and provides passive protection or stat benefits. Built from items.ArmorSlots()
+// so adding or removing slots only requires changing that one function.
+var armorSlotSet = func() map[items.ItemType]bool {
+	m := make(map[items.ItemType]bool)
+	for _, s := range items.ArmorSlots() {
+		m[s] = true
+	}
+	return m
+}()
 
 // statWeight returns the eHP-equivalent weight for one point of a given stat
 // mod name, derived from the combat engine's configured range constants.
@@ -162,7 +159,7 @@ func RankArmor() (byDefense, byAdjDefense, byScore []ArmorRank) {
 	ranks := make([]ArmorRank, 0, len(allSpecs))
 
 	for _, spec := range allSpecs {
-		if !armorSlots[spec.Type] {
+		if !armorSlotSet[spec.Type] {
 			continue
 		}
 

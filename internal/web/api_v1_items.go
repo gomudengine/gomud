@@ -42,6 +42,22 @@ func apiV1GetItemRanksArmor(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// GET /admin/api/v1/items/equip-slots
+// Returns the ordered list of equipment slot names as strings, sourced from
+// items.AllEquipSlots(). Admin pages use this to build slot UIs dynamically
+// so they do not need to hard-code the slot list.
+func apiV1GetEquipSlots(w http.ResponseWriter, r *http.Request) {
+	slots := items.AllEquipSlots()
+	names := make([]string, len(slots))
+	for i, s := range slots {
+		names[i] = string(s)
+	}
+	writeJSON(w, http.StatusOK, APIResponse[[]string]{
+		Success: true,
+		Data:    names,
+	})
+}
+
 // GET /admin/api/v1/items/types
 func apiV1GetItemTypes(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, APIResponse[map[string]any]{

@@ -15,99 +15,140 @@ type Worn struct {
 	Feet    items.Item `yaml:"feet,omitempty"`
 }
 
-func (w *Worn) StatMod(stat ...string) int {
+// Get returns a pointer to the item in the given slot, or nil for an
+// unrecognized slot type. This is the single place that maps an ItemType to a
+// Worn struct field; add new slots here and nowhere else.
+func (w *Worn) Get(slot items.ItemType) *items.Item {
+	switch slot {
+	case items.Weapon:
+		return &w.Weapon
+	case items.Offhand:
+		return &w.Offhand
+	case items.Head:
+		return &w.Head
+	case items.Neck:
+		return &w.Neck
+	case items.Body:
+		return &w.Body
+	case items.Belt:
+		return &w.Belt
+	case items.Gloves:
+		return &w.Gloves
+	case items.Ring:
+		return &w.Ring
+	case items.Legs:
+		return &w.Legs
+	case items.Feet:
+		return &w.Feet
+	}
+	return nil
+}
 
-	return w.Weapon.StatMod(stat...) +
-		w.Offhand.StatMod(stat...) +
-		w.Head.StatMod(stat...) +
-		w.Neck.StatMod(stat...) +
-		w.Body.StatMod(stat...) +
-		w.Belt.StatMod(stat...) +
-		w.Gloves.StatMod(stat...) +
-		w.Ring.StatMod(stat...) +
-		w.Legs.StatMod(stat...) +
-		w.Feet.StatMod(stat...)
+// Set places item into the given slot. Does nothing for an unrecognized slot.
+func (w *Worn) Set(slot items.ItemType, item items.Item) {
+	switch slot {
+	case items.Weapon:
+		w.Weapon = item
+	case items.Offhand:
+		w.Offhand = item
+	case items.Head:
+		w.Head = item
+	case items.Neck:
+		w.Neck = item
+	case items.Body:
+		w.Body = item
+	case items.Belt:
+		w.Belt = item
+	case items.Gloves:
+		w.Gloves = item
+	case items.Ring:
+		w.Ring = item
+	case items.Legs:
+		w.Legs = item
+	case items.Feet:
+		w.Feet = item
+	}
+}
+
+// AllSlots returns every equipment slot in canonical display order.
+// Delegates to items.AllEquipSlots() so the single source of truth lives
+// alongside the ItemType constants.
+func AllSlots() []items.ItemType {
+	return items.AllEquipSlots()
+}
+
+// WeaponSlots returns the slots that hold weapons.
+func WeaponSlots() []items.ItemType {
+	return items.WeaponSlots()
+}
+
+// ArmorSlots returns every equipment slot except Weapon.
+func ArmorSlots() []items.ItemType {
+	return items.ArmorSlots()
+}
+
+// SlotLabel returns the short display label (with trailing colon) for a slot,
+// e.g. items.Head -> "Head:". Used by UI code so label strings are not
+// scattered across rendering packages.
+func SlotLabel(slot items.ItemType) string {
+	switch slot {
+	case items.Weapon:
+		return "Weapon:"
+	case items.Offhand:
+		return "Offhand:"
+	case items.Head:
+		return "Head:"
+	case items.Neck:
+		return "Neck:"
+	case items.Body:
+		return "Body:"
+	case items.Belt:
+		return "Belt:"
+	case items.Gloves:
+		return "Gloves:"
+	case items.Ring:
+		return "Ring:"
+	case items.Legs:
+		return "Legs:"
+	case items.Feet:
+		return "Feet:"
+	}
+	return string(slot) + ":"
+}
+
+// GetAllSlotTypes returns all slot names as strings.
+// Kept for backward compatibility; prefer AllSlots() for typed access.
+func GetAllSlotTypes() []string {
+	slots := AllSlots()
+	out := make([]string, len(slots))
+	for i, s := range slots {
+		out[i] = string(s)
+	}
+	return out
+}
+
+func (w *Worn) StatMod(stat ...string) int {
+	total := 0
+	for _, slot := range AllSlots() {
+		total += w.Get(slot).StatMod(stat...)
+	}
+	return total
 }
 
 func (w *Worn) EnableAll() {
-	if w.Weapon.ItemId < 0 {
-		w.Weapon = items.Item{}
-	}
-	if w.Offhand.ItemId < 0 {
-		w.Offhand = items.Item{}
-	}
-	if w.Head.ItemId < 0 {
-		w.Head = items.Item{}
-	}
-	if w.Neck.ItemId < 0 {
-		w.Neck = items.Item{}
-	}
-	if w.Body.ItemId < 0 {
-		w.Body = items.Item{}
-	}
-	if w.Belt.ItemId < 0 {
-		w.Belt = items.Item{}
-	}
-	if w.Gloves.ItemId < 0 {
-		w.Gloves = items.Item{}
-	}
-	if w.Ring.ItemId < 0 {
-		w.Ring = items.Item{}
-	}
-	if w.Legs.ItemId < 0 {
-		w.Legs = items.Item{}
-	}
-	if w.Feet.ItemId < 0 {
-		w.Feet = items.Item{}
+	for _, slot := range AllSlots() {
+		if w.Get(slot).ItemId < 0 {
+			w.Set(slot, items.Item{})
+		}
 	}
 }
 
 func (w *Worn) GetAllItems() []items.Item {
-	iList := []items.Item{}
-	if w.Weapon.ItemId > 0 {
-		iList = append(iList, w.Weapon)
+	out := []items.Item{}
+	for _, slot := range AllSlots() {
+		if itm := w.Get(slot); itm.ItemId > 0 {
+			out = append(out, *itm)
+		}
 	}
-	if w.Offhand.ItemId > 0 {
-		iList = append(iList, w.Offhand)
-	}
-	if w.Head.ItemId > 0 {
-		iList = append(iList, w.Head)
-	}
-	if w.Neck.ItemId > 0 {
-		iList = append(iList, w.Neck)
-	}
-	if w.Body.ItemId > 0 {
-		iList = append(iList, w.Body)
-	}
-	if w.Belt.ItemId > 0 {
-		iList = append(iList, w.Belt)
-	}
-	if w.Gloves.ItemId > 0 {
-		iList = append(iList, w.Gloves)
-	}
-	if w.Ring.ItemId > 0 {
-		iList = append(iList, w.Ring)
-	}
-	if w.Legs.ItemId > 0 {
-		iList = append(iList, w.Legs)
-	}
-	if w.Feet.ItemId > 0 {
-		iList = append(iList, w.Feet)
-	}
-	return iList
-}
-
-func GetAllSlotTypes() []string {
-	return []string{
-		string(items.Weapon),
-		string(items.Offhand),
-		string(items.Head),
-		string(items.Neck),
-		string(items.Body),
-		string(items.Belt),
-		string(items.Gloves),
-		string(items.Ring),
-		string(items.Legs),
-		string(items.Feet),
-	}
+	return out
 }

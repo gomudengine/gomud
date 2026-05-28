@@ -48,6 +48,26 @@
     <details class="api-entry">
         <summary>
             <span class="method method-get">GET</span>
+            <span class="api-path">/admin/api/v1/items/equip-slots</span>
+            <span class="api-desc">Return ordered equipment slot names</span>
+            <span class="perm-badge">items.read</span>
+        </summary>
+        <div class="api-body">
+            <p>Returns the ordered list of equipment slot names as strings, sourced from the server's canonical slot definition. Use this to build slot UIs dynamically instead of hard-coding slot names.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/items/equip-slots</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":["weapon","offhand","head","neck","body","belt","gloves","ring","legs","feet"]}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/items/types</span>
             <span class="api-desc">Return all item types and subtypes</span>
             <span class="perm-badge">items.read</span>

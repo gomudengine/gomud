@@ -314,22 +314,6 @@
     `);
 
     // -----------------------------------------------------------------------
-    // Data
-    // -----------------------------------------------------------------------
-    const EQUIP_SLOTS = [
-        { key: 'head',    label: 'Head'    },
-        { key: 'neck',    label: 'Neck'    },
-        { key: 'body',    label: 'Body'    },
-        { key: 'weapon',  label: 'Weapon'  },
-        { key: 'offhand', label: 'Offhand' },
-        { key: 'gloves',  label: 'Gloves'  },
-        { key: 'belt',    label: 'Belt'    },
-        { key: 'ring',    label: 'Ring'    },
-        { key: 'legs',    label: 'Legs'    },
-        { key: 'feet',    label: 'Feet'    },
-    ];
-
-    // -----------------------------------------------------------------------
     // Tooltip
     // -----------------------------------------------------------------------
     let tooltip   = null;
@@ -499,16 +483,6 @@
     // -----------------------------------------------------------------------
     // DOM factory
     // -----------------------------------------------------------------------
-    function buildEquipRows() {
-        return EQUIP_SLOTS.map(s =>
-            '<div class="gw-equip-row" id="gw-eqrow-' + s.key + '">' +
-                '<span class="gw-equip-slot">' + s.label + '</span>' +
-                '<span class="gw-equip-name empty" id="gw-eq-' + s.key + '">empty</span>' +
-                '<span class="gw-equip-badge" id="gw-eqb-' + s.key + '" style="display:none"></span>' +
-            '</div>'
-        ).join('');
-    }
-
     function createDOM() {
         const el = document.createElement('div');
         el.id = 'gear-window';
@@ -517,32 +491,17 @@
                 '<button class="gw-tab-btn active" data-panel="gw-worn">Worn</button>' +
                 '<button class="gw-tab-btn"        data-panel="gw-backpack">Backpack</button>' +
             '</div>' +
-
-            '<div class="gw-tab-panel active" id="gw-worn">' +
-                buildEquipRows() +
-            '</div>' +
-
+            '<div class="gw-tab-panel active" id="gw-worn"></div>' +
             '<div class="gw-tab-panel" id="gw-backpack">' +
                 '<div id="gw-bp-header">' +
                     '<span id="gw-bp-title">Carried Items</span>' +
-                    '<span id="gw-bp-count"><span class="gw-bp-count-num" id="gw-bp-num">0</span> / <span id="gw-bp-max">\u2014</span></span>' +
+                    '<span id="gw-bp-count"><span class="gw-bp-count-num" id="gw-bp-num">0</span> / <span id="gw-bp-max">&#x2014;</span></span>' +
                 '</div>' +
                 '<div id="gw-bp-list"><div class="gw-bp-empty">Empty</div></div>' +
             '</div>';
 
         document.body.appendChild(el);
         makeTabSwitcher(el);
-
-        EQUIP_SLOTS.forEach(s => {
-            const rowEl = el.querySelector('#gw-eqrow-' + s.key);
-            if (!rowEl) { return; }
-            attachTooltip(rowEl);
-            rowEl.addEventListener('click', function(e) {
-                const menuItems = _equipMenuItems(rowItemData.get(rowEl));
-                if (menuItems) { uiMenu(e, menuItems); }
-            });
-        });
-
         return el;
     }
 
@@ -573,16 +532,79 @@
     // -----------------------------------------------------------------------
     // Update functions
     // -----------------------------------------------------------------------
+    function _makeEquipRow(key) {
+        const label  = key.charAt(0).toUpperCase() + key.slice(1);
+        const rowEl  = document.createElement('div');
+        rowEl.className = 'gw-equip-row';
+        rowEl.id        = 'gw-eqrow-' + key;
+
+        const slotEl  = document.createElement('span');
+        slotEl.className   = 'gw-equip-slot';
+        slotEl.textContent = label;
+
+        const nameEl  = document.createElement('span');
+        nameEl.className   = 'gw-equip-name empty';
+        nameEl.id          = 'gw-eq-' + key;
+        nameEl.textContent = 'empty';
+
+        const badgeEl = document.createElement('span');
+        badgeEl.className    = 'gw-equip-badge';
+        badgeEl.id           = 'gw-eqb-' + key;
+        badgeEl.style.display = 'none';
+
+        rowEl.appendChild(slotEl);
+        rowEl.appendChild(nameEl);
+        rowEl.appendChild(badgeEl);
+
+        attachTooltip(rowEl);
+        rowEl.addEventListener('click', function(e) {
+            const menuItems = _equipMenuItems(rowItemData.get(rowEl));
+            if (menuItems) { uiMenu(e, menuItems); }
+        });
+
+        return rowEl;
+    }
+
     function updateWorn() {
         const inv = Client.GMCPStructs.Char && Client.GMCPStructs.Char.Inventory;
         if (!inv || !inv.Worn) { return; }
 
-        const worn = inv.Worn;
-        EQUIP_SLOTS.forEach(slot => {
-            const item    = worn[slot.key];
-            const rowEl   = document.getElementById('gw-eqrow-' + slot.key);
-            const nameEl  = document.getElementById('gw-eq-'    + slot.key);
-            const badgeEl = document.getElementById('gw-eqb-'   + slot.key);
+        const worn    = inv.Worn;
+        const wornEl  = document.getElementById('gw-worn');
+        if (!wornEl) { return; }
+
+        // Build or reorder rows to match the current payload keys.
+        const keys = Object.keys(worn);
+
+        // Remove rows for slots no longer present in the payload.
+        const existing = wornEl.querySelectorAll('.gw-equip-row');
+        existing.forEach(function(row) {
+            const key = row.id.replace('gw-eqrow-', '');
+            if (!worn.hasOwnProperty(key)) {
+                rowItemData.delete(row);
+                row.remove();
+            }
+        });
+
+        // Insert/reorder rows to match sorted key order.
+        keys.forEach(function(key, idx) {
+            let rowEl = document.getElementById('gw-eqrow-' + key);
+            if (!rowEl) {
+                rowEl = _makeEquipRow(key);
+            }
+            // Move into correct position if needed.
+            const current = wornEl.children[idx];
+            if (current !== rowEl) {
+                wornEl.insertBefore(rowEl, current || null);
+            }
+        });
+
+        // Update content of every row.
+        keys.forEach(function(key) {
+            const item    = worn[key];
+            const rowEl   = document.getElementById('gw-eqrow-' + key);
+            const nameEl  = document.getElementById('gw-eq-'    + key);
+            const badgeEl = document.getElementById('gw-eqb-'   + key);
             if (!rowEl || !nameEl || !badgeEl) { return; }
 
             if (!item || !item.name || item.name === '-nothing-') {

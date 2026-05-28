@@ -33,6 +33,7 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /admin/api/v1/statmods", doBasicAuth(RunWithMUDLocked(apiV1GetStatMods)))
 
 	// Items
+	mux.HandleFunc("GET /admin/api/v1/items/equip-slots", doBasicAuth(RunWithMUDLocked(apiV1GetEquipSlots)))
 	mux.HandleFunc("GET /admin/api/v1/items/types", doBasicAuth(RunWithMUDLocked(apiV1GetItemTypes)))
 	mux.HandleFunc("GET /admin/api/v1/items/attack-messages", doBasicAuth(RunWithMUDLocked(apiV1GetItemAttackMessages)))
 	mux.HandleFunc("GET /admin/api/v1/items/ranks/weapons", doBasicAuth(RunWithMUDLocked(apiV1GetItemRanksWeapons)))

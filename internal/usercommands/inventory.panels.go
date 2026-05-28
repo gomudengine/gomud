@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/templates"
 	"github.com/GoMudEngine/GoMud/internal/term"
@@ -28,30 +29,16 @@ func buildInventoryPanel(user *users.UserRecord, itemList []items.Item, searchin
 		equipPanel := layout.Panel("equipment")
 		equipPanel.SetLabelWidth(9)
 
-		equipSlots := []struct {
-			label string
-			item  *items.Item
-		}{
-			{`Weapon:`, &c.Equipment.Weapon},
-			{`Offhand:`, &c.Equipment.Offhand},
-			{`Head:`, &c.Equipment.Head},
-			{`Neck:`, &c.Equipment.Neck},
-			{`Body:`, &c.Equipment.Body},
-			{`Belt:`, &c.Equipment.Belt},
-			{`Gloves:`, &c.Equipment.Gloves},
-			{`Ring:`, &c.Equipment.Ring},
-			{`Legs:`, &c.Equipment.Legs},
-			{`Feet:`, &c.Equipment.Feet},
-		}
-
-		for _, s := range equipSlots {
-			if s.item.IsDisabled() {
+		for _, slot := range characters.AllSlots() {
+			itm := c.Equipment.Get(slot)
+			if itm.IsDisabled() {
 				continue
 			}
+			label := characters.SlotLabel(slot)
 			equipPanel.Add(
-				fmt.Sprintf(`<ansi fg="yellow">%s</ansi>`, s.label),
-				fmt.Sprintf(`<ansi fg="yellow">%s</ansi>`, s.label),
-				fmt.Sprintf(`<ansi fg="itemname">%s</ansi>`, s.item.NameComplex()),
+				fmt.Sprintf(`<ansi fg="yellow">%s</ansi>`, label),
+				fmt.Sprintf(`<ansi fg="yellow">%s</ansi>`, label),
+				fmt.Sprintf(`<ansi fg="itemname">%s</ansi>`, itm.NameComplex()),
 			)
 		}
 
