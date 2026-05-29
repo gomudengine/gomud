@@ -45,7 +45,7 @@ func init() {
 	//
 	// Register any user/mob commands
 	//
-	plug.Web.AdminPage("About", "time-about", "html/admin/time-about.html", true, "Modules", "Time", nil)
+	plug.Web.AdminPage("About", "time-about", "html/admin/time-about.html", true, "Modules", "Time", "Information and version details for the Time module.", "Time module providing players with in-game clock and calendar commands.", nil)
 	plug.AddUserCommand(`time`, TimeCommand, true, false)
 }
 

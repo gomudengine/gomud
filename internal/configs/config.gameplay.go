@@ -80,6 +80,7 @@ type GameplayDeath struct {
 	PermaDeath          ConfigBool   `yaml:"PermaDeath"`          // Is permadeath enabled?
 	CorpsesEnabled      ConfigBool   `yaml:"CorpsesEnabled"`      // Whether corpses are left behind after mob/player deaths
 	CorpseDecayTime     ConfigString `yaml:"CorpseDecayTime"`     // How long until corpses decay to dust (go away)
+	CorpseItems         ConfigBool   `yaml:"CorpseItems"`         // If true, items/gold go onto the corpse instead of the floor
 }
 
 func (g *GamePlay) Validate() {
@@ -91,6 +92,7 @@ func (g *GamePlay) Validate() {
 	// Ignore AllowItemBuffRemoval
 	// Ignore OnDeathAlwaysDropBackpack
 	// Ignore CorpsesEnabled
+	// Ignore CorpseItems
 
 	if g.Death.EquipmentDropChance < 0.0 || g.Death.EquipmentDropChance > 1.0 {
 		g.Death.EquipmentDropChance = 0.0 // default

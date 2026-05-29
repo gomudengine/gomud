@@ -47,10 +47,10 @@ func init() {
 
 	m.plug.ReserveTags(pollTag, cofferTag, officialOnlyTag)
 
-	m.plug.Web.AdminPage("Config", "elections-config", "html/admin/elections-config.html", true, "Modules", "Elections", nil)
-	m.plug.Web.AdminPage("About", "elections-about", "html/admin/elections-about.html", true, "Modules", "Elections", nil)
-	m.plug.Web.AdminPage("Audit", "elections-audit", "html/admin/elections-audit.html", true, "Modules", "Elections", nil)
-	m.plug.Web.AdminPage("API Docs", "elections-api", "html/admin/elections-api.html", true, "Modules", "Elections", nil)
+	m.plug.Web.AdminPage("Config", "elections-config", "html/admin/elections-config.html", true, "Modules", "Elections", "Configure election zones, candidate rules, and voting periods.", "Elections module enabling player-run political campaigns and zone governance voting.", nil)
+	m.plug.Web.AdminPage("About", "elections-about", "html/admin/elections-about.html", true, "Modules", "Elections", "Information and version details for the Elections module.", "", nil)
+	m.plug.Web.AdminPage("Audit", "elections-audit", "html/admin/elections-audit.html", true, "Modules", "Elections", "Review election history and vote audit logs.", "", nil)
+	m.plug.Web.AdminPage("API Docs", "elections-api", "html/admin/elections-api.html", true, "Modules", "Elections", "REST API reference for the elections endpoint.", "", nil)
 
 	m.plug.Web.AdminAPIEndpoint("GET", "elections/zones", m.apiGetZones)
 	m.plug.Web.AdminAPIEndpoint("PATCH", "elections/zones/{zone}", m.apiPatchZone, "elections.write")

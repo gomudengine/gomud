@@ -59,16 +59,18 @@ type WebNav struct {
 // WebNavItem represents a top-level admin nav entry, optionally with sub-items
 // or nested sub-menus (groups).
 type WebNavItem struct {
-	Name     string
-	Target   string // primary href; empty if dropdown-only
-	SubItems []WebNavSub
-	SubMenus []WebNavItem // nested groups, each with their own SubItems
+	Name        string
+	Target      string // primary href; empty if dropdown-only
+	Description string // short one-sentence description shown on the landing page
+	SubItems    []WebNavSub
+	SubMenus    []WebNavItem // nested groups, each with their own SubItems
 }
 
 // WebNavSub is a single item inside a dropdown.
 type WebNavSub struct {
-	Label  string
-	Target string
+	Label       string
+	Target      string
+	Description string // short one-sentence description shown on the landing page
 }
 
 // ModuleAdminRegistrar is implemented by internal/web and provided to plugins
@@ -78,7 +80,9 @@ type ModuleAdminRegistrar interface {
 	// htmlContent is the raw HTML read from the plugin's embedded FS.
 	// navGroup, if non-empty, places the page's nav entry inside a group dropdown.
 	// navParent, if non-empty, nests the page as a sub-item under that parent within the group.
-	RegisterAdminPage(name, slug, htmlContent string, addToNav bool, navGroup, navParent string, dataFunc func(*http.Request) map[string]any)
+	// description is a short one-sentence description for this leaf entry shown on the admin landing page.
+	// navParentDescription is a short one-sentence description for the parent nav group entry (applied on first registration).
+	RegisterAdminPage(name, slug, htmlContent string, addToNav bool, navGroup, navParent, description, navParentDescription string, dataFunc func(*http.Request) map[string]any)
 	// RegisterAdminAPIEndpoint registers a module API handler.
 	// permissionKey, if non-empty, is required to call this endpoint.
 	// handler receives the request and returns (statusCode, success, data).
@@ -104,7 +108,7 @@ func GetAdminRegistrar() ModuleAdminRegistrar {
 func (reg *moduleAdminRegistrarImpl) RegisterAdminPage(
 	name, slug, htmlContent string,
 	addToNav bool,
-	navGroup, navParent string,
+	navGroup, navParent, description, navParentDescription string,
 	dataFunc func(*http.Request) map[string]any,
 ) {
 	path := "/admin/" + slug
@@ -161,10 +165,11 @@ func (reg *moduleAdminRegistrarImpl) RegisterAdminPage(
 		if navParent == "" {
 			// Top-level nav item with a single sub-item pointing to itself.
 			reg.navItems = append(reg.navItems, WebNavItem{
-				Name:   name,
-				Target: path,
+				Name:        name,
+				Target:      path,
+				Description: description,
 				SubItems: []WebNavSub{
-					{Label: "View", Target: path},
+					{Label: "View", Target: path, Description: description},
 				},
 			})
 			return
@@ -173,8 +178,9 @@ func (reg *moduleAdminRegistrarImpl) RegisterAdminPage(
 		for i, item := range reg.navItems {
 			if item.Name == navParent {
 				reg.navItems[i].SubItems = append(reg.navItems[i].SubItems, WebNavSub{
-					Label:  name,
-					Target: path,
+					Label:       name,
+					Target:      path,
+					Description: description,
 				})
 				return
 			}
@@ -184,7 +190,7 @@ func (reg *moduleAdminRegistrarImpl) RegisterAdminPage(
 			Name:   navParent,
 			Target: "",
 			SubItems: []WebNavSub{
-				{Label: name, Target: path},
+				{Label: name, Target: path, Description: description},
 			},
 		})
 		return
@@ -207,10 +213,11 @@ func (reg *moduleAdminRegistrarImpl) RegisterAdminPage(
 	if navParent == "" {
 		// No parent within the group: add a sub-menu entry for this page directly.
 		reg.navItems[groupIdx].SubMenus = append(reg.navItems[groupIdx].SubMenus, WebNavItem{
-			Name:   name,
-			Target: path,
+			Name:        name,
+			Target:      path,
+			Description: description,
 			SubItems: []WebNavSub{
-				{Label: "View", Target: path},
+				{Label: "View", Target: path, Description: description},
 			},
 		})
 		return
@@ -221,16 +228,21 @@ func (reg *moduleAdminRegistrarImpl) RegisterAdminPage(
 		if sm.Name == navParent {
 			reg.navItems[groupIdx].SubMenus[i].SubItems = append(
 				reg.navItems[groupIdx].SubMenus[i].SubItems,
-				WebNavSub{Label: name, Target: path},
+				WebNavSub{Label: name, Target: path, Description: description},
 			)
+			// Backfill parent description if it hasn't been set yet.
+			if reg.navItems[groupIdx].SubMenus[i].Description == "" && navParentDescription != "" {
+				reg.navItems[groupIdx].SubMenus[i].Description = navParentDescription
+			}
 			return
 		}
 	}
 	// Sub-menu for navParent not found yet - create it.
 	reg.navItems[groupIdx].SubMenus = append(reg.navItems[groupIdx].SubMenus, WebNavItem{
-		Name: navParent,
+		Name:        navParent,
+		Description: navParentDescription,
 		SubItems: []WebNavSub{
-			{Label: name, Target: path},
+			{Label: name, Target: path, Description: description},
 		},
 	})
 }

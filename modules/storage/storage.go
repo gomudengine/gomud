@@ -55,6 +55,8 @@ func init() {
 		true,
 		"Modules",
 		"Storage",
+		"Browse and manage player storage containers and their contents.",
+		"Player storage system providing persistent item and gold stash containers.",
 		nil,
 	)
 
@@ -65,6 +67,8 @@ func init() {
 		true,
 		"Modules",
 		"Storage",
+		"REST API reference for the storage endpoint.",
+		"",
 		nil,
 	)
 
@@ -75,6 +79,8 @@ func init() {
 		true,
 		"Modules",
 		"Storage",
+		"Information and version details for the Storage module.",
+		"",
 		nil,
 	)
 

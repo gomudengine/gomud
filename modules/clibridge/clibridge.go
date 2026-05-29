@@ -37,8 +37,8 @@ func init() {
 		panic(err)
 	}
 
-	m.plug.Web.AdminPage("Config", "clibridge-config", "html/admin/clibridge-config.html", true, "Modules", "CLI Bridge", nil)
-	m.plug.Web.AdminPage("About", "clibridge-about", "html/admin/clibridge-about.html", true, "Modules", "CLI Bridge", nil)
+	m.plug.Web.AdminPage("Config", "clibridge-config", "html/admin/clibridge-config.html", true, "Modules", "CLI Bridge", "Configure the CLI bridge connection and command routing.", "CLI bridge module exposing a command-line interface for external tool integration.", nil)
+	m.plug.Web.AdminPage("About", "clibridge-about", "html/admin/clibridge-about.html", true, "Modules", "CLI Bridge", "Information and version details for the CLI Bridge module.", "", nil)
 
 	m.plug.Web.AdminAPIEndpoint("GET", "clibridge-config", m.apiGetConfig)
 	m.plug.Web.AdminAPIEndpoint("PATCH", "clibridge-config", m.apiPatchConfig, "clibridge.write")

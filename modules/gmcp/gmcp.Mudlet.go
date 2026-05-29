@@ -86,8 +86,8 @@ func init() {
 		panic(err)
 	}
 
-	g.plug.Web.AdminPage("Config", "gmcp-config", "html/admin/gmcp-config.html", true, "Modules", "GMCP", nil)
-	g.plug.Web.AdminPage("About", "gmcp-about", "html/admin/gmcp-about.html", true, "Modules", "GMCP", nil)
+	g.plug.Web.AdminPage("Config", "gmcp-config", "html/admin/gmcp-config.html", true, "Modules", "GMCP", "Configure GMCP protocol options and enabled namespaces.", "GMCP protocol module sending structured data to supporting MUD clients.", nil)
+	g.plug.Web.AdminPage("About", "gmcp-about", "html/admin/gmcp-about.html", true, "Modules", "GMCP", "Information and version details for the GMCP module.", "", nil)
 
 	// Register callbacks for load/save
 	g.plug.Callbacks.SetOnLoad(g.load)

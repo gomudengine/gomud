@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -40,6 +41,7 @@ func Get(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 	getFromStash := false
 	containerName := ``
 	petUserId := 0
+	var corpseRef *rooms.Corpse
 
 	if len(args) >= 2 {
 		// Detect "stash" or "from stash" at end and remove it
@@ -95,6 +97,18 @@ func Get(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 				}
 			}
 		}
+
+		// Look for a corpse as the source when CorpseItems is enabled
+		if containerName == `` && petUserId == 0 && configs.GetGamePlayConfig().Death.CorpseItems {
+			if c, ok := room.FindCorpseByRef(args[len(args)-1]); ok {
+				corpseRef = c
+				if len(args) >= 2 && args[len(args)-2] == "from" {
+					rest = strings.Join(args[0:len(args)-2], " ")
+				} else {
+					rest = strings.Join(args[0:len(args)-1], " ")
+				}
+			}
+		}
 	}
 
 	if petUserId == user.UserId {
@@ -133,6 +147,143 @@ func Get(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 
 		return true, nil
 
+	}
+
+	// Handle getting from a corpse
+	if corpseRef != nil {
+
+		corpseColor := `mob-corpse`
+		if corpseRef.UserId > 0 {
+			corpseColor = `user-corpse`
+		}
+		corpseName := fmt.Sprintf(`<ansi fg="%s">%s corpse</ansi>`, corpseColor, corpseRef.Character.Name)
+
+		// "get all <corpse>"
+		if rest == "all" {
+			tookSomething := false
+
+			if corpseRef.Gold > 0 {
+				goldAmt := corpseRef.Gold
+				user.Character.Gold += goldAmt
+				corpseRef.Gold = 0
+
+				events.AddToQueue(events.EquipmentChange{
+					UserId:     user.UserId,
+					GoldChange: -goldAmt,
+				})
+
+				user.SendText(fmt.Sprintf(`You take <ansi fg="gold">%d gold</ansi> from the %s.`, goldAmt, corpseName))
+				room.SendText(fmt.Sprintf(`<ansi fg="username">%s</ansi> takes some <ansi fg="gold">gold</ansi> from the %s.`, user.Character.Name, corpseName), user.UserId)
+				tookSomething = true
+			}
+
+			// Backpack items on corpse
+			allCorpseItems := append([]items.Item{}, corpseRef.Items...)
+			for _, item := range allCorpseItems {
+				if user.Character.StoreItem(item) {
+					corpseRef.RemoveItem(item)
+					events.AddToQueue(events.ItemOwnership{
+						UserId: user.UserId,
+						Item:   item,
+						Gained: true,
+					})
+					user.SendText(fmt.Sprintf(`You take the <ansi fg="itemname">%s</ansi> from the %s.`, item.DisplayName(), corpseName))
+					room.SendText(fmt.Sprintf(`<ansi fg="username">%s</ansi> takes the <ansi fg="itemname">%s</ansi> from the %s.`, user.Character.Name, item.DisplayName(), corpseName), user.UserId)
+					tookSomething = true
+				} else {
+					user.SendText(fmt.Sprintf(`You can't carry the <ansi fg="itemname">%s</ansi>.`, item.DisplayName()))
+				}
+			}
+
+			// Worn items on corpse character
+			allWorn := corpseRef.Character.GetAllWornItems()
+			for _, item := range allWorn {
+				if user.Character.StoreItem(item) {
+					corpseRef.Character.RemoveFromBody(item)
+					events.AddToQueue(events.ItemOwnership{
+						UserId: user.UserId,
+						Item:   item,
+						Gained: true,
+					})
+					user.SendText(fmt.Sprintf(`You take the <ansi fg="itemname">%s</ansi> from the %s.`, item.DisplayName(), corpseName))
+					room.SendText(fmt.Sprintf(`<ansi fg="username">%s</ansi> takes the <ansi fg="itemname">%s</ansi> from the %s.`, user.Character.Name, item.DisplayName(), corpseName), user.UserId)
+					tookSomething = true
+				} else {
+					user.SendText(fmt.Sprintf(`You can't carry the <ansi fg="itemname">%s</ansi>.`, item.DisplayName()))
+				}
+			}
+
+			if !tookSomething {
+				user.SendText(fmt.Sprintf(`There is nothing to take from the %s.`, corpseName))
+			}
+
+			return true, nil
+		}
+
+		// "get gold <corpse>"
+		goldName := `gold`
+		if args[0] == goldName || (len(args[0]) >= 1 && len(args[0]) < 5 && goldName[0:len(args[0])] == args[0]) {
+			if corpseRef.Gold < 1 {
+				user.SendText(fmt.Sprintf(`There is no gold on the %s.`, corpseName))
+			} else {
+				user.Character.CancelBuffsWithFlag(buffs.Hidden)
+
+				goldAmt := corpseRef.Gold
+				user.Character.Gold += goldAmt
+				corpseRef.Gold = 0
+
+				events.AddToQueue(events.EquipmentChange{
+					UserId:     user.UserId,
+					GoldChange: -goldAmt,
+				})
+
+				user.SendText(fmt.Sprintf(`You take <ansi fg="gold">%d gold</ansi> from the %s.`, goldAmt, corpseName))
+				room.SendText(fmt.Sprintf(`<ansi fg="username">%s</ansi> takes some <ansi fg="gold">gold</ansi> from the %s.`, user.Character.Name, corpseName), user.UserId)
+			}
+			return true, nil
+		}
+
+		// "get <item> <corpse>" - search backpack items first, then worn items
+		matchItem, found := corpseRef.FindItem(rest)
+		if !found {
+			// Also search worn equipment on the corpse character
+			wornItems := corpseRef.Character.GetAllWornItems()
+			closeMatch, exactMatch := items.FindMatchIn(rest, wornItems...)
+			if exactMatch.ItemId != 0 {
+				matchItem = exactMatch
+				found = true
+			} else if closeMatch.ItemId != 0 {
+				matchItem = closeMatch
+				found = true
+			}
+		}
+
+		if !found {
+			user.SendText(fmt.Sprintf(`You don't see a %s on the %s.`, rest, corpseName))
+			return true, nil
+		}
+
+		user.Character.CancelBuffsWithFlag(buffs.Hidden)
+
+		if !user.Character.StoreItem(matchItem) {
+			user.SendText(fmt.Sprintf(`You can't carry the <ansi fg="itemname">%s</ansi>.`, matchItem.DisplayName()))
+			return true, nil
+		}
+
+		events.AddToQueue(events.ItemOwnership{
+			UserId: user.UserId,
+			Item:   matchItem,
+			Gained: true,
+		})
+
+		// Remove from whichever location it came from
+		corpseRef.RemoveItem(matchItem)
+		corpseRef.Character.RemoveFromBody(matchItem)
+
+		user.SendText(fmt.Sprintf(`You take the <ansi fg="itemname">%s</ansi> from the %s.`, matchItem.DisplayName(), corpseName))
+		room.SendText(fmt.Sprintf(`<ansi fg="username">%s</ansi> takes the <ansi fg="itemname">%s</ansi> from the %s.`, user.Character.Name, matchItem.DisplayName(), corpseName), user.UserId)
+
+		return true, nil
 	}
 
 	if containerName != `` {

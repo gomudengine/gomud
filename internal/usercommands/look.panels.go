@@ -6,6 +6,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/templates"
 	"github.com/GoMudEngine/GoMud/internal/term"
 )
@@ -106,7 +107,54 @@ func buildInventoryLookPanel(equipment *characters.Worn, itemNames []string) str
 	return layout.Render() + term.CRLFStr + ` Carrying: ` + sb.String() + term.CRLFStr
 }
 
-// buildPetPanel renders the character/pet template as a panel.
+// buildCorpseInventoryPanel renders the lootable contents of a corpse when CorpseItems is enabled.
+func buildCorpseInventoryPanel(c *rooms.Corpse) string {
+	layout, err := templates.LoadPanelLayout("character/equipment-look")
+	if err != nil {
+		layout = templates.NewPanelLayout("open", "single", 1, 1)
+		layout.AddPanelsToSlot(layout.AddSlot(), "inv")
+		layout.Panel("inv").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Inventory</ansi> `).SetWidth(78)
+	}
+	layout.Panel("equip").SetTitle(` <ansi fg="black-bold">.:</ansi><ansi fg="20">Inventory</ansi> `)
+	layout.Panel("equip").SetLabelWidth(9)
+
+	panel := layout.Panel("equip")
+
+	hasContent := false
+
+	for _, slot := range characters.AllSlots() {
+		itm := c.Character.Equipment.Get(slot)
+		if itm == nil || itm.ItemId == 0 {
+			continue
+		}
+		if itm.IsDisabled() {
+			continue
+		}
+		label := characters.SlotLabel(slot)
+		panel.Add(
+			fmt.Sprintf(`<ansi fg="yellow">%s</ansi>`, label),
+			fmt.Sprintf(`<ansi fg="yellow">%s</ansi>`, label),
+			fmt.Sprintf(`<ansi fg="itemname">%s</ansi>`, itm.DisplayName()),
+		)
+		hasContent = true
+	}
+
+	for _, itm := range c.Items {
+		panel.Add(``, ``, fmt.Sprintf(`<ansi fg="itemname">%s</ansi>`, itm.DisplayName()))
+		hasContent = true
+	}
+
+	if c.Gold > 0 {
+		panel.Add(``, ``, fmt.Sprintf(`<ansi fg="gold">%d gold</ansi>`, c.Gold))
+		hasContent = true
+	}
+
+	if !hasContent {
+		panel.Add(``, ``, `<ansi fg="8">Nothing of value remains.</ansi>`)
+	}
+
+	return layout.Render() + term.CRLFStr
+}
 func buildPetPanel(c *characters.Character, isOwner bool) string {
 	var out strings.Builder
 

@@ -119,9 +119,9 @@ func init() {
 
 	rooms.OnRoomLook.Register(m.onRoomLook)
 
-	m.plug.Web.AdminPage("Config", "fishing-config", "html/admin/fishing-config.html", true, "Modules", "Fishing", nil)
-	m.plug.Web.AdminPage("Catchables", "fishing-catchables", "html/admin/fishing-catchables.html", true, "Modules", "Fishing", nil)
-	m.plug.Web.AdminPage("About", "fishing-about", "html/admin/fishing-about.html", true, "Modules", "Fishing", nil)
+	m.plug.Web.AdminPage("Config", "fishing-config", "html/admin/fishing-config.html", true, "Modules", "Fishing", "Configure fishing spawn tables and catch rates.", "Fishing mini-game letting players catch fish and creatures from water rooms.", nil)
+	m.plug.Web.AdminPage("Catchables", "fishing-catchables", "html/admin/fishing-catchables.html", true, "Modules", "Fishing", "Browse and edit catchable fish definitions.", "", nil)
+	m.plug.Web.AdminPage("About", "fishing-about", "html/admin/fishing-about.html", true, "Modules", "Fishing", "Information and version details for the Fishing module.", "", nil)
 
 	m.plug.Web.RegisterPermissions(plugins.ModulePermission{
 		Key:         `fishing.write`,

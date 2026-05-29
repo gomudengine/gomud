@@ -53,8 +53,8 @@ func init() {
 		panic(err)
 	}
 
-	f.plug.Web.AdminPage("Config", "follow-config", "html/admin/follow-config.html", true, "Modules", "Follow", nil)
-	f.plug.Web.AdminPage("About", "follow-about", "html/admin/follow-about.html", true, "Modules", "Follow", nil) //
+	f.plug.Web.AdminPage("Config", "follow-config", "html/admin/follow-config.html", true, "Modules", "Follow", "Configure follow behavior and allowed follow distances.", "Follow system allowing players and NPCs to trail behind another character.", nil)
+	f.plug.Web.AdminPage("About", "follow-about", "html/admin/follow-about.html", true, "Modules", "Follow", "Information and version details for the Follow module.", "", nil) //
 	// Register any user/mob commands
 	//
 	f.plug.AddUserCommand(`follow`, f.followUserCommand, true, false)

@@ -8,6 +8,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
+	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/parties"
@@ -21,6 +22,7 @@ import (
 func Suicide(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 	currentRound := util.GetRoundCount()
+	config := configs.GetGamePlayConfig()
 
 	if rest != `vanish` && mob.Character.HasBuffFlag(buffs.ReviveOnDeath) {
 
@@ -306,17 +308,24 @@ func Suicide(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 	if !mob.Character.HasBuffFlag(buffs.PermaGear) {
 
+		corpseItems := []items.Item{}
+		corpseGold := 0
+
 		// Check for any dropped loot...
 		for _, item := range mob.Character.Items {
-			msg := fmt.Sprintf(`<ansi fg="item">%s</ansi> drops to the ground.`, item.DisplayName())
-			room.SendText(msg)
-			events.AddToQueue(events.MobItemDrop{
-				MobId:  int(mob.MobId),
-				RoomId: room.RoomId,
-				Zone:   mob.Character.Zone,
-				ItemId: item.ItemId,
-			})
-			room.AddItem(item, false)
+			if config.Death.CorpseItems && config.Death.CorpsesEnabled {
+				corpseItems = append(corpseItems, item)
+			} else {
+				msg := fmt.Sprintf(`<ansi fg="item">%s</ansi> drops to the ground.`, item.DisplayName())
+				room.SendText(msg)
+				events.AddToQueue(events.MobItemDrop{
+					MobId:  int(mob.MobId),
+					RoomId: room.RoomId,
+					Zone:   mob.Character.Zone,
+					ItemId: item.ItemId,
+				})
+				room.AddItem(item, false)
+			}
 		}
 
 		allWornItems := mob.Character.Equipment.GetAllItems()
@@ -331,23 +340,56 @@ func Suicide(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 				continue
 			}
 
-			msg := fmt.Sprintf(`<ansi fg="item">%s</ansi> drops to the ground.`, item.DisplayName())
-			room.SendText(msg)
-			events.AddToQueue(events.MobItemDrop{
-				MobId:  int(mob.MobId),
-				RoomId: room.RoomId,
-				Zone:   mob.Character.Zone,
-				ItemId: item.ItemId,
-			})
-			room.AddItem(item, false)
+			if config.Death.CorpseItems && config.Death.CorpsesEnabled {
+				corpseItems = append(corpseItems, item)
+			} else {
+				msg := fmt.Sprintf(`<ansi fg="item">%s</ansi> drops to the ground.`, item.DisplayName())
+				room.SendText(msg)
+				events.AddToQueue(events.MobItemDrop{
+					MobId:  int(mob.MobId),
+					RoomId: room.RoomId,
+					Zone:   mob.Character.Zone,
+					ItemId: item.ItemId,
+				})
+				room.AddItem(item, false)
+			}
 		}
 
 		if mob.Character.Gold > 0 {
-			msg := fmt.Sprintf(`<ansi fg="yellow-bold">%d gold</ansi> drops to the ground.`, mob.Character.Gold)
-			room.SendText(msg)
-			room.Gold += mob.Character.Gold
+			if config.Death.CorpseItems && config.Death.CorpsesEnabled {
+				corpseGold = mob.Character.Gold
+			} else {
+				msg := fmt.Sprintf(`<ansi fg="yellow-bold">%d gold</ansi> drops to the ground.`, mob.Character.Gold)
+				room.SendText(msg)
+				room.Gold += mob.Character.Gold
+			}
 		}
 
+		// Destroy any record of this mob.
+		mobs.DestroyInstance(mob.InstanceId)
+
+		// Clean up mob from room...
+		if r := rooms.LoadRoom(mob.HomeRoomId); r != nil {
+			r.CleanupMobSpawns(false)
+		}
+
+		// Remove from current room
+		room.RemoveMob(mob.InstanceId)
+
+		if config.Death.CorpsesEnabled {
+			c := rooms.Corpse{
+				MobId:        int(mob.MobId),
+				Character:    mob.Character,
+				RoundCreated: currentRound,
+			}
+			if config.Death.CorpseItems {
+				c.Items = corpseItems
+				c.Gold = corpseGold
+			}
+			room.AddCorpse(c)
+		}
+
+		return true, nil
 	}
 
 	// Destroy any record of this mob.
@@ -360,8 +402,6 @@ func Suicide(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 	// Remove from current room
 	room.RemoveMob(mob.InstanceId)
-
-	config := configs.GetGamePlayConfig()
 
 	if config.Death.CorpsesEnabled {
 		room.AddCorpse(rooms.Corpse{

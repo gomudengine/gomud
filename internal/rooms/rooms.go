@@ -1044,6 +1044,56 @@ func (r *Room) FindCorpse(searchName string) (Corpse, bool) {
 	return Corpse{}, false
 }
 
+func (r *Room) FindCorpseByRef(searchName string) (*Corpse, bool) {
+
+	playerCorpseLookup := map[string]int{}
+	playerCorpses := []string{}
+
+	mobCorpseLookup := map[string]int{}
+	mobCorpses := []string{}
+
+	for idx, c := range r.Corpses {
+
+		if c.Prunable {
+			continue
+		}
+
+		if c.UserId > 0 {
+			name := c.Character.Name + ` corpse`
+			if _, ok := playerCorpseLookup[name]; !ok {
+				playerCorpseLookup[name] = idx
+				playerCorpses = append(playerCorpses, name)
+			}
+		}
+
+		if c.MobId > 0 {
+			name := c.Character.Name + ` corpse`
+			if _, ok := mobCorpseLookup[name]; !ok {
+				mobCorpseLookup[name] = idx
+				mobCorpses = append(mobCorpses, name)
+			}
+		}
+	}
+
+	userMatch, closeUserMatch := util.FindMatchIn(searchName, playerCorpses...)
+	if userMatch != `` {
+		return &r.Corpses[playerCorpseLookup[userMatch]], true
+	}
+
+	mobMatch, closeMobMatch := util.FindMatchIn(searchName, mobCorpses...)
+	if mobMatch != `` {
+		return &r.Corpses[mobCorpseLookup[mobMatch]], true
+	}
+
+	if closeUserMatch != `` {
+		return &r.Corpses[playerCorpseLookup[closeUserMatch]], true
+	} else if closeMobMatch != `` {
+		return &r.Corpses[mobCorpseLookup[closeMobMatch]], true
+	}
+
+	return nil, false
+}
+
 func (r *Room) FindOnFloor(itemName string, stash bool) (items.Item, bool) {
 
 	if stash {

@@ -31,7 +31,7 @@ import (
 // ModuleAdminRegistrar is implemented by internal/web and provided to plugins
 // via SetAdminRegistrar. This breaks the import cycle between web and plugins.
 type ModuleAdminRegistrar interface {
-	RegisterAdminPage(name, slug, htmlContent string, addToNav bool, navGroup, navParent string, dataFunc func(*http.Request) map[string]any)
+	RegisterAdminPage(name, slug, htmlContent string, addToNav bool, navGroup, navParent, description, navParentDescription string, dataFunc func(*http.Request) map[string]any)
 	RegisterAdminAPIEndpoint(method, slug, permissionKey string, handler func(*http.Request) (int, bool, any))
 	// RegisterPermission adds a single module-contributed permission key to the
 	// catalog so it appears in the admin permission picker.
@@ -537,7 +537,7 @@ func Load(dataFilesPath string) {
 				} else {
 					mudlog.Error("plugins", "admin page html not found", page.HTMLFile, "plugin", p.name)
 				}
-				moduleAdminRegistrar.RegisterAdminPage(page.Name, page.Slug, htmlContent, page.AddToNav, page.NavGroup, page.NavParent, page.DataFunction)
+				moduleAdminRegistrar.RegisterAdminPage(page.Name, page.Slug, htmlContent, page.AddToNav, page.NavGroup, page.NavParent, page.Description, page.NavParentDescription, page.DataFunction)
 			}
 			for _, route := range p.Web.adminAPIRoutes {
 				route := route // capture

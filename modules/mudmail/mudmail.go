@@ -48,6 +48,8 @@ func init() {
 		true,
 		"Modules",
 		"Mudmail",
+		"Browse and manage in-game mail messages sent between players.",
+		"In-game mail system allowing players to send messages and items to each other.",
 		nil,
 	)
 
@@ -59,6 +61,8 @@ func init() {
 		true,
 		"Modules",
 		"Mudmail",
+		"REST API reference for the mudmail endpoint.",
+		"",
 		nil,
 	)
 
@@ -70,6 +74,8 @@ func init() {
 		true,
 		"Modules",
 		"Mudmail",
+		"Information and version details for the Mudmail module.",
+		"",
 		nil,
 	)
 

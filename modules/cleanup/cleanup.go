@@ -48,8 +48,8 @@ func init() {
 		panic(err)
 	}
 
-	c.plug.Web.AdminPage("Config", "cleanup-config", "html/admin/cleanup-config.html", true, "Modules", "Cleanup", nil)
-	c.plug.Web.AdminPage("About", "cleanup-about", "html/admin/cleanup-about.html", true, "Modules", "Cleanup", nil)
+	c.plug.Web.AdminPage("Config", "cleanup-config", "html/admin/cleanup-config.html", true, "Modules", "Cleanup", "Configure automated world cleanup schedules and rules.", "Automated cleanup module removing stale corpses, items, and temporary objects.", nil)
+	c.plug.Web.AdminPage("About", "cleanup-about", "html/admin/cleanup-about.html", true, "Modules", "Cleanup", "Information and version details for the Cleanup module.", "", nil)
 	//
 	// Register any user/mob commands
 	//

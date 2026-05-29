@@ -12,14 +12,16 @@ type ModuleAPIHandler func(r *http.Request) (status int, success bool, data any)
 
 // AdminWebPage describes an admin page contributed by a module.
 type AdminWebPage struct {
-	Name         string
-	Slug         string // e.g. "mudmail" -> /admin/mudmail
-	Path         string // "/admin/mudmail"
-	HTMLFile     string // path inside plugin FS, relative to datafiles/html/admin/
-	AddToNav     bool
-	NavGroup     string // if non-empty, place inside this top-level group dropdown
-	NavParent    string // if non-empty, nest under this parent entry within the group (or top-level)
-	DataFunction func(*http.Request) map[string]any
+	Name                 string
+	Slug                 string // e.g. "mudmail" -> /admin/mudmail
+	Path                 string // "/admin/mudmail"
+	HTMLFile             string // path inside plugin FS, relative to datafiles/html/admin/
+	Description          string // short one-sentence description for this leaf entry
+	NavParentDescription string // short one-sentence description for the parent nav group entry
+	AddToNav             bool
+	NavGroup             string // if non-empty, place inside this top-level group dropdown
+	NavParent            string // if non-empty, nest under this parent entry within the group (or top-level)
+	DataFunction         func(*http.Request) map[string]any
 }
 
 // AdminAPIRoute describes an admin API endpoint contributed by a module.
@@ -71,23 +73,27 @@ func (w *WebConfig) WebPage(name string, path string, file string, addToNav bool
 
 // AdminPage registers an admin-only page served under /admin/<slug>.
 //
-//   - name      - display label used in nav
-//   - slug      - URL path segment, e.g. "mudmail" -> /admin/mudmail
-//   - htmlFile  - path inside the plugin's embedded FS, relative to datafiles/html/admin/
-//   - addToNav  - whether to add a nav entry
-//   - navGroup  - if non-empty, places the nav entry inside a top-level group dropdown
-//   - navParent - if non-empty, nests the entry under this parent within the group (or top-level)
-//   - dataFunc  - optional function to supply extra template data; receives *http.Request
-func (w *WebConfig) AdminPage(name, slug, htmlFile string, addToNav bool, navGroup, navParent string, dataFunc func(*http.Request) map[string]any) {
+//   - name                - display label used in nav
+//   - slug                - URL path segment, e.g. "mudmail" -> /admin/mudmail
+//   - htmlFile            - path inside the plugin's embedded FS, relative to datafiles/html/admin/
+//   - addToNav            - whether to add a nav entry
+//   - navGroup            - if non-empty, places the nav entry inside a top-level group dropdown
+//   - navParent           - if non-empty, nests the entry under this parent within the group (or top-level)
+//   - description         - short one-sentence description for this leaf entry
+//   - navParentDescription - short one-sentence description for the parent nav group entry (used on first registration)
+//   - dataFunc            - optional function to supply extra template data; receives *http.Request
+func (w *WebConfig) AdminPage(name, slug, htmlFile string, addToNav bool, navGroup, navParent, description, navParentDescription string, dataFunc func(*http.Request) map[string]any) {
 	w.adminPages = append(w.adminPages, AdminWebPage{
-		Name:         name,
-		Slug:         slug,
-		Path:         "/admin/" + slug,
-		HTMLFile:     htmlFile,
-		AddToNav:     addToNav,
-		NavGroup:     navGroup,
-		NavParent:    navParent,
-		DataFunction: dataFunc,
+		Name:                 name,
+		Slug:                 slug,
+		Path:                 "/admin/" + slug,
+		HTMLFile:             htmlFile,
+		Description:          description,
+		NavParentDescription: navParentDescription,
+		AddToNav:             addToNav,
+		NavGroup:             navGroup,
+		NavParent:            navParent,
+		DataFunction:         dataFunc,
 	})
 }
 

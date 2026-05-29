@@ -45,8 +45,8 @@ func init() {
 		panic(err)
 	}
 
-	m.plug.Web.AdminPage("Config", "alt-characters-config", "html/admin/alt-characters-config.html", true, "Modules", "Alt Characters", nil)
-	m.plug.Web.AdminPage("About", "alt-characters-about", "html/admin/alt-characters-about.html", true, "Modules", "Alt Characters", nil)
+	m.plug.Web.AdminPage("Config", "alt-characters-config", "html/admin/alt-characters-config.html", true, "Modules", "Alt Characters", "Configure alternate character slot limits and rules.", "Alternate character system allowing players to maintain multiple characters per account.", nil)
+	m.plug.Web.AdminPage("About", "alt-characters-about", "html/admin/alt-characters-about.html", true, "Modules", "Alt Characters", "Information and version details for the Alt Characters module.", "", nil)
 	m.plug.AddUserCommand(`character`, m.characterCommand, true, false)
 
 	m.plug.ReserveTags(characterTag)

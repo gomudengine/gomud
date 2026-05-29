@@ -262,6 +262,12 @@ GamePlay:
     #   How long until corpses crumble to dust (Go away).
     #   See ShopRestockRate comments for time format.
     CorpseDecayTime: 1 hour
+    # - CorpseItems -
+    #   If true, items and gold that would drop from mobs or players on death
+    #   are instead placed on the corpse. Players can loot corpses with
+    #   "get <item> <corpse>" or "get all <corpse>".
+    #   Corpse decay destroys all held items. Requires CorpsesEnabled: true.
+    CorpseItems: false
   # - LivesStart -
   #   (Req: PermaDeath) How many lives players start with before being reset.
   LivesStart: 3

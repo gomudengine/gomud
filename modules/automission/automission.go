@@ -64,9 +64,9 @@ func init() {
 	m.plug.ReserveTags(allBoardTags...)
 
 	m.plug.Web.AdminPage("Config", "automission-config",
-		"html/admin/automission-config.html", true, "Modules", "Auto Mission", nil)
+		"html/admin/automission-config.html", true, "Modules", "Auto Mission", "Configure auto mission board types and reward settings.", "Auto mission system generating dynamic repeatable tasks posted on mission boards.", nil)
 	m.plug.Web.AdminPage("About", "automission-about",
-		"html/admin/automission-about.html", true, "Modules", "Auto Mission", nil)
+		"html/admin/automission-about.html", true, "Modules", "Auto Mission", "Information and version details for the Auto Mission module.", "", nil)
 
 	m.plug.Web.AdminAPIEndpoint("GET", "automission-config", m.apiGetConfig)
 	m.plug.Web.AdminAPIEndpoint("PATCH", "automission-config", m.apiPatchConfig, "automission.write")

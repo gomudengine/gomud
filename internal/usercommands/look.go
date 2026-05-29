@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/gametime"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -418,6 +419,10 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 			room.SendText(fmt.Sprintf(`<ansi fg="username">%s</ansi> is looking at the <ansi fg="%s">%s corpse</ansi>.`, user.Character.Name, corpseColor, corpse.Character.Name), user.UserId)
 
 			user.SendText(buildCorpseDescriptionPanel(&corpse.Character))
+
+			if configs.GetGamePlayConfig().Death.CorpseItems {
+				user.SendText(buildCorpseInventoryPanel(&corpse))
+			}
 
 			return true, nil
 

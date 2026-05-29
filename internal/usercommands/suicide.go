@@ -11,6 +11,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/colorpatterns"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
+	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/templates"
@@ -143,7 +144,10 @@ func Suicide(rest string, user *users.UserRecord, room *rooms.Room, flags events
 	user.EventLog.Add(`death`, fmt.Sprintf(`<ansi fg="username">%s</ansi> has <ansi fg="red-bold">DIED</ansi>`, user.Character.Name))
 
 	// Only apply penalties if they were above the threshold
-	if allowPenalties {
+	if allowPenalties && !user.Character.HasBuffFlag(buffs.PermaGear) {
+
+		corpseItems := []items.Item{}
+		corpseGold := 0
 
 		if config.Death.EquipmentDropChance >= 0 {
 			chanceInt := int(config.Death.EquipmentDropChance * 100)
@@ -152,28 +156,51 @@ func Suicide(rest string, user *users.UserRecord, room *rooms.Room, flags events
 
 					Remove(itm.Name(), user, room, flags)
 
-					Drop(itm.Name(), user, room, flags)
+					if config.Death.CorpseItems && config.Death.CorpsesEnabled {
+						// Item was removed from equipment slot; grab it from backpack and hold for corpse
+						if held, found := user.Character.FindInBackpack(itm.Name()); found {
+							user.Character.RemoveItem(held)
+							corpseItems = append(corpseItems, held)
+						}
+					} else {
+						Drop(itm.Name(), user, room, flags)
+					}
 
 				}
 			}
 		}
 
 		if user.Character.Gold > 0 {
-			user.EventLog.Add(`death`, fmt.Sprintf(`Dropped <ansi fg="gold">%d gold</ansi> on death`, user.Character.Gold))
-			Drop(fmt.Sprintf(`%d gold`, user.Character.Gold), user, room, flags)
+			if config.Death.CorpseItems && config.Death.CorpsesEnabled {
+				corpseGold = user.Character.Gold
+				user.Character.Gold = 0
+			} else {
+				user.EventLog.Add(`death`, fmt.Sprintf(`Dropped <ansi fg="gold">%d gold</ansi> on death`, user.Character.Gold))
+				Drop(fmt.Sprintf(`%d gold`, user.Character.Gold), user, room, flags)
+			}
 		}
 
 		if config.Death.AlwaysDropBackpack {
-			Drop("all", user, room, flags)
-
-			user.EventLog.Add(`death`, `Dropped <ansi fg="alert-3">everthing in your backpack</ansi> on death`)
-
+			if config.Death.CorpseItems && config.Death.CorpsesEnabled {
+				for _, itm := range user.Character.GetAllBackpackItems() {
+					user.Character.RemoveItem(itm)
+					corpseItems = append(corpseItems, itm)
+				}
+			} else {
+				Drop("all", user, room, flags)
+				user.EventLog.Add(`death`, `Dropped <ansi fg="alert-3">everthing in your backpack</ansi> on death`)
+			}
 		} else if config.Death.EquipmentDropChance >= 0 {
 			chanceInt := int(config.Death.EquipmentDropChance * 100)
 			for _, itm := range user.Character.GetAllBackpackItems() {
 				if util.Rand(100) < chanceInt {
-					Drop(itm.Name(), user, room, flags)
-					user.EventLog.Add(`death`, fmt.Sprintf(`Dropped your <ansi fg="itemname">%s</ansi> on death`, itm.Name()))
+					if config.Death.CorpseItems && config.Death.CorpsesEnabled {
+						user.Character.RemoveItem(itm)
+						corpseItems = append(corpseItems, itm)
+					} else {
+						Drop(itm.Name(), user, room, flags)
+						user.EventLog.Add(`death`, fmt.Sprintf(`Dropped your <ansi fg="itemname">%s</ansi> on death`, itm.Name()))
+					}
 				}
 			}
 		}
@@ -212,6 +239,29 @@ func Suicide(rest string, user *users.UserRecord, room *rooms.Room, flags events
 
 		}
 
+		if config.Death.CorpsesEnabled {
+			c := rooms.Corpse{
+				UserId:       user.UserId,
+				Character:    *user.Character,
+				RoundCreated: currentRound,
+			}
+			if config.Death.CorpseItems {
+				c.Items = corpseItems
+				c.Gold = corpseGold
+			}
+			room.AddCorpse(c)
+		}
+
+	} else {
+
+		if config.Death.CorpsesEnabled {
+			room.AddCorpse(rooms.Corpse{
+				UserId:       user.UserId,
+				Character:    *user.Character,
+				RoundCreated: currentRound,
+			})
+		}
+
 	}
 
 	user.Character.CancelBuffsWithFlag(buffs.All)
@@ -223,14 +273,6 @@ func Suicide(rest string, user *users.UserRecord, room *rooms.Room, flags events
 	clear(user.Character.PlayerDamage)
 
 	rooms.MoveToRoom(user.UserId, int(configs.GetSpecialRoomsConfig().DeathRecoveryRoom))
-
-	if config.Death.CorpsesEnabled {
-		room.AddCorpse(rooms.Corpse{
-			UserId:       user.UserId,
-			Character:    *user.Character,
-			RoundCreated: currentRound,
-		})
-	}
 
 	return true, nil
 }

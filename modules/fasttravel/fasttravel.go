@@ -38,8 +38,8 @@ func init() {
 
 	m.plug.AddUserCommand(`fasttravel`, m.fastTravelCommand, false, false)
 
-	m.plug.Web.AdminPage("Config", "fasttravel-config", "html/admin/fasttravel-config.html", true, "Modules", "Fast Travel", nil)
-	m.plug.Web.AdminPage("About", "fasttravel-about", "html/admin/fasttravel-about.html", true, "Modules", "Fast Travel", nil)
+	m.plug.Web.AdminPage("Config", "fasttravel-config", "html/admin/fasttravel-config.html", true, "Modules", "Fast Travel", "Configure fast travel destinations and unlock conditions.", "Fast travel system allowing players to teleport between discovered waypoints.", nil)
+	m.plug.Web.AdminPage("About", "fasttravel-about", "html/admin/fasttravel-about.html", true, "Modules", "Fast Travel", "Information and version details for the Fast Travel module.", "", nil)
 
 	m.plug.ReserveTags(fastTravelTag)
 
