@@ -90,14 +90,29 @@ func Experience(rest string, user *users.UserRecord, room *rooms.Room, flags eve
 
 		stats := []string{`str`, `spd`, `smt`, `vit`, `mys`, `per`}
 
-		oldG := map[string]int{
-			`str`: mockChar.Stats.Strength.GainsForLevel(startLevel - 1),
-			`spd`: mockChar.Stats.Speed.GainsForLevel(startLevel - 1),
-			`smt`: mockChar.Stats.Smarts.GainsForLevel(startLevel - 1),
-			`vit`: mockChar.Stats.Vitality.GainsForLevel(startLevel - 1),
-			`mys`: mockChar.Stats.Mysticism.GainsForLevel(startLevel - 1),
-			`per`: mockChar.Stats.Perception.GainsForLevel(startLevel - 1),
+		// adjForLevel returns the effective (ValueAdj) stat value at a given level
+		// for the mock character, using Recalculate so the cap is applied.
+		adjForLevel := func(lvl int) map[string]int {
+			if lvl < 1 {
+				lvl = 1
+			}
+			mockChar.Stats.Strength.Recalculate(lvl)
+			mockChar.Stats.Speed.Recalculate(lvl)
+			mockChar.Stats.Smarts.Recalculate(lvl)
+			mockChar.Stats.Vitality.Recalculate(lvl)
+			mockChar.Stats.Mysticism.Recalculate(lvl)
+			mockChar.Stats.Perception.Recalculate(lvl)
+			return map[string]int{
+				`str`: mockChar.Stats.Strength.ValueAdj,
+				`spd`: mockChar.Stats.Speed.ValueAdj,
+				`smt`: mockChar.Stats.Smarts.ValueAdj,
+				`vit`: mockChar.Stats.Vitality.ValueAdj,
+				`mys`: mockChar.Stats.Mysticism.ValueAdj,
+				`per`: mockChar.Stats.Perception.ValueAdj,
+			}
 		}
+
+		oldG := adjForLevel(startLevel - 1)
 
 		newG := map[string]int{}
 		totalG := map[string]int{}
@@ -107,14 +122,7 @@ func Experience(rest string, user *users.UserRecord, room *rooms.Room, flags eve
 
 		for i := startLevel; i <= endLevel; i++ {
 
-			newG = map[string]int{
-				`str`: mockChar.Stats.Strength.GainsForLevel(i),
-				`spd`: mockChar.Stats.Speed.GainsForLevel(i),
-				`smt`: mockChar.Stats.Smarts.GainsForLevel(i),
-				`vit`: mockChar.Stats.Vitality.GainsForLevel(i),
-				`mys`: mockChar.Stats.Mysticism.GainsForLevel(i),
-				`per`: mockChar.Stats.Perception.GainsForLevel(i),
-			}
+			newG = adjForLevel(i)
 
 			tnlXP := mockChar.XPTL(i) - mockChar.XPTL(i-1)
 

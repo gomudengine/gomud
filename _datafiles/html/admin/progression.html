@@ -1,0 +1,985 @@
+{{template "header" .}}
+
+<style>
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--color-text-muted); margin-bottom: 1rem; font-size: 0.9rem; }
+
+    .warning-banner {
+        display: flex; gap: 0.75rem; align-items: flex-start;
+        background: #fff8e6; border: 1px solid #f0c040; border-left: 4px solid #e0a000;
+        border-radius: 5px; padding: 0.75rem 1rem;
+        font-size: 0.85rem; color: #5a4000;
+        margin-bottom: 1.5rem;
+    }
+    .warning-icon {
+        font-size: 1.2rem; line-height: 1.4; flex-shrink: 0; color: #c07800;
+    }
+
+    .page-layout {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 1.25rem;
+        align-items: start;
+    }
+    @media (max-width: 900px) { .page-layout { grid-template-columns: 1fr; } }
+
+    /* --- control panel --- */
+    .control-panel {
+        background: var(--color-surface-white);
+        border: 1px solid var(--color-border);
+        border-radius: 6px;
+        position: sticky;
+        top: 1rem;
+    }
+    .panel-section:first-child {
+        border-radius: 6px 6px 0 0;
+    }
+    .panel-section {
+        border-bottom: 1px solid var(--color-border-light);
+        padding: 0.85rem 1rem;
+    }
+    .panel-section:last-of-type { border-bottom: none; }
+    .section-label {
+        font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.06em; color: var(--color-text-subtle);
+        margin-bottom: 0.65rem;
+    }
+
+    .ctrl-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 0.3rem 0.5rem;
+        align-items: center;
+        margin-bottom: 0.55rem;
+    }
+    .ctrl-row:last-child { margin-bottom: 0; }
+    .ctrl-label {
+        font-size: 0.8rem; color: var(--color-text-muted);
+        grid-column: 1 / -1;
+        margin-bottom: 0.1rem;
+    }
+    .ctrl-row input[type="range"] {
+        width: 100%; accent-color: var(--color-primary); cursor: pointer;
+        grid-column: 1;
+    }
+    .ctrl-value {
+        font-size: 0.8rem; font-weight: 600; color: var(--color-primary);
+        min-width: 3.5rem; text-align: right; font-family: monospace;
+        grid-column: 2;
+    }
+    .ctrl-row input[type="number"] {
+        width: 100%; padding: 0.3rem 0.5rem;
+        border: 1px solid var(--color-border-medium); border-radius: 3px;
+        font-size: 0.82rem; font-family: monospace;
+        grid-column: 1 / -1;
+    }
+
+    /* tooltip badge */
+    .tip-icon {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 1rem; height: 1rem; border-radius: 50%;
+        background: var(--color-border-medium); color: var(--color-text-muted);
+        font-size: 0.62rem; font-weight: 700; font-style: normal;
+        cursor: default; vertical-align: middle; margin-left: 0.25rem;
+        flex-shrink: 0; line-height: 1; position: relative;
+        user-select: none;
+    }
+    .tip-icon::after {
+        content: attr(data-tip);
+        position: absolute;
+        bottom: calc(100% + 6px);
+        left: 50%; transform: translateX(-50%);
+        background: #1a1a2e; color: #e8e8f0;
+        font-size: 0.75rem; font-weight: 400; font-family: system-ui, sans-serif;
+        line-height: 1.45; white-space: normal; width: 220px;
+        padding: 0.5rem 0.65rem; border-radius: 5px;
+        box-shadow: 0 3px 12px rgba(0,0,0,0.35);
+        pointer-events: none;
+        opacity: 0; visibility: hidden;
+        transition: opacity 0.12s ease, visibility 0.12s ease;
+        z-index: 100;
+    }
+    .tip-icon:hover::after, .tip-icon:focus::after {
+        opacity: 1; visibility: visible;
+    }
+    /* flip tooltip to the right on left-edge items */
+    .tip-icon.tip-right::after {
+        left: 0; transform: none;
+    }
+
+    /* chart tooltip */
+    #chart-tooltip {
+        position: fixed;
+        pointer-events: none;
+        background: #1a1a2e;
+        color: #e8e8f0;
+        font-size: 0.78rem;
+        font-family: system-ui, sans-serif;
+        line-height: 1.6;
+        padding: 0.45rem 0.7rem;
+        border-radius: 5px;
+        box-shadow: 0 3px 12px rgba(0,0,0,0.4);
+        white-space: nowrap;
+        z-index: 500;
+        display: none;
+    }
+    #chart-tooltip .tt-level {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #8899bb;
+        margin-bottom: 0.2rem;
+    }
+    #chart-tooltip .tt-row {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    #chart-tooltip .tt-swatch {
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+    #chart-tooltip .tt-dashed .tt-swatch {
+        background: transparent !important;
+        border: 2px dashed currentColor;
+    }
+    .reward-cards { display: flex; flex-direction: column; gap: 0.55rem; }
+    .reward-card {
+        border: 1px solid var(--color-border-light);
+        border-radius: 5px;
+        padding: 0.6rem 0.75rem;
+        background: var(--color-border-faint);
+    }
+    .reward-card-title {
+        font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.05em; color: var(--color-text-subtle);
+        margin-bottom: 0.45rem;
+    }
+    .reward-sentence {
+        display: flex; align-items: center; flex-wrap: wrap;
+        gap: 0.3rem; font-size: 0.85rem; color: var(--color-text-muted);
+        line-height: 1.6;
+    }
+    .reward-sentence input[type="number"] {
+        width: 3.2rem; padding: 0.2rem 0.35rem;
+        border: 1px solid var(--color-border-medium); border-radius: 3px;
+        font-size: 0.85rem; font-family: monospace; font-weight: 600;
+        color: var(--color-primary); text-align: center;
+        background: var(--color-surface-white);
+    }
+    .reward-sentence input[type="number"]:focus {
+        outline: 2px solid var(--color-primary); outline-offset: 1px; border-color: transparent;
+    }
+    .reward-summary {
+        margin-top: 0.4rem; font-size: 0.75rem;
+        color: var(--color-text-faint); font-style: italic;
+    }
+    .panel-footer {
+        padding: 0.75rem 1rem;
+        display: flex; gap: 0.6rem; align-items: center;
+        border-top: 1px solid var(--color-border-light);
+        background: var(--color-border-faint);
+        border-radius: 0 0 6px 6px;
+    }
+    .btn { padding: 0.4rem 1rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.875rem; font-weight: 600; }
+    .btn-primary { background: var(--color-primary); color: var(--color-surface-white); }
+    .btn-primary:hover { background: var(--color-primary-hover); }
+    .btn-primary:disabled { background: var(--color-text-secondary); cursor: default; }
+    .btn-danger { background: var(--color-error-bg, #fde8e8); color: var(--color-error-text, #9b1c1c); border: 1px solid #f5c6c6; }
+    .btn-danger:hover { background: #f5c6c6; }
+
+    /* confirm modal */
+    .modal-backdrop {
+        display: none; position: fixed; inset: 0;
+        background: rgba(0,0,0,0.45); z-index: 600;
+        align-items: center; justify-content: center;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+        background: var(--color-surface-white);
+        border: 1px solid var(--color-border);
+        border-radius: 8px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+        padding: 1.5rem 1.75rem;
+        max-width: 420px; width: 90%;
+    }
+    .modal h3 { margin: 0 0 0.5rem; font-size: 1rem; color: var(--color-text-strong); }
+    .modal p  { margin: 0 0 1.25rem; font-size: 0.875rem; color: var(--color-text-muted); line-height: 1.5; }
+    .modal-actions { display: flex; gap: 0.6rem; justify-content: flex-end; }
+
+    /* --- charts column --- */
+    .charts-col { display: flex; flex-direction: column; gap: 1.25rem; }
+
+    .chart-card {
+        background: var(--color-surface-white);
+        border: 1px solid var(--color-border);
+        border-radius: 6px;
+        overflow: hidden;
+    }
+    .chart-head {
+        padding: 0.6rem 1rem;
+        background: var(--color-border-faint);
+        border-bottom: 1px solid var(--color-border-light);
+        display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 0.5rem;
+    }
+    .chart-head .ch-title { font-size: 0.85rem; font-weight: 700; color: var(--color-text-strong); white-space: nowrap; }
+    .chart-head .ch-sub { font-size: 0.75rem; color: var(--color-text-muted); }
+    .chart-body { padding: 0.75rem 1rem 0.85rem; }
+    .chart-body canvas {
+        display: block;
+        width: 100%;
+        height: 200px;
+        max-height: 200px;
+    }
+
+    /* legend */
+    .legend { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; margin-top: 0.5rem; }
+    .legend-item { display: flex; align-items: center; gap: 0.35rem; font-size: 0.78rem; color: var(--color-text-muted); }
+    .legend-swatch { width: 22px; height: 3px; border-radius: 2px; flex-shrink: 0; }
+
+    /* status */
+    #status-bar {
+        display: none; padding: 0.55rem 1rem; border-radius: 4px;
+        font-size: 0.85rem; margin-bottom: 1rem;
+    }
+    #status-bar.success { background: var(--color-success-bg); color: var(--color-success-text); display: block; }
+    #status-bar.error   { background: var(--color-error-bg); color: var(--color-error-text); display: block; }
+</style>
+
+<h1>Character Progression</h1>
+<p class="subtitle">Adjust progression formulas and see live charts. Click <strong>Save</strong> to apply changes to the server.</p>
+
+<div class="warning-banner">
+    <span class="warning-icon">&#9888;</span>
+    <div>
+        <strong>These settings affect all characters on the server, including existing ones.</strong>
+        Changes take effect immediately on the next stat recalculation and cannot be automatically reversed.
+        Raising values mid-game will make existing characters stronger than intended; lowering them may make
+        high-level characters feel weaker overnight. Test changes on a development server before applying
+        them to a live world.
+    </div>
+</div>
+
+<div id="status-bar"></div>
+
+<div class="page-layout">
+
+    <!-- ===== CONTROL PANEL ===== -->
+    <div class="control-panel">
+
+        <div class="panel-section">
+            <div class="section-label">Stat Gains</div>
+
+            <div class="ctrl-row">
+                <span class="ctrl-label">Base Mod Factor <span class="tip-icon" data-tip="Scales how much a character&#39;s racial base stat contributes to growth per level. Higher values cause strong-base races to pull further ahead of weak-base races over time. Use this to control how much race choice matters at high levels.">?</span></span>
+                <input type="range" id="BaseModFactor" min="0.05" max="1.5" step="0.01" value="0.3333"
+                       oninput="syncValue(this,'BaseModFactor_v'); schedulePreview()">
+                <span class="ctrl-value" id="BaseModFactor_v">0.3333</span>
+            </div>
+
+            <div class="ctrl-row">
+                <span class="ctrl-label">Base Mod Exponent <span class="tip-icon" data-tip="Controls the curve shape of racial stat growth. 1.0 = linear (steady gains each level). Less than 1.0 = diminishing returns (gains slow at high levels). Greater than 1.0 = accelerating (gains speed up). Try 0.7 for a soft cap feel without a hard threshold.">?</span></span>
+                <input type="range" id="BaseModExponent" min="0.1" max="3.0" step="0.05" value="1.0"
+                       oninput="syncValue(this,'BaseModExponent_v'); schedulePreview()">
+                <span class="ctrl-value" id="BaseModExponent_v">1.00</span>
+            </div>
+
+            <div class="ctrl-row">
+                <span class="ctrl-label">Natural Gains Factor <span class="tip-icon" data-tip="A flat stat bonus every character receives each level, regardless of race. Acts as a floor that keeps weak-base races competitive. Raise this to reduce the power gap between races at high levels.">?</span></span>
+                <input type="range" id="NaturalGainsModFactor" min="0.05" max="2.0" step="0.05" value="0.5"
+                       oninput="syncValue(this,'NaturalGainsModFactor_v'); schedulePreview()">
+                <span class="ctrl-value" id="NaturalGainsModFactor_v">0.50</span>
+            </div>
+
+            <div class="ctrl-row">
+                <span class="ctrl-label">Natural Gains Exponent <span class="tip-icon" data-tip="Controls the curve shape of the flat (race-independent) gains. 1.0 = steady gains each level. Less than 1.0 = gains slow down at high levels, giving a natural soft cap to everyone. Greater than 1.0 = gains accelerate, rewarding long-term play.">?</span></span>
+                <input type="range" id="NaturalGainsExponent" min="0.1" max="3.0" step="0.05" value="1.0"
+                       oninput="syncValue(this,'NaturalGainsExponent_v'); schedulePreview()">
+                <span class="ctrl-value" id="NaturalGainsExponent_v">1.00</span>
+            </div>
+
+            <div class="ctrl-row" style="margin-top:0.6rem">
+                <span class="ctrl-label">Cap Threshold <span class="tip-icon" data-tip="The raw stat Value at which compression kicks in. Below this number, a character&#39;s effective stat (ValueAdj) equals their raw Value exactly. Above it, gains are compressed by the formula. Default 105. Raise it to allow more uncompressed growth; lower it to apply compression earlier.">?</span></span>
+                <input type="number" id="StatCapThreshold" min="1" max="500" step="1" value="105"
+                       oninput="schedulePreview()">
+            </div>
+            <div class="ctrl-row">
+                <span class="ctrl-label">Cap Anchor <span class="tip-icon" data-tip="The baseline the compression formula is measured from. Overage = raw Value minus Anchor, and the compressed result is added back on top of the Anchor. Default 100. Should be set below the Threshold. Lowering the Anchor makes the compression start more gradually; raising it toward the Threshold makes it sharper.">?</span></span>
+                <input type="number" id="StatCapAnchor" min="0" max="499" step="1" value="100"
+                       oninput="schedulePreview()">
+            </div>
+            <div class="ctrl-row">
+                <span class="ctrl-label">Cap Exponent <span class="tip-icon" data-tip="Controls how aggressively gains are compressed above the threshold. 0.5 (default) = square root, strong compression. 1.0 = linear pass-through, no compression at all. 0.25 = very aggressive, nearly flat after the threshold. Watch the dashed lines on the chart diverge from the solid lines as you adjust this.">?</span></span>
+                <input type="range" id="StatCapExponent" min="0.1" max="1.0" step="0.05" value="0.5"
+                       oninput="syncValue(this,'StatCapExponent_v'); schedulePreview()">
+                <span class="ctrl-value" id="StatCapExponent_v">0.50</span>
+            </div>
+            <div class="ctrl-row">
+                <span class="ctrl-label">Cap Scale <span class="tip-icon" data-tip="A multiplier applied to the compressed overage before adding it back to the Anchor. Default 2.0. Higher values give more room to grow above the cap; lower values flatten the curve further. Works in combination with Cap Exponent: scale up if you want a gentler exponent but still meaningful gains.">?</span></span>
+                <input type="range" id="StatCapScale" min="0.1" max="5.0" step="0.1" value="2.0"
+                       oninput="syncValue(this,'StatCapScale_v'); schedulePreview()">
+                <span class="ctrl-value" id="StatCapScale_v">2.00</span>
+            </div>
+            <div class="ctrl-row">
+                <span class="ctrl-label">Exempt Training &amp; Mods <span class="tip-icon" data-tip="When enabled, only the racial portion of a stat is compressed by the cap formula. Training points and equipment/buff bonuses are added on top of the compressed racial value at full strength. This ensures deliberate investment always pays off, preventing the cap from punishing players who spend stat points.">?</span></span>
+                <label style="display:flex; align-items:center; gap:0.4rem; cursor:pointer; grid-column:1/-1">
+                    <input type="checkbox" id="StatCapExemptBonus" onchange="schedulePreview()" style="width:auto; cursor:pointer">
+                    <span style="font-size:0.8rem; color:var(--color-text-muted)">Only compress racial gains</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="panel-section">
+            <div class="section-label">HP &amp; Mana</div>
+
+            <div class="ctrl-row">
+                <span class="ctrl-label">HP Base <span class="tip-icon" data-tip="Flat HP every character starts with at level 1, before level or stat bonuses. Acts as a minimum floor. Raise this if you want all characters to feel more durable from the start.">?</span></span>
+                <input type="number" id="HPBase" min="0" max="200" step="1" value="5"
+                       oninput="schedulePreview()">
+            </div>
+            <div class="ctrl-row">
+                <span class="ctrl-label">HP per Level <span class="tip-icon" data-tip="HP added for each level gained, regardless of stats. Raise this to make leveling feel impactful for all characters even if their Vitality is low.">?</span></span>
+                <input type="range" id="HPPerLevel" min="0" max="10" step="0.25" value="1.0"
+                       oninput="syncValue(this,'HPPerLevel_v'); schedulePreview()">
+                <span class="ctrl-value" id="HPPerLevel_v">1.00</span>
+            </div>
+            <div class="ctrl-row">
+                <span class="ctrl-label">HP per Vitality <span class="tip-icon" data-tip="HP added per point of adjusted Vitality (ValueAdj). This is the main lever for making Vitality matter. Default 4 means a character with 50 Vitality has 200 HP from stats alone. Raise this to make tanky builds much tankier.">?</span></span>
+                <input type="range" id="HPPerVitality" min="0" max="20" step="0.25" value="4.0"
+                       oninput="syncValue(this,'HPPerVitality_v'); schedulePreview()">
+                <span class="ctrl-value" id="HPPerVitality_v">4.00</span>
+            </div>
+
+            <div class="ctrl-row">
+                <span class="ctrl-label">Mana Base <span class="tip-icon" data-tip="Flat mana every character starts with at level 1. Even non-magical characters will have at least this much mana. Raise it if you want mana to be universally available.">?</span></span>
+                <input type="number" id="ManaBase" min="0" max="200" step="1" value="4"
+                       oninput="schedulePreview()">
+            </div>
+            <div class="ctrl-row">
+                <span class="ctrl-label">Mana per Level <span class="tip-icon" data-tip="Mana added for each level gained. Gives all characters a baseline mana pool that grows with level, independent of Mysticism investment.">?</span></span>
+                <input type="range" id="ManaPerLevel" min="0" max="10" step="0.25" value="1.0"
+                       oninput="syncValue(this,'ManaPerLevel_v'); schedulePreview()">
+                <span class="ctrl-value" id="ManaPerLevel_v">1.00</span>
+            </div>
+            <div class="ctrl-row">
+                <span class="ctrl-label">Mana per Mysticism <span class="tip-icon" data-tip="Mana added per point of adjusted Mysticism (ValueAdj). The main lever for making caster builds feel powerful. Default 3 means a character with 50 Mysticism has 150 mana from stats alone.">?</span></span>
+                <input type="range" id="ManaPerMysticism" min="0" max="20" step="0.25" value="3.0"
+                       oninput="syncValue(this,'ManaPerMysticism_v'); schedulePreview()">
+                <span class="ctrl-value" id="ManaPerMysticism_v">3.00</span>
+            </div>
+        </div>
+
+        <div class="panel-section">
+            <div class="section-label">XP Curve</div>
+            <div class="ctrl-row">
+                <span class="ctrl-label">XP Base <span class="tip-icon" data-tip="The flat XP component at the base of the curve. Raising this scales the entire XP requirement up proportionally at all levels. Think of it as the difficulty multiplier for the whole progression arc.">?</span></span>
+                <input type="number" id="XPBase" min="100" max="100000" step="100" value="1000"
+                       oninput="schedulePreview()">
+            </div>
+            <div class="ctrl-row">
+                <span class="ctrl-label">XP Level Factor <span class="tip-icon" data-tip="Multiplier on the level-dependent part of the XP formula. Higher values make the curve rise faster, so high levels require disproportionately more XP. Lower values flatten the curve, making high levels more reachable.">?</span></span>
+                <input type="range" id="XPLevelFactor" min="0.1" max="5.0" step="0.05" value="0.75"
+                       oninput="syncValue(this,'XPLevelFactor_v'); schedulePreview()">
+                <span class="ctrl-value" id="XPLevelFactor_v">0.75</span>
+            </div>
+            <div class="ctrl-row">
+                <span class="ctrl-label">XP Level Power <span class="tip-icon" data-tip="The exponent applied to level in the XP formula. 2.0 = quadratic (default, each level costs noticeably more than the last). 1.5 = gentler curve. 3.0 = steep, exponential feel. Watch the XP Required chart to see the shape change in real time.">?</span></span>
+                <input type="range" id="XPLevelPower" min="0.5" max="5.0" step="0.1" value="2.0"
+                       oninput="syncValue(this,'XPLevelPower_v'); schedulePreview()">
+                <span class="ctrl-value" id="XPLevelPower_v">2.00</span>
+            </div>
+            <div class="ctrl-row">
+                <span class="ctrl-label">Max Level (chart range) <span class="tip-icon" data-tip="Sets how many levels the charts display. Does not enforce a hard level cap in the game. Increase this to preview what high-level characters will look like under the current settings.">?</span></span>
+                <input type="range" id="MaxLevel" min="10" max="200" step="5" value="100"
+                       oninput="syncValue(this,'MaxLevel_v'); schedulePreview()">
+                <span class="ctrl-value" id="MaxLevel_v">100</span>
+            </div>
+        </div>
+
+        <div class="panel-section">
+            <div class="section-label">Level-Up Rewards</div>
+            <div class="reward-cards">
+
+                <div class="reward-card">
+                    <div class="reward-card-title">Training Points <span class="tip-icon" data-tip="Spending a training point permanently raises one skill rank. These are the main way characters improve their combat and utility skills. Give more per level for faster skill progression, or reduce the cadence to make skill choices feel more meaningful.">?</span></div>
+                    <div class="reward-sentence">
+                        Give
+                        <input type="number" id="TrainingPointsPerLevel" min="0" max="10" step="1" value="1"
+                               oninput="updateRewardSummary(); schedulePreview()">
+                        point(s) every
+                        <input type="number" id="TrainingPointsEveryNLevels" min="1" max="20" step="1" value="1"
+                               oninput="updateRewardSummary(); schedulePreview()">
+                        level(s)
+                    </div>
+                    <div class="reward-summary" id="training-summary"></div>
+                </div>
+
+                <div class="reward-card">
+                    <div class="reward-card-title">Stat Points <span class="tip-icon" data-tip="Spending a stat point permanently raises one core stat (Strength, Speed, etc.) by one. These let players customize their character beyond racial defaults. Give more per level for faster customization, or space them out to make each allocation feel weighty.">?</span></div>
+                    <div class="reward-sentence">
+                        Give
+                        <input type="number" id="StatPointsPerLevel" min="0" max="10" step="1" value="1"
+                               oninput="updateRewardSummary(); schedulePreview()">
+                        point(s) every
+                        <input type="number" id="StatPointsEveryNLevels" min="1" max="20" step="1" value="1"
+                               oninput="updateRewardSummary(); schedulePreview()">
+                        level(s)
+                    </div>
+                    <div class="reward-summary" id="stat-summary"></div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="panel-footer">
+            <button class="btn btn-primary" id="save-btn" onclick="saveConfig()">Save</button>
+            <button class="btn btn-secondary" onclick="resetToServer()">Reset</button>
+            <button class="btn btn-danger" onclick="openRestoreModal()" style="margin-left:auto">Restore Defaults</button>
+        </div>
+    </div>
+
+    <!-- ===== CHARTS ===== -->
+    <div class="charts-col">
+
+        <div class="chart-card">
+            <div class="chart-head">
+                <span class="ch-title">Stat Gains per Level</span>
+                <span class="ch-sub">Solid lines = raw Value (racial only, no training). Dashed = ValueAdj after cap compression. When &ldquo;Exempt Training &amp; Mods&rdquo; is on, dashed shows the compressed racial floor &mdash; training points land on top of it uncapped.</span>
+            </div>
+            <div class="chart-body">
+                <canvas id="chart-stats"></canvas>
+                <div class="legend">
+                    <div class="legend-item"><div class="legend-swatch" style="background:#e05c5c"></div>Base 15 (strong)</div>
+                    <div class="legend-item"><div class="legend-swatch" style="background:#4a9eff"></div>Base 10 (average)</div>
+                    <div class="legend-item"><div class="legend-swatch" style="background:#6ecb6e"></div>Base 5 (weak)</div>
+                    <div class="legend-item" style="margin-left:0.5rem; padding-left:0.5rem; border-left:1px solid var(--color-border-light)">
+                        <svg width="22" height="10" style="flex-shrink:0"><line x1="0" y1="5" x2="22" y2="5" stroke="#888" stroke-width="1.5" stroke-dasharray="4,3"/></svg>
+                        &nbsp;Dashed = effective (ValueAdj)
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-head">
+                <span class="ch-title">HP &amp; Mana at Level</span>
+                <span class="ch-sub">Example character: Vitality 10, Mysticism 8, no training or equipment.</span>
+            </div>
+            <div class="chart-body">
+                <canvas id="chart-hpmana"></canvas>
+                <div class="legend">
+                    <div class="legend-item"><div class="legend-swatch" style="background:#e05c5c"></div>HP</div>
+                    <div class="legend-item"><div class="legend-swatch" style="background:#4a9eff"></div>Mana</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-head">
+                <span class="ch-title">XP Required per Level</span>
+                <span class="ch-sub">XP delta needed to gain each level (TNLScale 1.0).</span>
+            </div>
+            <div class="chart-body">
+                <canvas id="chart-xp-delta"></canvas>
+                <div class="legend">
+                    <div class="legend-item"><div class="legend-swatch" style="background:#f0a840"></div>XP per level</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-head">
+                <span class="ch-title">XP Cumulative</span>
+                <span class="ch-sub">Total XP required to reach each level (TNLScale 1.0).</span>
+            </div>
+            <div class="chart-body">
+                <canvas id="chart-xp-total"></canvas>
+                <div class="legend">
+                    <div class="legend-item"><div class="legend-swatch" style="background:#a06ee0"></div>Cumulative XP</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="modal-backdrop" id="restore-modal">
+    <div class="modal">
+        <h3>Restore all defaults?</h3>
+        <p>This will reset every progression setting to its original default value and save immediately to the server. All custom values will be lost and the change will affect all characters at once.</p>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closeRestoreModal()">Cancel</button>
+            <button class="btn btn-danger" id="restore-confirm-btn" onclick="restoreDefaults()">Yes, restore defaults</button>
+        </div>
+    </div>
+</div>
+
+<div id="chart-tooltip"></div>
+
+<script>
+// ─── server state loaded on page init ───────────────────────────────────────
+let serverValues = {};
+let previewTimer = null;
+
+// ─── helpers ─────────────────────────────────────────────────────────────────
+function syncValue(slider, labelId) {
+    const v = parseFloat(slider.value);
+    document.getElementById(labelId).textContent = v.toFixed(2);
+}
+
+function getParams() {
+    const ids = [
+        'BaseModFactor','BaseModExponent',
+        'NaturalGainsModFactor','NaturalGainsExponent',
+        'StatCapThreshold','StatCapAnchor','StatCapExponent','StatCapScale','StatCapExemptBonus',
+        'HPBase','HPPerLevel','HPPerVitality',
+        'ManaBase','ManaPerLevel','ManaPerMysticism',
+        'TrainingPointsPerLevel','TrainingPointsEveryNLevels',
+        'StatPointsPerLevel','StatPointsEveryNLevels',
+        'XPBase','XPLevelFactor','XPLevelPower','MaxLevel'
+    ];
+    const p = new URLSearchParams();
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        p.set(id, el.type === 'checkbox' ? (el.checked ? 'true' : 'false') : el.value);
+    });
+    return p;
+}
+
+function updateRewardSummary() {
+    const trAmt = parseInt(document.getElementById('TrainingPointsPerLevel').value) || 0;
+    const trN   = parseInt(document.getElementById('TrainingPointsEveryNLevels').value) || 1;
+    const stAmt = parseInt(document.getElementById('StatPointsPerLevel').value) || 0;
+    const stN   = parseInt(document.getElementById('StatPointsEveryNLevels').value) || 1;
+
+    document.getElementById('training-summary').textContent = rewardSummaryText(trAmt, trN, 'training point');
+    document.getElementById('stat-summary').textContent     = rewardSummaryText(stAmt, stN, 'stat point');
+}
+
+function rewardSummaryText(amt, n, label) {
+    if (amt === 0) return 'Disabled — no ' + label + 's awarded.';
+    const pts  = amt === 1 ? '1 ' + label : amt + ' ' + label + 's';
+    if (n === 1) return pts + ' awarded every level.';
+    if (n === 2) return pts + ' awarded every other level.';
+    return pts + ' awarded every ' + n + ' levels (levels ' + n + ', ' + (n*2) + ', ' + (n*3) + '…)';
+}
+
+function schedulePreview() {
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(loadPreview, 150);
+}
+
+function showStatus(msg, type) {
+    const bar = document.getElementById('status-bar');
+    bar.textContent = msg;
+    bar.className = type;
+    if (type === 'success') setTimeout(() => { bar.style.display = 'none'; bar.className = ''; }, 3000);
+}
+
+// ─── load current config from server ─────────────────────────────────────────
+async function loadServerConfig() {
+    try {
+        const res = await fetch('/admin/api/v1/config');
+        const json = await res.json();
+        if (!json.success) return;
+        const d = json.data;
+        const prog = (d['GamePlay'] || {})['Progression'] || {};
+
+        const defaults = {
+            BaseModFactor: '0.3333333334', BaseModExponent: '1.0',
+            NaturalGainsModFactor: '0.5', NaturalGainsExponent: '1.0',
+            StatCapThreshold: '105', StatCapAnchor: '100',
+            StatCapExponent: '0.5', StatCapScale: '2.0', StatCapExemptBonus: 'false',
+            HPBase: '5', HPPerLevel: '1.0', HPPerVitality: '4.0',
+            ManaBase: '4', ManaPerLevel: '1.0', ManaPerMysticism: '3.0',
+            TrainingPointsPerLevel: '1', TrainingPointsEveryNLevels: '1',
+            StatPointsPerLevel: '1', StatPointsEveryNLevels: '1',
+            XPBase: '1000', XPLevelFactor: '0.75', XPLevelPower: '2.0',
+            MaxLevel: '100'
+        };
+
+        serverValues = {};
+        Object.keys(defaults).forEach(k => {
+            serverValues[k] = prog[k] !== undefined ? String(prog[k]) : defaults[k];
+        });
+
+        applyValues(serverValues);
+        loadPreview();
+    } catch(e) {
+        showStatus('Failed to load config: ' + e, 'error');
+    }
+}
+
+function applyValues(vals) {
+    Object.entries(vals).forEach(([k, v]) => {
+        const el = document.getElementById(k);
+        if (!el) return;
+        if (el.type === 'checkbox') {
+            el.checked = (v === 'true' || v === true || v === '1');
+        } else {
+            el.value = v;
+        }
+        const lbl = document.getElementById(k + '_v');
+        if (lbl) lbl.textContent = parseFloat(v).toFixed(2);
+    });
+    updateRewardSummary();
+}
+
+function resetToServer() {
+    applyValues(serverValues);
+    schedulePreview();
+}
+
+function openRestoreModal() {
+    document.getElementById('restore-modal').classList.add('open');
+}
+
+function closeRestoreModal() {
+    document.getElementById('restore-modal').classList.remove('open');
+}
+
+async function restoreDefaults() {
+    const btn = document.getElementById('restore-confirm-btn');
+    btn.disabled = true;
+
+    const defaults = {
+        BaseModFactor: '0.3333333334', BaseModExponent: '1.0',
+        NaturalGainsModFactor: '0.5', NaturalGainsExponent: '1.0',
+        StatCapThreshold: '105', StatCapAnchor: '100',
+        StatCapExponent: '0.5', StatCapScale: '2.0', StatCapExemptBonus: 'false',
+        HPBase: '5', HPPerLevel: '1.0', HPPerVitality: '4.0',
+        ManaBase: '4', ManaPerLevel: '1.0', ManaPerMysticism: '3.0',
+        TrainingPointsPerLevel: '1', TrainingPointsEveryNLevels: '1',
+        StatPointsPerLevel: '1', StatPointsEveryNLevels: '1',
+        XPBase: '1000', XPLevelFactor: '0.75', XPLevelPower: '2.0',
+        MaxLevel: '100'
+    };
+
+    const patch = {};
+    Object.entries(defaults).forEach(([k, v]) => {
+        patch['GamePlay.Progression.' + k] = v;
+    });
+
+    try {
+        const res = await fetch('/admin/api/v1/config', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(patch)
+        });
+        const json = await res.json();
+        closeRestoreModal();
+        if (json.success) {
+            applyValues(defaults);
+            serverValues = Object.assign({}, defaults);
+            schedulePreview();
+            showStatus('All progression settings restored to defaults.', 'success');
+        } else {
+            showStatus('Restore failed: ' + (json.error || 'unknown error'), 'error');
+        }
+    } catch(e) {
+        closeRestoreModal();
+        showStatus('Restore failed: ' + e, 'error');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+// ─── save config ─────────────────────────────────────────────────────────────
+async function saveConfig() {
+    const btn = document.getElementById('save-btn');
+    btn.disabled = true;
+    const patch = {};
+    const ids = [
+        'BaseModFactor','BaseModExponent',
+        'NaturalGainsModFactor','NaturalGainsExponent',
+        'StatCapThreshold','StatCapAnchor','StatCapExponent','StatCapScale','StatCapExemptBonus',
+        'HPBase','HPPerLevel','HPPerVitality',
+        'ManaBase','ManaPerLevel','ManaPerMysticism',
+        'TrainingPointsPerLevel','TrainingPointsEveryNLevels',
+        'StatPointsPerLevel','StatPointsEveryNLevels',
+        'XPBase','XPLevelFactor','XPLevelPower','MaxLevel'
+    ];
+    ids.forEach(k => {
+        const el = document.getElementById(k);
+        if (!el) return;
+        patch['GamePlay.Progression.' + k] = el.type === 'checkbox' ? (el.checked ? 'true' : 'false') : el.value;
+    });
+    try {
+        const res = await fetch('/admin/api/v1/config', {
+            method: 'PATCH',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(patch)
+        });
+        const json = await res.json();
+        if (json.success) {
+            showStatus('Saved successfully.', 'success');
+            serverValues = {};
+            ids.forEach(k => {
+                const el = document.getElementById(k);
+                if (el) serverValues[k] = el.value;
+            });        } else {
+            showStatus('Save failed: ' + (json.error || 'unknown error'), 'error');
+        }
+    } catch(e) {
+        showStatus('Save failed: ' + e, 'error');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+// ─── chart registry: stores last-drawn data per canvas id ───────────────────
+const chartRegistry = {};
+
+// ─── chart rendering ──────────────────────────────────────────────────────────
+const COLORS = {
+    base15: '#e05c5c',
+    base10: '#4a9eff',
+    base5:  '#6ecb6e',
+    hp:     '#e05c5c',
+    mana:   '#4a9eff',
+    xpDelta:'#f0a840',
+    xpTotal:'#a06ee0',
+    grid:   '#e0e0e0',
+    axis:   '#888',
+    text:   '#555'
+};
+
+function drawLineChart(canvasId, datasets, labels) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const dpr = window.devicePixelRatio || 1;
+    const parent = canvas.parentElement;
+    const W = Math.max(parent ? parent.clientWidth - 32 : 600, 100);
+    const H = 200;
+    canvas.width  = Math.floor(W * dpr);
+    canvas.height = Math.floor(H * dpr);
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const pad = { top: 12, right: 16, bottom: 36, left: 56 };
+    const cw = W - pad.left - pad.right;
+    const ch = H - pad.top - pad.bottom;
+    const n = labels.length;
+
+    let yMin = Infinity, yMax = -Infinity;
+    datasets.forEach(ds => ds.data.forEach(v => {
+        if (v < yMin) yMin = v;
+        if (v > yMax) yMax = v;
+    }));
+    if (yMin === yMax) { yMin = 0; yMax = yMax || 1; }
+    if (yMin > 0) yMin = 0;
+
+    function xPos(i) { return pad.left + (i / (n - 1)) * cw; }
+    function yPos(v) { return pad.top + ch - ((v - yMin) / (yMax - yMin)) * ch; }
+
+    // Store in registry for hover lookups.
+    chartRegistry[canvasId] = { datasets, labels, pad, W, H, cw, ch, n, yMin, yMax, xPos, yPos };
+
+    renderChartContent(ctx, { datasets, labels, pad, W, H, cw, ch, n, yMin, yMax, xPos, yPos });
+
+    // Wire mouse events once.
+    if (!canvas._hoverBound) {
+        canvas._hoverBound = true;
+        canvas.addEventListener('mousemove', e => onChartMouseMove(canvasId, e));
+        canvas.addEventListener('mouseleave', () => onChartMouseLeave(canvasId));
+    }
+}
+
+function renderChartContent(ctx, reg, crosshairIdx) {
+    const { datasets, labels, pad, W, H, cw, ch, n, yMin, yMax, xPos, yPos } = reg;
+    ctx.clearRect(0, 0, W, H);
+
+    // Gridlines + Y axis labels.
+    ctx.strokeStyle = COLORS.grid;
+    ctx.lineWidth = 0.5;
+    ctx.fillStyle = COLORS.text;
+    ctx.font = '10px system-ui, sans-serif';
+    ctx.textAlign = 'right';
+    const yTicks = 5;
+    for (let t = 0; t <= yTicks; t++) {
+        const v = yMin + (yMax - yMin) * (t / yTicks);
+        const y = yPos(v);
+        ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + cw, y); ctx.stroke();
+        ctx.fillText(formatNum(v), pad.left - 4, y + 3.5);
+    }
+
+    // X axis labels.
+    ctx.textAlign = 'center';
+    const xStep = Math.max(1, Math.floor(n / 10));
+    for (let i = 0; i < n; i += xStep) {
+        ctx.fillText(labels[i], xPos(i), H - pad.bottom + 14);
+    }
+
+    // Axis lines.
+    ctx.strokeStyle = COLORS.axis;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(pad.left, pad.top);
+    ctx.lineTo(pad.left, pad.top + ch);
+    ctx.lineTo(pad.left + cw, pad.top + ch);
+    ctx.stroke();
+
+    // Series lines.
+    datasets.forEach(ds => {
+        ctx.strokeStyle = ds.color;
+        ctx.lineWidth = ds.dashed ? 1.5 : 2;
+        ctx.lineJoin = 'round';
+        ctx.setLineDash(ds.dashed ? [4, 3] : []);
+        ctx.beginPath();
+        ds.data.forEach((v, i) => {
+            const x = xPos(i), y = yPos(v);
+            i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+    });
+    ctx.setLineDash([]);
+
+    // Crosshair overlay.
+    if (crosshairIdx !== undefined && crosshairIdx >= 0 && crosshairIdx < n) {
+        const cx = xPos(crosshairIdx);
+
+        // Vertical rule.
+        ctx.strokeStyle = 'rgba(100,120,160,0.35)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(cx, pad.top);
+        ctx.lineTo(cx, pad.top + ch);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Dots on each solid series at the crosshair position.
+        datasets.forEach(ds => {
+            if (ds.dashed) return;
+            const v = ds.data[crosshairIdx];
+            if (v === undefined) return;
+            const cy = yPos(v);
+            ctx.beginPath();
+            ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+            ctx.fillStyle = ds.color;
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+        });
+    }
+}
+
+function onChartMouseMove(canvasId, e) {
+    const reg = chartRegistry[canvasId];
+    if (!reg) return;
+    const canvas = document.getElementById(canvasId);
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+
+    // Find the nearest data index.
+    const { pad, cw, n, labels, datasets, xPos, yPos } = reg;
+    const relX = mouseX - pad.left;
+    let idx = Math.round(relX / cw * (n - 1));
+    idx = Math.max(0, Math.min(n - 1, idx));
+
+    // Redraw with crosshair.
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    renderChartContent(ctx, reg, idx);
+
+    // Build tooltip.
+    const tt = document.getElementById('chart-tooltip');
+    let html = '<div class="tt-level">Level ' + labels[idx] + '</div>';
+    datasets.forEach(ds => {
+        if (ds.label === undefined) return;
+        const v = ds.data[idx];
+        if (v === undefined) return;
+        const cls = ds.dashed ? ' tt-dashed' : '';
+        html += '<div class="tt-row' + cls + '">';
+        html += '<span class="tt-swatch" style="background:' + ds.color + '; color:' + ds.color + '"></span>';
+        html += '<span>' + ds.label + ': <strong>' + formatNum(v) + '</strong></span>';
+        html += '</div>';
+    });
+    tt.innerHTML = html;
+    tt.style.display = 'block';
+
+    // Position tooltip near cursor, keeping it on screen.
+    const ttW = 180, ttH = 20 + datasets.filter(d => d.label).length * 22;
+    let tx = e.clientX + 14;
+    let ty = e.clientY - 10;
+    if (tx + ttW > window.innerWidth - 8) tx = e.clientX - ttW - 14;
+    if (ty + ttH > window.innerHeight - 8) ty = window.innerHeight - ttH - 8;
+    tt.style.left = tx + 'px';
+    tt.style.top  = ty + 'px';
+}
+
+function onChartMouseLeave(canvasId) {
+    const reg = chartRegistry[canvasId];
+    if (!reg) return;
+    const canvas = document.getElementById(canvasId);
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    renderChartContent(ctx, reg);
+    document.getElementById('chart-tooltip').style.display = 'none';
+}
+
+function formatNum(v) {
+    if (Math.abs(v) >= 1000000) return (v/1000000).toFixed(1) + 'M';
+    if (Math.abs(v) >= 1000)    return (v/1000).toFixed(1) + 'K';
+    return Math.round(v).toString();
+}
+
+// ─── preview API call ─────────────────────────────────────────────────────────
+async function loadPreview() {
+    const params = getParams();
+    try {
+        const res = await fetch('/admin/api/v1/progression/preview?' + params.toString());
+        const json = await res.json();
+        if (!json.success) return;
+        const d = json.data;
+        const labels = d.levels.map(String);
+
+        drawLineChart('chart-stats', [
+            { data: d.stat_gains.base15,     color: COLORS.base15, label: 'Base 15 (raw)'  },
+            { data: d.stat_gains.base10,     color: COLORS.base10, label: 'Base 10 (raw)'  },
+            { data: d.stat_gains.base5,      color: COLORS.base5,  label: 'Base 5 (raw)'   },
+            { data: d.stat_gains_adj.base15, color: COLORS.base15, label: 'Base 15 (adj)', dashed: true },
+            { data: d.stat_gains_adj.base10, color: COLORS.base10, label: 'Base 10 (adj)', dashed: true },
+            { data: d.stat_gains_adj.base5,  color: COLORS.base5,  label: 'Base 5 (adj)',  dashed: true },
+        ], labels);
+
+        drawLineChart('chart-hpmana', [
+            { data: d.hp,   color: COLORS.hp,      label: 'HP'   },
+            { data: d.mana, color: COLORS.mana,    label: 'Mana' }
+        ], labels);
+
+        drawLineChart('chart-xp-delta', [
+            { data: d.xp_per_level, color: COLORS.xpDelta, label: 'XP needed' }
+        ], labels);
+
+        drawLineChart('chart-xp-total', [
+            { data: d.xp_cumulative, color: COLORS.xpTotal, label: 'Total XP' }
+        ], labels);
+
+    } catch(e) {
+        // Silently ignore preview errors to not spam the status bar while dragging.
+    }
+}
+
+// ─── resize observer: redraw charts when panel width changes ─────────────────
+let resizeTimer = null;
+const ro = new ResizeObserver(() => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(loadPreview, 100);
+});
+document.querySelectorAll('.chart-body').forEach(el => ro.observe(el));
+
+// ─── init ─────────────────────────────────────────────────────────────────────
+document.getElementById('restore-modal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeRestoreModal();
+});
+loadServerConfig();
+</script>
+
+{{template "footer" .}}

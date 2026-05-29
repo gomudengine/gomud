@@ -14,6 +14,7 @@ func registerAdminRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /admin/https/", doBasicAuth(RunWithMUDLocked(httpsIndex)))
 	mux.HandleFunc("GET /admin/config", doBasicAuth(RunWithMUDLocked(adminConfig)))
 	mux.HandleFunc("GET /admin/config-api", doBasicAuth(RunWithMUDLocked(adminConfigAPI)))
+	mux.HandleFunc("GET /admin/progression", doBasicAuth(RunWithMUDLocked(adminProgression)))
 	mux.HandleFunc("GET /admin/items", doBasicAuth(RunWithMUDLocked(adminItems)))
 	mux.HandleFunc("GET /admin/items-rank-weapons", doBasicAuth(RunWithMUDLocked(adminItemsRankWeapons)))
 	mux.HandleFunc("GET /admin/items-rank-armor", doBasicAuth(RunWithMUDLocked(adminItemsRankArmor)))

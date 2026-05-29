@@ -48,6 +48,13 @@ func buildAdminNav() []WebNavItem {
 						{Label: "API Docs", Target: "/admin/races-api"},
 					},
 				},
+				{
+					Name:   "Progression",
+					Target: "/admin/progression",
+					SubItems: []WebNavSub{
+						{Label: "View / Edit", Target: "/admin/progression"},
+					},
+				},
 			},
 		},
 

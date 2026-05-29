@@ -11,6 +11,8 @@ type GamePlay struct {
 	Death GameplayDeath `yaml:"Death"`
 	// Party settings
 	Party GameplayParty `yaml:"Party"`
+	// Progression settings
+	Progression ProgressionConfig `yaml:"Progression"`
 
 	LivesStart     ConfigInt `yaml:"LivesStart"`     // Starting permadeath lives
 	LivesMax       ConfigInt `yaml:"LivesMax"`       // Maximum permadeath lives
@@ -176,6 +178,8 @@ func (g *GamePlay) Validate() {
 	}
 
 	g.Combat.validate()
+
+	g.Progression.Validate()
 
 }
 

@@ -1330,8 +1330,13 @@ func (c *Character) XPTL(lvl int) int {
 	if lvl < 1 {
 		lvl = 1
 	}
-	fLvl := float64(lvl)
-	return int(float32(1000+(fLvl*(fLvl*.75)*1000)) * c.TNLScale)
+	cfg := configs.GetProgressionConfig()
+	base := float64(cfg.XPBase)
+	xp := (base + math.Pow(float64(lvl), float64(cfg.XPLevelPower))*float64(cfg.XPLevelFactor)*base) * float64(c.TNLScale)
+	if xp > math.MaxInt64 {
+		return math.MaxInt64
+	}
+	return int(xp)
 }
 
 // Returns the actual xp in regards to the current level/next level
@@ -1359,8 +1364,14 @@ func (c *Character) LevelUp() (bool, stats.Statistics) {
 	var statsBefore stats.Statistics = c.Stats
 
 	c.Level++
-	c.TrainingPoints++
-	c.StatPoints++
+
+	cfgProg := configs.GetProgressionConfig()
+	if int(cfgProg.TrainingPointsEveryNLevels) <= 1 || c.Level%int(cfgProg.TrainingPointsEveryNLevels) == 0 {
+		c.TrainingPoints += int(cfgProg.TrainingPointsPerLevel)
+	}
+	if int(cfgProg.StatPointsEveryNLevels) <= 1 || c.Level%int(cfgProg.StatPointsEveryNLevels) == 0 {
+		c.StatPoints += int(cfgProg.StatPointsPerLevel)
+	}
 
 	c.Validate()
 
@@ -1476,15 +1487,18 @@ func (c *Character) RecalculateStats() {
 
 	// Set HP/MP maxes
 	// This relies on the above stats so has to be calculated afterwards
-	c.HealthMax.Mods = 5 +
-		c.StatMod(string(statmods.HealthMax)) + // Any sort of spell buffs etc. are just direct modifiers
-		c.Level + // For every level you get 1 hp
-		c.Stats.Vitality.ValueAdj*4 // for every vitality you get 3hp
+	cfgProg := configs.GetProgressionConfig()
+	c.HealthMax.NoCap = true
+	c.HealthMax.Mods = int(cfgProg.HPBase) +
+		c.StatMod(string(statmods.HealthMax)) +
+		int(float64(c.Level)*float64(cfgProg.HPPerLevel)) +
+		int(float64(c.Stats.Vitality.ValueAdj)*float64(cfgProg.HPPerVitality))
 
-	c.ManaMax.Mods = 4 +
-		c.StatMod(string(statmods.ManaMax)) + // Any sort of spell buffs etc. are just direct modifiers
-		c.Level + // For every level you get 1 mp
-		c.Stats.Mysticism.ValueAdj*3 // for every Mysticism you get 2mp
+	c.ManaMax.NoCap = true
+	c.ManaMax.Mods = int(cfgProg.ManaBase) +
+		c.StatMod(string(statmods.ManaMax)) +
+		int(float64(c.Level)*float64(cfgProg.ManaPerLevel)) +
+		int(float64(c.Stats.Mysticism.ValueAdj)*float64(cfgProg.ManaPerMysticism))
 
 	// Set max action points
 	c.ActionPointsMax.Mods = 200 // hard coded for now

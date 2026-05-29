@@ -29,6 +29,9 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /admin/api/v1/config", doBasicAuth(RunWithMUDLocked(apiV1GetConfig)))
 	mux.HandleFunc("PATCH /admin/api/v1/config", doBasicAuth(RequirePermission("config.write", RunWithMUDLocked(RunInTestMode(apiV1PatchConfig)))))
 
+	// Progression preview
+	mux.HandleFunc("GET /admin/api/v1/progression/preview", doBasicAuth(RunWithMUDLocked(apiV1GetProgressionPreview)))
+
 	// StatMods
 	mux.HandleFunc("GET /admin/api/v1/statmods", doBasicAuth(RunWithMUDLocked(apiV1GetStatMods)))
 
