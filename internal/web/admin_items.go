@@ -20,6 +20,7 @@ var pageWritePermissions = map[string]string{
 	"/admin/color-aliases":         "color-aliases.write",
 	"/admin/colorpatterns":         "colorpatterns.write",
 	"/admin/config":                "config.write",
+	"/admin/progression":           "config.write",
 	"/admin/conversations":         "conversations.write",
 	"/admin/gametime":              "gametime.write",
 	"/admin/items":                 "items.write",

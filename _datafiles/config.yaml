@@ -359,6 +359,84 @@ GamePlay:
     #   If false, players can form and join parties from anywhere in the world.
     SameRoomOnly: false
 
+  # Progression settings
+  # Controls all character progression formulas: stat gains, HP/Mana, XP curve, and level-up rewards.
+  # Visit /admin/progression for a live visual editor with charts.
+  Progression:
+    # --- Stat gain formula ---
+    # racial_value(level) = floor(base * BaseModFactor * (level-1)^BaseModExponent)
+    #                     + floor(NaturalGainsModFactor * level^NaturalGainsExponent)
+    #
+    # - BaseModFactor -
+    #   Scales how much a racial base stat contributes to growth per level.
+    #   Higher values cause strong-base races to pull further ahead of weak-base races.
+    BaseModFactor: 0.3333333334
+    # - BaseModExponent -
+    #   Shape of the base-scaled component. 1.0 = linear. <1.0 = diminishing returns.
+    #   >1.0 = accelerating returns. Valid range: 0.1 to 5.0.
+    BaseModExponent: 1.0
+    # - NaturalGainsModFactor -
+    #   Flat gains every character receives per level regardless of race.
+    #   Higher values raise the floor for weak-base races.
+    NaturalGainsModFactor: 0.5
+    # - NaturalGainsExponent -
+    #   Shape of the flat gains component. 1.0 = linear. <1.0 = diminishing returns.
+    #   >1.0 = accelerating. Valid range: 0.1 to 5.0.
+    NaturalGainsExponent: 1.0
+    # --- HP formula: HealthMax = HPBase + level*HPPerLevel + Vitality_adj*HPPerVitality + mods ---
+    HPBase: 5
+    HPPerLevel: 1.0
+    HPPerVitality: 4.0
+    # --- Mana formula: ManaMax = ManaBase + level*ManaPerLevel + Mysticism_adj*ManaPerMysticism + mods ---
+    ManaBase: 4
+    ManaPerLevel: 1.0
+    ManaPerMysticism: 3.0
+    # --- Level-up rewards ---
+    # Points awarded to the player on each qualifying level.
+    # EveryNLevels controls how often a qualifying level occurs:
+    #   1 = every level, 2 = every other level, 3 = every 3rd level, etc.
+    TrainingPointsPerLevel: 1
+    TrainingPointsEveryNLevels: 1
+    StatPointsPerLevel: 1
+    StatPointsEveryNLevels: 1
+    # --- XP curve ---
+    # XP_to_level(L) = (XPBase + L^XPLevelPower * XPLevelFactor * XPBase) * TNLScale
+    # - XPBase -
+    #   Flat XP cost component. Scales the entire curve up or down.
+    XPBase: 1000
+    # - XPLevelFactor -
+    #   Multiplier on the level-based component. Higher = more XP required per level.
+    XPLevelFactor: 0.75
+    # - XPLevelPower -
+    #   Exponent controlling curve steepness. 2.0 = quadratic. 1.5 = gentler. 3.0 = steeper.
+    #   Valid range: 0.1 to 5.0.
+    XPLevelPower: 2.0
+    # - MaxLevel -
+    #   Soft display cap for admin charts. Does not enforce a hard level cap.
+    MaxLevel: 100
+    # --- Stat value compression ---
+    # Once a stat's Value reaches StatCapThreshold, further gains are compressed:
+    #   ValueAdj = StatCapAnchor + round((Value - StatCapAnchor)^StatCapExponent * StatCapScale)
+    # - StatCapThreshold -
+    #   The Value at which compression begins. Default 105.
+    StatCapThreshold: 105
+    # - StatCapAnchor -
+    #   The value the compression is anchored to. Overage = Value - StatCapAnchor. Default 100.
+    StatCapAnchor: 100
+    # - StatCapExponent -
+    #   Curve shape above the cap. 0.5 = sqrt (strong compression, default).
+    #   1.0 = no compression (linear). Above 1.0 = reduced compression (1.5 = gentle, 2.0 = very gentle).
+    #   0.25 = very aggressive compression. Valid range: 0.01 to 4.0.
+    StatCapExponent: 0.5
+    # - StatCapScale -
+    #   Multiplier applied after the exponent. Default 2.0.
+    StatCapScale: 2.0
+    # - StatCapExemptBonus -
+    #   When true, only the racial portion of a stat is compressed. Training points and
+    #   equipment/buff mods are added on top of the compressed racial value at full value.
+    #   Default false (original behaviour: all sources compressed together).
+    StatCapExemptBonus: false
+
 ################################################################################
 #
 #   INTEGRATIONS

@@ -208,6 +208,9 @@ func (u *UserRecord) GrantXP(amt int, source string) {
 		Scale:      xpScale,
 	})
 
+	tpBefore := u.Character.TrainingPoints
+	spBefore := u.Character.StatPoints
+
 	if newLevel, statsDelta := u.Character.LevelUp(); newLevel {
 
 		c := configs.GetGamePlayConfig()
@@ -243,10 +246,14 @@ func (u *UserRecord) GrantXP(amt int, source string) {
 			levelUpEvent.StatsDelta.Mysticism.Value += statsDelta.Mysticism.Value
 			levelUpEvent.StatsDelta.Perception.Value += statsDelta.Perception.Value
 
-			levelUpEvent.TrainingPoints += 1
-			levelUpEvent.StatPoints += 1
+			// Snapshot before the next LevelUp call so we can measure what was actually granted.
+			tpBefore = u.Character.TrainingPoints
+			spBefore = u.Character.StatPoints
 
 			newLevel, statsDelta = u.Character.LevelUp()
+
+			levelUpEvent.TrainingPoints += u.Character.TrainingPoints - tpBefore
+			levelUpEvent.StatPoints += u.Character.StatPoints - spBefore
 		}
 
 		if u.Character.ExtraLives > int(c.LivesMax) {
