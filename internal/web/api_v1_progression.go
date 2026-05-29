@@ -12,8 +12,10 @@ type progressionPreviewData struct {
 	Levels       []int            `json:"levels"`
 	StatGains    map[string][]int `json:"stat_gains"`
 	StatGainsAdj map[string][]int `json:"stat_gains_adj"`
-	HP           []int            `json:"hp"`
-	Mana         []int            `json:"mana"`
+	HP           map[string][]int `json:"hp"`
+	HPRaw        map[string][]int `json:"hp_raw"`
+	Mana         map[string][]int `json:"mana"`
+	ManaRaw      map[string][]int `json:"mana_raw"`
 	XPPerLevel   []int            `json:"xp_per_level"`
 	XPCumulative []int            `json:"xp_cumulative"`
 }
@@ -147,8 +149,8 @@ func apiV1GetProgressionPreview(w http.ResponseWriter, r *http.Request) {
 	levels := chartLevels
 
 	// Stat gains: three representative racial base values plus their compressed (ValueAdj) counterparts.
-	// base5 = weak race, base10 = average, base15 = strong.
-	statBases := map[string]int{"base5": 5, "base10": 10, "base15": 15}
+	// base1 = weak race, base3 = average, base5 = strong.
+	statBases := map[string]int{"base1": 1, "base3": 3, "base5": 5}
 	statGains := make(map[string][]int, len(statBases))
 	statGainsAdj := make(map[string][]int, len(statBases))
 	for label, base := range statBases {
@@ -163,18 +165,38 @@ func apiV1GetProgressionPreview(w http.ResponseWriter, r *http.Request) {
 		statGainsAdj[label] = seriesAdj
 	}
 
-	// HP and Mana: representative character — Vitality=10, Mysticism=8, no training mods.
-	const exampleVitality = 10
-	const exampleMysticism = 8
-	hp := make([]int, n)
-	mana := make([]int, n)
-	for i, lvl := range levels {
-		hp[i] = int(cfg.HPBase) +
-			int(float64(lvl)*float64(cfg.HPPerLevel)) +
-			int(float64(exampleVitality)*float64(cfg.HPPerVitality))
-		mana[i] = int(cfg.ManaBase) +
-			int(float64(lvl)*float64(cfg.ManaPerLevel)) +
-			int(float64(exampleMysticism)*float64(cfg.ManaPerMysticism))
+	// HP and Mana: three representative racial base values for Vitality/Mysticism.
+	// Vitality and Mysticism use the same GainsForLevel formula as other stats.
+	vitatBases := map[string]int{"base1": 1, "base3": 3, "base5": 5}
+	hp := make(map[string][]int, len(vitatBases))
+	hpRaw := make(map[string][]int, len(vitatBases))
+	mana := make(map[string][]int, len(vitatBases))
+	manaRaw := make(map[string][]int, len(vitatBases))
+	for label, base := range vitatBases {
+		hpSeries := make([]int, n)
+		hpRawSeries := make([]int, n)
+		manaSeries := make([]int, n)
+		manaRawSeries := make([]int, n)
+		for i, lvl := range levels {
+			rawStat := gainsForLevelWithCfg(lvl, base, cfg)
+			adjStat := applyCapWithCfg(rawStat, cfg)
+			hpSeries[i] = int(cfg.HPBase) +
+				int(float64(lvl)*float64(cfg.HPPerLevel)) +
+				int(float64(adjStat)*float64(cfg.HPPerVitality))
+			hpRawSeries[i] = int(cfg.HPBase) +
+				int(float64(lvl)*float64(cfg.HPPerLevel)) +
+				int(float64(rawStat)*float64(cfg.HPPerVitality))
+			manaSeries[i] = int(cfg.ManaBase) +
+				int(float64(lvl)*float64(cfg.ManaPerLevel)) +
+				int(float64(adjStat)*float64(cfg.ManaPerMysticism))
+			manaRawSeries[i] = int(cfg.ManaBase) +
+				int(float64(lvl)*float64(cfg.ManaPerLevel)) +
+				int(float64(rawStat)*float64(cfg.ManaPerMysticism))
+		}
+		hp[label] = hpSeries
+		hpRaw[label] = hpRawSeries
+		mana[label] = manaSeries
+		manaRaw[label] = manaRawSeries
 	}
 
 	// XP curve (TNLScale = 1.0 for display purposes).
@@ -205,7 +227,9 @@ func apiV1GetProgressionPreview(w http.ResponseWriter, r *http.Request) {
 			StatGains:    statGains,
 			StatGainsAdj: statGainsAdj,
 			HP:           hp,
+			HPRaw:        hpRaw,
 			Mana:         mana,
+			ManaRaw:      manaRaw,
 			XPPerLevel:   xpPerLevel,
 			XPCumulative: xpCumulative,
 		},

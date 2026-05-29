@@ -361,7 +361,8 @@ GamePlay:
 
   # Progression settings
   # Controls all character progression formulas: stat gains, HP/Mana, XP curve, and level-up rewards.
-  # Visit /admin/progression for a live visual editor with charts.
+  # It is NOT recommended to attempt to adjust these values manually, since they have complex relationships
+  # Instead, visit /admin/progression for a live visual editor with charts.
   Progression:
     # --- Stat gain formula ---
     # racial_value(level) = floor(base * BaseModFactor * (level-1)^BaseModExponent)
