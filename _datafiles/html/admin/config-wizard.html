@@ -1464,6 +1464,61 @@ var FIELD_META = {
         implications: 'Multiple tutorial rooms allow for variety in the new player experience. Each room in this list should be a valid, accessible tutorial starting point.',
         inputType: 'tags',
     },
+
+    // --- Backup ---
+    'Backup.Schedule': {
+        label: 'Backup Schedule',
+        description: 'How often the server automatically creates a compressed backup of all world data. The server is briefly locked during backup creation.',
+        implications: 'Nightly backups provide the best safety net with minimal impact. Weekly or monthly reduces storage usage but risks more data loss. Leave empty to disable automatic backups entirely.',
+        inputType: 'enum',
+        options: [
+            { value: 'never', label: 'Never', desc: 'No automatic backups.' },
+            { value: 'nightly', label: 'Nightly', desc: 'Backup runs every night at 3:00 AM server time.' },
+            { value: 'weekly', label: 'Weekly', desc: 'Backup runs every Sunday at 3:00 AM server time.' },
+            { value: 'monthly', label: 'Monthly', desc: 'Backup runs on the first day of each month at 3:00 AM server time.' },
+        ],
+    },
+    'Backup.S3.Enabled': {
+        label: 'Enable S3 Upload',
+        description: 'When enabled, completed backups are automatically uploaded to the configured Amazon S3 bucket.',
+        implications: 'Requires valid S3 credentials, bucket name, and region to be configured. If disabled, scheduled backups still run but are only logged (useful for future local-backup support).',
+        inputType: 'bool',
+    },
+    'Backup.S3.Bucket': {
+        label: 'S3 Bucket Name',
+        description: 'The name of the Amazon S3 bucket where backup archives will be stored.',
+        implications: 'The bucket must already exist and the configured credentials must have PutObject permission on it. Bucket names are globally unique in AWS.',
+        inputType: 'text',
+        placeholder: 'my-mud-backups',
+    },
+    'Backup.S3.Region': {
+        label: 'S3 Region',
+        description: 'The AWS region where the S3 bucket is located (e.g. us-east-1, eu-west-1).',
+        implications: 'Must match the actual region of your bucket. Using the wrong region will cause upload failures.',
+        inputType: 'text',
+        placeholder: 'us-east-1',
+    },
+    'Backup.S3.Prefix': {
+        label: 'S3 Key Prefix',
+        description: 'An optional folder path within the S3 bucket. Backups are stored as prefix/filename.tar.gz.',
+        implications: 'Use a prefix to organize backups alongside other files in the same bucket. Leave empty to store backups at the bucket root.',
+        inputType: 'text',
+        placeholder: 'backups/myworld',
+    },
+    'Backup.S3.AccessKey': {
+        label: 'S3 Access Key',
+        description: 'AWS access key ID used to authenticate with S3. Can also be set via the BACKUP_S3_ACCESS_KEY environment variable.',
+        implications: 'Use an IAM user with minimal permissions (only s3:PutObject on the target bucket). Never use root account credentials. Environment variables are preferred for production.',
+        inputType: 'secret',
+        placeholder: 'AKIAIOSFODNN7EXAMPLE',
+    },
+    'Backup.S3.SecretKey': {
+        label: 'S3 Secret Key',
+        description: 'AWS secret access key used to authenticate with S3. Can also be set via the BACKUP_S3_SECRET_KEY environment variable.',
+        implications: 'This is a sensitive credential. Store it via environment variable in production rather than in the config file. Rotating keys periodically is recommended.',
+        inputType: 'secret',
+        placeholder: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+    },
 };
 
 // ============================================================
@@ -1622,6 +1677,15 @@ var SECTIONS = [
         iconBg: '#e3eef8',
         icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
         fields: ['SpecialRooms.StartRoom','SpecialRooms.DeathRecoveryRoom','SpecialRooms.TutorialRooms'],
+    },
+    {
+        key: 'Backup',
+        name: 'Backups',
+        desc: 'Automatic world data backups with optional Amazon S3 upload. Schedule nightly, weekly, or monthly.',
+        color: '#2d8659',
+        iconBg: '#e6f4ed',
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>',
+        fields: ['Backup.Schedule','Backup.S3.Enabled','Backup.S3.Bucket','Backup.S3.Region','Backup.S3.Prefix','Backup.S3.AccessKey','Backup.S3.SecretKey'],
     },
 ];
 
@@ -2046,6 +2110,13 @@ async function wizardAccept() {
     // Skip if secret field is empty (user didn't change it)
     if (meta.inputType === 'secret' && (!newVal || newVal.trim() === '')) {
         advance();
+        return;
+    }
+
+    // Reject the redacted placeholder
+    if (newVal === '*** REDACTED ***') {
+        showWizardStatus('error', 'Cannot save a redacted placeholder as a value. Enter the actual value or skip.');
+        flashCard('error');
         return;
     }
 

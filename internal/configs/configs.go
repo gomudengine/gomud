@@ -30,6 +30,9 @@ var (
 	configDataLock       sync.RWMutex
 	ErrInvalidConfigName = errors.New("invalid config name")
 	ErrLockedConfig      = errors.New("config name is locked")
+	ErrRedactedValue     = errors.New("cannot save a redacted placeholder as a config value")
+
+	onChangedCallbacks []func(key string)
 )
 
 type Config struct {
@@ -47,6 +50,7 @@ type Config struct {
 	Scripting    Scripting    `yaml:"Scripting"`
 	SpecialRooms SpecialRooms `yaml:"SpecialRooms"`
 	Validation   Validation   `yaml:"Validation"`
+	Backup       Backup       `yaml:"Backup"`
 	// Plugins is a special case
 	Modules Modules `yaml:"Modules"`
 
@@ -228,6 +232,7 @@ func (c *Config) Validate() {
 	c.Scripting.Validate()
 	c.SpecialRooms.Validate()
 	c.Validation.Validate()
+	c.Backup.Validate()
 	c.Modules.Validate()
 
 	// nothing to do with LootGoblinIncludeRecentRooms
@@ -317,7 +322,17 @@ func (c Config) AllConfigData(excludeStrings ...string) map[string]any {
 	return finalOutput
 }
 
+// OnChanged registers a callback that is invoked after SetVal successfully
+// applies a config change. The callback receives the full dot-path key.
+func OnChanged(fn func(key string)) {
+	onChangedCallbacks = append(onChangedCallbacks, fn)
+}
+
 func SetVal(propertyPath string, newVal string) error {
+
+	if newVal == RedactedValue {
+		return ErrRedactedValue
+	}
 
 	configDataLock.Lock()
 	defer configDataLock.Unlock()
@@ -354,6 +369,11 @@ func SetVal(propertyPath string, newVal string) error {
 	}
 
 	configData.Validate()
+
+	for _, fn := range onChangedCallbacks {
+		fn(propertyPath)
+	}
+
 	return nil
 }
 

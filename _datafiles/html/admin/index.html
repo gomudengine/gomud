@@ -72,6 +72,20 @@
 
 <div id="runtime-grid" class="runtime-grid"></div>
 
+{{if eq .AUTHED_USER.Role "admin"}}
+<div id="backup-section" style="margin-bottom: 1.5rem;">
+    <div class="card" style="width: 100%;">
+        <h2>World Backup</h2>
+        <p style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 0.75rem;">
+            Download a compressed archive of all world data. The server will be
+            temporarily unresponsive while the backup is prepared.
+        </p>
+        <button class="btn btn-primary" id="backup-btn" onclick="downloadBackup()">Download World Backup</button>
+        <span id="backup-status" style="font-size: 0.82rem; color: var(--color-text-muted); margin-left: 0.5rem;"></span>
+    </div>
+</div>
+{{end}}
+
 <style>
     .nav-tree-heading { font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem; color: var(--color-text); }
     .nav-tree { display: flex; flex-direction: column; gap: 0; }
@@ -385,6 +399,50 @@
     loadDashboard();
     startTicker();
 })();
+
+function downloadBackup() {
+    var btn = document.getElementById('backup-btn');
+    var status = document.getElementById('backup-status');
+    if (!btn) return;
+
+    if (!confirm('The server will be temporarily unresponsive while the backup is prepared. Continue?')) {
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Preparing...';
+    status.textContent = '';
+
+    fetch('/admin/api/v1/backup/download', { method: 'POST' })
+        .then(function (res) {
+            if (!res.ok) {
+                return res.json().then(function (j) { throw new Error(j.error || 'backup failed'); });
+            }
+            var disposition = res.headers.get('Content-Disposition') || '';
+            var match = disposition.match(/filename="?([^"]+)"?/);
+            var filename = match ? match[1] : 'world-backup.tar.gz';
+            return res.blob().then(function (blob) { return { blob: blob, filename: filename }; });
+        })
+        .then(function (result) {
+            var url = URL.createObjectURL(result.blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = result.filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            status.textContent = 'Download started.';
+        })
+        .catch(function (err) {
+            status.textContent = 'Error: ' + err.message;
+            status.style.color = 'var(--color-error-text)';
+        })
+        .finally(function () {
+            btn.disabled = false;
+            btn.textContent = 'Download World Backup';
+        });
+}
 </script>
 
 {{template "footer" .}}

@@ -63,6 +63,7 @@
     .value-display:hover { text-decoration: underline dotted var(--color-text-faint); }
     .value-redacted { color: var(--color-text-faint); font-style: italic; cursor: default; }
     .value-redacted:hover { text-decoration: none; }
+    .value-empty { color: var(--color-text-placeholder); font-style: italic; }
     .edit-form { display: none; align-items: center; gap: 0.4rem; width: 100%; }
     .edit-form.active { display: flex; }
     .edit-form input[type="text"] {
@@ -328,6 +329,13 @@
         'Validation.NameRejectReason': 'Message shown when a username is rejected by NameRejectRegex.',
         'Validation.BannedNames': 'Names that cannot be used by players. Supports * wildcards.',
         'Roles': 'Custom role definitions mapping role names to permitted admin command prefixes.',
+        'Backup.Schedule': 'Automatic backup frequency. Options: nightly, weekly, monthly, never, or empty to disable.',
+        'Backup.S3.Enabled': 'If true, backups are uploaded to the configured Amazon S3 bucket after creation.',
+        'Backup.S3.Bucket': 'Amazon S3 bucket name for storing backups.',
+        'Backup.S3.Region': 'AWS region of the S3 bucket (e.g. us-east-1).',
+        'Backup.S3.Prefix': 'Key prefix (folder) within the S3 bucket. Backups are stored as prefix/filename.',
+        'Backup.S3.AccessKey': 'AWS access key ID for S3 authentication. Can also be set via BACKUP_S3_ACCESS_KEY environment variable.',
+        'Backup.S3.SecretKey': 'AWS secret access key for S3 authentication. Can also be set via BACKUP_S3_SECRET_KEY environment variable.',
     };
 
     async function init() {
@@ -399,6 +407,8 @@
 
             const value = String(data[key]);
             const isRedacted = value === REDACTED;
+            const isEmpty = value === '';
+            const displayValue = isEmpty ? '(empty)' : value;
             const desc = DESCRIPTIONS[key] || '';
             const tr = document.createElement('tr');
             tr.dataset.key = key;
@@ -409,10 +419,10 @@
             tr.innerHTML = `
                 <td class="key-cell" title="${escAttr(key)}">${escHtml(key)}</td>
                 <td class="value-cell">
-                    <span class="value-display${isRedacted ? ' value-redacted' : ''}"
+                    <span class="value-display${isRedacted ? ' value-redacted' : ''}${isEmpty ? ' value-empty' : ''}"
                           title="${escAttr(value)}"
                           ${isRedacted ? '' : `onclick="startEdit('${escAttr(key)}')" `}>
-                        ${escHtml(value)}
+                        ${escHtml(displayValue)}
                     </span>
                     <span class="edit-form" id="edit-${cssId(key)}">
                         <input type="text" id="input-${cssId(key)}" value="${escAttr(value)}"
@@ -523,6 +533,11 @@
         const input = document.getElementById('input-' + cssId(key));
         const newVal = input.value;
         const currentVal = String(configData[key]);
+
+        if (newVal === REDACTED) {
+            showStatus('Cannot save a redacted placeholder as a value. Enter the actual value or cancel.', false);
+            return;
+        }
 
         cancelEdit(key);
 

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/audio"
+	"github.com/GoMudEngine/GoMud/internal/backup"
 	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/colorpatterns"
@@ -294,6 +295,8 @@ func main() {
 
 	web.SetWebPlugin(plugins.GetPluginRegistry())
 
+	backup.StartScheduler()
+
 	//
 	// Capture OS signals to gracefully shutdown the server
 	registerShutdownSignals(sigChan)
@@ -407,6 +410,8 @@ func main() {
 	}
 
 	web.Shutdown()
+
+	backup.StopScheduler()
 
 	// Final plugin save before shutting down
 	plugins.Save()

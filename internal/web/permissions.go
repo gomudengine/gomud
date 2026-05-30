@@ -69,6 +69,26 @@ func writeForbidden(w http.ResponseWriter, r *http.Request, requiredPerm string)
 	})
 }
 
+// RequireAdmin wraps a handler so that only users with the admin role may
+// proceed. Unlike RequirePermission, mods are never granted access regardless
+// of their permission set.
+func RequireAdmin(next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if IsInternalRequest(r) {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		u := GetAuthedUser(r)
+		if u == nil || u.Role != users.RoleAdmin {
+			writeForbidden(w, r, "admin role required")
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 // authedUserIsAdmin returns true when the request carries an admin-role user.
 // Used by page handlers to decide whether to show admin-only UI elements.
 func authedUserIsAdmin(r *http.Request) bool {
