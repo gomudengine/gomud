@@ -186,7 +186,7 @@ validate: fmtcheck vet
 
 .PHONY: test
 test: generate js-lint ### Run code generation, lint, and Go tests.
-		@go test -race ./...
+	@go test -race ./...
 
 .PHONY: coverage
 coverage: 

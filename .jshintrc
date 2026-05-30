@@ -10,7 +10,10 @@
     "WinBox": false,
     "VWin": false
   },
+  "-W004": true,
+  "-W008": true,
   "-W014": true,
+  "-W030": true,
   "-W083": true,
   "-W097": true
 }
