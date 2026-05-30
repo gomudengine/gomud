@@ -5,6 +5,10 @@ import (
 	"strings"
 )
 
+func (c ConfigSecret) MarshalJSON() ([]byte, error) {
+	return []byte(`"` + c.String() + `"`), nil
+}
+
 type ConfigInt int
 type ConfigUInt64 uint64
 type ConfigString string
