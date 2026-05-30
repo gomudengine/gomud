@@ -17,6 +17,7 @@ Playable online demo: **<http://www.gomud.net>**
   - [Overview](#overview)
   - [Features](#features)
     - [Screenshots](#screenshots)
+    - [Web Based Admin Tools](#web-based-admin-tools)
     - [ANSI Colors](#ansi-colors)
     - [Small Feature Demos](#small-feature-demos)
   - [Setup](#setup)
@@ -45,6 +46,12 @@ Playable online demo: **<http://www.gomud.net>**
 Click below to see in-game screenshots of just a handful of features:
 
 [![Feature Screenshots](feature-screenshots/screenshots-thumb.png "Feature Screenshots")](feature-screenshots/README.md)
+
+### Web Based Admin Tools
+
+There are comprehensive web based admin tools to help build your MUD in addition to the in-game commands. You can browse the admin in read-only mode here:
+
+[https://gomud.net/admin/](https://test:test@gomud.net/admin/?login=1)
 
 ### ANSI Colors
 

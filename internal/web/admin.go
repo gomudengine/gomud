@@ -41,6 +41,7 @@ func adminIndex(w http.ResponseWriter, r *http.Request) {
 			scheme = "https"
 		}
 		http.Redirect(w, r, scheme+"://"+r.Host+"/admin/", http.StatusTemporaryRedirect)
+		return
 	}
 
 	w.Header().Set("Cache-Control", "no-store")
