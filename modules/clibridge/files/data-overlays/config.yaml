@@ -3,6 +3,8 @@ AllowedTools:
   - nano
   - vim
   - less
+  - cat
+  - grep
   - htop
   - top
   - ls

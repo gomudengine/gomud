@@ -3,6 +3,7 @@ package telemetry
 import (
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -405,4 +406,38 @@ func TestTrackFull_HelpTopic_FilterByTopic(t *testing.T) {
 
 	total := Query().Category(CatHelpTopic).Topic("attack").Total()
 	assert.Equal(t, 1, total)
+}
+
+func TestConcurrentTrackAndQuery(t *testing.T) {
+	resetState()
+
+	const goroutines = 10
+	const iterations = 100
+
+	var wg sync.WaitGroup
+
+	for i := 0; i < goroutines; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := 0; j < iterations; j++ {
+				Track(CatMobKill, "zone1", 0, 1, 10)
+			}
+		}()
+	}
+
+	for i := 0; i < goroutines; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := 0; j < iterations; j++ {
+				_ = Query().Category(CatMobKill).Results()
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	total := Query().Category(CatMobKill).Total()
+	assert.Equal(t, goroutines*iterations, total)
 }

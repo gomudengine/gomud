@@ -765,6 +765,14 @@ func RunWithMUDLocked(next http.HandlerFunc) http.HandlerFunc {
 	})
 }
 
+// RunWithoutMUDLock wraps a handler that manages its own synchronization
+// and does not require the global MUD lock.
+func RunWithoutMUDLock(next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(w, r)
+	})
+}
+
 func Shutdown() {
 	httpsRedirectReady.Store(false)
 

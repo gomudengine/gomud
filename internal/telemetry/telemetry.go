@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
@@ -39,6 +40,7 @@ type Record struct {
 }
 
 var (
+	mu      sync.RWMutex
 	records []Record
 	index   = map[string]int{}  // recordKey -> slice index
 	dirty   = map[string]bool{} // date -> needs save
@@ -50,6 +52,9 @@ var (
 // migrated to JSON and then deleted. Safe to call when the directory does
 // not exist yet.
 func Load(dataFilesPath string) {
+	mu.Lock()
+	defer mu.Unlock()
+
 	dataDir = util.FilePath(dataFilesPath, `/`, `telemetry`)
 
 	mudlog.Info("telemetry.Load", "dir", dataDir)
@@ -130,6 +135,9 @@ func Load(dataFilesPath string) {
 // Dates whose records were all cleared have their file deleted.
 // Clean dates are not touched.
 func Save() error {
+	mu.Lock()
+	defer mu.Unlock()
+
 	if dataDir == "" {
 		mudlog.Warn("telemetry.Save", "status", "skipped - dataDir not set (Load was never called)")
 		return nil
@@ -182,12 +190,21 @@ func Save() error {
 // Track increments the counter for the given combination. Zero values for
 // numeric fields and empty strings mean "not applicable" for that field.
 func Track(category, zone string, itemId, mobId, roomId int) {
-	TrackFull(category, zone, itemId, mobId, roomId, 0, "")
+	mu.Lock()
+	defer mu.Unlock()
+	trackFull(category, zone, itemId, mobId, roomId, 0, "")
 }
 
 // TrackFull is like Track but also accepts the optional raceId and topic
 // dimensions used by char_created and help_topic records.
 func TrackFull(category, zone string, itemId, mobId, roomId, raceId int, topic string) {
+	mu.Lock()
+	defer mu.Unlock()
+	trackFull(category, zone, itemId, mobId, roomId, raceId, topic)
+}
+
+// trackFull is the internal implementation. Callers must hold mu.Lock().
+func trackFull(category, zone string, itemId, mobId, roomId, raceId int, topic string) {
 	date := time.Now().Format("20060102")
 	key := recordKey(date, category, zone, itemId, mobId, roomId, raceId, topic)
 
@@ -216,6 +233,9 @@ func TrackFull(category, zone string, itemId, mobId, roomId, raceId int, topic s
 // the affected dates dirty so Save() will update or remove their files.
 // Pass empty/zero values to match any value for that field.
 func Clear(category, zone, date, dateTo string, itemId, mobId, roomId, raceId int, topic string) {
+	mu.Lock()
+	defer mu.Unlock()
+
 	kept := make([]Record, 0, len(records))
 	for _, r := range records {
 		if matchesFilter(r, category, zone, date, dateTo, itemId, mobId, roomId, raceId, topic) {
@@ -235,6 +255,8 @@ func Query() *QueryBuilder {
 
 // Len returns the total number of records currently in memory.
 func Len() int {
+	mu.RLock()
+	defer mu.RUnlock()
 	return len(records)
 }
 

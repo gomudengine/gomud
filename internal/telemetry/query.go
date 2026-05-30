@@ -73,6 +73,9 @@ func (q *QueryBuilder) GroupBy(field GroupByField) *QueryBuilder {
 // Results returns a copy of all records matching the configured filters.
 // If GroupBy was called, records are rolled up by that field before sorting.
 func (q *QueryBuilder) Results() []Record {
+	mu.RLock()
+	defer mu.RUnlock()
+
 	out := make([]Record, 0)
 	for _, r := range records {
 		if !matchesFilter(r, q.category, q.zone, q.dateFrom, q.dateTo, q.itemId, q.mobId, q.roomId, q.raceId, q.topic) {
@@ -99,6 +102,9 @@ func (q *QueryBuilder) Results() []Record {
 
 // Total returns the sum of Count across all matching records.
 func (q *QueryBuilder) Total() int {
+	mu.RLock()
+	defer mu.RUnlock()
+
 	total := 0
 	for _, r := range records {
 		if matchesFilter(r, q.category, q.zone, q.dateFrom, q.dateTo, q.itemId, q.mobId, q.roomId, q.raceId, q.topic) {
