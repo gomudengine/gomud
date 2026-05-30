@@ -35,6 +35,14 @@ func adminIndex(w http.ResponseWriter, r *http.Request) {
 		"READ_ONLY":        pageReadOnly(r),
 	}
 
+	if r.URL.Query().Get(`login`) != `` {
+		scheme := "http"
+		if r.TLS != nil {
+			scheme = "https"
+		}
+		http.Redirect(w, r, scheme+"://"+r.Host+"/admin/", http.StatusTemporaryRedirect)
+	}
+
 	w.Header().Set("Cache-Control", "no-store")
 	if err := tmpl.Execute(w, templateData); err != nil {
 		mudlog.Error("HTML ERROR", "action", "Execute", "error", err)
