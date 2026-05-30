@@ -59,7 +59,7 @@
             <div class="response-examples">
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
-                    <div class="resp-body"><div class="curl-block">{"success":true,"data":[{"MobId":1,"Zone":"Frostfang","Hostile":false,"HasScript":true,"Character":{"Name":"rat","Level":1,...}},...]}</div></div>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":[{"MobId":1,"Zone":"Frostfang","Hostile":false,"HasScript":true,"Character":{"Name":"rat","Level":1}},{"MobId":2,"Zone":"Frostfang","Hostile":true,"HasScript":false,"Character":{"Name":"goblin","Level":3}}]}</div></div>
                 </details>
             </div>
         </div>
@@ -82,7 +82,7 @@
             <div class="response-examples">
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-ok">201</span> <span class="resp-label">Created</span></summary>
-                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"MobId":42,"Zone":"Frostfang","Hostile":true,"Character":{"Name":"goblin",...}}}</div></div>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"MobId":42,"Zone":"Frostfang","Hostile":true,"ActivityLevel":20,"Character":{"Name":"goblin","Level":5,"RaceId":10}}}</div></div>
                 </details>
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request</span></summary>
@@ -108,7 +108,7 @@
             <div class="response-examples">
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
-                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"MobId":5,"Zone":"Frostfang","Character":{"Name":"armorer","Level":29,...}}}</div></div>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"MobId":5,"Zone":"Frostfang","Hostile":false,"Character":{"Name":"armorer","Level":29}}}</div></div>
                 </details>
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-err">404</span> <span class="resp-label">Not Found</span></summary>
@@ -135,7 +135,7 @@
             <div class="response-examples">
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
-                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"MobId":5,"Zone":"Frostfang","Hostile":false,"ActivityLevel":30,...}}</div></div>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"MobId":5,"Zone":"Frostfang","Hostile":false,"ActivityLevel":30}}</div></div>
                 </details>
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request</span></summary>
@@ -188,7 +188,7 @@
             <div class="response-examples">
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
-                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"script":"function onAsk(mob,room,eventDetails){...}"}}</div></div>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"script":"function onAsk(mob, room, eventDetails) {\n}\n"}}</div></div>
                 </details>
             </div>
         </div>

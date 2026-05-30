@@ -57,7 +57,7 @@
             <div class="response-examples">
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
-                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"flags":{"poison":"Marks the character as poisoned..."},"specs":{"1":{"BuffId":1,"Name":"Fast Healing",...}}}}</div></div>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"flags":{"poison":"Marks the character as poisoned, causing periodic damage.","hidden":"Hides the buff from the character's status display."},"specs":{"1":{"BuffId":1,"Name":"Fast Healing","TriggerRate":"1 round","TriggerCount":10,"Flags":["hidden"]}}}}</div></div>
                 </details>
             </div>
         </div>
@@ -104,7 +104,7 @@
             <div class="response-examples">
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
-                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"BuffId":1,"Name":"Fast Healing","TriggerCount":20,"Flags":["poison","hidden"],...}}</div></div>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"BuffId":1,"Name":"Fast Healing","TriggerRate":"1 round","TriggerCount":20,"Flags":["poison","hidden"]}}</div></div>
                 </details>
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request</span></summary>
@@ -157,7 +157,7 @@
             <div class="response-examples">
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
-                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"script":"function onStart(actor){...}"}}</div></div>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"script":"function onStart(actor) {\n}\n"}}</div></div>
                 </details>
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-err">404</span> <span class="resp-label">Not Found</span></summary>

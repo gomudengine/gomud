@@ -1,0 +1,314 @@
+{{template "header" .}}
+
+<style>
+/* ── shared doc layout ────────────────────────────────────────────── */
+.doc-layout { display: grid; grid-template-columns: 210px 1fr; gap: 2rem; align-items: start; }
+.doc-sidebar {
+    position: sticky; top: 1rem;
+    max-height: calc(100vh - 5rem); overflow-y: auto;
+    background: var(--color-surface-white); border: 1px solid var(--color-border);
+    border-radius: 8px; padding: 1rem 0;
+    scrollbar-width: thin;
+}
+.doc-sidebar h3 {
+    font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
+    color: var(--color-text-subtle); padding: 0 1rem 0.4rem; margin-bottom: 0.25rem;
+    border-bottom: 1px solid var(--color-border-light);
+}
+.doc-sidebar a {
+    display: block; padding: 0.3rem 1rem; font-size: 0.85rem;
+    color: var(--color-text-secondary); text-decoration: none; border-radius: 0;
+    transition: background 0.1s, color 0.1s;
+}
+.doc-sidebar a:hover { background: var(--color-surface-alt); color: var(--color-primary); }
+.doc-sidebar a.active { background: var(--color-surface-alt); color: var(--color-primary); font-weight: 600; border-left: 3px solid var(--color-primary); padding-left: calc(1rem - 3px); }
+.doc-sidebar .sidebar-group { margin-bottom: 0.5rem; }
+.doc-sidebar .sidebar-section-label {
+    font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--color-text-faint); padding: 0.5rem 1rem 0.15rem; display: block;
+}
+
+/* ── page header ──────────────────────────────────────────────────── */
+.page-header { margin-bottom: 2rem; }
+.page-header h1 { font-size: 1.6rem; margin-bottom: 0.3rem; display: flex; align-items: center; gap: 0.6rem; }
+.page-header .subtitle { color: var(--color-text-muted); font-size: 0.9rem; }
+.breadcrumb { font-size: 0.8rem; color: var(--color-text-faint); margin-bottom: 0.5rem; }
+.breadcrumb a { color: var(--color-text-muted); text-decoration: none; }
+.breadcrumb a:hover { color: var(--color-primary); }
+.breadcrumb span { margin: 0 0.3rem; }
+
+/* ── callout boxes ────────────────────────────────────────────────── */
+.callout {
+    display: flex; gap: 0.75rem; align-items: flex-start;
+    padding: 0.85rem 1rem; border-radius: 6px; margin-bottom: 1.5rem;
+    font-size: 0.875rem; line-height: 1.6;
+}
+.callout-info { background: var(--color-info-bg, #dbeafe); border: 1px solid var(--color-info-border, #93c5fd); color: var(--color-info-text, #1e40af); }
+.callout-icon { flex-shrink: 0; margin-top: 0.1rem; }
+.callout p { margin: 0; }
+.callout code { font-family: monospace; font-size: 0.85em; background: rgba(0,0,0,0.08); padding: 0.1em 0.3em; border-radius: 3px; }
+
+/* ── script type card grid ────────────────────────────────────────── */
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+.script-card {
+    background: var(--color-surface-white); border: 1px solid var(--color-border);
+    border-radius: 8px; padding: 1.25rem 1rem; text-decoration: none;
+    display: flex; flex-direction: column; gap: 0.4rem;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+}
+.script-card:hover { border-color: var(--color-primary); box-shadow: 0 2px 8px rgba(0,0,0,0.08); transform: translateY(-1px); }
+.script-card-icon { font-size: 1.6rem; line-height: 1; margin-bottom: 0.25rem; }
+.script-card-name { font-size: 0.95rem; font-weight: 700; color: var(--color-text); }
+.script-card-desc { font-size: 0.8rem; color: var(--color-text-muted); line-height: 1.4; }
+.script-card-tag { font-size: 0.72rem; font-family: monospace; color: var(--color-text-faint); margin-top: auto; padding-top: 0.5rem; }
+
+/* ── section headings ─────────────────────────────────────────────── */
+.doc-section { margin-bottom: 2.5rem; scroll-margin-top: 1rem; }
+.doc-section h2 {
+    font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem;
+    padding-bottom: 0.4rem; border-bottom: 2px solid var(--color-border-light);
+    color: var(--color-text);
+}
+
+/* ── reference tables ─────────────────────────────────────────────── */
+.ref-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; margin-bottom: 1rem; }
+.ref-table thead tr { border-bottom: 2px solid var(--color-border); }
+.ref-table th { text-align: left; padding: 0.4rem 0.75rem; color: var(--color-text-secondary); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.ref-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--color-border-faint); color: var(--color-text-tertiary); vertical-align: top; }
+.ref-table tr:last-child td { border-bottom: none; }
+.ref-table code { font-family: monospace; font-size: 0.85em; background: var(--color-surface-alt); padding: 0.1em 0.35em; border-radius: 3px; color: var(--color-primary); }
+.ref-table .sym { font-family: monospace; font-size: 1rem; font-weight: 700; color: var(--color-primary); }
+
+/* ── feature card row ─────────────────────────────────────────────── */
+.feature-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem; }
+.feature-card {
+    background: var(--color-surface-white); border: 1px solid var(--color-border);
+    border-radius: 8px; padding: 1.25rem 1.25rem; text-decoration: none;
+    display: flex; align-items: center; gap: 1rem;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.feature-card:hover { border-color: var(--color-primary); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.feature-card-icon { font-size: 2rem; flex-shrink: 0; }
+.feature-card-body {}
+.feature-card-title { font-size: 0.95rem; font-weight: 700; color: var(--color-text); margin-bottom: 0.2rem; }
+.feature-card-desc { font-size: 0.82rem; color: var(--color-text-muted); }
+
+/* ── responsive ───────────────────────────────────────────────────── */
+@media (max-width: 860px) {
+    .doc-layout { grid-template-columns: 1fr; }
+    .doc-sidebar { position: static; max-height: none; }
+    .feature-row { grid-template-columns: 1fr; }
+}
+</style>
+
+<div class="doc-layout">
+
+    <!-- ── Sidebar ── -->
+    <aside class="doc-sidebar" id="doc-sidebar">
+        <h3>Scripting Docs</h3>
+        <div class="sidebar-group">
+            <a href="/admin/scripting" class="active">Overview</a>
+        </div>
+        <span class="sidebar-section-label">Script Types</span>
+        <div class="sidebar-group">
+            <a href="/admin/scripting-rooms">Room Scripts</a>
+            <a href="/admin/scripting-mobs">Mob Scripts</a>
+            <a href="/admin/scripting-items">Item Scripts</a>
+            <a href="/admin/scripting-buffs">Buff Scripts</a>
+            <a href="/admin/scripting-spells">Spell Scripts</a>
+            <a href="/admin/scripting-pets">Pet Scripts</a>
+        </div>
+        <span class="sidebar-section-label">Reference</span>
+        <div class="sidebar-group">
+            <a href="/admin/scripting-functions">Function Reference</a>
+            <a href="/admin/scripting-api">REST API</a>
+        </div>
+        <span class="sidebar-section-label">On This Page</span>
+        <div class="sidebar-group">
+            <a href="#script-types">Script Types</a>
+            <a href="#time-periods">Time Periods</a>
+            <a href="#targeting-symbols">Targeting Symbols</a>
+            <a href="#quick-links">Quick Links</a>
+        </div>
+    </aside>
+
+    <!-- ── Main Content ── -->
+    <main>
+        <div class="page-header">
+            <h1>
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                Scripting Overview
+            </h1>
+            <p class="subtitle">Server-side scripting reference for GoMud world builders.</p>
+        </div>
+
+        <div class="callout callout-info">
+            <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <p>All scripts run in <strong>ECMAScript 5.1</strong> (JavaScript) via the <strong>Goja</strong> engine. Modern JS syntax (arrow functions, <code>let</code>/<code>const</code>, template literals) is <em>not</em> available — use <code>var</code> and standard ES5 patterns.</p>
+        </div>
+
+        <!-- ── Script Types ── -->
+        <section class="doc-section" id="script-types">
+            <h2>Script Types</h2>
+            <div class="card-grid">
+                <a class="script-card" href="/admin/scripting-rooms">
+                    <div class="script-card-icon">🏛️</div>
+                    <div class="script-card-name">Room Scripts</div>
+                    <div class="script-card-desc">React to players entering, exiting, issuing commands, or idle rounds in a room.</div>
+                    <div class="script-card-tag">onEnter · onExit · onIdle · onCommand</div>
+                </a>
+                <a class="script-card" href="/admin/scripting-mobs">
+                    <div class="script-card-icon">👹</div>
+                    <div class="script-card-name">Mob Scripts</div>
+                    <div class="script-card-desc">Give NPCs intelligent behavior: react to being given items, asked questions, attacked, or killed.</div>
+                    <div class="script-card-tag">onIdle · onGive · onAsk · onDie · onHurt</div>
+                </a>
+                <a class="script-card" href="/admin/scripting-items">
+                    <div class="script-card-icon">⚔️</div>
+                    <div class="script-card-name">Item Scripts</div>
+                    <div class="script-card-desc">Respond when items are picked up, dropped, purchased, or targeted by commands.</div>
+                    <div class="script-card-tag">onFound · onLost · onPurchase · onCommand</div>
+                </a>
+                <a class="script-card" href="/admin/scripting-buffs">
+                    <div class="script-card-icon">✨</div>
+                    <div class="script-card-name">Buff Scripts</div>
+                    <div class="script-card-desc">Run custom logic when a status effect starts, triggers each round, or expires.</div>
+                    <div class="script-card-tag">onStart · onTrigger · onEnd</div>
+                </a>
+                <a class="script-card" href="/admin/scripting-spells">
+                    <div class="script-card-icon">🔮</div>
+                    <div class="script-card-name">Spell Scripts</div>
+                    <div class="script-card-desc">Control spell casting, waiting rounds, and the final magic resolution.</div>
+                    <div class="script-card-tag">onCast · onWait · onMagic</div>
+                </a>
+                <a class="script-card" href="/admin/scripting-pets">
+                    <div class="script-card-icon">🐾</div>
+                    <div class="script-card-name">Pet Scripts</div>
+                    <div class="script-card-desc">Animate companion pets with periodic actions, command interception, and departure/return events.</div>
+                    <div class="script-card-tag">PetAct · onCommand · PetLeave · PetReturn</div>
+                </a>
+            </div>
+        </section>
+
+        <!-- ── Time Periods ── -->
+        <section class="doc-section" id="time-periods">
+            <h2>Time Periods</h2>
+            <p style="font-size:0.875rem;color:var(--color-text-tertiary);margin-bottom:1rem;">Whenever a function accepts a time period string, use one of these formats:</p>
+            <table class="ref-table">
+                <thead>
+                    <tr><th>Format</th><th>Example</th><th>Notes</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>{num} {unit}</code></td>
+                        <td><code>"3 hours"</code></td>
+                        <td>In-game time. Default when no qualifier is given.</td>
+                    </tr>
+                    <tr>
+                        <td><code>{num} real {unit}</code></td>
+                        <td><code>"1 real day"</code></td>
+                        <td>Real-world time, not scaled to game speed.</td>
+                    </tr>
+                    <tr>
+                        <td colspan="3" style="padding-top:0.6rem;padding-bottom:0.2rem;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-faint);">Available units</td>
+                    </tr>
+                    <tr><td><code>rounds</code></td><td><code>"10 rounds"</code></td><td>Raw game rounds (fastest unit).</td></tr>
+                    <tr><td><code>minutes</code></td><td><code>"30 minutes"</code></td><td>In-game minutes.</td></tr>
+                    <tr><td><code>hours</code></td><td><code>"2 hours"</code></td><td>In-game hours.</td></tr>
+                    <tr><td><code>days</code></td><td><code>"1 day"</code></td><td>One full in-game day cycle.</td></tr>
+                    <tr><td><code>weeks</code></td><td><code>"1 week"</code></td><td>7 in-game days.</td></tr>
+                    <tr><td><code>months</code></td><td><code>"1 month"</code></td><td>~30 in-game days.</td></tr>
+                    <tr><td><code>years</code></td><td><code>"1 year"</code></td><td>365 in-game days.</td></tr>
+                    <tr>
+                        <td colspan="3" style="padding-top:0.6rem;padding-bottom:0.2rem;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-faint);">Anchor-relative units (snap to last occurrence)</td>
+                    </tr>
+                    <tr><td><code>noon</code></td><td><code>"1 noon"</code></td><td>Last in-game noon + N game days.</td></tr>
+                    <tr><td><code>midnight</code></td><td><code>"1 midnight"</code></td><td>Last in-game midnight + N game days.</td></tr>
+                    <tr><td><code>sunrise</code></td><td><code>"2 sunrises"</code></td><td>Last sunrise + N game days.</td></tr>
+                    <tr><td><code>sunset</code></td><td><code>"1 sunset"</code></td><td>Last sunset + N game days.</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- ── Targeting Symbols ── -->
+        <section class="doc-section" id="targeting-symbols">
+            <h2>Special Targeting Symbols</h2>
+            <p style="font-size:0.875rem;color:var(--color-text-tertiary);margin-bottom:1rem;">Use these prefixes in <code>ActorObject.Command()</code> calls for precise targeting when multiple matching names exist in a room:</p>
+            <table class="ref-table">
+                <thead>
+                    <tr><th>Symbol</th><th>Targets</th><th>Example</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="sym">!</span><em>number</em></td>
+                        <td>Specific <strong>ItemId</strong></td>
+                        <td><code>"drop !123"</code> — drops the item with ItemId 123</td>
+                    </tr>
+                    <tr>
+                        <td><span class="sym">#</span><em>number</em></td>
+                        <td>Specific <strong>Mob Instance Id</strong></td>
+                        <td><code>"kick #98"</code> — kicks mob instance 98</td>
+                    </tr>
+                    <tr>
+                        <td><span class="sym">@</span><em>number</em></td>
+                        <td>Specific <strong>UserId</strong></td>
+                        <td><code>"give !123 to @5"</code> — gives item 123 to user 5</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p style="font-size:0.82rem;color:var(--color-text-faint);margin-top:0.5rem;">You can also combine them: <code>"give !123 to #98"</code> gives item 123 to mob instance 98. Regular name matching still works when you don't need precision.</p>
+        </section>
+
+        <!-- ── Quick Links ── -->
+        <section class="doc-section" id="quick-links">
+            <h2>Quick Links</h2>
+            <div class="feature-row">
+                <a class="feature-card" href="/admin/scripting-functions">
+                    <div class="feature-card-icon">📖</div>
+                    <div class="feature-card-body">
+                        <div class="feature-card-title">Function Reference</div>
+                        <div class="feature-card-desc">Complete API docs for ActorObject, RoomObject, ItemObject, PetObject, PartyObject, Utility, Messaging, and Panel functions.</div>
+                    </div>
+                </a>
+                <a class="feature-card" href="/admin/scripting-api">
+                    <div class="feature-card-icon">🔌</div>
+                    <div class="feature-card-body">
+                        <div class="feature-card-title">REST API</div>
+                        <div class="feature-card-desc">Endpoints for retrieving the script function schema and validating JavaScript syntax without running scripts.</div>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+    </main>
+</div>
+
+<script>
+(function() {
+    var sidebar = document.getElementById('doc-sidebar');
+    var links = sidebar ? sidebar.querySelectorAll('a[href^="#"]') : [];
+    var sections = [];
+    links.forEach(function(a) {
+        var id = a.getAttribute('href').slice(1);
+        var el = document.getElementById(id);
+        if (el) sections.push({ el: el, a: a });
+    });
+    if (!sections.length || !('IntersectionObserver' in window)) return;
+    var active = null;
+    var obs = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+            if (e.isIntersecting) {
+                var found = sections.find(function(s) { return s.el === e.target; });
+                if (found && found.a !== active) {
+                    if (active) active.classList.remove('active');
+                    found.a.classList.add('active');
+                    active = found.a;
+                }
+            }
+        });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    sections.forEach(function(s) { obs.observe(s.el); });
+})();
+</script>
+
+{{template "footer" .}}

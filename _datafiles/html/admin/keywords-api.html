@@ -54,7 +54,7 @@
             <div class="response-examples">
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
-                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"Help":{"command":{"configuration":["alias","macros","set"],...},"skill":{"all":["aid","backstab",...]},"admin":{"all":["buff","build",...]}},"HelpAliases":{"brawling":["tackle","brawl"],...},"CommandAliases":{"say":["."],"status":["sta","stat"],...},"DirectionAliases":{"n":"north","s":"south",...},"MapLegendOverrides":{"*":{"$":"Shop","★":"Bank"},"Frostfang":{"!":"Throne Room"}}}}</div></div>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"Help":{"command":{"configuration":["alias","macros","set"],"general":["quit","online"]},"skill":{"all":["aid","backstab"]},"admin":{"all":["buff","build"]}},"HelpAliases":{"brawling":["tackle","brawl"]},"CommandAliases":{"say":["."],"status":["sta","stat"]},"DirectionAliases":{"n":"north","s":"south"},"MapLegendOverrides":{"*":{"$":"Shop","\u2605":"Bank"},"Frostfang":{"!":"Throne Room"}}}}</div></div>
                 </details>
             </div>
         </div>
@@ -76,7 +76,7 @@
             <div class="response-examples">
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
-                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"Help":{...},"HelpAliases":{...},"CommandAliases":{...},"DirectionAliases":{...},"MapLegendOverrides":{...}}}</div></div>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"Help":{"command":{"general":["quit","online"]}},"HelpAliases":{"brawling":["tackle"]},"CommandAliases":{"say":["."]},"DirectionAliases":{"n":"north"},"MapLegendOverrides":{"*":{"$":"Shop"}}}}</div></div>
                 </details>
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request</span></summary>

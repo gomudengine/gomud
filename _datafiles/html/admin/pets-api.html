@@ -140,7 +140,7 @@
             <div class="response-examples">
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-ok">201</span> <span class="resp-label">Created</span></summary>
-                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"type":"wolf","name":"Wolf","roundactchance":10,"abilities":[...]}}</div></div>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"type":"wolf","name":"Wolf","roundactchance":10,"abilities":[{"levelgranted":1,"combatchance":15,"damage":{"diceroll":"1d6"},"statmods":{"strength":1}},{"levelgranted":5,"combatchance":20,"damage":{"diceroll":"1d8"},"statmods":{"strength":3}}]}}</div></div>
                 </details>
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request &mdash; missing type</span></summary>
@@ -182,7 +182,7 @@
             <div class="response-examples">
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
-                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"type":"wolf","name":"Dire Wolf","roundactchance":15,"abilities":[...]}}</div></div>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"type":"wolf","name":"Dire Wolf","roundactchance":15,"abilities":[{"levelgranted":1,"combatchance":15,"damage":{"diceroll":"1d6"},"statmods":{"strength":1}}]}}</div></div>
                 </details>
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-err">404</span> <span class="resp-label">Not Found</span></summary>
