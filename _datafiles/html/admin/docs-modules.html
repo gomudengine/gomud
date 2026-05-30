@@ -1,0 +1,1494 @@
+{{template "header" .}}
+
+<style>
+/* ── shared doc layout ────────────────────────────────────────────── */
+.doc-layout { display: grid; grid-template-columns: 220px 1fr; gap: 2rem; align-items: start; }
+.doc-sidebar {
+    position: sticky; top: 1rem;
+    max-height: calc(100vh - 5rem); overflow-y: auto;
+    background: var(--color-surface-white); border: 1px solid var(--color-border);
+    border-radius: 8px; padding: 1rem 0;
+    scrollbar-width: thin;
+}
+.doc-sidebar h3 {
+    font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
+    color: var(--color-text-subtle); padding: 0 1rem 0.4rem; margin-bottom: 0.25rem;
+    border-bottom: 1px solid var(--color-border-light);
+}
+.doc-sidebar a {
+    display: block; padding: 0.3rem 1rem; font-size: 0.85rem;
+    color: var(--color-text-secondary); text-decoration: none;
+    transition: background 0.1s, color 0.1s;
+}
+.doc-sidebar a:hover { background: var(--color-surface-alt); color: var(--color-primary); }
+.doc-sidebar a.active { background: var(--color-surface-alt); color: var(--color-primary); font-weight: 600; border-left: 3px solid var(--color-primary); padding-left: calc(1rem - 3px); }
+.doc-sidebar .sidebar-group { margin-bottom: 0.5rem; }
+.doc-sidebar .sidebar-section-label {
+    font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--color-text-faint); padding: 0.5rem 1rem 0.15rem; display: block;
+}
+
+/* ── page header ──────────────────────────────────────────────────── */
+.page-header { margin-bottom: 2rem; }
+.page-header h1 { font-size: 1.6rem; margin-bottom: 0.3rem; display: flex; align-items: center; gap: 0.6rem; }
+.page-header .subtitle { color: var(--color-text-muted); font-size: 0.9rem; }
+.breadcrumb { font-size: 0.8rem; color: var(--color-text-faint); margin-bottom: 0.5rem; }
+.breadcrumb a { color: var(--color-text-muted); text-decoration: none; }
+.breadcrumb a:hover { color: var(--color-primary); }
+.breadcrumb span { margin: 0 0.3rem; }
+
+/* ── callout boxes ────────────────────────────────────────────────── */
+.callout {
+    display: flex; gap: 0.75rem; align-items: flex-start;
+    padding: 0.85rem 1rem; border-radius: 6px; margin-bottom: 1.5rem;
+    font-size: 0.875rem; line-height: 1.6;
+}
+.callout-info  { background: var(--color-info-bg,  #dbeafe); border: 1px solid var(--color-info-border,  #93c5fd); color: var(--color-info-text,  #1e40af); }
+.callout-warn  { background: var(--color-warn-bg,  #fef3c7); border: 1px solid var(--color-warn-border,  #fcd34d); color: var(--color-warn-text,  #92400e); }
+.callout-tip   { background: var(--color-tip-bg,   #d1fae5); border: 1px solid var(--color-tip-border,   #6ee7b7); color: var(--color-tip-text,   #065f46); }
+.callout-icon  { flex-shrink: 0; margin-top: 0.1rem; }
+.callout p     { margin: 0; }
+.callout code  { font-family: monospace; font-size: 0.85em; background: rgba(0,0,0,0.08); padding: 0.1em 0.3em; border-radius: 3px; }
+
+/* ── section headings ─────────────────────────────────────────────── */
+.doc-section { margin-bottom: 2.5rem; scroll-margin-top: 1rem; }
+.doc-section h2 {
+    font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem;
+    padding-bottom: 0.4rem; border-bottom: 2px solid var(--color-border-light);
+    color: var(--color-text);
+}
+.doc-section h3 { font-size: 0.95rem; font-weight: 700; margin: 1.5rem 0 0.6rem; color: var(--color-text); }
+.doc-section p  { font-size: 0.875rem; color: var(--color-text-tertiary); line-height: 1.7; margin-bottom: 0.75rem; }
+.doc-section ul { font-size: 0.875rem; color: var(--color-text-tertiary); line-height: 1.7; margin-bottom: 0.75rem; padding-left: 1.5rem; }
+.doc-section ul li { margin-bottom: 0.2rem; }
+
+/* ── reference tables ─────────────────────────────────────────────── */
+.ref-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; margin-bottom: 1rem; }
+.ref-table thead tr { border-bottom: 2px solid var(--color-border); }
+.ref-table th { text-align: left; padding: 0.4rem 0.75rem; color: var(--color-text-secondary); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.ref-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--color-border-faint); color: var(--color-text-tertiary); vertical-align: top; }
+.ref-table tr:last-child td { border-bottom: none; }
+.ref-table code { font-family: monospace; font-size: 0.85em; background: var(--color-surface-alt); padding: 0.1em 0.35em; border-radius: 3px; color: var(--color-primary); }
+.ref-table .tag-badge { display: inline-block; font-size: 0.7rem; font-family: monospace; background: var(--color-surface-alt); border: 1px solid var(--color-border); border-radius: 3px; padding: 0.05em 0.4em; color: var(--color-text-muted); white-space: nowrap; }
+
+/* ── card grid ────────────────────────────────────────────────────── */
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+.mod-card {
+    background: var(--color-surface-white); border: 1px solid var(--color-border);
+    border-radius: 8px; padding: 1.25rem 1rem;
+    display: flex; flex-direction: column; gap: 0.4rem;
+}
+.mod-card-icon  { font-size: 1.6rem; line-height: 1; margin-bottom: 0.25rem; }
+.mod-card-name  { font-size: 0.95rem; font-weight: 700; color: var(--color-text); }
+.mod-card-desc  { font-size: 0.8rem; color: var(--color-text-muted); line-height: 1.4; }
+.mod-card-tag   { font-size: 0.72rem; font-family: monospace; color: var(--color-text-faint); margin-top: auto; padding-top: 0.5rem; }
+
+/* ── code blocks ──────────────────────────────────────────────────── */
+.code-block {
+    background: var(--color-surface-alt); border: 1px solid var(--color-border);
+    border-radius: 6px; margin-bottom: 1.25rem; overflow: hidden;
+}
+.code-block-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.4rem 0.85rem; background: var(--color-border-faint);
+    border-bottom: 1px solid var(--color-border);
+    font-size: 0.75rem; font-family: monospace; color: var(--color-text-muted);
+}
+.code-block pre { margin: 0; padding: 1rem; overflow-x: auto; font-size: 0.82rem; line-height: 1.6; }
+.code-block code { background: none; padding: 0; border: none; color: var(--color-text); font-family: 'Fira Mono', 'Cascadia Code', 'Consolas', monospace; }
+
+/* ── step list ────────────────────────────────────────────────────── */
+.step-list { list-style: none; padding: 0; margin-bottom: 1.5rem; }
+.step-list li { display: flex; gap: 1rem; margin-bottom: 1rem; align-items: flex-start; }
+.step-num {
+    flex-shrink: 0; width: 1.75rem; height: 1.75rem;
+    background: var(--color-primary); color: #fff;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem; font-weight: 700; margin-top: 0.1rem;
+}
+.step-body { flex: 1; }
+.step-body strong { font-size: 0.9rem; color: var(--color-text); display: block; margin-bottom: 0.2rem; }
+.step-body p { font-size: 0.85rem; color: var(--color-text-muted); margin: 0; line-height: 1.5; }
+.step-body code { font-family: monospace; font-size: 0.82em; background: var(--color-surface-alt); padding: 0.1em 0.3em; border-radius: 3px; color: var(--color-primary); }
+
+/* ── feature row ──────────────────────────────────────────────────── */
+.feature-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem; }
+.feature-card {
+    background: var(--color-surface-white); border: 1px solid var(--color-border);
+    border-radius: 8px; padding: 1.25rem;
+    display: flex; align-items: flex-start; gap: 1rem;
+}
+.feature-card-icon  { font-size: 1.8rem; flex-shrink: 0; }
+.feature-card-title { font-size: 0.95rem; font-weight: 700; color: var(--color-text); margin-bottom: 0.2rem; }
+.feature-card-desc  { font-size: 0.82rem; color: var(--color-text-muted); line-height: 1.5; }
+
+/* ── dir tree ─────────────────────────────────────────────────────── */
+.dir-tree {
+    font-family: monospace; font-size: 0.85rem; line-height: 1.8;
+    background: var(--color-surface-alt); border: 1px solid var(--color-border);
+    border-radius: 6px; padding: 1rem 1.25rem; margin-bottom: 1.25rem;
+    color: var(--color-text-secondary);
+}
+.dir-tree .dir  { color: var(--color-primary); font-weight: 600; }
+.dir-tree .note { color: var(--color-text-faint); font-style: italic; font-family: system-ui, sans-serif; font-size: 0.8rem; }
+
+/* ── api group header ─────────────────────────────────────────────── */
+.api-group { margin-bottom: 2rem; }
+.api-group-title {
+    font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
+    color: var(--color-text-subtle); margin-bottom: 0.5rem; padding-bottom: 0.3rem;
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+/* ── event badge ──────────────────────────────────────────────────── */
+.ev-badge { display: inline-block; font-size: 0.72rem; font-family: monospace; background: var(--color-info-bg, #dbeafe); border: 1px solid var(--color-info-border, #93c5fd); color: var(--color-info-text, #1e40af); border-radius: 3px; padding: 0.05em 0.45em; white-space: nowrap; }
+
+/* ── responsive ───────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+    .doc-layout    { grid-template-columns: 1fr; }
+    .doc-sidebar   { position: static; max-height: none; }
+    .feature-row   { grid-template-columns: 1fr; }
+}
+</style>
+
+<div class="doc-layout">
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     SIDEBAR
+═══════════════════════════════════════════════════════════════════ -->
+<aside class="doc-sidebar" id="doc-sidebar">
+    <h3>Modules Docs</h3>
+
+    <span class="sidebar-section-label">Getting Started</span>
+    <div class="sidebar-group">
+        <a href="#overview">Overview</a>
+        <a href="#quickstart">Quick-Start</a>
+        <a href="#codegen">Code Generation</a>
+    </div>
+
+    <span class="sidebar-section-label">Plugin API</span>
+    <div class="sidebar-group">
+        <a href="#api-lifecycle">Lifecycle</a>
+        <a href="#api-commands">Commands</a>
+        <a href="#api-scripting">Scripting Bridge</a>
+        <a href="#api-filesystem">File System</a>
+        <a href="#api-persistence">Persistence</a>
+        <a href="#api-config">Configuration</a>
+        <a href="#api-roomtags">Room Tags</a>
+        <a href="#api-web">Web &amp; Admin</a>
+        <a href="#api-connections">Connection Hooks</a>
+    </div>
+
+    <span class="sidebar-section-label">Event System</span>
+    <div class="sidebar-group">
+        <a href="#events-overview">Registering Listeners</a>
+        <a href="#events-reference">Event Reference</a>
+    </div>
+
+    <span class="sidebar-section-label">Advanced</span>
+    <div class="sidebar-group">
+        <a href="#data-overlays">Data Overlays</a>
+        <a href="#exported-functions">Cross-Module Functions</a>
+        <a href="#admin-web">Admin Pages &amp; APIs</a>
+    </div>
+
+    <span class="sidebar-section-label">Examples</span>
+    <div class="sidebar-group">
+        <a href="#example-minimal">Minimal Module</a>
+        <a href="#example-stateful">Stateful Module</a>
+        <a href="#example-advanced">Advanced Module</a>
+    </div>
+</aside>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     MAIN CONTENT
+═══════════════════════════════════════════════════════════════════ -->
+<main>
+
+<!-- ── Page Header ── -->
+<div class="page-header">
+    <div class="breadcrumb">
+        <a href="/admin/">Admin</a><span>/</span>
+        <a href="/admin/docs-modules">Docs</a><span>/</span>
+        Modules
+    </div>
+    <h1>
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Module Development
+    </h1>
+    <p class="subtitle">A complete guide to building Go modules that extend the GoMud server.</p>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     OVERVIEW
+══════════════════════════════════════════════════════════════════ -->
+<section class="doc-section" id="overview">
+    <h2>Overview</h2>
+
+    <p>Modules are compiled Go packages that live under <code>modules/</code>. They are wired into the server at build time via a generated import file and register themselves through Go's <code>init()</code> mechanism. Unlike JavaScript scripts, modules run natively and can access any internal package, listen to any server event, add new player and mob commands, contribute admin pages, and persist their own data.</p>
+
+    <div class="feature-row">
+        <div class="feature-card">
+            <div class="feature-card-icon">&#9881;</div>
+            <div>
+                <div class="feature-card-title">Full Engine Access</div>
+                <div class="feature-card-desc">Import any <code>internal/</code> package — rooms, users, mobs, combat, items, templates, and more. No sandboxing.</div>
+            </div>
+        </div>
+        <div class="feature-card">
+            <div class="feature-card-icon">&#9889;</div>
+            <div>
+                <div class="feature-card-title">Event-Driven</div>
+                <div class="feature-card-desc">React to any server event: new rounds, player spawns, level-ups, mob deaths, room changes, and dozens more.</div>
+            </div>
+        </div>
+        <div class="feature-card">
+            <div class="feature-card-icon">&#128196;</div>
+            <div>
+                <div class="feature-card-title">Embedded Assets</div>
+                <div class="feature-card-desc">Bundle data files, help files, templates, and admin HTML directly into the binary using Go's <code>embed.FS</code>.</div>
+            </div>
+        </div>
+        <div class="feature-card">
+            <div class="feature-card-icon">&#128274;</div>
+            <div>
+                <div class="feature-card-title">Persistent State</div>
+                <div class="feature-card-desc">Save and reload structured data across server restarts using the built-in plugin persistence helpers.</div>
+            </div>
+        </div>
+    </div>
+
+    <h3>Modules vs. Scripts</h3>
+    <p>Choose the right tool for the job:</p>
+    <table class="ref-table">
+        <thead><tr><th>Capability</th><th>Module (Go)</th><th>Script (JS)</th></tr></thead>
+        <tbody>
+            <tr><td>Add player commands</td><td>&#10003; Yes</td><td>&#10007; No</td></tr>
+            <tr><td>Listen to server events</td><td>&#10003; Yes</td><td>&#10007; No</td></tr>
+            <tr><td>React to room/mob/item triggers</td><td>&#10003; Yes (via events)</td><td>&#10003; Yes (primary use)</td></tr>
+            <tr><td>Access all internal packages</td><td>&#10003; Yes</td><td>&#10007; No (scripting API only)</td></tr>
+            <tr><td>Persist custom data</td><td>&#10003; Yes</td><td>&#10007; No</td></tr>
+            <tr><td>Add admin web pages</td><td>&#10003; Yes</td><td>&#10007; No</td></tr>
+            <tr><td>Hot-reload without recompile</td><td>&#10007; No</td><td>&#10003; Yes</td></tr>
+            <tr><td>Requires Go knowledge</td><td>&#10003; Yes</td><td>&#10007; No</td></tr>
+        </tbody>
+    </table>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     QUICK-START
+══════════════════════════════════════════════════════════════════ -->
+<section class="doc-section" id="quickstart">
+    <h2>Quick-Start: Your First Module</h2>
+
+    <p>This walkthrough builds a minimal module that adds a <code>greet</code> player command. Every module follows this same skeleton.</p>
+
+    <h3>Directory Layout</h3>
+    <div class="dir-tree">
+<span class="dir">modules/</span><br>
+&nbsp;&nbsp;<span class="dir">greet/</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="dir">files/</span> <span class="note">-- embedded assets (optional)</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="dir">datafiles/</span> <span class="note">-- treated as _datafiles/ at runtime</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="dir">help/</span> <span class="note">-- help files for new commands</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;greet.go <span class="note">-- module entry point</span>
+    </div>
+
+    <h3>The Module File</h3>
+    <div class="code-block">
+        <div class="code-block-header">modules/greet/greet.go</div>
+        <pre><code>package greet
+
+import (
+    "embed"
+    "fmt"
+
+    "github.com/GoMudEngine/GoMud/internal/events"
+    "github.com/GoMudEngine/GoMud/internal/plugins"
+    "github.com/GoMudEngine/GoMud/internal/rooms"
+    "github.com/GoMudEngine/GoMud/internal/users"
+)
+
+// Embed all files under the files/ directory into the binary.
+// This makes data files available without needing them on disk at runtime.
+//
+//go:embed files/*
+var files embed.FS
+
+// init() is called automatically by Go before main() runs.
+// This is where all module registration happens.
+func init() {
+    // Create the plugin. The name must be alphanumeric + underscores.
+    plug := plugins.New("greet", "1.0")
+
+    // Attach embedded files so data files are served from within the binary.
+    if err := plug.AttachFileSystem(files); err != nil {
+        panic(err)
+    }
+
+    // Register the player command "greet".
+    // Signature: (command string, handler UserCommand, allowWhenDowned bool, adminOnly bool)
+    plug.AddUserCommand("greet", greetCommand, true, false)
+}
+
+// greetCommand is the handler for the "greet" player command.
+// rest       - everything the player typed after "greet"
+// user       - the player who typed the command
+// room       - the room the player is currently in
+// flags      - event flags (e.g. CmdSkipScripts)
+func greetCommand(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
+    if rest == "" {
+        user.SendText("Greet whom? Usage: greet &lt;name&gt;")
+        return true, nil
+    }
+    user.SendText(fmt.Sprintf("You wave cheerfully at %s!", rest))
+    room.SendText(fmt.Sprintf("%s waves cheerfully at %s!", user.Character.Name, rest), user.UserId)
+    return true, nil
+}</code></pre>
+    </div>
+
+    <h3>Steps to Activate</h3>
+    <ol class="step-list">
+        <li>
+            <div class="step-num">1</div>
+            <div class="step-body">
+                <strong>Create the directory and file</strong>
+                <p>Place your module under <code>modules/greet/greet.go</code>. The package name must match the directory name.</p>
+            </div>
+        </li>
+        <li>
+            <div class="step-num">2</div>
+            <div class="step-body">
+                <strong>Run code generation</strong>
+                <p>From the project root run <code>make generate</code> (or <code>go generate</code>). This scans <code>modules/</code> and rewrites <code>modules/all-modules.go</code> to import every module package.</p>
+            </div>
+        </li>
+        <li>
+            <div class="step-num">3</div>
+            <div class="step-body">
+                <strong>Build and run</strong>
+                <p>Run <code>make build</code> then <code>make run</code>. Your module's <code>init()</code> fires automatically at startup.</p>
+            </div>
+        </li>
+        <li>
+            <div class="step-num">4</div>
+            <div class="step-body">
+                <strong>Verify</strong>
+                <p>Log in and type <code>greet someone</code>. You should see your custom message.</p>
+            </div>
+        </li>
+    </ol>
+
+    <div class="callout callout-info">
+        <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <p>The <code>files/</code> subdirectory is optional. If your module has no embedded assets, omit the <code>//go:embed</code> directive and the <code>plug.AttachFileSystem</code> call entirely.</p>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     CODE GENERATION
+══════════════════════════════════════════════════════════════════ -->
+<section class="doc-section" id="codegen">
+    <h2>Code Generation</h2>
+
+    <p>GoMud uses a small code generator (<code>cmd/generate/module-imports.go</code>) to discover every subdirectory under <code>modules/</code> that contains at least one <code>.go</code> file. It writes a single <code>modules/all-modules.go</code> that blank-imports each module package. The blank import causes each module's <code>init()</code> to run at startup without any manual wiring.</p>
+
+    <div class="code-block">
+        <div class="code-block-header">modules/all-modules.go (auto-generated — do not edit)</div>
+        <pre><code>// Code generated by go:generate; DO NOT EDIT.
+
+package modules
+
+import (
+    _ "github.com/GoMudEngine/GoMud/modules/auctions"
+    _ "github.com/GoMudEngine/GoMud/modules/greet"
+    _ "github.com/GoMudEngine/GoMud/modules/leaderboards"
+    // ... all other modules ...
+)</code></pre>
+    </div>
+
+    <div class="callout callout-warn">
+        <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <p>Always run <code>go generate</code> (or <code>make generate</code>) after adding or removing a module directory. Forgetting this step means your module's <code>init()</code> will never be called and the server will log a warning about zero loaded plugins.</p>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     PLUGIN API — LIFECYCLE
+══════════════════════════════════════════════════════════════════ -->
+<section class="doc-section" id="api-lifecycle">
+    <h2>Plugin API: Lifecycle</h2>
+
+    <p>All module registration goes through the <code>*Plugin</code> object returned by <code>plugins.New()</code>.</p>
+
+    <div class="api-group">
+        <div class="api-group-title">Creating the Plugin</div>
+        <table class="ref-table">
+            <thead><tr><th>Call</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td><code>plugins.New(name, version string) *Plugin</code></td>
+                    <td>Registers a new module. <code>name</code> is sanitised to alphanumeric and underscores; it becomes the module's namespace in scripts (<code>modules.&lt;name&gt;</code>). Returns <code>nil</code> if called after startup. Call only inside <code>init()</code>.</td>
+                </tr>
+                <tr>
+                    <td><code>plug.Requires(name, version string)</code></td>
+                    <td>Declares a dependency on another module by name and version. If the dependency is not present at load time, this module is silently skipped.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="api-group">
+        <div class="api-group-title">Load and Save Callbacks</div>
+        <table class="ref-table">
+            <thead><tr><th>Setter</th><th>When it fires</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td><code>plug.Callbacks.SetOnLoad(f func())</code></td>
+                    <td>Called once after all modules are registered and the server is ready. Use this to read persisted data and initialise in-memory state.</td>
+                </tr>
+                <tr>
+                    <td><code>plug.Callbacks.SetOnSave(f func())</code></td>
+                    <td>Called on every periodic world save and before a copyover restart. Use this to write any in-memory state you want to survive restarts.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="code-block">
+        <div class="code-block-header">Example — load and save callbacks</div>
+        <pre><code>type MyModule struct {
+    plug  *plugins.Plugin
+    Score int
+}
+
+func init() {
+    m := &amp;MyModule{plug: plugins.New("mymod", "1.0")}
+    m.plug.Callbacks.SetOnLoad(m.load)
+    m.plug.Callbacks.SetOnSave(m.save)
+}
+
+func (m *MyModule) load() {
+    m.plug.ReadIntoStruct("state", m)
+}
+
+func (m *MyModule) save() {
+    m.plug.WriteStruct("state", m)
+}</code></pre>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     PLUGIN API — COMMANDS
+══════════════════════════════════════════════════════════════════ -->
+<section class="doc-section" id="api-commands">
+    <h2>Plugin API: Commands</h2>
+
+    <p>Modules can register new player commands and new mob AI commands. Registered commands are indistinguishable from built-in commands — they appear in help, support aliases, and participate in autocomplete.</p>
+
+    <div class="api-group">
+        <div class="api-group-title">Player Commands</div>
+        <table class="ref-table">
+            <thead><tr><th>Signature</th><th>Parameters</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td><code>plug.AddUserCommand(command string, handler UserCommand, allowWhenDowned bool, adminOnly bool)</code></td>
+                    <td>
+                        <code>command</code> — the keyword the player types.<br>
+                        <code>handler</code> — function with signature <code>func(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error)</code>.<br>
+                        <code>allowWhenDowned</code> — if <code>true</code>, the command works even when the player is incapacitated.<br>
+                        <code>adminOnly</code> — if <code>true</code>, only admin/mod accounts can use it.
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="api-group">
+        <div class="api-group-title">Mob Commands</div>
+        <table class="ref-table">
+            <thead><tr><th>Signature</th><th>Parameters</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td><code>plug.AddMobCommand(command string, handler MobCommand, allowWhenDowned bool)</code></td>
+                    <td>
+                        <code>handler</code> — function with signature <code>func(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error)</code>.<br>
+                        Mob commands are invoked from mob AI scripts using the command name.
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="api-group">
+        <div class="api-group-title">EventFlag values (command handlers)</div>
+        <table class="ref-table">
+            <thead><tr><th>Constant</th><th>Meaning</th></tr></thead>
+            <tbody>
+                <tr><td><code>events.CmdNone</code></td><td>No special flags.</td></tr>
+                <tr><td><code>events.CmdSkipScripts</code></td><td>Do not run room/mob/item scripts for this command.</td></tr>
+                <tr><td><code>events.CmdSecretly</code></td><td>Player action is not announced to the room.</td></tr>
+                <tr><td><code>events.CmdIsRequeue</code></td><td>This is a requeued command; avoid infinite requeue loops.</td></tr>
+                <tr><td><code>events.CmdBlockInput</code></td><td>Block further player input while the command runs.</td></tr>
+                <tr><td><code>events.CmdUnBlockInput</code></td><td>Unblock player input when the command finishes.</td></tr>
+                <tr><td><code>events.CmdBlockInputUntilComplete</code></td><td>Shortcut combining Block + Unblock.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     PLUGIN API — SCRIPTING BRIDGE
+══════════════════════════════════════════════════════════════════ -->
+<section class="doc-section" id="api-scripting">
+    <h2>Plugin API: Scripting Bridge</h2>
+
+    <p>Modules can expose Go functions to the JavaScript scripting runtime and to other modules.</p>
+
+    <table class="ref-table">
+        <thead><tr><th>Method</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr>
+                <td><code>plug.AddScriptingFunction(name string, f any)</code></td>
+                <td>Exposes a Go function to JavaScript scripts under the namespace <code>modules.&lt;pluginname&gt;.&lt;name&gt;</code>. For example, a function registered as <code>"GetFollowers"</code> on the <code>follow</code> module is called in scripts as <code>modules.follow.GetFollowers(actor)</code>.</td>
+            </tr>
+            <tr>
+                <td><code>plug.ExportFunction(id string, f any)</code></td>
+                <td>Exports a Go function for use by <em>other modules</em> (not scripts). Any module can retrieve it with <code>plugins.GetPluginRegistry().GetExportedFunction(id)</code>. The function must be a <code>reflect.Func</code>.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="code-block">
+        <div class="code-block-header">Example — exposing a function to scripts</div>
+        <pre><code>// In init():
+plug.AddScriptingFunction("GetFollowers", myModule.scriptingGetFollowers)
+
+// The Go function receives a ScriptActor from the JS side.
+func (m *MyModule) scriptingGetFollowers(target scripting.ScriptActor) []*scripting.ScriptActor {
+    // ... return followers ...
+}
+
+// In a JavaScript room or mob script:
+// var followers = modules.mymod.GetFollowers(actor);</code></pre>
+    </div>
+
+    <div class="code-block">
+        <div class="code-block-header">Example — exporting a function for other modules</div>
+        <pre><code>// Module A exports a function:
+plug.ExportFunction("SendMudMail", myModule.sendMudMail)
+
+// Module B retrieves and calls it:
+if fn, ok := plugins.GetPluginRegistry().GetExportedFunction("SendMudMail"); ok {
+    fn.(func(toUserId int, subject, body string))(targetId, "Subject", "Hello!")
+}</code></pre>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     PLUGIN API — FILE SYSTEM
+══════════════════════════════════════════════════════════════════ -->
+<section class="doc-section" id="api-filesystem">
+    <h2>Plugin API: File System</h2>
+
+    <p>Modules can bundle read-only data files directly into the compiled binary using Go's <code>embed.FS</code>. At runtime these files are served as if they were located inside <code>_datafiles/</code>.</p>
+
+    <table class="ref-table">
+        <thead><tr><th>Method</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr>
+                <td><code>plug.AttachFileSystem(f embed.FS) error</code></td>
+                <td>Registers an embedded file system with the plugin. Files under a <code>datafiles/</code> subdirectory within the FS are mapped as though they live in <code>_datafiles/</code>. Files under <code>data-overlays/</code> are mapped with that prefix preserved (used for config defaults — see <a href="#data-overlays">Data Overlays</a>).</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="code-block">
+        <div class="code-block-header">Embedding files</div>
+        <pre><code>// At package level — the directive must appear directly above the var.
+//
+//go:embed files/*
+var files embed.FS
+
+func init() {
+    plug := plugins.New("mymod", "1.0")
+    if err := plug.AttachFileSystem(files); err != nil {
+        panic(err)
+    }
+}</code></pre>
+    </div>
+
+    <h3>Embedded Directory Conventions</h3>
+    <div class="dir-tree">
+<span class="dir">modules/mymod/files/</span><br>
+&nbsp;&nbsp;<span class="dir">datafiles/</span> <span class="note">-- maps to _datafiles/ at runtime</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="dir">help/</span> <span class="note">-- help files: help/mymod-command.yaml</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="dir">templates/</span> <span class="note">-- Go templates used by templates.Process()</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="dir">html/admin/</span> <span class="note">-- admin page HTML fragments</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="dir">html/public/</span> <span class="note">-- public-facing web pages</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="dir">items/</span> <span class="note">-- item YAML definitions</span><br>
+&nbsp;&nbsp;<span class="dir">data-overlays/</span> <span class="note">-- config defaults (see Data Overlays)</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;config.yaml <span class="note">-- seeds Modules.&lt;name&gt;.* config keys</span>
+    </div>
+
+    <div class="callout callout-tip">
+        <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <p>Embedded files override core data files when a path collision occurs, so a module can replace any template, help file, or data file by placing a file at the same relative path inside <code>files/datafiles/</code>.</p>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     PLUGIN API — PERSISTENCE
+══════════════════════════════════════════════════════════════════ -->
+<section class="doc-section" id="api-persistence">
+    <h2>Plugin API: Persistence</h2>
+
+    <p>Each module gets its own isolated storage directory under <code>_datafiles/plugin-data/&lt;name&gt;-v&lt;version&gt;/</code>. Data is stored as opaque <code>.plugin.dat</code> files keyed by an identifier string you choose.</p>
+
+    <table class="ref-table">
+        <thead><tr><th>Method</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr>
+                <td><code>plug.WriteBytes(identifier string, data []byte) error</code></td>
+                <td>Writes raw bytes to <code>&lt;identifier&gt;.plugin.dat</code>. Creates the directory if needed.</td>
+            </tr>
+            <tr>
+                <td><code>plug.ReadBytes(identifier string) ([]byte, error)</code></td>
+                <td>Reads raw bytes from <code>&lt;identifier&gt;.plugin.dat</code>. Returns an error if the file does not exist.</td>
+            </tr>
+            <tr>
+                <td><code>plug.WriteStruct(identifier string, v any) error</code></td>
+                <td>YAML-marshals <code>v</code> and writes it. The struct must be YAML-serialisable.</td>
+            </tr>
+            <tr>
+                <td><code>plug.ReadIntoStruct(identifier string, v any) error</code></td>
+                <td>Reads the file and YAML-unmarshals it into <code>v</code>. Pass a pointer. Returns nil if the file does not exist (first run).</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="code-block">
+        <div class="code-block-header">Typical save/load pattern</div>
+        <pre><code>type State struct {
+    Jackpot int    `yaml:"Jackpot"`
+    Config  string `yaml:"Config"`
+}
+
+func (m *MyModule) load() {
+    // ReadIntoStruct is a no-op when the file doesn't exist yet (first run).
+    m.plug.ReadIntoStruct("state", &amp;m.state)
+}
+
+func (m *MyModule) save() {
+    m.plug.WriteStruct("state", m.state)
+}</code></pre>
+    </div>
+
+    <div class="callout callout-info">
+        <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <p>The storage path includes the module version. If you change the version string in <code>plugins.New()</code>, existing save files will no longer be found. Migrate data in <code>SetOnLoad</code> if needed, or keep the version stable.</p>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     PLUGIN API — CONFIGURATION
+══════════════════════════════════════════════════════════════════ -->
+<section class="doc-section" id="api-config">
+    <h2>Plugin API: Configuration</h2>
+
+    <p>Module configuration lives under the <code>Modules.&lt;name&gt;.*</code> namespace in the server's live config. Operators can view and change values through the admin Config page without touching YAML files.</p>
+
+    <table class="ref-table">
+        <thead><tr><th>Method</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr>
+                <td><code>plug.Config.Get(key string) any</code></td>
+                <td>Returns the current value of <code>Modules.&lt;name&gt;.&lt;key&gt;</code>. Returns <code>nil</code> if not set. Type-assert the result to the expected type.</td>
+            </tr>
+            <tr>
+                <td><code>plug.Config.Set(key string, val any)</code></td>
+                <td>Writes a new value for <code>Modules.&lt;name&gt;.&lt;key&gt;</code> into the live config. This persists to the config override file.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="code-block">
+        <div class="code-block-header">Reading and writing config values</div>
+        <pre><code>// Read with a type-safe helper:
+func (m *MyModule) getMaxBid() int {
+    if v := m.plug.Config.Get("MaxBid"); v != nil {
+        if n, ok := v.(int); ok {
+            return n
+        }
+    }
+    return 1000 // default
+}
+
+// Write from an admin command:
+func (m *MyModule) setMaxBid(newMax int) {
+    m.plug.Config.Set("MaxBid", newMax)
+}</code></pre>
+    </div>
+
+    <p>To seed default values for a fresh install, place a <code>data-overlays/config.yaml</code> file in your embedded file system. See <a href="#data-overlays">Data Overlays</a> for the format.</p>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     PLUGIN API — ROOM TAGS
+══════════════════════════════════════════════════════════════════ -->
+<section class="doc-section" id="api-roomtags">
+    <h2>Plugin API: Room Tags</h2>
+
+    <p>Room tags are the primary opt-in mechanism for module behavior. A room with a specific tag signals to a module that it should activate special behavior there (e.g., a room tagged <code>slots</code> hosts a slot machine). Calling <code>ReserveTags</code> registers your module's tags in the global catalog so the admin room editor can list them alongside the owning module name.</p>
+
+    <table class="ref-table">
+        <thead><tr><th>Method</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr>
+                <td><code>plug.ReserveTags(tags ...string)</code></td>
+                <td>Declares one or more room tag strings that this module recognises. Purely informational — it does not enforce usage. Check for tags at runtime using <code>room.HasTag("tagname")</code>.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="code-block">
+        <div class="code-block-header">Example — declaring and checking room tags</div>
+        <pre><code>// In init():
+plug.ReserveTags("fishing-spot", "fishing-premium")
+
+// In a command handler or event listener:
+func (m *MyModule) fishCommand(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
+    if !room.HasTag("fishing-spot") &amp;&amp; !room.HasTag("fishing-premium") {
+        user.SendText("There is nothing to fish here.")
+        return true, nil
+    }
+    // ... fishing logic ...
+    return true, nil
+}</code></pre>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     PLUGIN API — WEB
+══════════════════════════════════════════════════════════════════ -->
+<section class="doc-section" id="api-web">
+    <h2>Plugin API: Web &amp; Admin</h2>
+
+    <p>Modules can add pages to both the public-facing website and the admin panel, contribute admin API endpoints, and register permission keys for those endpoints.</p>
+
+    <div class="api-group">
+        <div class="api-group-title">Public Web Pages</div>
+        <table class="ref-table">
+            <thead><tr><th>Method</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td><code>plug.Web.WebPage(name, path, file string, addToNav bool, dataFunc func(*http.Request) map[string]any)</code></td>
+                    <td>Registers a public page at <code>/&lt;path&gt;</code>. <code>file</code> is the path inside the embedded FS relative to <code>datafiles/html/public/</code>. <code>dataFunc</code> is optional; it supplies template data.</td>
+                </tr>
+                <tr>
+                    <td><code>plug.Web.NavLink(name, path string)</code></td>
+                    <td>Adds a link to the public navigation bar.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="api-group">
+        <div class="api-group-title">Admin Pages</div>
+        <table class="ref-table">
+            <thead><tr><th>Parameter</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr><td><code>name</code></td><td>Display label for the nav entry (e.g. <code>"Config"</code>).</td></tr>
+                <tr><td><code>slug</code></td><td>URL path segment; the page is served at <code>/admin/&lt;slug&gt;</code> (e.g. <code>"auctions-config"</code>).</td></tr>
+                <tr><td><code>htmlFile</code></td><td>Path inside the embedded FS, relative to <code>datafiles/html/admin/</code> (e.g. <code>"html/admin/auctions-config.html"</code>).</td></tr>
+                <tr><td><code>addToNav</code></td><td>Whether to add this page to the admin navigation.</td></tr>
+                <tr><td><code>navGroup</code></td><td>Top-level nav group dropdown to place the entry in (e.g. <code>"Modules"</code>). Use <code>"Modules"</code> for all module pages.</td></tr>
+                <tr><td><code>navParent</code></td><td>Parent label within the group (e.g. <code>"Auctions"</code>). Pages with the same parent are nested under it.</td></tr>
+                <tr><td><code>description</code></td><td>Short one-sentence description for this leaf entry.</td></tr>
+                <tr><td><code>navParentDescription</code></td><td>Description for the parent group entry (only used on first registration).</td></tr>
+                <tr><td><code>dataFunc</code></td><td>Optional <code>func(*http.Request) map[string]any</code> to supply template data.</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="code-block">
+        <div class="code-block-header">Registering an admin page</div>
+        <pre><code>plug.Web.AdminPage(
+    "Config",                       // nav label
+    "mymod-config",                 // slug  -> /admin/mymod-config
+    "html/admin/mymod-config.html", // file inside embedded FS
+    true,                           // add to nav
+    "Modules",                      // top-level nav group
+    "My Module",                    // parent within group
+    "Configure My Module settings.",
+    "My Module provides XYZ features.",
+    nil,                            // no extra template data
+)</code></pre>
+    </div>
+
+    <div class="api-group">
+        <div class="api-group-title">Admin API Endpoints</div>
+        <table class="ref-table">
+            <thead><tr><th>Method</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td><code>plug.Web.AdminAPIEndpoint(method, slug string, handler ModuleAPIHandler, permissionKey ...string)</code></td>
+                    <td>Registers an HTTP handler at <code>/admin/api/v1/&lt;slug&gt;</code>. The handler signature is <code>func(r *http.Request) (status int, success bool, data any)</code>. Provide a <code>permissionKey</code> (e.g. <code>"mymod.write"</code>) for mutating methods; omit it for GET endpoints.</td>
+                </tr>
+                <tr>
+                    <td><code>plug.Web.RegisterPermissions(perms ...plugins.ModulePermission)</code></td>
+                    <td>Declares permission keys in the admin permission picker so operators can grant them to mod accounts. Each <code>ModulePermission</code> has <code>Key</code>, <code>Description</code>, and <code>Category</code> fields.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="code-block">
+        <div class="code-block-header">Registering an admin API endpoint with permissions</div>
+        <pre><code>// Register the permission key in the catalog:
+plug.Web.RegisterPermissions(plugins.ModulePermission{
+    Key:         "mymod.write",
+    Description: "Create and delete My Module records.",
+    Category:    "Modules",
+})
+
+// Register a read endpoint (no permission required):
+plug.Web.AdminAPIEndpoint("GET", "mymod", m.handleGetMyMod)
+
+// Register a write endpoint (requires mymod.write):
+plug.Web.AdminAPIEndpoint("POST", "mymod", m.handlePostMyMod, "mymod.write")
+
+// Handler signature:
+func (m *MyModule) handleGetMyMod(r *http.Request) (int, bool, any) {
+    return 200, true, map[string]any{"items": m.items}
+}</code></pre>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     PLUGIN API — CONNECTION HOOKS
+══════════════════════════════════════════════════════════════════ -->
+<section class="doc-section" id="api-connections">
+    <h2>Plugin API: Connection Hooks</h2>
+
+    <p>Low-level connection hooks let modules intercept raw telnet IAC sequences, handle WebSocket text-prefix commands, and react to new client connections. These are primarily used by protocol modules such as GMCP.</p>
+
+    <table class="ref-table">
+        <thead><tr><th>Setter</th><th>Callback Signature</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr>
+                <td><code>plug.Callbacks.SetOnNetConnect(f)</code></td>
+                <td><code>func(plugins.NetConnection)</code></td>
+                <td>Called when a new client connects. The <code>NetConnection</code> interface exposes <code>IsWebSocket()</code>, <code>Read()</code>, <code>Write()</code>, <code>Close()</code>, <code>RemoteAddr()</code>, <code>ConnectionId()</code>, and <code>InputDisabled()</code>.</td>
+            </tr>
+            <tr>
+                <td><code>plug.Callbacks.SetIACHandler(f)</code></td>
+                <td><code>func(connectionId uint64, iacCmd []byte) bool</code></td>
+                <td>Called for every telnet IAC byte sequence received. Return <code>true</code> to consume the sequence (stop further processing). Return <code>false</code> to pass it on.</td>
+            </tr>
+            <tr>
+                <td><code>plug.Callbacks.SetTextPrefixHandler(f)</code></td>
+                <td><code>func(connectionId uint64, txtCmd []byte) bool</code></td>
+                <td>Called for every WebSocket text-prefix command received. Return <code>true</code> to consume it.</td>
+            </tr>
+        </tbody>
+    </table>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     EVENT SYSTEM — OVERVIEW
+══════════════════════════════════════════════════════════════════ -->
+<section class="doc-section" id="events-overview">
+    <h2>Event System: Registering Listeners</h2>
+
+    <p>The event system is the primary integration point between modules and the server. Events are fired for every significant action — a new game round, a player levelling up, a mob dying, a room change, and more. Modules register listener functions to react to these events.</p>
+
+    <div class="code-block">
+        <div class="code-block-header">Registering an event listener</div>
+        <pre><code>import "github.com/GoMudEngine/GoMud/internal/events"
+
+// In init():
+events.RegisterListener(events.NewRound{}, myModule.onNewRound)
+
+// The listener function:
+func (m *MyModule) onNewRound(e events.Event) events.ListenerReturn {
+    evt := e.(events.NewRound)
+    if evt.RoundNumber % 100 == 0 {
+        // Do something every 100 rounds.
+    }
+    return events.Continue
+}</code></pre>
+    </div>
+
+    <div class="api-group">
+        <div class="api-group-title">Registration Options</div>
+        <table class="ref-table">
+            <thead><tr><th>Call</th><th>Description</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td><code>events.RegisterListener(event, listener)</code></td>
+                    <td>Registers in the default position (after any <code>First</code> listeners, before any <code>Last</code> listeners).</td>
+                </tr>
+                <tr>
+                    <td><code>events.RegisterListener(event, listener, events.First)</code></td>
+                    <td>Registers at the front of the queue. Use when your module needs to intercept or cancel an event before other handlers see it.</td>
+                </tr>
+                <tr>
+                    <td><code>events.RegisterListener(event, listener, events.Last)</code></td>
+                    <td>Registers at the back of the queue. Use for cleanup or logging that must run after all other handlers.</td>
+                </tr>
+                <tr>
+                    <td><code>events.RegisterListener(nil, listener)</code></td>
+                    <td>Wildcard listener — fires for every event type. Primarily useful for debugging.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="api-group">
+        <div class="api-group-title">ListenerReturn values</div>
+        <table class="ref-table">
+            <thead><tr><th>Constant</th><th>Effect</th></tr></thead>
+            <tbody>
+                <tr><td><code>events.Continue</code></td><td>Allow the event to proceed to the next listener and normal engine processing.</td></tr>
+                <tr><td><code>events.Cancel</code></td><td>Stop all further processing of this event. The action does not occur.</td></tr>
+                <tr><td><code>events.CancelAndRequeue</code></td><td>Cancel processing now but re-add the event to the queue for the next event loop iteration.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     EVENT SYSTEM — REFERENCE
+══════════════════════════════════════════════════════════════════ -->
+<section class="doc-section" id="events-reference">
+    <h2>Event System: Event Reference</h2>
+
+    <div class="api-group">
+        <div class="api-group-title">Game Loop</div>
+        <table class="ref-table">
+            <thead><tr><th>Event Type</th><th>Key Fields</th><th>Notes</th></tr></thead>
+            <tbody>
+                <tr><td><span class="ev-badge">NewRound</span></td><td><code>RoundNumber uint64</code>, <code>TimeNow time.Time</code></td><td>Fires every game round. Primary hook for periodic module logic.</td></tr>
+                <tr><td><span class="ev-badge">NewTurn</span></td><td><code>TurnNumber uint64</code>, <code>TimeNow time.Time</code></td><td>Fires every turn (faster than a round, configured by <code>TurnMs</code>).</td></tr>
+                <tr><td><span class="ev-badge">MobIdle</span></td><td><code>MobInstanceId int</code></td><td>Fires when a mob has nothing to do. Use <code>events.First</code> to intercept before built-in AI.</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="api-group">
+        <div class="api-group-title">Player Lifecycle</div>
+        <table class="ref-table">
+            <thead><tr><th>Event Type</th><th>Key Fields</th><th>Notes</th></tr></thead>
+            <tbody>
+                <tr><td><span class="ev-badge">PlayerSpawn</span></td><td><code>UserId</code>, <code>ConnectionId</code>, <code>RoomId</code>, <code>Username</code>, <code>CharacterName</code></td><td>Player enters the world (login or reconnect).</td></tr>
+                <tr><td><span class="ev-badge">PlayerDespawn</span></td><td><code>UserId</code>, <code>RoomId</code>, <code>Username</code>, <code>CharacterName</code>, <code>TimeOnline</code></td><td>Player leaves the world (logout or disconnect).</td></tr>
+                <tr><td><span class="ev-badge">PlayerDeath</span></td><td><code>UserId</code>, <code>RoomId</code>, <code>CharacterName</code>, <code>Permanent bool</code>, <code>KilledByUsers []int</code>, <code>KillerMobId int</code></td><td>Player was killed.</td></tr>
+                <tr><td><span class="ev-badge">PlayerDrop</span></td><td><code>UserId</code>, <code>RoomId</code></td><td>Player dropped to the ground (incapacitated).</td></tr>
+                <tr><td><span class="ev-badge">PlayerChanged</span></td><td><code>UserId</code></td><td>Generic notification that something about a player changed.</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="api-group">
+        <div class="api-group-title">Character Progression</div>
+        <table class="ref-table">
+            <thead><tr><th>Event Type</th><th>Key Fields</th><th>Notes</th></tr></thead>
+            <tbody>
+                <tr><td><span class="ev-badge">LevelUp</span></td><td><code>UserId</code>, <code>NewLevel int</code>, <code>LevelsGained int</code>, <code>StatsDelta</code>, <code>TrainingPoints int</code></td><td>Player gained one or more levels.</td></tr>
+                <tr><td><span class="ev-badge">GainExperience</span></td><td><code>UserId</code>, <code>Experience int</code>, <code>Scale int</code></td><td>Player gained experience points.</td></tr>
+                <tr><td><span class="ev-badge">CharacterCreated</span></td><td><code>UserId</code>, <code>CharacterName</code></td><td>New character was created.</td></tr>
+                <tr><td><span class="ev-badge">CharacterChanged</span></td><td><code>UserId</code>, <code>LastCharacterName</code>, <code>CharacterName</code></td><td>Player switched to a different alt character.</td></tr>
+                <tr><td><span class="ev-badge">CharacterVitalsChanged</span></td><td><code>UserId</code></td><td>Health, mana, or action points changed.</td></tr>
+                <tr><td><span class="ev-badge">CharacterStatsChanged</span></td><td><code>UserId</code></td><td>Core stats or stat maxima changed.</td></tr>
+                <tr><td><span class="ev-badge">CharacterTrained</span></td><td><code>UserId</code></td><td>Player spent training points.</td></tr>
+                <tr><td><span class="ev-badge">AlignmentChanged</span></td><td><code>UserId</code>, <code>AlignmentOld string</code>, <code>AlignmentNew string</code></td><td>Alignment name crossed a threshold.</td></tr>
+                <tr><td><span class="ev-badge">SkillUsed</span></td><td><code>UserId</code>, <code>Skill skills.SkillTag</code>, <code>Details string</code></td><td>Player used a skill.</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="api-group">
+        <div class="api-group-title">World and Movement</div>
+        <table class="ref-table">
+            <thead><tr><th>Event Type</th><th>Key Fields</th><th>Notes</th></tr></thead>
+            <tbody>
+                <tr><td><span class="ev-badge">RoomChange</span></td><td><code>UserId</code>, <code>MobInstanceId</code>, <code>FromRoomId</code>, <code>ToRoomId</code>, <code>Unseen bool</code></td><td>Player or mob moved between rooms. One of UserId or MobInstanceId is non-zero.</td></tr>
+                <tr><td><span class="ev-badge">RoomAction</span></td><td><code>RoomId</code>, <code>SourceUserId</code>, <code>SourceMobId</code>, <code>Action string</code>, <code>Details any</code>, <code>ReadyTurn uint64</code></td><td>Delayed room action queued for a future turn.</td></tr>
+                <tr><td><span class="ev-badge">DayNightCycle</span></td><td><code>IsSunrise bool</code>, <code>Day int</code>, <code>Month int</code>, <code>Year int</code>, <code>Time string</code></td><td>In-game sunrise or sunset occurred.</td></tr>
+                <tr><td><span class="ev-badge">Looking</span></td><td><code>UserId</code>, <code>RoomId</code>, <code>Target string</code>, <code>Hidden bool</code></td><td>Player looked at something.</td></tr>
+                <tr><td><span class="ev-badge">FireBlaze</span></td><td><code>RoomId</code></td><td>A fire-starting event occurred in this room.</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="api-group">
+        <div class="api-group-title">Combat and Mobs</div>
+        <table class="ref-table">
+            <thead><tr><th>Event Type</th><th>Key Fields</th><th>Notes</th></tr></thead>
+            <tbody>
+                <tr><td><span class="ev-badge">MobDeath</span></td><td><code>MobId</code>, <code>InstanceId</code>, <code>RoomId</code>, <code>CharacterName</code>, <code>Level int</code>, <code>PlayerDamage map[int]int</code>, <code>KilledByUsers []int</code></td><td>A mob was killed. <code>PlayerDamage</code> maps UserId to damage dealt.</td></tr>
+                <tr><td><span class="ev-badge">MobItemDrop</span></td><td><code>MobId</code>, <code>RoomId</code>, <code>Zone string</code>, <code>ItemId int</code></td><td>An item dropped from a mob on death.</td></tr>
+                <tr><td><span class="ev-badge">AggroChanged</span></td><td><code>UserId</code>, <code>MobInstanceId</code>, <code>RoomId</code></td><td>A player or mob entered or left aggro state.</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="api-group">
+        <div class="api-group-title">Items and Economy</div>
+        <table class="ref-table">
+            <thead><tr><th>Event Type</th><th>Key Fields</th><th>Notes</th></tr></thead>
+            <tbody>
+                <tr><td><span class="ev-badge">EquipmentChange</span></td><td><code>UserId</code>, <code>GoldChange int</code>, <code>BankChange int</code>, <code>ItemsWorn []items.Item</code>, <code>ItemsRemoved []items.Item</code></td><td>Player's gold, bank, or worn items changed.</td></tr>
+                <tr><td><span class="ev-badge">ItemOwnership</span></td><td><code>UserId</code>, <code>Item items.Item</code>, <code>Gained bool</code></td><td>Player gained or lost a specific item.</td></tr>
+                <tr><td><span class="ev-badge">Purchase</span></td><td><code>UserId</code>, <code>RoomId</code>, <code>Cost int</code>, <code>SellerMobId int</code>, <code>ItemId int</code>, <code>MobId int</code>, <code>BuffId int</code>, <code>PetName string</code></td><td>Player bought something from a shop.</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="api-group">
+        <div class="api-group-title">Buffs</div>
+        <table class="ref-table">
+            <thead><tr><th>Event Type</th><th>Key Fields</th><th>Notes</th></tr></thead>
+            <tbody>
+                <tr><td><span class="ev-badge">Buff</span></td><td><code>UserId</code>, <code>MobInstanceId</code>, <code>BuffId int</code>, <code>Source string</code></td><td>Apply or remove a buff.</td></tr>
+                <tr><td><span class="ev-badge">BuffsAdded</span></td><td><code>UserId</code>, <code>MobInstanceId</code>, <code>BuffIds []int</code></td><td>One or more buffs were applied.</td></tr>
+                <tr><td><span class="ev-badge">BuffsRemoved</span></td><td><code>UserId</code>, <code>MobInstanceId</code>, <code>BuffIds []int</code></td><td>One or more buffs expired or were removed.</td></tr>
+                <tr><td><span class="ev-badge">BuffsTriggered</span></td><td><code>UserId</code>, <code>MobInstanceId</code>, <code>BuffIds []int</code></td><td>Buffs fired their per-round trigger.</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="api-group">
+        <div class="api-group-title">Communication and Social</div>
+        <table class="ref-table">
+            <thead><tr><th>Event Type</th><th>Key Fields</th><th>Notes</th></tr></thead>
+            <tbody>
+                <tr><td><span class="ev-badge">Broadcast</span></td><td><code>Text string</code>, <code>TextScreenReader string</code>, <code>IsCommunication bool</code>, <code>SourceIsMod bool</code></td><td>Message sent to all connected players.</td></tr>
+                <tr><td><span class="ev-badge">Message</span></td><td><code>UserId</code>, <code>RoomId</code>, <code>Text string</code>, <code>IsCommunication bool</code></td><td>Message sent to a room or specific user.</td></tr>
+                <tr><td><span class="ev-badge">Communication</span></td><td><code>SourceUserId</code>, <code>CommType string</code>, <code>Name string</code>, <code>Message string</code></td><td>A say/party/whisper/shout communication.</td></tr>
+                <tr><td><span class="ev-badge">PartyUpdated</span></td><td><code>Action string</code>, <code>UserIds []int</code></td><td>Party was created, disbanded, or membership changed.</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="api-group">
+        <div class="api-group-title">Pets</div>
+        <table class="ref-table">
+            <thead><tr><th>Event Type</th><th>Key Fields</th><th>Notes</th></tr></thead>
+            <tbody>
+                <tr><td><span class="ev-badge">PetLevelChange</span></td><td><code>UserId</code>, <code>PetName string</code>, <code>OldLevel int</code>, <code>NewLevel int</code></td><td>Pet gained or lost a level.</td></tr>
+                <tr><td><span class="ev-badge">PetFed</span></td><td><code>UserId</code></td><td>Player fed their pet.</td></tr>
+                <tr><td><span class="ev-badge">PetItemChange</span></td><td><code>UserId</code></td><td>Item was given to or taken from a pet.</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="api-group">
+        <div class="api-group-title">Input and System</div>
+        <table class="ref-table">
+            <thead><tr><th>Event Type</th><th>Key Fields</th><th>Notes</th></tr></thead>
+            <tbody>
+                <tr><td><span class="ev-badge">Input</span></td><td><code>UserId</code>, <code>MobInstanceId</code>, <code>InputText string</code>, <code>ReadyTurn uint64</code>, <code>Flags EventFlag</code></td><td>Raw player or mob input before command dispatch. Register with <code>events.First</code> to intercept commands.</td></tr>
+                <tr><td><span class="ev-badge">Quest</span></td><td><code>UserId</code>, <code>QuestToken string</code></td><td>Quest token is being granted or removed.</td></tr>
+                <tr><td><span class="ev-badge">ScriptedEvent</span></td><td><code>Name string</code>, <code>Data map[string]any</code></td><td>Custom event fired from a JavaScript script.</td></tr>
+                <tr><td><span class="ev-badge">System</span></td><td><code>Command string</code>, <code>Data any</code>, <code>Description string</code></td><td>Internal server system command.</td></tr>
+                <tr><td><span class="ev-badge">UserSettingChanged</span></td><td><code>UserId</code>, <code>Name string</code></td><td>A player's personal setting changed.</td></tr>
+                <tr><td><span class="ev-badge">RedrawPrompt</span></td><td><code>UserId</code>, <code>OnlyIfChanged bool</code></td><td>Unique event: only one per user in the queue at a time.</td></tr>
+                <tr><td><span class="ev-badge">RebuildMap</span></td><td><code>MapRootRoomId int</code>, <code>SkipIfExists bool</code></td><td>Unique event: only one per root room ID in the queue.</td></tr>
+                <tr><td><span class="ev-badge">CLIRequest</span></td><td><code>UserId</code>, <code>ConnectionId</code>, <code>Command string</code>, <code>Args []string</code></td><td>CLI bridge command from an external process.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     DATA OVERLAYS
+══════════════════════════════════════════════════════════════════ -->
+<section class="doc-section" id="data-overlays">
+    <h2>Data Overlays</h2>
+
+    <p>A module can seed default configuration values by placing a <code>config.yaml</code> inside its <code>data-overlays/</code> embedded directory. When the module is loaded, these values are injected under <code>Modules.&lt;name&gt;.*</code> in the live config — but only if the operator has not already set a value for that key. This makes it safe to ship sensible defaults without overwriting operator customisations.</p>
+
+    <div class="dir-tree">
+<span class="dir">modules/mymod/files/</span><br>
+&nbsp;&nbsp;<span class="dir">data-overlays/</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;config.yaml
+    </div>
+
+    <div class="code-block">
+        <div class="code-block-header">files/data-overlays/config.yaml</div>
+        <pre><code># Keys here are placed under Modules.mymod.* in the live config.
+# The module reads them with: plug.Config.Get("MaxBid")
+MaxBid: 1000
+AuctionDuration: 300
+EnableFeature: true</code></pre>
+    </div>
+
+    <p>At runtime, read these values with <code>plug.Config.Get("MaxBid")</code>. The operator can override them through the admin Config page or by editing <code>config-overrides.yaml</code>.</p>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     EXPORTED FUNCTIONS
+══════════════════════════════════════════════════════════════════ -->
+<section class="doc-section" id="exported-functions">
+    <h2>Cross-Module Communication</h2>
+
+    <p>Modules are isolated packages but sometimes one module needs to call a function provided by another. The <code>ExportFunction</code> / <code>GetExportedFunction</code> pair enables this without creating import cycles.</p>
+
+    <div class="code-block">
+        <div class="code-block-header">Module A — exporting a function</div>
+        <pre><code>// In module A's init():
+plug.ExportFunction("SendMudMail", myModule.sendMudMail)
+
+// The exported function:
+func (m *MailModule) sendMudMail(toUserId int, subject, body string) {
+    // ... send the mail ...
+}</code></pre>
+    </div>
+
+    <div class="code-block">
+        <div class="code-block-header">Module B — calling the exported function</div>
+        <pre><code>import "github.com/GoMudEngine/GoMud/internal/plugins"
+
+func notifyPlayer(userId int) {
+    fn, ok := plugins.GetPluginRegistry().GetExportedFunction("SendMudMail")
+    if !ok {
+        return // mudmail module not loaded
+    }
+    fn.(func(int, string, string))(userId, "Congratulations!", "You won the auction.")
+}</code></pre>
+    </div>
+
+    <div class="callout callout-warn">
+        <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <p>The type assertion on the retrieved function must exactly match the exported function's signature. A wrong assertion will panic. Always check the <code>ok</code> return value before calling, since the providing module might not be installed.</p>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     ADMIN WEB PAGES
+══════════════════════════════════════════════════════════════════ -->
+<section class="doc-section" id="admin-web">
+    <h2>Writing Admin HTML Pages</h2>
+
+    <p>Admin page HTML is a fragment — it must begin with <code>{{"{{"}}template "header" .{{"}}"}}</code> and end with <code>{{"{{"}}template "footer" .{{"}}"}}</code>. Everything in between is your page content. The header provides the full HTML skeleton, navigation, and CSS.</p>
+
+    <div class="code-block">
+        <div class="code-block-header">files/datafiles/html/admin/mymod-config.html</div>
+        <pre><code>{{"{{"}}template "header" .{{"}}"}}
+
+&lt;style&gt;
+/* Page-specific styles here */
+&lt;/style&gt;
+
+&lt;div class="page-header"&gt;
+    &lt;h1&gt;My Module — Config&lt;/h1&gt;
+    &lt;p class="subtitle"&gt;Configure settings for My Module.&lt;/p&gt;
+&lt;/div&gt;
+
+&lt;!-- Your page content --&gt;
+
+&lt;script&gt;
+// Page-specific JavaScript here
+&lt;/script&gt;
+
+{{"{{"}}template "footer" .{{"}}"}}</code></pre>
+    </div>
+
+    <p>The header template exposes all admin CSS variables and utility classes. Refer to the scripting documentation pages for examples of the card grid, reference tables, callout boxes, and sidebar patterns you can reuse.</p>
+
+    <h3>Supplying Template Data</h3>
+    <p>Pass a <code>dataFunc</code> to <code>AdminPage</code> to supply Go data to your HTML template:</p>
+
+    <div class="code-block">
+        <div class="code-block-header">Passing data to an admin page template</div>
+        <pre><code>plug.Web.AdminPage(
+    "Config", "mymod-config", "html/admin/mymod-config.html",
+    true, "Modules", "My Module", "Configure My Module.", "",
+    func(r *http.Request) map[string]any {
+        return map[string]any{
+            "MaxBid":   m.getMaxBid(),
+            "Enabled":  m.enabled,
+        }
+    },
+)
+
+// In the HTML template:
+// &lt;p&gt;Max bid: {{"{{"}} .MaxBid {{"}}"}}&lt;/p&gt;</code></pre>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     EXAMPLE — MINIMAL
+══════════════════════════════════════════════════════════════════ -->
+<section class="doc-section" id="example-minimal">
+    <h2>Example: Minimal Module (time)</h2>
+
+    <p>The <code>time</code> module is the simplest possible real module. It adds one player command and an admin info page. No state, no events.</p>
+
+    <div class="code-block">
+        <div class="code-block-header">modules/time/time.go (abridged)</div>
+        <pre><code>package time
+
+import (
+    "embed"
+    "fmt"
+
+    "github.com/GoMudEngine/GoMud/internal/events"
+    "github.com/GoMudEngine/GoMud/internal/gametime"
+    "github.com/GoMudEngine/GoMud/internal/plugins"
+    "github.com/GoMudEngine/GoMud/internal/rooms"
+    "github.com/GoMudEngine/GoMud/internal/users"
+)
+
+//go:embed files/*
+var files embed.FS
+
+func init() {
+    plug := plugins.New("time", "1.0")
+
+    if err := plug.AttachFileSystem(files); err != nil {
+        panic(err)
+    }
+
+    // Register an admin page under Modules > Time.
+    plug.Web.AdminPage(
+        "About", "time-about", "html/admin/time-about.html",
+        true, "Modules", "Time",
+        "Information and version details for the Time module.",
+        "Time module providing players with in-game clock and calendar commands.",
+        nil,
+    )
+
+    // Register the player command.
+    plug.AddUserCommand("time", TimeCommand, true, false)
+}
+
+func TimeCommand(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
+    gd := gametime.GetDate()
+
+    dayNight := "day"
+    if gd.Night {
+        dayNight = "night"
+    }
+
+    user.SendText(fmt.Sprintf(
+        `It is now %s. It is &lt;ansi fg="%s"&gt;%stime&lt;/ansi&gt; on day %d of year %d.`,
+        gd.String(), dayNight, dayNight, gd.Day, gd.Year,
+    ))
+
+    return true, nil
+}</code></pre>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     EXAMPLE — STATEFUL
+══════════════════════════════════════════════════════════════════ -->
+<section class="doc-section" id="example-stateful">
+    <h2>Example: Stateful Module (auctions)</h2>
+
+    <p>The <code>auctions</code> module maintains in-memory state, persists it across restarts, listens to the <code>NewRound</code> event for timed logic, and contributes admin pages.</p>
+
+    <div class="code-block">
+        <div class="code-block-header">modules/auctions/auctions.go (abridged)</div>
+        <pre><code>package auctions
+
+import (
+    "embed"
+
+    "github.com/GoMudEngine/GoMud/internal/events"
+    "github.com/GoMudEngine/GoMud/internal/plugins"
+    "github.com/GoMudEngine/GoMud/internal/rooms"
+    "github.com/GoMudEngine/GoMud/internal/users"
+)
+
+//go:embed files/*
+var files embed.FS
+
+// AuctionsModule holds all module state.
+type AuctionsModule struct {
+    plug       *plugins.Plugin
+    auctionMgr AuctionManager
+}
+
+func init() {
+    a := AuctionsModule{
+        plug:       plugins.New("auctions", "1.0"),
+        auctionMgr: AuctionManager{maxHistoryItems: 10},
+    }
+
+    if err := a.plug.AttachFileSystem(files); err != nil {
+        panic(err)
+    }
+
+    // Admin pages nested under Modules > Auctions.
+    a.plug.Web.AdminPage("Config", "auctions-config", "html/admin/auctions-config.html",
+        true, "Modules", "Auctions",
+        "Configure auction duration, fees, and bidding rules.",
+        "Auction system allowing players to list items for competitive bidding.", nil)
+
+    a.plug.Web.AdminPage("About", "auctions-about", "html/admin/auctions-about.html",
+        true, "Modules", "Auctions",
+        "Information and version details for the Auctions module.", "", nil)
+
+    // Player command.
+    a.plug.AddUserCommand("auction", a.auctionCommand, true, false)
+
+    // Persist state across restarts.
+    a.plug.Callbacks.SetOnLoad(a.load)
+    a.plug.Callbacks.SetOnSave(a.save)
+
+    // React to every new game round to advance auction timers.
+    events.RegisterListener(events.NewRound{}, a.newRoundHandler)
+}
+
+func (mod *AuctionsModule) load() {
+    mod.plug.ReadIntoStruct("auctionhistory", &amp;mod.auctionMgr)
+}
+
+func (mod *AuctionsModule) save() {
+    mod.plug.WriteStruct("auctionhistory", mod.auctionMgr)
+}
+
+func (mod *AuctionsModule) newRoundHandler(e events.Event) events.ListenerReturn {
+    evt := e.(events.NewRound)
+    mod.auctionMgr.Tick(evt.RoundNumber)
+    return events.Continue
+}
+
+func (mod *AuctionsModule) auctionCommand(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
+    // ... command handling ...
+    return true, nil
+}</code></pre>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     EXAMPLE — ADVANCED
+══════════════════════════════════════════════════════════════════ -->
+<section class="doc-section" id="example-advanced">
+    <h2>Example: Advanced Module (follow)</h2>
+
+    <p>The <code>follow</code> module demonstrates the full breadth of the plugin API: a struct-based module, both player and mob commands, a scripting bridge function, multiple event listeners with priority control, and reserved room tags.</p>
+
+    <div class="code-block">
+        <div class="code-block-header">modules/follow/follow.go (abridged)</div>
+        <pre><code>package follow
+
+import (
+    "embed"
+
+    "github.com/GoMudEngine/GoMud/internal/events"
+    "github.com/GoMudEngine/GoMud/internal/plugins"
+    "github.com/GoMudEngine/GoMud/internal/rooms"
+    "github.com/GoMudEngine/GoMud/internal/scripting"
+    "github.com/GoMudEngine/GoMud/internal/users"
+)
+
+//go:embed files/*
+var files embed.FS
+
+type followId struct {
+    userId        int
+    mobInstanceId int
+}
+
+type FollowModule struct {
+    plug      *plugins.Plugin
+    followed  map[followId][]followId // who is followed -> list of followers
+    followers map[followId]followId   // follower -> who they follow
+}
+
+func init() {
+    f := FollowModule{
+        plug:      plugins.New("follow", "1.0"),
+        followed:  make(map[followId][]followId),
+        followers: make(map[followId]followId),
+    }
+
+    if err := f.plug.AttachFileSystem(files); err != nil {
+        panic(err)
+    }
+
+    // Admin page.
+    f.plug.Web.AdminPage("Config", "follow-config", "html/admin/follow-config.html",
+        true, "Modules", "Follow",
+        "Configure follow behavior and allowed follow distances.",
+        "Follow system allowing players and NPCs to trail behind another character.", nil)
+
+    // Both a player command and a mob AI command.
+    f.plug.AddUserCommand("follow", f.followUserCommand, true, false)
+    f.plug.AddMobCommand("follow", f.followMobCommand, true)
+
+    // Expose a function to JavaScript scripts.
+    // Callable in scripts as: modules.follow.GetFollowers(actor)
+    f.plug.AddScriptingFunction("GetFollowers", f.Scripting_GetFollowers)
+
+    // Multiple event listeners — MobIdle uses events.First to intercept
+    // before the built-in mob AI runs.
+    events.RegisterListener(events.RoomChange{}, f.roomChangeHandler)
+    events.RegisterListener(events.PlayerDespawn{}, f.playerDespawnHandler)
+    events.RegisterListener(events.MobDeath{}, f.onMobDeath)
+    events.RegisterListener(events.PlayerDeath{}, f.onPlayerDeath)
+    events.RegisterListener(events.MobIdle{}, f.idleMobHandler, events.First) // intercept first
+    events.RegisterListener(events.PartyUpdated{}, f.onPartyChange)
+    events.RegisterListener(events.NewRound{}, f.onNewRound)
+}
+
+// Scripting bridge — receives a ScriptActor from JavaScript.
+func (f *FollowModule) Scripting_GetFollowers(target scripting.ScriptActor) []*scripting.ScriptActor {
+    // ... return follower actors ...
+    return nil
+}
+
+func (f *FollowModule) followUserCommand(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
+    // ... follow logic for players ...
+    return true, nil
+}
+
+func (f *FollowModule) idleMobHandler(e events.Event) events.ListenerReturn {
+    // Return events.Cancel to suppress the built-in mob AI for this mob.
+    // Return events.Continue to let the default AI run after this handler.
+    return events.Continue
+}</code></pre>
+    </div>
+
+    <div class="callout callout-tip">
+        <svg class="callout-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <p>Using <code>events.First</code> on <code>MobIdle</code> lets your module run its own AI logic and optionally cancel the built-in mob AI by returning <code>events.Cancel</code>. This is the correct pattern for any module that wants to drive mob behaviour.</p>
+    </div>
+</section>
+
+</main>
+</div>
+
+<script>
+(function() {
+    var sidebar = document.getElementById('doc-sidebar');
+    var links = sidebar ? sidebar.querySelectorAll('a[href^="#"]') : [];
+    var sections = [];
+    links.forEach(function(a) {
+        var id = a.getAttribute('href').slice(1);
+        var el = document.getElementById(id);
+        if (el) sections.push({ el: el, a: a });
+    });
+    if (!sections.length || !('IntersectionObserver' in window)) return;
+    var active = null;
+    var obs = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+            if (e.isIntersecting) {
+                var found = sections.find(function(s) { return s.el === e.target; });
+                if (found && found.a !== active) {
+                    if (active) active.classList.remove('active');
+                    found.a.classList.add('active');
+                    active = found.a;
+                }
+            }
+        });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    sections.forEach(function(s) { obs.observe(s.el); });
+})();
+</script>
+
+{{template "footer" .}}

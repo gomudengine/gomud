@@ -230,6 +230,14 @@ func buildAdminNav() []WebNavItem {
 						{Label: "REST API", Target: "/admin/scripting-api", Description: "REST endpoints for script validation and schema."},
 					},
 				},
+				{
+					Name:        "Modules",
+					Target:      "/admin/docs-modules",
+					Description: "Reference documentation for building Go modules that extend the server.",
+					Children: []WebNavItem{
+						{Label: "Overview", Target: "/admin/docs-modules", Description: "Lifecycle, full plugin API reference, event catalog, and worked examples."},
+					},
+				},
 			},
 		},
 	}

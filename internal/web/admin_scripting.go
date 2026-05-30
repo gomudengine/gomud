@@ -37,3 +37,7 @@ func adminScriptingPets(w http.ResponseWriter, r *http.Request) {
 func adminScriptingFunctions(w http.ResponseWriter, r *http.Request) {
 	serveAdminTemplate(w, r, "scripting-functions.html", nil)
 }
+
+func adminDocsModules(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "docs-modules.html", nil)
+}
