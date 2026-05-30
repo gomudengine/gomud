@@ -18,7 +18,7 @@ func adminTelemetryAPI(w http.ResponseWriter, r *http.Request) {
 // GET /admin/api/v1/telemetry
 // Query params: category, itemId, mobId, roomId, zone, raceId, topic, date, dateFrom, dateTo,
 //
-//	groupby (mob|item|zone|room|date|category|race|topic), sort (asc|desc), limit (int)
+//	groupby (mob|item|zone|room|date|category|race|topic), sort (asc|desc)
 func apiV1GetTelemetry(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 
@@ -86,12 +86,6 @@ func apiV1GetTelemetry(w http.ResponseWriter, r *http.Request) {
 		qb = qb.SortAsc()
 	} else {
 		qb = qb.SortDesc()
-	}
-
-	if v := q.Get("limit"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n > 0 {
-			qb = qb.Limit(n)
-		}
 	}
 
 	results := qb.Results()

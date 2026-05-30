@@ -35,7 +35,6 @@ type QueryBuilder struct {
 	hasSort    bool
 	groupBy    GroupByField
 	hasGroupBy bool
-	limit      int // 0 means no limit
 }
 
 func (q *QueryBuilder) Category(c string) *QueryBuilder { q.category = c; return q }
@@ -45,9 +44,6 @@ func (q *QueryBuilder) MobId(id int) *QueryBuilder      { q.mobId = id; return q
 func (q *QueryBuilder) RoomId(id int) *QueryBuilder     { q.roomId = id; return q }
 func (q *QueryBuilder) RaceId(id int) *QueryBuilder     { q.raceId = id; return q }
 func (q *QueryBuilder) Topic(t string) *QueryBuilder    { q.topic = t; return q }
-
-// Limit caps the number of records returned by Results. Zero means no limit.
-func (q *QueryBuilder) Limit(n int) *QueryBuilder { q.limit = n; return q }
 
 // Date filters to an exact YYYYMMDD date.
 func (q *QueryBuilder) Date(d string) *QueryBuilder { q.dateFrom = d; q.dateTo = d; return q }
@@ -96,10 +92,6 @@ func (q *QueryBuilder) Results() []Record {
 			}
 			return out[i].Count < out[j].Count
 		})
-	}
-
-	if q.limit > 0 && len(out) > q.limit {
-		out = out[:q.limit]
 	}
 
 	return out
