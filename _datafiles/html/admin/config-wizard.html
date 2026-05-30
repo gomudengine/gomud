@@ -1,0 +1,2181 @@
+{{template "header" .}}
+
+<style>
+/* ============================================================
+   Config Wizard — Layout & Base
+   ============================================================ */
+h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+.subtitle { color: var(--color-text-muted); margin-bottom: 1.75rem; font-size: 0.9rem; }
+
+/* ============================================================
+   Section Selection Grid
+   ============================================================ */
+#phase-sections { display: block; }
+#phase-wizard   { display: none; }
+#phase-complete { display: none; }
+
+.sections-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.section-card {
+    background: var(--color-surface-white);
+    border: 1px solid var(--color-border);
+    border-left: 4px solid var(--color-border-medium);
+    border-radius: 8px;
+    padding: 1.25rem 1.4rem;
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, border-left-color 0.12s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    position: relative;
+}
+.section-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+    border-left-color: var(--color-primary);
+}
+.section-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.section-card-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: var(--color-border-faint);
+    color: var(--color-primary);
+}
+.section-card-icon svg { width: 20px; height: 20px; }
+.section-card-name {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-text);
+}
+.section-card-desc {
+    font-size: 0.82rem;
+    color: var(--color-text-muted);
+    line-height: 1.5;
+}
+.section-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 0.25rem;
+}
+.section-card-count {
+    font-size: 0.75rem;
+    color: var(--color-text-placeholder);
+    font-family: monospace;
+}
+.btn-configure {
+    padding: 0.35rem 0.9rem;
+    background: var(--color-primary);
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.12s;
+}
+.btn-configure:hover { background: var(--color-primary-hover); }
+
+/* Color accents per section — driven by inline style via JS; no static rules needed */
+
+/* ============================================================
+   Wizard Step
+   ============================================================ */
+.wizard-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+.wizard-breadcrumb {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.wizard-breadcrumb a {
+    color: var(--color-accent-link);
+    text-decoration: none;
+}
+.wizard-breadcrumb a:hover { text-decoration: underline; }
+.wizard-breadcrumb .sep { color: var(--color-text-placeholder); }
+.wizard-spacer { flex: 1; }
+.wizard-step-counter {
+    font-size: 0.82rem;
+    color: var(--color-text-muted);
+    background: var(--color-surface-alt);
+    border: 1px solid var(--color-border);
+    border-radius: 20px;
+    padding: 0.2rem 0.75rem;
+    white-space: nowrap;
+}
+
+/* Progress bar */
+.wizard-progress-wrap {
+    background: var(--color-border-faint);
+    border-radius: 99px;
+    height: 6px;
+    margin-bottom: 2rem;
+    overflow: hidden;
+}
+.wizard-progress-bar {
+    height: 100%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, var(--color-primary) 0%, #4a6fa5 100%);
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    min-width: 4px;
+}
+
+/* The main step card */
+.wizard-card {
+    max-width: 700px;
+    margin: 0 auto;
+    background: var(--color-surface-white);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 2rem 2.25rem;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    transition: border-color 0.2s;
+}
+.wizard-card.flash-success {
+    border-color: var(--color-success-text);
+    box-shadow: 0 0 0 3px rgba(30,110,52,0.12);
+}
+.wizard-card.flash-error {
+    border-color: var(--color-error-text);
+    animation: shake 0.35s ease;
+}
+@keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20%      { transform: translateX(-6px); }
+    40%      { transform: translateX(6px); }
+    60%      { transform: translateX(-4px); }
+    80%      { transform: translateX(4px); }
+}
+
+.wizard-field-label {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin-bottom: 0.4rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+.wizard-field-key {
+    font-family: monospace;
+    font-size: 0.72rem;
+    color: var(--color-text-placeholder);
+    background: var(--color-border-faint);
+    border: 1px solid var(--color-border-light);
+    border-radius: 4px;
+    padding: 0.1rem 0.45rem;
+    font-weight: 400;
+}
+.wizard-current-value {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    margin-bottom: 1rem;
+}
+.wizard-current-value .cv-label { color: var(--color-text-faint); }
+.wizard-current-value .cv-val {
+    font-family: monospace;
+    font-size: 0.82rem;
+    background: var(--color-surface-alt);
+    border: 1px solid var(--color-border-light);
+    border-radius: 4px;
+    padding: 0.1rem 0.45rem;
+    color: var(--color-primary);
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Description block */
+.wizard-description {
+    font-size: 0.9rem;
+    color: var(--color-text);
+    line-height: 1.65;
+    margin-bottom: 0.75rem;
+}
+.wizard-implications {
+    background: var(--color-info-bg);
+    border-left: 3px solid var(--color-info-text);
+    border-radius: 0 6px 6px 0;
+    padding: 0.65rem 1rem;
+    font-size: 0.84rem;
+    color: var(--color-info-text);
+    line-height: 1.55;
+    margin-bottom: 1.5rem;
+}
+.wizard-implications strong { font-weight: 700; }
+
+/* ============================================================
+   Input Controls
+   ============================================================ */
+.wizard-input-wrap {
+    margin-bottom: 1.75rem;
+}
+
+/* Text / number / password inputs */
+.wizard-text-input {
+    width: 100%;
+    padding: 0.65rem 0.9rem;
+    border: 2px solid var(--color-border-medium);
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: inherit;
+    background: var(--color-surface-white);
+    color: var(--color-text);
+    transition: border-color 0.15s;
+}
+.wizard-text-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(26,26,46,0.08);
+}
+.wizard-text-input[readonly] {
+    background: var(--color-surface-alt);
+    color: var(--color-text-muted);
+    cursor: not-allowed;
+}
+
+/* Number input with stepper */
+.wizard-number-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.wizard-number-wrap .wizard-text-input {
+    width: 140px;
+    text-align: center;
+}
+.wizard-stepper {
+    width: 36px; height: 36px;
+    border: 1px solid var(--color-border-medium);
+    border-radius: 6px;
+    background: var(--color-surface-alt);
+    color: var(--color-text);
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    transition: background 0.1s;
+}
+.wizard-stepper:hover { background: var(--color-hover-tint); border-color: var(--color-hover-tint-border); }
+.wizard-number-hint {
+    font-size: 0.78rem;
+    color: var(--color-text-placeholder);
+    margin-left: 0.25rem;
+}
+
+/* Slider */
+.wizard-slider-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.wizard-slider-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+.wizard-slider {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 99px;
+    background: var(--color-border-medium);
+    outline: none;
+    cursor: pointer;
+}
+.wizard-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    cursor: pointer;
+    border: 3px solid #fff;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.25);
+    transition: transform 0.1s;
+}
+.wizard-slider::-webkit-slider-thumb:hover { transform: scale(1.15); }
+.wizard-slider::-moz-range-thumb {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    cursor: pointer;
+    border: 3px solid #fff;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.25);
+}
+.wizard-slider-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    min-width: 56px;
+    text-align: right;
+    font-family: monospace;
+}
+.wizard-slider-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.73rem;
+    color: var(--color-text-placeholder);
+    padding: 0 2px;
+}
+
+/* Toggle (bool) */
+.wizard-toggle-group {
+    display: flex;
+    gap: 1rem;
+}
+.wizard-toggle-option {
+    flex: 1;
+    max-width: 200px;
+}
+.wizard-toggle-option input[type="radio"] {
+    display: none;
+}
+.wizard-toggle-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    border: 2px solid var(--color-border-medium);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    background: var(--color-surface-alt);
+    transition: all 0.15s;
+    user-select: none;
+}
+.wizard-toggle-label:hover {
+    border-color: var(--color-primary);
+    color: var(--color-text);
+}
+.wizard-toggle-option input[type="radio"]:checked + .wizard-toggle-label {
+    border-color: var(--color-primary);
+    background: var(--color-primary);
+    color: #fff;
+}
+.wizard-toggle-option input[type="radio"][value="true"]:checked + .wizard-toggle-label {
+    border-color: var(--color-success-text);
+    background: var(--color-success-text);
+    color: #fff;
+}
+.wizard-toggle-option input[type="radio"][value="false"]:checked + .wizard-toggle-label {
+    border-color: var(--color-text-secondary);
+    background: var(--color-text-secondary);
+    color: #fff;
+}
+
+/* Enum radio group */
+.wizard-radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+.wizard-radio-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border: 2px solid var(--color-border-medium);
+    border-radius: 8px;
+    cursor: pointer;
+    background: var(--color-surface-alt);
+    transition: all 0.15s;
+}
+.wizard-radio-option:hover {
+    border-color: var(--color-primary);
+    background: var(--color-hover-tint);
+}
+.wizard-radio-option.selected {
+    border-color: var(--color-primary);
+    background: var(--color-surface-white);
+}
+.wizard-radio-option input[type="radio"] {
+    margin-top: 2px;
+    accent-color: var(--color-primary);
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+.wizard-radio-option-body {}
+.wizard-radio-option-label {
+    font-weight: 700;
+    font-size: 0.92rem;
+    color: var(--color-text);
+    margin-bottom: 0.15rem;
+}
+.wizard-radio-option-desc {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    line-height: 1.4;
+}
+
+/* Tags / slice input */
+.wizard-tags-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+.wizard-tags-display {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    min-height: 36px;
+    padding: 0.4rem;
+    border: 2px solid var(--color-border-medium);
+    border-radius: 8px;
+    background: var(--color-surface-white);
+    cursor: text;
+}
+.wizard-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: var(--color-chip-bg);
+    color: var(--color-chip-text);
+    border-radius: 4px;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.82rem;
+    font-family: monospace;
+}
+.wizard-tag-remove {
+    cursor: pointer;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    line-height: 1;
+    padding: 0 0.1rem;
+}
+.wizard-tag-remove:hover { color: var(--color-danger); }
+.wizard-tags-input-row {
+    display: flex;
+    gap: 0.5rem;
+}
+.wizard-tags-input-row .wizard-text-input {
+    flex: 1;
+    font-size: 0.9rem;
+    padding: 0.5rem 0.75rem;
+}
+.btn-tag-add {
+    padding: 0.5rem 0.9rem;
+    background: var(--color-surface-alt);
+    border: 1px solid var(--color-border-medium);
+    border-radius: 6px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    color: var(--color-text);
+    white-space: nowrap;
+}
+.btn-tag-add:hover { background: var(--color-hover-tint); border-color: var(--color-hover-tint-border); }
+.wizard-tags-hint {
+    font-size: 0.77rem;
+    color: var(--color-text-placeholder);
+}
+
+/* ============================================================
+   Action Buttons
+   ============================================================ */
+.wizard-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+.btn-accept {
+    padding: 0.7rem 1.75rem;
+    background: var(--color-primary);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.12s, transform 0.08s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.btn-accept:hover { background: var(--color-primary-hover); transform: translateY(-1px); }
+.btn-accept:active { transform: translateY(0); }
+.btn-accept:disabled {
+    background: var(--color-text-secondary);
+    cursor: not-allowed;
+    transform: none;
+}
+.btn-skip {
+    padding: 0.65rem 1.25rem;
+    background: transparent;
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-border-medium);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.12s;
+}
+.btn-skip:hover { border-color: var(--color-text-secondary); color: var(--color-text); }
+.btn-back {
+    padding: 0.65rem 1.1rem;
+    background: transparent;
+    color: var(--color-text-faint);
+    border: none;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+.btn-back:hover { color: var(--color-text); }
+.wizard-action-spacer { flex: 1; }
+
+/* Status message */
+.wizard-status {
+    display: none;
+    padding: 0.55rem 0.9rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+    align-items: center;
+    gap: 0.5rem;
+}
+.wizard-status.success { display: flex; background: var(--color-success-bg); color: var(--color-success-text); }
+.wizard-status.error   { display: flex; background: var(--color-error-bg); color: var(--color-error-text); }
+
+/* ============================================================
+   Section Complete Screen
+   ============================================================ */
+.complete-card {
+    max-width: 600px;
+    margin: 2rem auto;
+    background: var(--color-surface-white);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 2.5rem 2.25rem;
+    text-align: center;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+.complete-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--color-success-bg);
+    color: var(--color-success-text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.25rem;
+    animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+@keyframes popIn {
+    0%   { transform: scale(0); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+.complete-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin-bottom: 0.5rem;
+}
+.complete-subtitle {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    margin-bottom: 1.5rem;
+}
+.complete-changes {
+    text-align: left;
+    background: var(--color-surface-alt);
+    border: 1px solid var(--color-border-light);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.75rem;
+    max-height: 260px;
+    overflow-y: auto;
+}
+.complete-change-item {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    padding: 0.35rem 0;
+    border-bottom: 1px solid var(--color-border-faint);
+    font-size: 0.84rem;
+}
+.complete-change-item:last-child { border-bottom: none; }
+.complete-change-key {
+    font-family: monospace;
+    color: var(--color-primary);
+    font-size: 0.8rem;
+    flex-shrink: 0;
+}
+.complete-change-arrow { color: var(--color-text-placeholder); flex-shrink: 0; }
+.complete-change-val {
+    font-family: monospace;
+    color: var(--color-text);
+    font-size: 0.8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.complete-no-changes {
+    font-size: 0.85rem;
+    color: var(--color-text-placeholder);
+    font-style: italic;
+    text-align: center;
+    padding: 0.5rem 0;
+}
+.complete-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+.btn-return {
+    padding: 0.7rem 1.75rem;
+    background: var(--color-primary);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.12s;
+}
+.btn-return:hover { background: var(--color-primary-hover); }
+.btn-configure-another {
+    padding: 0.65rem 1.25rem;
+    background: transparent;
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-border-medium);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.12s;
+}
+.btn-configure-another:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
+/* Read-only banner */
+.readonly-notice {
+    background: var(--color-warning-bg);
+    border: 1px solid var(--color-warning-text);
+    border-radius: 6px;
+    padding: 0.55rem 0.9rem;
+    font-size: 0.84rem;
+    color: var(--color-warning-text);
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Loading state */
+.wizard-loading {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+}
+.spinner {
+    width: 32px; height: 32px;
+    border: 3px solid var(--color-border-medium);
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin: 0 auto 1rem;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+
+<h1>Config Wizard</h1>
+<p class="subtitle">Step through your server configuration with guided explanations and smart controls.</p>
+
+{{if .READ_ONLY}}
+<div class="readonly-notice">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+    <span><strong>Read-only mode</strong> — you can browse settings but changes will not be saved.</span>
+</div>
+{{end}}
+
+<!-- ============================================================
+     Phase 1: Section Selection
+     ============================================================ -->
+<div id="phase-sections">
+    <div id="sections-loading" class="wizard-loading">
+        <div class="spinner"></div>
+        Loading configuration...
+    </div>
+    <div id="sections-grid" class="sections-grid" style="display:none;"></div>
+</div>
+
+<!-- ============================================================
+     Phase 2: Wizard Step
+     ============================================================ -->
+<div id="phase-wizard">
+    <div class="wizard-header">
+        <div class="wizard-breadcrumb">
+            <a href="#" id="wizard-exit-link">Sections</a>
+            <span class="sep">&#9658;</span>
+            <span id="wizard-section-name-bc"></span>
+        </div>
+        <span class="wizard-spacer"></span>
+        <span class="wizard-step-counter" id="wizard-step-counter">Step 1 of 8</span>
+    </div>
+
+    <div class="wizard-progress-wrap">
+        <div class="wizard-progress-bar" id="wizard-progress-bar" style="width:0%"></div>
+    </div>
+
+    <div class="wizard-card" id="wizard-card">
+        <div id="wizard-status" class="wizard-status"></div>
+
+        <div class="wizard-field-label" id="wizard-field-label">
+            Field Name
+            <span class="wizard-field-key" id="wizard-field-key"></span>
+        </div>
+
+        <div class="wizard-current-value" id="wizard-current-value-wrap">
+            <span class="cv-label">Current value:</span>
+            <span class="cv-val" id="wizard-current-value"></span>
+        </div>
+
+        <p class="wizard-description" id="wizard-description"></p>
+
+        <div class="wizard-implications" id="wizard-implications" style="display:none;"></div>
+
+        <div class="wizard-input-wrap" id="wizard-input-wrap">
+            <!-- Dynamically rendered -->
+        </div>
+
+        <div class="wizard-actions">
+            <button class="btn-back" id="wizard-btn-back" onclick="wizardBack()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                Back
+            </button>
+            <span class="wizard-action-spacer"></span>
+            <button class="btn-skip" id="wizard-btn-skip" onclick="wizardSkip()">Skip</button>
+            <button class="btn-accept" id="wizard-btn-accept" onclick="wizardAccept()">
+                Accept &amp; Continue
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     Phase 3: Section Complete
+     ============================================================ -->
+<div id="phase-complete">
+    <div class="complete-card">
+        <div class="complete-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </div>
+        <div class="complete-title" id="complete-title">Section Complete!</div>
+        <div class="complete-subtitle" id="complete-subtitle">You've reviewed all settings in this section.</div>
+        <div class="complete-changes" id="complete-changes-list"></div>
+        <div class="complete-actions">
+            <button class="btn-configure-another" onclick="returnToSections()">Configure Another Section</button>
+            <a href="/admin/config"><button class="btn-return">View All Config</button></a>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+'use strict';
+
+// ============================================================
+// Field Metadata Catalog
+// ============================================================
+var FIELD_META = {
+
+    // --- Server ---
+    'Server.MudName': {
+        label: 'MUD Name',
+        description: 'The display name of your MUD server. This appears in the admin panel header, login screen, and any player-facing branding.',
+        implications: 'Choose a memorable and unique name. Changing this after launch can confuse returning players, so pick something you\'ll be happy with long-term.',
+        inputType: 'text',
+        placeholder: 'My Awesome MUD',
+    },
+    'Server.Seed': {
+        label: 'World Seed',
+        description: 'A string used as the seed for procedural and randomized content generation across the world.',
+        implications: 'Changing the seed will alter all seeded random outcomes. If your world relies on consistent procedural generation, changing this mid-operation can produce unexpected results.',
+        inputType: 'text',
+        placeholder: 'Mud',
+    },
+    'Server.MaxCPUCores': {
+        label: 'Max CPU Cores',
+        description: 'Maximum number of CPU cores the server is allowed to use for parallel operations. Set to 0 to use all available cores.',
+        implications: 'Setting this too low on a busy server can cause slowdowns during heavy computation. Setting it to 0 lets Go\'s runtime decide, which is usually optimal. Only restrict this if you need to share the host with other services.',
+        inputType: 'number',
+        min: 0, max: 256, step: 1,
+    },
+    'Server.Motd': {
+        label: 'Message of the Day',
+        description: 'A message displayed to players when they log in. Supports ANSI color codes. Can be used for announcements, tips, or lore flavor.',
+        implications: 'Keep it concise — players will see this every login. Long messages can be annoying. Leave empty to display no MOTD.',
+        inputType: 'textarea',
+        placeholder: 'Welcome, adventurer! Type "help" to get started.',
+    },
+    'Server.OnLoginCommands': {
+        label: 'On-Login Commands',
+        description: 'A list of commands automatically executed for every player when they log in. Each entry is a separate command string.',
+        implications: 'Use sparingly. Commands here run for every player on every login. Incorrect commands can cause errors or unexpected behavior at scale.',
+        inputType: 'tags',
+    },
+    'Server.NextRoomId': {
+        label: 'Next Room ID',
+        description: 'The next room ID that will be assigned when creating a new room through the admin tools. This auto-increments and rarely needs manual adjustment.',
+        implications: 'Only change this if you are migrating data or resolving ID conflicts. Setting it too low may cause collisions with existing rooms.',
+        inputType: 'number',
+        min: 1, max: 9999999, step: 1,
+    },
+
+    // --- Network ---
+    'Network.MaxTelnetConnections': {
+        label: 'Max Telnet Connections',
+        description: 'The maximum number of simultaneous telnet connections the server will accept. New connections are rejected once this limit is reached.',
+        implications: 'Too low: legitimate players get refused entry during busy periods. Too high: risk of resource exhaustion if your server hardware is limited. 50 is a safe default for most small-to-medium servers.',
+        inputType: 'number',
+        min: 1, max: 10000, step: 1,
+    },
+    'Network.TelnetPort': {
+        label: 'Telnet Ports',
+        description: 'One or more TCP port numbers the server listens on for telnet connections. Multiple ports can be specified for redundancy or legacy client compatibility.',
+        implications: 'Port 23 is the traditional telnet port but may be blocked by firewalls. Port 4000 is common for MUDs. Changes require a server restart to take effect.',
+        inputType: 'tags',
+    },
+    'Network.LocalPort': {
+        label: 'Local Admin Port',
+        description: 'The port used for local-only admin connections (localhost only). This provides a secure channel for administration without exposing it to the network.',
+        implications: 'This port is only accessible from the same machine. Do not expose it through firewall rules. Set to 0 to disable.',
+        inputType: 'number',
+        min: 0, max: 65535, step: 1,
+    },
+    'Network.HttpPort': {
+        label: 'HTTP Port',
+        description: 'The port used for the web admin interface and public web pages over plain HTTP. Set to 0 to disable HTTP entirely.',
+        implications: 'Port 80 is standard but requires elevated privileges on most systems. Port 8080 is a common alternative. If HTTPS redirect is enabled, HTTP traffic will be forwarded to the HTTPS port.',
+        inputType: 'number',
+        min: 0, max: 65535, step: 1,
+    },
+    'Network.HttpsPort': {
+        label: 'HTTPS Port',
+        description: 'The port used for secure HTTPS connections. Set to 0 to disable HTTPS. Requires valid certificate configuration in FilePaths.',
+        implications: 'Port 443 is standard but requires elevated privileges. Port 8443 is a common alternative. HTTPS is strongly recommended for any public-facing admin interface.',
+        inputType: 'number',
+        min: 0, max: 65535, step: 1,
+    },
+    'Network.HttpsRedirect': {
+        label: 'HTTPS Redirect',
+        description: 'When enabled, all plain HTTP traffic is automatically redirected to the HTTPS port. Requires both HTTP and HTTPS ports to be configured.',
+        implications: 'Enabling this ensures all web traffic is encrypted. Only enable if you have a valid HTTPS configuration in place, otherwise the admin panel becomes inaccessible.',
+        inputType: 'bool',
+    },
+    'Network.SSHPort': {
+        label: 'SSH Port',
+        description: 'The port used for SSH connections, allowing players to connect via SSH clients. Set to 0 to disable SSH entirely.',
+        implications: 'Port 22 is standard SSH but may conflict with system SSH. Port 2222 is a common alternative. SSH provides a more secure and feature-rich connection than raw telnet.',
+        inputType: 'number',
+        min: 0, max: 65535, step: 1,
+    },
+    'Network.MaxSSHConnections': {
+        label: 'Max SSH Connections',
+        description: 'Maximum number of simultaneous SSH connections the server will accept.',
+        implications: 'Similar to telnet connections — balance between availability and resource usage. Default of 50 is reasonable for most servers.',
+        inputType: 'number',
+        min: 1, max: 10000, step: 1,
+    },
+    'Network.AfkSeconds': {
+        label: 'AFK Threshold (seconds)',
+        description: 'Number of seconds of inactivity before a player is marked as Away From Keyboard (AFK). Set to 0 to disable AFK detection.',
+        implications: 'Too short: players get marked AFK during normal brief pauses. Too long: AFK players clog up the online list. 300 seconds (5 minutes) is a common default.',
+        inputType: 'number',
+        min: 0, max: 3600, step: 30,
+    },
+    'Network.MaxIdleSeconds': {
+        label: 'Max Idle Seconds',
+        description: 'How many seconds a player can remain completely idle in-game before being automatically disconnected. Set to 0 to never kick idle players.',
+        implications: 'Kicking idle players frees server resources and connection slots. Too aggressive a timeout frustrates players who step away briefly. 1800 seconds (30 minutes) is typical.',
+        inputType: 'number',
+        min: 0, max: 86400, step: 60,
+    },
+    'Network.TimeoutMods': {
+        label: 'Timeout Moderators',
+        description: 'Whether admin and moderator accounts are subject to the same idle timeout as regular players.',
+        implications: 'Disabling timeouts for mods lets them monitor the server without being kicked. Enabling it ensures mods don\'t leave privileged sessions open unattended.',
+        inputType: 'bool',
+    },
+    'Network.LinkDeadSeconds': {
+        label: 'Link-Dead Grace Period (seconds)',
+        description: 'How many seconds a player whose connection dropped is kept in-game before being fully logged out. Allows reconnection without losing their session.',
+        implications: 'Too short: players who briefly disconnect lose their session. Too long: link-dead characters occupy space and could be exploited. 60-120 seconds is a reasonable range.',
+        inputType: 'number',
+        min: 0, max: 600, step: 10,
+    },
+    'Network.LogoutRounds': {
+        label: 'Logout Rounds',
+        description: 'Number of uninterrupted meditation rounds required to safely log out of the game. This prevents combat-logging abuse.',
+        implications: 'Setting this to 0 allows instant logout. Higher values prevent players from escaping combat by disconnecting, but can frustrate players who need to leave quickly.',
+        inputType: 'number',
+        min: 0, max: 30, step: 1,
+    },
+
+    // --- FilePaths ---
+    'FilePaths.DataFiles': {
+        label: 'Data Files Directory',
+        description: 'The root directory where all world data files (rooms, mobs, items, etc.) are stored and loaded from.',
+        implications: 'This path must exist and be readable by the server process. Changing this requires a restart and all existing data must be at the new location.',
+        inputType: 'text',
+        placeholder: '_datafiles/world/default',
+    },
+    'FilePaths.WebDomain': {
+        label: 'Web Domain',
+        description: 'The public domain name of this server (e.g., "mymud.example.com"). Used for HTTPS certificate generation and absolute URL construction.',
+        implications: 'Must match the actual DNS name pointing to this server. Required for HTTPS auto-certificate (Let\'s Encrypt) to work correctly.',
+        inputType: 'text',
+        placeholder: 'mymud.example.com',
+    },
+    'FilePaths.WebCDNLocation': {
+        label: 'CDN Location',
+        description: 'Optional URL prefix for serving static web assets from a CDN. Leave empty to serve assets directly from the server.',
+        implications: 'Using a CDN can significantly improve web client load times for geographically distributed players. Leave empty if you don\'t have a CDN configured.',
+        inputType: 'text',
+        placeholder: 'https://cdn.example.com',
+    },
+    'FilePaths.PublicHtml': {
+        label: 'Public HTML Directory',
+        description: 'Directory containing public-facing HTML pages (the web client, public status page, etc.).',
+        implications: 'Files here are served to anyone who visits the web port. Ensure no sensitive files are placed in this directory.',
+        inputType: 'text',
+        placeholder: '_datafiles/html/public',
+    },
+    'FilePaths.AdminHtml': {
+        label: 'Admin HTML Directory',
+        description: 'Directory containing admin panel HTML templates. These are only served to authenticated admin users.',
+        implications: 'Changing this path requires the new directory to contain all required admin templates. Incorrect paths will break the admin panel.',
+        inputType: 'text',
+        placeholder: '_datafiles/html/admin',
+    },
+    'FilePaths.CarefulSaveFiles': {
+        label: 'Careful Save Files',
+        description: 'When enabled, file saves use a write-to-temp-then-rename strategy to prevent data corruption if the server crashes mid-write.',
+        implications: 'Strongly recommended to keep enabled. The only reason to disable it would be on filesystems that don\'t support atomic renames, which is rare.',
+        inputType: 'bool',
+    },
+    'FilePaths.HttpsCertFile': {
+        label: 'HTTPS Certificate File',
+        description: 'Path to the TLS/SSL certificate file for HTTPS. Used when not using auto-certificate (Let\'s Encrypt) mode.',
+        implications: 'The certificate must be valid and not expired. If using Let\'s Encrypt auto-cert, this path is managed automatically.',
+        inputType: 'text',
+        placeholder: '/path/to/cert.pem',
+    },
+    'FilePaths.HttpsKeyFile': {
+        label: 'HTTPS Key File',
+        description: 'Path to the TLS/SSL private key file for HTTPS. Must correspond to the certificate file.',
+        implications: 'Keep this file secure and readable only by the server process. Never commit it to version control.',
+        inputType: 'text',
+        placeholder: '/path/to/key.pem',
+    },
+    'FilePaths.HttpsEmail': {
+        label: 'HTTPS Certificate Email',
+        description: 'Email address used for Let\'s Encrypt certificate registration and expiry notifications.',
+        implications: 'Required for auto-certificate mode. Let\'s Encrypt will send certificate expiry warnings to this address.',
+        inputType: 'secret',
+        placeholder: 'admin@example.com',
+    },
+    'FilePaths.HttpsCacheDir': {
+        label: 'HTTPS Cache Directory',
+        description: 'Directory where Let\'s Encrypt auto-certificates are stored and cached.',
+        implications: 'This directory must be writable by the server process. Certificates are cached here to avoid hitting Let\'s Encrypt rate limits.',
+        inputType: 'text',
+        placeholder: '_datafiles/tls',
+    },
+    'FilePaths.SSHHostKeyFile': {
+        label: 'SSH Host Key File',
+        description: 'Path to the SSH host key file used to identify this server to SSH clients.',
+        implications: 'If this file doesn\'t exist, the server will generate one automatically. Changing it will cause SSH clients to see a "host key changed" warning.',
+        inputType: 'text',
+        placeholder: '_datafiles/ssh_host_key',
+    },
+
+    // --- Timing ---
+    'Timing.TurnMs': {
+        label: 'Turn Duration (milliseconds)',
+        description: 'The duration of a single server "turn" in milliseconds. This is the fundamental clock tick of the game engine.',
+        implications: 'Lower values make the game feel more responsive but increase CPU load. Higher values reduce CPU usage but make the game feel sluggish. 100ms (10 turns/sec) is the standard default.',
+        inputType: 'number',
+        min: 10, max: 1000, step: 10,
+    },
+    'Timing.RoundSeconds': {
+        label: 'Round Duration (seconds)',
+        description: 'How many real-world seconds constitute one game "round". Rounds are the primary unit of time for combat, spells, and cooldowns.',
+        implications: 'Shorter rounds make combat faster and more action-packed. Longer rounds give players more time to think between actions. 4 seconds is a common default for MUDs.',
+        inputType: 'number',
+        min: 1, max: 60, step: 1,
+    },
+    'Timing.RoundsPerAutoSave': {
+        label: 'Rounds Between Auto-Saves',
+        description: 'How many game rounds pass between automatic saves of all player and world data to disk.',
+        implications: 'More frequent saves (lower number) reduce data loss on crash but increase disk I/O. Less frequent saves reduce I/O but risk more data loss. 900 rounds (about 15 minutes at 4s/round) is a reasonable default.',
+        inputType: 'number',
+        min: 10, max: 10000, step: 10,
+    },
+
+    // --- GamePlay ---
+    'GamePlay.AllowItemBuffRemoval': {
+        label: 'Allow Item Buff Removal',
+        description: 'When enabled, players can manually remove buffs that were applied by items (e.g., by removing the item that granted the buff).',
+        implications: 'Enabling this gives players more control over their buff state. Disabling it makes item buffs more "sticky" and harder to manage, which some server operators prefer for balance.',
+        inputType: 'bool',
+    },
+    'GamePlay.XPScale': {
+        label: 'XP Scale (%)',
+        description: 'A global multiplier for all experience points earned, expressed as a percentage. 100 = normal XP. 200 = double XP. 50 = half XP.',
+        implications: 'Increase for a more casual server where players level quickly. Decrease for a hardcore server where progression is slow and meaningful. This affects all XP sources globally.',
+        inputType: 'slider',
+        min: 1, max: 500, step: 1,
+    },
+    'GamePlay.MobConverseChance': {
+        label: 'Mob Converse Chance (%)',
+        description: 'The percentage chance (1-100) that an idle mob will attempt to start a conversation with another nearby mob each round.',
+        implications: 'Higher values create a more lively world with frequent NPC chatter. Lower values make conversations rare and special. 0 disables NPC conversations entirely.',
+        inputType: 'slider',
+        min: 0, max: 100, step: 1,
+    },
+    'GamePlay.AlignmentDecayRounds': {
+        label: 'Alignment Decay Rounds',
+        description: 'How many rounds between each step of alignment decay toward neutral. Alignment slowly drifts toward neutral over time when this is non-zero.',
+        implications: 'Lower values cause alignment to return to neutral faster, making it harder to maintain extreme good/evil alignment. Set to 0 to disable alignment decay entirely.',
+        inputType: 'number',
+        min: 0, max: 10000, step: 10,
+    },
+    'GamePlay.EliteLevelBonus': {
+        label: 'Elite Mob Level Bonus (%)',
+        description: 'Percentage increase applied to the level of elite mob spawns. For example, 20 means elite mobs are 20% higher level than their base template.',
+        implications: 'Higher values make elite mobs significantly more challenging and rewarding. Lower values make elites only slightly tougher than normal mobs.',
+        inputType: 'slider',
+        min: 0, max: 200, step: 5,
+    },
+    'GamePlay.EliteXPBonus': {
+        label: 'Elite Mob XP Bonus (%)',
+        description: 'Percentage bonus to XP awarded for killing an elite mob. For example, 10 means elite mobs give 10% more XP than their base value.',
+        implications: 'Higher values make hunting elite mobs more rewarding and incentivize seeking them out. This compounds with the base XP scale.',
+        inputType: 'slider',
+        min: 0, max: 500, step: 5,
+    },
+    'GamePlay.LivesStart': {
+        label: 'Starting Lives (Permadeath)',
+        description: 'How many permadeath lives new characters start with. Only relevant when permadeath is enabled.',
+        implications: 'More starting lives make the game more forgiving for new players. Fewer lives create immediate tension and high stakes from the start.',
+        inputType: 'number',
+        min: 0, max: 100, step: 1,
+    },
+    'GamePlay.LivesMax': {
+        label: 'Maximum Lives (Permadeath)',
+        description: 'The maximum number of permadeath lives a character can accumulate. Caps the benefit of buying or earning extra lives.',
+        implications: 'A low cap prevents players from stockpiling lives. A high or zero cap allows unlimited accumulation.',
+        inputType: 'number',
+        min: 0, max: 1000, step: 1,
+    },
+    'GamePlay.LivesOnLevelUp': {
+        label: 'Lives Gained on Level Up',
+        description: 'Number of permadeath lives awarded each time a character levels up.',
+        implications: 'Granting lives on level-up rewards progression and makes higher-level characters more resilient. Set to 0 to not grant lives on level-up.',
+        inputType: 'number',
+        min: 0, max: 10, step: 1,
+    },
+    'GamePlay.PricePerLife': {
+        label: 'Price Per Life (gold)',
+        description: 'The gold cost to purchase one additional permadeath life from a vendor.',
+        implications: 'Higher prices make extra lives a meaningful gold sink. Lower prices make them accessible to most players. Balance against the gold economy of your server.',
+        inputType: 'number',
+        min: 1, max: 10000000, step: 100,
+    },
+    'GamePlay.ShopRestockRate': {
+        label: 'Shop Restock Rate',
+        description: 'Default time interval for shops to restock one unit of each item. Uses period format (e.g., "6 hours", "30 minutes").',
+        implications: 'Faster restock makes shops more reliable sources of goods. Slower restock creates scarcity and encourages player-to-player trading.',
+        inputType: 'text',
+        placeholder: '6 hours',
+    },
+    'GamePlay.MercHirePricePerLevel': {
+        label: 'Mercenary Hire Price Per Level',
+        description: 'Gold cost per mob level when auto-calculating the hire price for mercenary NPCs.',
+        implications: 'Higher values make mercenaries expensive to hire, especially at high levels. Lower values make them more accessible. This is the per-level cost, so total price = level × this value.',
+        inputType: 'number',
+        min: 1, max: 100000, step: 50,
+    },
+    'GamePlay.ContainerSizeMax': {
+        label: 'Max Container Size',
+        description: 'Maximum number of items a container (chest, bag, etc.) can hold before it overflows.',
+        implications: 'Larger containers allow more storage but may impact performance if many large containers are loaded simultaneously. Smaller containers create more realistic inventory management challenges.',
+        inputType: 'number',
+        min: 1, max: 1000, step: 5,
+    },
+    'GamePlay.FloorItemCountMax': {
+        label: 'Max Floor Items Per Room',
+        description: 'Maximum number of items allowed on the floor of a single room at once. Set to 0 for no limit.',
+        implications: 'Limiting floor items prevents rooms from becoming cluttered and reduces memory usage in heavily-trafficked areas. Too low a limit may cause items to disappear unexpectedly.',
+        inputType: 'number',
+        min: 0, max: 500, step: 5,
+    },
+
+    // --- GamePlay.Death ---
+    'GamePlay.Death.EquipmentDropChance': {
+        label: 'Equipment Drop Chance on Death',
+        description: 'The probability (0.0 to 1.0) that each piece of equipped gear will drop when a player dies. 0.0 = never drop, 1.0 = always drop everything.',
+        implications: 'Higher values create a brutal death penalty that strongly discourages dying. Lower values are more forgiving. 0.1 (10% per item) is a common "moderate" setting.',
+        inputType: 'slider',
+        min: 0, max: 1, step: 0.05,
+        isFloat: true,
+    },
+    'GamePlay.Death.AlwaysDropBackpack': {
+        label: 'Always Drop Backpack on Death',
+        description: 'When enabled, players always drop all their carried (non-equipped) items on death, regardless of the equipment drop chance.',
+        implications: 'This creates a strong incentive to bank items before dangerous content. Combined with equipment drop chance, it can make death very costly.',
+        inputType: 'bool',
+    },
+    'GamePlay.Death.XPPenalty': {
+        label: 'XP Penalty on Death',
+        description: 'The experience point penalty applied when a player dies. Options: "none" (no penalty), "level" (lose enough XP to de-level), or a percentage like "10%", "25%", "50%".',
+        implications: 'No penalty makes death trivial. A level penalty is very harsh. Percentage penalties provide a middle ground. Balance this with equipment drop chance to set the overall death severity.',
+        inputType: 'enum',
+        options: [
+            { value: 'none', label: 'None', desc: 'No XP is lost on death.' },
+            { value: 'level', label: 'De-level', desc: 'Lose enough XP to drop back to the previous level.' },
+            { value: '10%', label: '10% XP', desc: 'Lose 10% of total XP on death.' },
+            { value: '25%', label: '25% XP', desc: 'Lose 25% of total XP on death.' },
+            { value: '50%', label: '50% XP', desc: 'Lose half of all earned XP on death.' },
+        ],
+    },
+    'GamePlay.Death.ProtectionLevels': {
+        label: 'Death Protection Levels',
+        description: 'How many levels of protection from death penalties new characters receive. Characters below this level threshold are immune to XP loss and equipment drops.',
+        implications: 'Higher values give new players a longer grace period to learn the game without harsh consequences. Set to 0 to apply death penalties from level 1.',
+        inputType: 'number',
+        min: 0, max: 100, step: 1,
+    },
+    'GamePlay.Death.PermaDeath': {
+        label: 'Permadeath Enabled',
+        description: 'When enabled, characters have a limited number of lives. Running out of lives results in permanent character deletion.',
+        implications: 'Permadeath creates intense, high-stakes gameplay but significantly increases the barrier to entry. Only enable if your server is designed around this mechanic.',
+        inputType: 'bool',
+    },
+    'GamePlay.Death.CorpsesEnabled': {
+        label: 'Corpses Enabled',
+        description: 'When enabled, mob and player deaths leave behind a physical corpse object in the room.',
+        implications: 'Corpses add realism and allow looting of defeated enemies. Disabling corpses simplifies the death system but removes the tactile feel of combat outcomes.',
+        inputType: 'bool',
+    },
+    'GamePlay.Death.CorpseDecayTime': {
+        label: 'Corpse Decay Time',
+        description: 'How long a corpse persists before decaying to nothing. Uses period format (e.g., "1 hour", "30 minutes").',
+        implications: 'Shorter decay times keep the world cleaner but may frustrate players who want to loot a corpse later. Longer decay times can clutter busy areas.',
+        inputType: 'text',
+        placeholder: '1 hour',
+    },
+    'GamePlay.Death.CorpseItems': {
+        label: 'Items Go to Corpse',
+        description: 'When enabled, dropped items and gold go onto the corpse instead of the floor when a player or mob dies.',
+        implications: 'Placing items on corpses creates a clear, findable container for loot. Items on the floor can be harder to locate in cluttered rooms.',
+        inputType: 'bool',
+    },
+
+    // --- GamePlay.PVP ---
+    'GamePlay.PVP.Enabled': {
+        label: 'PVP Mode',
+        description: 'Controls player-versus-player combat. "enabled" allows PVP everywhere, "disabled" prevents all PVP, "limited" restricts PVP to designated areas.',
+        implications: 'Full PVP creates an open-world conflict environment. Disabled PVP focuses the game on PvE cooperation. Limited PVP provides opt-in conflict zones.',
+        inputType: 'enum',
+        options: [
+            { value: 'enabled', label: 'Enabled', desc: 'PVP is allowed everywhere in the world.' },
+            { value: 'disabled', label: 'Disabled', desc: 'No PVP is allowed anywhere.' },
+            { value: 'limited', label: 'Limited', desc: 'PVP is only allowed in designated PVP zones.' },
+        ],
+    },
+    'GamePlay.PVP.MinimumLevel': {
+        label: 'PVP Minimum Level',
+        description: 'The minimum character level required to participate in PVP combat, either as attacker or target.',
+        implications: 'Higher minimum levels protect new players from being killed by experienced ones. Set to 0 to allow PVP at all levels.',
+        inputType: 'number',
+        min: 0, max: 100, step: 1,
+    },
+
+    // --- GamePlay.Party ---
+    'GamePlay.Party.MaxPlayerCount': {
+        label: 'Max Party Size',
+        description: 'Maximum number of players allowed in a single party at once. Set to 0 for unlimited party size.',
+        implications: 'Smaller parties encourage more intimate cooperative play. Larger or unlimited parties allow raid-style group content. Balance this with your content design.',
+        inputType: 'number',
+        min: 0, max: 100, step: 1,
+    },
+    'GamePlay.Party.SameRoomOnly': {
+        label: 'Same Room Only for Parties',
+        description: 'When enabled, players must be in the same room to form a party, invite members, or accept invitations.',
+        implications: 'Enabling this creates a more realistic social requirement for grouping. Disabling it allows parties to form across distances, which is more convenient.',
+        inputType: 'bool',
+    },
+
+    // --- GamePlay.Combat ---
+    'GamePlay.Combat.ConsistentAttackMessages': {
+        label: 'Consistent Attack Messages',
+        description: 'When enabled, each weapon type uses consistent attack message vocabulary rather than randomizing from all available messages.',
+        implications: 'Consistent messages make combat feel more predictable and thematic. Random messages add variety but may feel inconsistent with weapon type.',
+        inputType: 'bool',
+    },
+    'GamePlay.Combat.DamageBonusMin': {
+        label: 'Min Damage Bonus',
+        description: 'Minimum flat damage bonus applied in combat, driven by the Strength stat difference between attacker and defender.',
+        implications: 'Higher minimum ensures even weak attackers deal some bonus damage. Lower minimum makes Strength more impactful at the extremes.',
+        inputType: 'number',
+        min: 0, max: 100, step: 1,
+    },
+    'GamePlay.Combat.DamageBonusMax': {
+        label: 'Max Damage Bonus',
+        description: 'Maximum flat damage bonus applied in combat from Strength advantage.',
+        implications: 'Higher maximum makes high-Strength characters dramatically more powerful. Lower maximum keeps combat more balanced regardless of Strength.',
+        inputType: 'number',
+        min: 1, max: 500, step: 1,
+    },
+    'GamePlay.Combat.ToHitMin': {
+        label: 'Min Hit Chance (%)',
+        description: 'Minimum percentage chance to hit in combat, regardless of Speed disadvantage. Ensures even slow characters can land some hits.',
+        implications: 'Higher minimum makes combat more reliable. Lower minimum allows Speed to create near-impossible-to-hit scenarios.',
+        inputType: 'slider',
+        min: 1, max: 100, step: 1,
+    },
+    'GamePlay.Combat.ToHitMax': {
+        label: 'Max Hit Chance (%)',
+        description: 'Maximum percentage chance to hit in combat, regardless of Speed advantage. Caps how accurate even the fastest characters can be.',
+        implications: 'Setting this below 100 means no character can ever have a guaranteed hit. Setting it to 100 allows perfect accuracy for very fast characters.',
+        inputType: 'slider',
+        min: 1, max: 100, step: 1,
+    },
+    'GamePlay.Combat.CritChanceMin': {
+        label: 'Min Crit Chance (%)',
+        description: 'Minimum critical hit chance percentage, regardless of Smarts disadvantage.',
+        implications: 'Higher minimum gives all characters a baseline crit chance. Lower minimum allows Smarts to create near-zero crit scenarios.',
+        inputType: 'slider',
+        min: 1, max: 100, step: 1,
+    },
+    'GamePlay.Combat.CritChanceMax': {
+        label: 'Max Crit Chance (%)',
+        description: 'Maximum critical hit chance percentage, driven by Smarts advantage.',
+        implications: 'Higher maximum allows high-Smarts builds to crit very frequently. Lower maximum keeps crit rates moderate even for dedicated crit builds.',
+        inputType: 'slider',
+        min: 1, max: 100, step: 1,
+    },
+    'GamePlay.Combat.CritMultMin': {
+        label: 'Min Crit Multiplier',
+        description: 'Minimum damage multiplier applied on a critical hit. 1.5 means crits deal at least 50% more damage.',
+        implications: 'Higher minimum makes all crits impactful. Lower minimum (close to 1.0) makes crits barely noticeable.',
+        inputType: 'number',
+        min: 1.0, max: 10.0, step: 0.1,
+        isFloat: true,
+    },
+    'GamePlay.Combat.CritMultMax': {
+        label: 'Max Crit Multiplier',
+        description: 'Maximum damage multiplier for critical hits, driven by Perception advantage.',
+        implications: 'Higher maximum allows devastating critical strikes from high-Perception characters. Lower maximum keeps crits from one-shotting players.',
+        inputType: 'number',
+        min: 1.0, max: 20.0, step: 0.5,
+        isFloat: true,
+    },
+    'GamePlay.Combat.DodgeChanceMin': {
+        label: 'Min Dodge Chance (%)',
+        description: 'Minimum dodge chance percentage, regardless of Perception disadvantage.',
+        implications: 'Higher minimum gives all characters a baseline chance to avoid hits. Lower minimum allows Perception to create near-zero dodge scenarios.',
+        inputType: 'slider',
+        min: 1, max: 100, step: 1,
+    },
+    'GamePlay.Combat.DodgeChanceMax': {
+        label: 'Max Dodge Chance (%)',
+        description: 'Maximum dodge chance percentage for high-Perception characters.',
+        implications: 'Higher maximum allows high-Perception characters to dodge most attacks. Lower maximum keeps dodge from making characters untouchable.',
+        inputType: 'slider',
+        min: 1, max: 100, step: 1,
+    },
+
+    // --- Memory ---
+    'Memory.MaxMobBoredom': {
+        label: 'Max Mob Boredom',
+        description: 'The boredom counter threshold at which a mob will be unloaded from memory if there are no players nearby. Higher values keep mobs active longer.',
+        implications: 'Lower values aggressively unload inactive mobs to save memory. Higher values keep mobs in memory longer, which uses more RAM but provides a more consistent world.',
+        inputType: 'number',
+        min: 10, max: 10000, step: 10,
+    },
+    'Memory.MobUnloadThreshold': {
+        label: 'Mob Unload Threshold',
+        description: 'Minimum number of loaded mobs before the server begins considering unloading idle ones. Set to 0 to always consider unloading.',
+        implications: 'Higher threshold keeps more mobs loaded at all times. Lower threshold allows aggressive memory reclamation even when few mobs are loaded.',
+        inputType: 'number',
+        min: 0, max: 10000, step: 50,
+    },
+    'Memory.RoomUnloadRounds': {
+        label: 'Room Unload Rounds',
+        description: 'Minimum number of rounds a room must be empty before it becomes eligible for unloading from memory.',
+        implications: 'Lower values unload rooms quickly after players leave, saving memory. Higher values keep rooms warm longer, improving performance when players return to recently-visited areas.',
+        inputType: 'number',
+        min: 5, max: 1000, step: 5,
+    },
+    'Memory.RoomUnloadThreshold': {
+        label: 'Room Unload Threshold',
+        description: 'Minimum number of loaded rooms before the server begins considering unloading empty ones.',
+        implications: 'Higher threshold maintains a larger room cache. Lower threshold allows more aggressive memory reclamation.',
+        inputType: 'number',
+        min: 0, max: 100000, step: 100,
+    },
+
+    // --- LootGoblin ---
+    'LootGoblin.RoomId': {
+        label: 'Loot Goblin Spawn Room',
+        description: 'The room ID where the loot goblin spawns. The loot goblin is a special NPC that cleans up excess items and gold from the floor.',
+        implications: 'Choose a room that makes thematic sense for the goblin to emerge from. The goblin will travel from here to collect loot.',
+        inputType: 'number',
+        min: 0, max: 9999999, step: 1,
+    },
+    'LootGoblin.RoundCount': {
+        label: 'Loot Goblin Spawn Interval (rounds)',
+        description: 'How many rounds between loot goblin spawn attempts. The goblin only spawns if there is enough loot to attract it.',
+        implications: 'Lower values spawn the goblin more frequently, keeping floors cleaner. Higher values let loot accumulate longer before cleanup.',
+        inputType: 'number',
+        min: 10, max: 10000, step: 10,
+    },
+    'LootGoblin.MinimumItems': {
+        label: 'Minimum Items to Attract Goblin',
+        description: 'The minimum number of items that must be on the floor across the world to trigger a loot goblin spawn.',
+        implications: 'Lower threshold causes the goblin to spawn more aggressively. Higher threshold lets more items accumulate before cleanup.',
+        inputType: 'number',
+        min: 1, max: 1000, step: 1,
+    },
+    'LootGoblin.MinimumGold': {
+        label: 'Minimum Gold to Attract Goblin',
+        description: 'The minimum amount of gold that must be on the floor across the world to trigger a loot goblin spawn.',
+        implications: 'Lower threshold causes the goblin to clean up small gold piles. Higher threshold only triggers cleanup for significant gold accumulations.',
+        inputType: 'number',
+        min: 1, max: 1000000, step: 10,
+    },
+    'LootGoblin.IncludeRecentRooms': {
+        label: 'Include Recently Visited Rooms',
+        description: 'When enabled, the loot goblin will also consider cleaning up rooms that players have recently visited, not just long-abandoned ones.',
+        implications: 'Enabling this makes cleanup more aggressive and keeps recently-active areas cleaner. Disabling it protects loot in active areas from premature cleanup.',
+        inputType: 'bool',
+    },
+
+    // --- Scripting ---
+    'Scripting.LoadTimeoutMs': {
+        label: 'Script Load Timeout (ms)',
+        description: 'Maximum milliseconds allowed for the first-time loading and compilation of a script into the JavaScript engine.',
+        implications: 'Higher values allow complex scripts more time to initialize. Lower values protect against runaway initialization. 1000ms (1 second) is a safe default.',
+        inputType: 'number',
+        min: 100, max: 30000, step: 100,
+    },
+    'Scripting.RoomTimeoutMs': {
+        label: 'Script Execution Timeout (ms)',
+        description: 'Maximum milliseconds a script is allowed to run per execution before it is forcibly interrupted.',
+        implications: 'Very low values (< 5ms) may interrupt legitimate scripts. Too high values allow buggy scripts to hang the game loop. 10ms is a tight but reasonable default.',
+        inputType: 'number',
+        min: 1, max: 5000, step: 5,
+    },
+
+    // --- TextFormats ---
+    'TextFormats.Prompt': {
+        label: 'Status Prompt',
+        description: 'The in-game status prompt format shown to players after each command. Supports ANSI color codes and special tokens like {hp}, {HP}, {mp}, {MP}, {t} (time), {T} (date).',
+        implications: 'A well-designed prompt gives players instant access to vital stats. Too much information can clutter the screen. Leave empty to use the default prompt.',
+        inputType: 'text',
+        placeholder: '{8}[{t} {255}HP:{hp}{8}/{HP}]>',
+    },
+    'TextFormats.EnterRoomMessageWrapper': {
+        label: 'Enter Room Message Wrapper',
+        description: 'A format string wrapping the message shown to other players when someone enters a room. Must contain %s where the actual message goes.',
+        implications: 'Customize the visual style of movement messages. For example, wrapping in italics or special colors.',
+        inputType: 'text',
+        placeholder: '%s',
+    },
+    'TextFormats.ExitRoomMessageWrapper': {
+        label: 'Exit Room Message Wrapper',
+        description: 'A format string wrapping the message shown to other players when someone leaves a room. Must contain %s where the actual message goes.',
+        implications: 'Customize the visual style of departure messages.',
+        inputType: 'text',
+        placeholder: '%s',
+    },
+    'TextFormats.Time': {
+        label: 'Real Time Format',
+        description: 'Go time format string for displaying real-world time. Uses Go\'s reference time: Mon Jan 2 15:04:05 MST 2006.',
+        implications: 'Adjust to match your preferred locale and verbosity. The reference time values must be used exactly as Go specifies them.',
+        inputType: 'text',
+        placeholder: 'Monday, 02-Jan-2006 03:04:05PM',
+    },
+    'TextFormats.TimeShort': {
+        label: 'Real Time Format (Short)',
+        description: 'Abbreviated Go time format string for compact real-world time display.',
+        implications: 'Used in places where space is limited. Should be shorter than the full time format.',
+        inputType: 'text',
+        placeholder: "Jan 2 '06 3:04PM",
+    },
+
+    // --- SpecialRooms ---
+    'SpecialRooms.StartRoom': {
+        label: 'Starting Room ID',
+        description: 'The room ID where new characters begin their adventure. This is the default spawn point for all new players.',
+        implications: 'Choose a room that provides a good introduction to your world. It should be safe, visually interesting, and close to helpful NPCs or tutorial content.',
+        inputType: 'number',
+        min: 1, max: 9999999, step: 1,
+    },
+    'SpecialRooms.DeathRecoveryRoom': {
+        label: 'Death Recovery Room ID',
+        description: 'The room ID where players respawn after dying. This is where characters wake up after death.',
+        implications: 'Choose a safe, accessible room. Many servers use a healer\'s room, temple, or graveyard. This room should be well-connected to the rest of the world.',
+        inputType: 'number',
+        min: 1, max: 9999999, step: 1,
+    },
+    'SpecialRooms.TutorialRooms': {
+        label: 'Tutorial Room IDs',
+        description: 'A list of room IDs that can serve as starting points for the tutorial experience. New players may be directed to one of these rooms.',
+        implications: 'Multiple tutorial rooms allow for variety in the new player experience. Each room in this list should be a valid, accessible tutorial starting point.',
+        inputType: 'tags',
+    },
+};
+
+// ============================================================
+// Section Definitions
+// ============================================================
+var SECTIONS = [
+    {
+        key: 'Server',
+        name: 'Server',
+        desc: 'Core server identity, name, seed, CPU limits, and login behavior.',
+        color: '#4a6fa5',
+        iconBg: '#e8edf7',
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><rect x="2" y="10" width="20" height="5" rx="1"/><rect x="2" y="17" width="20" height="5" rx="1"/><circle cx="18" cy="5.5" r="1" fill="currentColor"/><circle cx="18" cy="12.5" r="1" fill="currentColor"/><circle cx="18" cy="19.5" r="1" fill="currentColor"/></svg>',
+        fields: ['Server.MudName','Server.Motd','Server.Seed','Server.MaxCPUCores','Server.OnLoginCommands','Server.NextRoomId'],
+    },
+    {
+        key: 'Network.Ports',
+        name: 'Network: Ports',
+        desc: 'Telnet, local admin, HTTP, HTTPS, and SSH port numbers.',
+        color: '#2e8b57',
+        iconBg: '#e6f4ed',
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="8" width="20" height="8" rx="2"/><path d="M6 12h.01M10 12h.01"/><path d="M15 10v4"/><path d="M18 10v4"/></svg>',
+        fields: ['Network.TelnetPort','Network.LocalPort','Network.HttpPort','Network.HttpsPort','Network.SSHPort'],
+    },
+    {
+        key: 'Network.Connections',
+        name: 'Network: Connections',
+        desc: 'Connection limits, idle and AFK timeouts, link-dead grace period, and logout behavior.',
+        color: '#1a7a4a',
+        iconBg: '#e0f5ec',
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><path d="M12 2a10 10 0 0 1 0 20"/><path d="M12 2a10 10 0 0 0 0 20"/><path d="M2 12h20"/></svg>',
+        fields: ['Network.MaxTelnetConnections','Network.MaxSSHConnections','Network.HttpsRedirect','Network.AfkSeconds','Network.MaxIdleSeconds','Network.TimeoutMods','Network.LinkDeadSeconds','Network.LogoutRounds'],
+    },
+    {
+        key: 'FilePaths.Dirs',
+        name: 'File Paths',
+        desc: 'Data files directory, web domain, CDN, public and admin HTML paths, and safe-save behavior.',
+        color: '#8b6914',
+        iconBg: '#fdf3e0',
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>',
+        fields: ['FilePaths.DataFiles','FilePaths.WebDomain','FilePaths.WebCDNLocation','FilePaths.PublicHtml','FilePaths.AdminHtml','FilePaths.CarefulSaveFiles'],
+    },
+    {
+        key: 'FilePaths.HTTPS',
+        name: 'HTTPS & SSL',
+        desc: 'TLS certificate and key paths, Let\u2019s Encrypt email, certificate cache directory, and SSH host key.',
+        color: '#a05a00',
+        iconBg: '#fdf0e0',
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+        fields: ['FilePaths.HttpsCertFile','FilePaths.HttpsKeyFile','FilePaths.HttpsEmail','FilePaths.HttpsCacheDir','FilePaths.SSHHostKeyFile'],
+    },
+    {
+        key: 'Timing',
+        name: 'Timing',
+        desc: 'Game clock speed, round duration, and auto-save frequency.',
+        color: '#7b3fa0',
+        iconBg: '#f3ecf9',
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+        fields: ['Timing.TurnMs','Timing.RoundSeconds','Timing.RoundsPerAutoSave'],
+    },
+    {
+        key: 'GamePlay.General',
+        name: 'Gameplay: General',
+        desc: 'XP scale, mob conversations, alignment decay, elite mobs, shops, containers, and floor items.',
+        color: '#c0392b',
+        iconBg: '#fdecea',
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 10c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5z"/><path d="M20.5 10H19V8.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/><path d="M9.5 14c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5S8 21.33 8 20.5v-5c0-.83.67-1.5 1.5-1.5z"/><path d="M3.5 14H5v1.5c0 .83-.67 1.5-1.5 1.5S2 16.33 2 15.5 2.67 14 3.5 14z"/><path d="M14 14.5c0-.83.67-1.5 1.5-1.5h5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-5c-.83 0-1.5-.67-1.5-1.5z"/><path d="M15.5 9H14v1.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5S16.33 9 15.5 9z"/><path d="M10 9.5c0 .83-.67 1.5-1.5 1.5h-5C2.67 11 2 10.33 2 9.5S2.67 8 3.5 8h5c.83 0 1.5.67 1.5 1.5z"/><path d="M8.5 15H10v-1.5c0-.83-.67-1.5-1.5-1.5S7 12.67 7 13.5s.67 1.5 1.5 1.5z"/></svg>',
+        fields: ['GamePlay.AllowItemBuffRemoval','GamePlay.XPScale','GamePlay.MobConverseChance','GamePlay.AlignmentDecayRounds','GamePlay.EliteLevelBonus','GamePlay.EliteXPBonus','GamePlay.ShopRestockRate','GamePlay.MercHirePricePerLevel','GamePlay.ContainerSizeMax','GamePlay.FloorItemCountMax'],
+    },
+    {
+        key: 'GamePlay.Lives',
+        name: 'Gameplay: Lives',
+        desc: 'Permadeath life counts, level-up life grants, and the price to buy extra lives.',
+        color: '#b03060',
+        iconBg: '#fce8ef',
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
+        fields: ['GamePlay.LivesStart','GamePlay.LivesMax','GamePlay.LivesOnLevelUp','GamePlay.PricePerLife'],
+    },
+    {
+        key: 'GamePlay.Death',
+        name: 'Gameplay: Death',
+        desc: 'Equipment drop chance, XP penalty, corpse behavior, permadeath, and new-player protection.',
+        color: '#7a1a1a',
+        iconBg: '#f5e8e8',
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a9 9 0 0 1 9 9c0 3.5-2 6.5-5 8v3H8v-3C5 17.5 3 14.5 3 11a9 9 0 0 1 9-9z"/><line x1="9" y1="22" x2="15" y2="22"/><line x1="9" y1="18" x2="15" y2="18"/></svg>',
+        fields: ['GamePlay.Death.EquipmentDropChance','GamePlay.Death.AlwaysDropBackpack','GamePlay.Death.XPPenalty','GamePlay.Death.ProtectionLevels','GamePlay.Death.PermaDeath','GamePlay.Death.CorpsesEnabled','GamePlay.Death.CorpseDecayTime','GamePlay.Death.CorpseItems'],
+    },
+    {
+        key: 'GamePlay.PVP',
+        name: 'Gameplay: PVP',
+        desc: 'Player-versus-player combat mode and minimum level requirement.',
+        color: '#c0392b',
+        iconBg: '#fdecea',
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5L3 6V3h3l11.5 11.5"/><path d="M13 19l6-6"/><path d="M2 2l20 20"/></svg>',
+        fields: ['GamePlay.PVP.Enabled','GamePlay.PVP.MinimumLevel'],
+    },
+    {
+        key: 'GamePlay.Party',
+        name: 'Gameplay: Parties',
+        desc: 'Maximum party size and whether party formation requires players to be in the same room.',
+        color: '#2a6496',
+        iconBg: '#e3eef8',
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+        fields: ['GamePlay.Party.MaxPlayerCount','GamePlay.Party.SameRoomOnly'],
+    },
+    {
+        key: 'GamePlay.Combat',
+        name: 'Gameplay: Combat',
+        desc: 'Hit chance, damage bonus, crit chance and multiplier, dodge chance, and extra attack bounds.',
+        color: '#8b2500',
+        iconBg: '#f9ece8',
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5L3 6V3h3l11.5 11.5"/><path d="M13 19l6-6"/><path d="M2 2l20 20"/><path d="M20 2l2 2-9.5 9.5"/><path d="M3 12l4 4"/></svg>',
+        fields: ['GamePlay.Combat.ConsistentAttackMessages','GamePlay.Combat.DamageBonusMin','GamePlay.Combat.DamageBonusMax','GamePlay.Combat.ToHitMin','GamePlay.Combat.ToHitMax','GamePlay.Combat.CritChanceMin','GamePlay.Combat.CritChanceMax','GamePlay.Combat.CritMultMin','GamePlay.Combat.CritMultMax','GamePlay.Combat.DodgeChanceMin','GamePlay.Combat.DodgeChanceMax'],
+    },
+    {
+        key: 'Memory',
+        name: 'Memory',
+        desc: 'Mob and room unload thresholds to control server memory usage.',
+        color: '#1a7a8a',
+        iconBg: '#e4f4f6',
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h.01M10 12h.01M14 12h.01M18 12h.01"/><path d="M6 6v12"/><path d="M10 6v12"/><path d="M14 6v12"/><path d="M18 6v12"/></svg>',
+        fields: ['Memory.MaxMobBoredom','Memory.MobUnloadThreshold','Memory.RoomUnloadRounds','Memory.RoomUnloadThreshold'],
+    },
+    {
+        key: 'LootGoblin',
+        name: 'Loot Goblin',
+        desc: 'Configure the floor-cleanup goblin that removes excess items and gold.',
+        color: '#5d8a2b',
+        iconBg: '#edf5e4',
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+        fields: ['LootGoblin.RoomId','LootGoblin.RoundCount','LootGoblin.MinimumItems','LootGoblin.MinimumGold','LootGoblin.IncludeRecentRooms'],
+    },
+    {
+        key: 'Scripting',
+        name: 'Scripting',
+        desc: 'Timeout limits for the JavaScript scripting engine.',
+        color: '#c47a00',
+        iconBg: '#fdf4e0',
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>',
+        fields: ['Scripting.LoadTimeoutMs','Scripting.RoomTimeoutMs'],
+    },
+    {
+        key: 'TextFormats',
+        name: 'Text Formats',
+        desc: 'Customize the status prompt, room message wrappers, and time display formats.',
+        color: '#6b3a8c',
+        iconBg: '#f2eaf8',
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>',
+        fields: ['TextFormats.Prompt','TextFormats.EnterRoomMessageWrapper','TextFormats.ExitRoomMessageWrapper','TextFormats.Time','TextFormats.TimeShort'],
+    },
+    {
+        key: 'SpecialRooms',
+        name: 'Special Rooms',
+        desc: 'Designate the starting room, death recovery room, and tutorial room IDs.',
+        color: '#2a6496',
+        iconBg: '#e3eef8',
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+        fields: ['SpecialRooms.StartRoom','SpecialRooms.DeathRecoveryRoom','SpecialRooms.TutorialRooms'],
+    },
+];
+
+// ============================================================
+// State
+// ============================================================
+var state = {
+    phase: 'sections',
+    section: null,
+    fields: [],
+    currentIndex: 0,
+    configData: {},
+    sessionChanges: {},   // { dotPath: newValue } for this wizard session
+    sectionChanges: {},   // changes made in current section pass
+    readOnly: {{if .READ_ONLY}}true{{else}}false{{end}},
+};
+
+// ============================================================
+// Utility
+// ============================================================
+function esc(s) {
+    return String(s == null ? '' : s)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function getConfigValue(dotPath) {
+    // Try exact match first (e.g. "Server.MudName")
+    var v = state.configData[dotPath];
+    if (v !== undefined) return v;
+    // Try lowercase dot-path variants as the API may normalize keys
+    var lower = dotPath.toLowerCase();
+    for (var k in state.configData) {
+        if (k.toLowerCase() === lower) return state.configData[k];
+    }
+    return '';
+}
+
+function formatDisplayValue(v) {
+    if (v === null || v === undefined) return '(not set)';
+    if (Array.isArray(v)) return v.length === 0 ? '(empty list)' : v.join(', ');
+    if (typeof v === 'boolean') return v ? 'true' : 'false';
+    var s = String(v);
+    if (s === '') return '(empty)';
+    if (s === '*** REDACTED ***') return '(redacted)';
+    return s;
+}
+
+// ============================================================
+// Phase: Sections
+// ============================================================
+function showSections() {
+    state.phase = 'sections';
+    state.sectionChanges = {};
+    document.getElementById('phase-sections').style.display = 'block';
+    document.getElementById('phase-wizard').style.display = 'none';
+    document.getElementById('phase-complete').style.display = 'none';
+
+    var grid = document.getElementById('sections-grid');
+    grid.innerHTML = '';
+    grid.style.display = 'grid';
+    document.getElementById('sections-loading').style.display = 'none';
+
+    SECTIONS.forEach(function(s) {
+        var card = document.createElement('div');
+        card.className = 'section-card';
+        card.setAttribute('data-section', s.key);
+        card.style.borderLeftColor = s.color || 'var(--color-border-medium)';
+        card.innerHTML =
+            '<div class="section-card-header">' +
+                '<div class="section-card-icon" style="background:' + (s.iconBg || 'var(--color-border-faint)') + ';color:' + (s.color || 'var(--color-primary)') + '">' + s.icon + '</div>' +
+                '<div class="section-card-name">' + esc(s.name) + '</div>' +
+            '</div>' +
+            '<div class="section-card-desc">' + esc(s.desc) + '</div>' +
+            '<div class="section-card-footer">' +
+                '<span class="section-card-count">' + s.fields.length + ' settings</span>' +
+                '<button class="btn-configure" style="background:' + (s.color || 'var(--color-primary)') + '" onclick="startSection(\'' + esc(s.key) + '\')">Configure &rarr;</button>' +
+            '</div>';
+        grid.appendChild(card);
+    });
+}
+
+function startSection(sectionKey) {
+    var section = SECTIONS.find(function(s) { return s.key === sectionKey; });
+    if (!section) return;
+
+    state.phase = 'wizard';
+    state.section = sectionKey;
+    state.fields = section.fields.slice();
+    state.currentIndex = 0;
+    state.sectionChanges = {};
+
+    document.getElementById('phase-sections').style.display = 'none';
+    document.getElementById('phase-wizard').style.display = 'block';
+    document.getElementById('phase-complete').style.display = 'none';
+    document.getElementById('wizard-section-name-bc').textContent = section.name;
+
+    renderStep();
+}
+
+function returnToSections() {
+    showSections();
+}
+
+// ============================================================
+// Phase: Wizard Step
+// ============================================================
+function renderStep() {
+    var dotPath = state.fields[state.currentIndex];
+    var meta = FIELD_META[dotPath] || { label: dotPath, description: '', inputType: 'text' };
+    var total = state.fields.length;
+    var idx = state.currentIndex;
+
+    // Step counter & progress
+    document.getElementById('wizard-step-counter').textContent = 'Step ' + (idx+1) + ' of ' + total;
+    var pct = total > 1 ? Math.round((idx / (total - 1)) * 100) : 100;
+    document.getElementById('wizard-progress-bar').style.width = pct + '%';
+
+    // Field label
+    document.getElementById('wizard-field-label').innerHTML =
+        esc(meta.label) +
+        ' <span class="wizard-field-key">' + esc(dotPath) + '</span>';
+
+    // Current value
+    var curVal = getConfigValue(dotPath);
+    document.getElementById('wizard-current-value').textContent = formatDisplayValue(curVal);
+
+    // Description
+    document.getElementById('wizard-description').textContent = meta.description || '';
+
+    // Implications
+    var implEl = document.getElementById('wizard-implications');
+    if (meta.implications) {
+        implEl.style.display = 'block';
+        implEl.innerHTML = '<strong>Note:</strong> ' + esc(meta.implications);
+    } else {
+        implEl.style.display = 'none';
+    }
+
+    // Render input
+    renderInput(dotPath, meta, curVal);
+
+    // Back button
+    document.getElementById('wizard-btn-back').style.visibility = idx > 0 ? 'visible' : 'hidden';
+
+    // Accept button state
+    var acceptBtn = document.getElementById('wizard-btn-accept');
+    acceptBtn.disabled = state.readOnly;
+    if (state.readOnly) {
+        acceptBtn.title = 'Read-only mode — changes cannot be saved.';
+    } else {
+        acceptBtn.title = '';
+    }
+
+    // Clear status
+    var statusEl = document.getElementById('wizard-status');
+    statusEl.className = 'wizard-status';
+    statusEl.textContent = '';
+
+    // Clear flash
+    document.getElementById('wizard-card').className = 'wizard-card';
+}
+
+function renderInput(dotPath, meta, currentValue) {
+    var wrap = document.getElementById('wizard-input-wrap');
+    wrap.innerHTML = '';
+
+    var inputType = meta.inputType || 'text';
+    var disabled = state.readOnly ? ' disabled' : '';
+
+    var el;
+
+    if (inputType === 'bool') {
+        el = document.createElement('div');
+        el.className = 'wizard-toggle-group';
+        var trueChecked  = (String(currentValue) === 'true')  ? ' checked' : '';
+        var falseChecked = (String(currentValue) !== 'true')  ? ' checked' : '';
+        el.innerHTML =
+            '<label class="wizard-toggle-option">' +
+                '<input type="radio" name="wizard_bool" value="true"' + trueChecked + disabled + '>' +
+                '<span class="wizard-toggle-label">' +
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>' +
+                    ' Enabled' +
+                '</span>' +
+            '</label>' +
+            '<label class="wizard-toggle-option">' +
+                '<input type="radio" name="wizard_bool" value="false"' + falseChecked + disabled + '>' +
+                '<span class="wizard-toggle-label">' +
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>' +
+                    ' Disabled' +
+                '</span>' +
+            '</label>';
+
+    } else if (inputType === 'enum') {
+        el = document.createElement('div');
+        el.className = 'wizard-radio-group';
+        var curStr = String(currentValue);
+        (meta.options || []).forEach(function(opt) {
+            var selected = curStr === opt.value ? ' selected' : '';
+            var checked  = curStr === opt.value ? ' checked' : '';
+            var div = document.createElement('label');
+            div.className = 'wizard-radio-option' + selected;
+            div.innerHTML =
+                '<input type="radio" name="wizard_enum" value="' + esc(opt.value) + '"' + checked + disabled + '>' +
+                '<div class="wizard-radio-option-body">' +
+                    '<div class="wizard-radio-option-label">' + esc(opt.label) + '</div>' +
+                    (opt.desc ? '<div class="wizard-radio-option-desc">' + esc(opt.desc) + '</div>' : '') +
+                '</div>';
+            div.addEventListener('click', function() {
+                el.querySelectorAll('.wizard-radio-option').forEach(function(o){ o.classList.remove('selected'); });
+                div.classList.add('selected');
+            });
+            el.appendChild(div);
+        });
+
+    } else if (inputType === 'slider') {
+        var min = meta.min !== undefined ? meta.min : 0;
+        var max = meta.max !== undefined ? meta.max : 100;
+        var step = meta.step !== undefined ? meta.step : 1;
+        var isFloat = meta.isFloat || false;
+        var numVal = parseFloat(currentValue) || min;
+
+        el = document.createElement('div');
+        el.className = 'wizard-slider-wrap';
+        el.innerHTML =
+            '<div class="wizard-slider-row">' +
+                '<input type="range" class="wizard-slider" id="wizard_slider" min="' + min + '" max="' + max + '" step="' + step + '" value="' + numVal + '"' + disabled + '>' +
+                '<span class="wizard-slider-value" id="wizard_slider_val">' + (isFloat ? numVal.toFixed(2) : numVal) + '</span>' +
+            '</div>' +
+            '<div class="wizard-slider-labels">' +
+                '<span>' + min + '</span>' +
+                '<span>' + max + '</span>' +
+            '</div>';
+
+        // Attach live update after insertion
+        setTimeout(function() {
+            var slider = document.getElementById('wizard_slider');
+            var valEl  = document.getElementById('wizard_slider_val');
+            if (slider && valEl) {
+                slider.addEventListener('input', function() {
+                    var v = parseFloat(slider.value);
+                    valEl.textContent = isFloat ? v.toFixed(2) : Math.round(v);
+                });
+            }
+        }, 0);
+
+    } else if (inputType === 'tags') {
+        var arrVal = Array.isArray(currentValue) ? currentValue.slice() : (currentValue ? String(currentValue).split(',').map(function(x){ return x.trim(); }).filter(Boolean) : []);
+
+        el = document.createElement('div');
+        el.className = 'wizard-tags-wrap';
+        el.setAttribute('data-tags', JSON.stringify(arrVal));
+
+        var tagsHtml = arrVal.map(function(t) {
+            return '<span class="wizard-tag" data-value="' + esc(t) + '">' + esc(t) + (disabled ? '' : '<span class="wizard-tag-remove" onclick="wizardRemoveTag(this)" title="Remove">&#x2715;</span>') + '</span>';
+        }).join('');
+
+        el.innerHTML =
+            '<div class="wizard-tags-display" id="wizard_tags_display">' + (tagsHtml || '<span style="color:var(--color-text-placeholder);font-size:0.82rem;font-style:italic;">No items yet</span>') + '</div>' +
+            (disabled ? '' :
+                '<div class="wizard-tags-input-row">' +
+                    '<input type="text" class="wizard-text-input" id="wizard_tag_input" placeholder="Add a value..." onkeydown="if(event.key===\'Enter\'){wizardAddTag();event.preventDefault();}">' +
+                    '<button class="btn-tag-add" onclick="wizardAddTag()">Add</button>' +
+                '</div>' +
+                '<div class="wizard-tags-hint">Press Enter or click Add to add each item. Click the &times; to remove.</div>');
+
+    } else if (inputType === 'secret') {
+        el = document.createElement('div');
+        el.innerHTML =
+            '<input type="password" class="wizard-text-input" id="wizard_input" autocomplete="new-password" placeholder="' + esc(meta.placeholder || '') + '"' + disabled + '>' +
+            '<div style="margin-top:0.5rem;font-size:0.78rem;color:var(--color-text-placeholder);">This is a sensitive value. The current value is redacted for security. Enter a new value to change it, or skip to leave it unchanged.</div>';
+
+    } else if (inputType === 'textarea') {
+        el = document.createElement('div');
+        el.innerHTML = '<textarea class="wizard-text-input" id="wizard_input" rows="4" placeholder="' + esc(meta.placeholder || '') + '"' + disabled + '>' + esc(String(currentValue || '')) + '</textarea>';
+
+    } else if (inputType === 'number') {
+        var min2 = meta.min !== undefined ? meta.min : 0;
+        var max2 = meta.max !== undefined ? meta.max : 999999;
+        var step2 = meta.step !== undefined ? meta.step : 1;
+        var numVal2 = currentValue !== undefined && currentValue !== '' ? currentValue : min2;
+
+        el = document.createElement('div');
+        el.innerHTML =
+            '<div class="wizard-number-wrap">' +
+                (disabled ? '' : '<button class="wizard-stepper" onclick="wizardStep(-' + step2 + ')" type="button">&#8722;</button>') +
+                '<input type="number" class="wizard-text-input" id="wizard_input" min="' + min2 + '" max="' + max2 + '" step="' + step2 + '" value="' + esc(String(numVal2)) + '"' + disabled + '>' +
+                (disabled ? '' : '<button class="wizard-stepper" onclick="wizardStep(' + step2 + ')" type="button">&#43;</button>') +
+                '<span class="wizard-number-hint">Range: ' + min2 + ' &ndash; ' + max2 + '</span>' +
+            '</div>';
+
+    } else {
+        // text / default
+        el = document.createElement('div');
+        el.innerHTML = '<input type="text" class="wizard-text-input" id="wizard_input" placeholder="' + esc(meta.placeholder || '') + '" value="' + esc(String(currentValue || '')) + '"' + disabled + '>';
+    }
+
+    wrap.appendChild(el);
+}
+
+// ============================================================
+// Tag helpers
+// ============================================================
+function wizardRemoveTag(removeBtn) {
+    var tag = removeBtn.parentElement;
+    var val = tag.getAttribute('data-value');
+    var display = document.getElementById('wizard_tags_display');
+    var wrap = display ? display.closest('.wizard-tags-wrap') : null;
+    if (!wrap) return;
+    var tags = JSON.parse(wrap.getAttribute('data-tags') || '[]');
+    tags = tags.filter(function(t){ return t !== val; });
+    wrap.setAttribute('data-tags', JSON.stringify(tags));
+    tag.remove();
+    if (display.querySelectorAll('.wizard-tag').length === 0) {
+        display.innerHTML = '<span style="color:var(--color-text-placeholder);font-size:0.82rem;font-style:italic;">No items yet</span>';
+    }
+}
+
+function wizardAddTag() {
+    var input = document.getElementById('wizard_tag_input');
+    var display = document.getElementById('wizard_tags_display');
+    if (!input || !display) return;
+    var val = input.value.trim();
+    if (!val) return;
+    var wrap = display.closest('.wizard-tags-wrap');
+    var tags = JSON.parse(wrap.getAttribute('data-tags') || '[]');
+    if (tags.indexOf(val) === -1) {
+        tags.push(val);
+        wrap.setAttribute('data-tags', JSON.stringify(tags));
+        // Remove placeholder
+        var ph = display.querySelector('span[style]');
+        if (ph) ph.remove();
+        var tagEl = document.createElement('span');
+        tagEl.className = 'wizard-tag';
+        tagEl.setAttribute('data-value', val);
+        tagEl.innerHTML = esc(val) + '<span class="wizard-tag-remove" onclick="wizardRemoveTag(this)" title="Remove">&#x2715;</span>';
+        display.appendChild(tagEl);
+    }
+    input.value = '';
+    input.focus();
+}
+
+function wizardStep(delta) {
+    var input = document.getElementById('wizard_input');
+    if (!input) return;
+    var v = parseFloat(input.value) || 0;
+    var dotPath = state.fields[state.currentIndex];
+    var meta = FIELD_META[dotPath] || {};
+    var min = meta.min !== undefined ? meta.min : -Infinity;
+    var max = meta.max !== undefined ? meta.max : Infinity;
+    v = Math.max(min, Math.min(max, v + delta));
+    input.value = meta.isFloat ? v : Math.round(v);
+}
+
+// ============================================================
+// Get current wizard input value
+// ============================================================
+function getCurrentInputValue() {
+    var dotPath = state.fields[state.currentIndex];
+    var meta = FIELD_META[dotPath] || {};
+    var inputType = meta.inputType || 'text';
+
+    if (inputType === 'bool') {
+        var radio = document.querySelector('input[name="wizard_bool"]:checked');
+        return radio ? radio.value : 'false';
+    }
+    if (inputType === 'enum') {
+        var radio2 = document.querySelector('input[name="wizard_enum"]:checked');
+        return radio2 ? radio2.value : '';
+    }
+    if (inputType === 'slider') {
+        var slider = document.getElementById('wizard_slider');
+        return slider ? slider.value : '';
+    }
+    if (inputType === 'tags') {
+        var wrap = document.querySelector('.wizard-tags-wrap');
+        if (!wrap) return '';
+        var tags = JSON.parse(wrap.getAttribute('data-tags') || '[]');
+        return tags.join(',');
+    }
+    var input = document.getElementById('wizard_input');
+    return input ? input.value : '';
+}
+
+// ============================================================
+// Wizard navigation
+// ============================================================
+function wizardBack() {
+    if (state.currentIndex > 0) {
+        state.currentIndex--;
+        renderStep();
+    }
+}
+
+function wizardSkip() {
+    advance();
+}
+
+async function wizardAccept() {
+    if (state.readOnly) return;
+
+    var dotPath = state.fields[state.currentIndex];
+    var newVal = getCurrentInputValue();
+
+    // Skip save if value unchanged and not a secret
+    var meta = FIELD_META[dotPath] || {};
+    if (meta.inputType !== 'secret') {
+        var rawCur = getConfigValue(dotPath);
+        var rawCurStr;
+        if (Array.isArray(rawCur)) {
+            rawCurStr = rawCur.join(',');
+        } else if (rawCur === null || rawCur === undefined) {
+            rawCurStr = '';
+        } else {
+            rawCurStr = String(rawCur);
+        }
+        if (String(newVal) === rawCurStr) {
+            advance();
+            return;
+        }
+    }
+
+    // Skip if secret field is empty (user didn't change it)
+    if (meta.inputType === 'secret' && (!newVal || newVal.trim() === '')) {
+        advance();
+        return;
+    }
+
+    var acceptBtn = document.getElementById('wizard-btn-accept');
+    acceptBtn.disabled = true;
+    acceptBtn.textContent = 'Saving...';
+
+    var body = {};
+    body[dotPath] = newVal;
+
+    try {
+        var resp = await AdminAPI.patch('/admin/api/v1/config', body);
+        if (!resp.ok || !resp.data || !resp.data.success) {
+            throw new Error((resp.data && resp.data.error) || 'Unknown error');
+        }
+        var result = resp.data.data || {};
+        var rejected = result.rejected || [];
+        if (rejected.indexOf(dotPath) !== -1) {
+            showWizardStatus('error', 'This setting is locked and cannot be changed.');
+            flashCard('error');
+        } else {
+            // Update local config data
+            state.configData[dotPath] = newVal;
+            state.sessionChanges[dotPath] = newVal;
+            state.sectionChanges[dotPath] = newVal;
+            showWizardStatus('success', 'Saved successfully.');
+            flashCard('success');
+            setTimeout(function() { advance(); }, 600);
+            return;
+        }
+    } catch (e) {
+        showWizardStatus('error', 'Error: ' + e.message);
+        flashCard('error');
+    }
+
+    acceptBtn.disabled = false;
+    acceptBtn.innerHTML = 'Accept &amp; Continue <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>';
+}
+
+function advance() {
+    state.currentIndex++;
+    if (state.currentIndex >= state.fields.length) {
+        showComplete();
+    } else {
+        renderStep();
+    }
+}
+
+function showWizardStatus(type, msg) {
+    var el = document.getElementById('wizard-status');
+    el.className = 'wizard-status ' + type;
+    el.textContent = msg;
+}
+
+function flashCard(type) {
+    var card = document.getElementById('wizard-card');
+    card.className = 'wizard-card flash-' + type;
+    setTimeout(function() { card.className = 'wizard-card'; }, 700);
+}
+
+// ============================================================
+// Phase: Complete
+// ============================================================
+function showComplete() {
+    document.getElementById('phase-wizard').style.display = 'none';
+    document.getElementById('phase-complete').style.display = 'block';
+
+    var section = SECTIONS.find(function(s){ return s.key === state.section; });
+    var sectionName = section ? section.name : state.section;
+
+    document.getElementById('complete-title').textContent = sectionName + ' — Complete!';
+    document.getElementById('complete-subtitle').textContent =
+        'You\'ve reviewed all ' + state.fields.length + ' settings in this section.';
+
+    var listEl = document.getElementById('complete-changes-list');
+    var keys = Object.keys(state.sectionChanges);
+    if (keys.length === 0) {
+        listEl.innerHTML = '<div class="complete-no-changes">No changes were made in this section.</div>';
+    } else {
+        listEl.innerHTML = keys.map(function(k) {
+            var meta = FIELD_META[k] || {};
+            return '<div class="complete-change-item">' +
+                '<span class="complete-change-key">' + esc(meta.label || k) + '</span>' +
+                '<span class="complete-change-arrow">&rarr;</span>' +
+                '<span class="complete-change-val">' + esc(String(state.sectionChanges[k])) + '</span>' +
+            '</div>';
+        }).join('');
+    }
+}
+
+// ============================================================
+// Exit link
+// ============================================================
+document.getElementById('wizard-exit-link').addEventListener('click', function(e) {
+    e.preventDefault();
+    returnToSections();
+});
+
+// ============================================================
+// Bootstrap
+// ============================================================
+async function loadConfig() {
+    document.getElementById('sections-loading').style.display = 'block';
+    document.getElementById('sections-grid').style.display = 'none';
+
+    try {
+        var resp = await AdminAPI.get('/admin/api/v1/config', false);
+        if (resp.ok && resp.data && resp.data.data) {
+            state.configData = resp.data.data;
+        }
+    } catch (e) {
+        // Non-fatal: wizard still works, just shows empty current values
+    }
+
+    showSections();
+}
+
+loadConfig();
+
+// Expose handlers called by inline onclick attributes
+window.startSection     = startSection;
+window.returnToSections = returnToSections;
+window.wizardBack       = wizardBack;
+window.wizardSkip       = wizardSkip;
+window.wizardAccept     = wizardAccept;
+window.wizardRemoveTag  = wizardRemoveTag;
+window.wizardAddTag     = wizardAddTag;
+window.wizardStep       = wizardStep;
+
+})();
+</script>
+
+{{template "footer" .}}

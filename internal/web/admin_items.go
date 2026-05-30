@@ -20,6 +20,7 @@ var pageWritePermissions = map[string]string{
 	"/admin/color-aliases":         "color-aliases.write",
 	"/admin/colorpatterns":         "colorpatterns.write",
 	"/admin/config":                "config.write",
+	"/admin/config-wizard":         "config.write",
 	"/admin/progression":           "config.write",
 	"/admin/conversations":         "conversations.write",
 	"/admin/gametime":              "gametime.write",
@@ -60,6 +61,7 @@ func serveAdminTemplate(w http.ResponseWriter, r *http.Request, filename string,
 
 	tmpl, err := template.New(filename).Funcs(funcMap).ParseFiles(
 		adminHtml+"/_header.html",
+		adminHtml+"/_nav.html",
 		adminHtml+"/"+filename,
 		adminHtml+"/_footer.html",
 	)

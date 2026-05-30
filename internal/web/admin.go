@@ -15,6 +15,7 @@ func adminIndex(w http.ResponseWriter, r *http.Request) {
 
 	tmpl, err := template.New("index.html").Funcs(funcMap).ParseFiles(
 		adminHtml+"/_header.html",
+		adminHtml+"/_nav.html",
 		adminHtml+"/index.html",
 		adminHtml+"/_footer.html",
 	)
