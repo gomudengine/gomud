@@ -79,7 +79,7 @@
             <div class="response-examples">
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
-                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"subtypes":[...],"types":[{"Type":"weapon","Description":"...","Count":0,"MinItemId":10000,"MaxItemId":19999},...]}}</div></div>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"subtypes":[{"Subtype":"stabbing","Description":"Piercing attacks"},{"Subtype":"slashing","Description":"Cutting attacks"}],"types":[{"Type":"weapon","Description":"Weapons","Count":42,"MinItemId":10000,"MaxItemId":19999},{"Type":"armor","Description":"Armor and wearables","Count":38,"MinItemId":20000,"MaxItemId":29999}]}}</div></div>
                 </details>
             </div>
         </div>
@@ -105,7 +105,7 @@
             <div class="response-examples">
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
-                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"by_dps":[{"ItemId":10009,"Name":"ancient royal scepter","Subtype":"bludgeoning","Hands":1,"DiceRoll":"2d8+2#10","AvgDmg":11,"MaxDmg":18,"DPR":9.0,"AdjDPR":9.0,"DPS":2.719,"AdjDPS":2.719,"WaitRounds":0},...],"by_adj_dps":[...],"by_max_dmg":[...]}}</div></div>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"by_dps":[{"ItemId":10009,"Name":"ancient royal scepter","Subtype":"bludgeoning","Hands":1,"DiceRoll":"2d8+2#10","AvgDmg":11,"MaxDmg":18,"DPR":9.0,"AdjDPR":9.0,"DPS":2.719,"AdjDPS":2.719,"WaitRounds":0},{"ItemId":10003,"Name":"steel sword","Subtype":"slashing","Hands":1,"DiceRoll":"1d8+1","AvgDmg":5,"MaxDmg":9,"DPR":5.0,"AdjDPR":5.0,"DPS":1.512,"AdjDPS":1.512,"WaitRounds":0}],"by_adj_dps":[{"ItemId":10009,"Name":"ancient royal scepter","AdjDPS":2.719},{"ItemId":10003,"Name":"steel sword","AdjDPS":1.512}],"by_max_dmg":[{"ItemId":10009,"Name":"ancient royal scepter","MaxDmg":18},{"ItemId":10003,"Name":"steel sword","MaxDmg":9}]}}</div></div>
                 </details>
             </div>
         </div>
@@ -131,7 +131,7 @@
             <div class="response-examples">
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
-                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"by_defense":[{"ItemId":20012,"Name":"shadowsteel breastplate","Slot":"body","Cursed":false,"Defense":20,"AdjDefense":20,"StatBonus":0,"BuffCount":0,"BuffValue":0,"Score":10.0},...],"by_adj_defense":[...],"by_score":[...]}}</div></div>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"by_defense":[{"ItemId":20012,"Name":"shadowsteel breastplate","Slot":"body","Cursed":false,"Defense":20,"AdjDefense":20,"StatBonus":0,"BuffCount":0,"BuffValue":0,"Score":10.0},{"ItemId":20001,"Name":"leather armor","Slot":"body","Cursed":false,"Defense":8,"AdjDefense":8,"StatBonus":0,"BuffCount":0,"BuffValue":0,"Score":4.0}],"by_adj_defense":[{"ItemId":20012,"Name":"shadowsteel breastplate","AdjDefense":20},{"ItemId":20001,"Name":"leather armor","AdjDefense":8}],"by_score":[{"ItemId":20012,"Name":"shadowsteel breastplate","Score":10.0},{"ItemId":20001,"Name":"leather armor","Score":4.0}]}}</div></div>
                 </details>
             </div>
         </div>
@@ -151,7 +151,7 @@
             <div class="response-examples">
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
-                    <div class="resp-body"><div class="curl-block">{"success":true,"data":[{"ItemId":10001,"Name":"Steel Sword","Type":"weapon","HasScript":false,...},...]}</div></div>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":[{"ItemId":10001,"Name":"Steel Sword","Type":"weapon","Subtype":"slashing","HasScript":false},{"ItemId":10002,"Name":"Iron Dagger","Type":"weapon","Subtype":"stabbing","HasScript":true}]}</div></div>
                 </details>
             </div>
         </div>
@@ -174,7 +174,7 @@
             <div class="response-examples">
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-ok">201</span> <span class="resp-label">Created</span></summary>
-                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"ItemId":10042,"Name":"Rusty Dagger",...}}</div></div>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"ItemId":10042,"Name":"Rusty Dagger","Type":"weapon","Subtype":"stabbing","Hands":1}}</div></div>
                 </details>
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request</span></summary>
@@ -200,7 +200,7 @@
             <div class="response-examples">
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
-                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"ItemId":10042,"Name":"Rusty Dagger","Type":"weapon",...}}</div></div>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"ItemId":10042,"Name":"Rusty Dagger","Type":"weapon","Subtype":"stabbing"}}</div></div>
                 </details>
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-err">404</span> <span class="resp-label">Not Found</span></summary>
@@ -227,7 +227,7 @@
             <div class="response-examples">
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
-                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"ItemId":10042,"Name":"Rusty Dagger","Description":"A corroded blade.",...}}</div></div>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"ItemId":10042,"Name":"Rusty Dagger","Description":"A corroded blade.","Type":"weapon","Subtype":"stabbing"}}</div></div>
                 </details>
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request</span></summary>
@@ -280,7 +280,7 @@
             <div class="response-examples">
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
-                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"script":"function onFound(user,item,room){...}"}}</div></div>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"script":"function onFound(user, item, room) {\n}\n"}}</div></div>
                 </details>
             </div>
         </div>

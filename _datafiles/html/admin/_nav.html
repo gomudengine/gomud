@@ -1,0 +1,42 @@
+{{define "navDropdownItems"}}
+  {{range .}}
+    {{if .Children}}
+      <div class="nav-submenu">
+        {{if .Target}}
+          <a class="nav-submenu-label" href="{{.Target}}">{{if .Label}}{{.Label}}{{else}}{{.Name}}{{end}} &#9658;</a>
+        {{else}}
+          <span class="nav-submenu-label">{{if .Label}}{{.Label}}{{else}}{{.Name}}{{end}} &#9658;</span>
+        {{end}}
+        <div class="nav-submenu-menu">
+          {{template "navDropdownItems" .Children}}
+        </div>
+      </div>
+    {{else}}
+      <a href="{{.Target}}">{{if .Label}}{{.Label}}{{else}}{{.Name}}{{end}}</a>
+    {{end}}
+  {{end}}
+{{end}}
+
+{{define "navTreeChildren"}}
+  {{range .}}
+    {{if .Children}}
+      <div class="nav-tree-child">
+        <span class="nav-tree-child-bullet"></span>
+        <span class="nav-tree-child-name">
+          {{if .Target}}<a href="{{.Target}}">{{if .Label}}{{.Label}}{{else}}{{.Name}}{{end}}</a>{{else}}<span>{{if .Label}}{{.Label}}{{else}}{{.Name}}{{end}}</span>{{end}}
+        </span>
+        {{if .Description}}<span class="nav-tree-child-desc">{{.Description}}</span>{{else}}<span></span>{{end}}
+      </div>
+      <div class="nav-tree-leaf-group">
+        {{template "navTreeChildren" .Children}}
+      </div>
+    {{else}}
+      <div class="nav-tree-leaf">
+        <span></span>
+        <span class="nav-tree-leaf-bullet"></span>
+        <a href="{{.Target}}">{{if .Label}}{{.Label}}{{else}}{{.Name}}{{end}}</a>
+        {{if .Description}}<span class="nav-tree-leaf-desc">{{.Description}}</span>{{else}}<span></span>{{end}}
+      </div>
+    {{end}}
+  {{end}}
+{{end}}

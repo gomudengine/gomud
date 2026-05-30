@@ -57,7 +57,7 @@
             <div class="response-examples">
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
-                    <div class="resp-body"><div class="curl-block">{"success":true,"data":[{"QuestId":1001,"Name":"The Lost Artifact","Secret":false,"Steps":[{"Id":"start","Description":"Speak to the archaeologist","Hint":""}],"Rewards":{"Gold":100,"Experience":500}}]}</div></div>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":[{"QuestId":1001,"Name":"The Lost Artifact","Secret":false,"Steps":[{"Id":"start","Description":"Speak to the archaeologist","Hint":""},{"Id":"search","Description":"Search the ancient ruins","Hint":""},{"Id":"end","Description":"Return the artifact","Hint":""}],"Rewards":{"Gold":100,"Experience":500}}]}</div></div>
                 </details>
             </div>
         </div>
@@ -96,7 +96,7 @@
             <div class="response-examples">
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
-                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"QuestId":1001,"Name":"The Lost Artifact",...}}</div></div>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"QuestId":1001,"Name":"The Lost Artifact","Secret":false,"Steps":[{"Id":"start","Description":"Speak to the archaeologist"},{"Id":"search","Description":"Search the ancient ruins"},{"Id":"end","Description":"Return the artifact"}],"Rewards":{"Gold":100,"Experience":500,"PlayerMessage":"You have recovered the artifact!"}}}</div></div>
                 </details>
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request</span></summary>

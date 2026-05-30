@@ -58,7 +58,7 @@
             <div class="response-examples">
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
-                    <div class="resp-body"><div class="curl-block">{"success":true,"data":[{"SpellId":"fireball","Name":"Fireball","Type":"harmsingle","School":"conjuration","Cost":10,"WaitRounds":3,"Difficulty":0,"HasScript":true}]}</div></div>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":[{"SpellId":"fireball","Name":"Fireball","Type":"harmsingle","School":"conjuration","Cost":10,"WaitRounds":3,"Difficulty":0,"HasScript":true},{"SpellId":"icebolt","Name":"Ice Bolt","Type":"harmsingle","School":"conjuration","Cost":8,"WaitRounds":0,"Difficulty":0,"HasScript":false}]}</div></div>
                 </details>
             </div>
         </div>
@@ -132,7 +132,7 @@
             <div class="response-examples">
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
-                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"SpellId":"fireball","Name":"Fireball","Cost":15,"Difficulty":10,...}}</div></div>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"SpellId":"fireball","Name":"Fireball","Cost":15,"Difficulty":10,"Type":"harmsingle","School":"conjuration","WaitRounds":3}}</div></div>
                 </details>
             </div>
         </div>
@@ -173,7 +173,7 @@
             <div class="response-examples">
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
-                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"script":"function onCast(actor, target){...}"}}</div></div>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"script":"function onCast(actor, target) {\n}\n"}}</div></div>
                 </details>
             </div>
         </div>

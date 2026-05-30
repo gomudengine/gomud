@@ -14,6 +14,7 @@ func httpsIndex(w http.ResponseWriter, r *http.Request) {
 	tmlPath := configs.GetFilePathsConfig().AdminHtml.String()
 	tmpl, err := template.New("https.html").Funcs(funcMap).ParseFiles(
 		util.FilePath(tmlPath+"/_header.html"),
+		util.FilePath(tmlPath+"/_nav.html"),
 		util.FilePath(tmlPath+"/https.html"),
 		util.FilePath(tmlPath+"/_footer.html"),
 	)
