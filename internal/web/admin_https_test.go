@@ -93,6 +93,7 @@ func TestHTTPSIndexDisablesCaching(t *testing.T) {
 	adminDir := t.TempDir()
 	for name, contents := range map[string]string{
 		"_header.html": "header",
+		"_nav.html":    "",
 		"https.html":   "nav={{len .NAV}}|{{.httpsStatus}}",
 		"_footer.html": "footer",
 	} {
