@@ -41,3 +41,7 @@ func adminScriptingFunctions(w http.ResponseWriter, r *http.Request) {
 func adminDocsModules(w http.ResponseWriter, r *http.Request) {
 	serveAdminTemplate(w, r, "docs-modules.html", nil)
 }
+
+func adminDocsBackups(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "docs-backups.html", nil)
+}

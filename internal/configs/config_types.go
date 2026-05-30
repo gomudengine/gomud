@@ -5,6 +5,12 @@ import (
 	"strings"
 )
 
+const RedactedValue = `*** REDACTED ***`
+
+func (c ConfigSecret) MarshalJSON() ([]byte, error) {
+	return []byte(`"` + c.String() + `"`), nil
+}
+
 type ConfigInt int
 type ConfigUInt64 uint64
 type ConfigString string
@@ -93,7 +99,7 @@ func (c ConfigString) String() string {
 }
 
 func (c ConfigSecret) String() string {
-	return `*** REDACTED ***`
+	return RedactedValue
 }
 
 func (c ConfigFloat) String() string {

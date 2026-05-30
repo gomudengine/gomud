@@ -238,6 +238,14 @@ func buildAdminNav() []WebNavItem {
 						{Label: "Overview", Target: "/admin/docs-modules", Description: "Lifecycle, full plugin API reference, event catalog, and worked examples."},
 					},
 				},
+				{
+					Name:        "Backups",
+					Target:      "/admin/docs-backups",
+					Description: "Guide to configuring automatic world data backups with Amazon S3.",
+					Children: []WebNavItem{
+						{Label: "Amazon S3 Setup", Target: "/admin/docs-backups", Description: "Step-by-step guide to setting up S3 backups."},
+					},
+				},
 			},
 		},
 	}

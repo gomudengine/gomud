@@ -40,6 +40,11 @@ func apiV1PatchConfig(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
+		if errors.Is(err, configs.ErrRedactedValue) {
+			writeAPIError(w, http.StatusBadRequest, key+": cannot save a redacted placeholder as a value")
+			return
+		}
+
 		if errors.Is(err, configs.ErrLockedConfig) {
 			result.Rejected = append(result.Rejected, key)
 			continue
