@@ -140,7 +140,9 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 
 	// Audio
 	mux.HandleFunc("GET /admin/api/v1/audio", doBasicAuth(RunWithMUDLocked(apiV1GetAudio)))
+	mux.HandleFunc("POST /admin/api/v1/audio", doBasicAuth(RequirePermission("audio.write", RunWithMUDLocked(apiV1CreateAudio))))
 	mux.HandleFunc("PATCH /admin/api/v1/audio", doBasicAuth(RequirePermission("audio.write", RunWithMUDLocked(apiV1PatchAudio))))
+	mux.HandleFunc("DELETE /admin/api/v1/audio/{identifier}", doBasicAuth(RequirePermission("audio.write", RunWithMUDLocked(apiV1DeleteAudio))))
 
 	// Keywords
 	mux.HandleFunc("GET /admin/api/v1/keywords", doBasicAuth(RunWithMUDLocked(apiV1GetKeywords)))
