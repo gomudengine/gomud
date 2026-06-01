@@ -42,6 +42,7 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /admin/api/v1/items/ranks/weapons", doBasicAuth(RunWithMUDLocked(apiV1GetItemRanksWeapons)))
 	mux.HandleFunc("GET /admin/api/v1/items/ranks/armor", doBasicAuth(RunWithMUDLocked(apiV1GetItemRanksArmor)))
 	mux.HandleFunc("PUT /admin/api/v1/items/attack-messages/{subtype}/{intensity}/{proximity}/{target}", doBasicAuth(RequirePermission("items.write", RunWithMUDLocked(apiV1PutItemAttackMessage))))
+	mux.HandleFunc("PATCH /admin/api/v1/items/attack-messages/{subtype}/{intensity}/{proximity}/{target}/{index}", doBasicAuth(RequirePermission("items.write", RunWithMUDLocked(apiV1PatchItemAttackMessage))))
 	mux.HandleFunc("DELETE /admin/api/v1/items/attack-messages/{subtype}/{intensity}/{proximity}/{target}/{index}", doBasicAuth(RequirePermission("items.write", RunWithMUDLocked(apiV1DeleteItemAttackMessage))))
 	mux.HandleFunc("GET /admin/api/v1/items", doBasicAuth(RunWithMUDLocked(apiV1GetItems)))
 	mux.HandleFunc("POST /admin/api/v1/items", doBasicAuth(RequirePermission("items.write", RunWithMUDLocked(apiV1CreateItem))))
