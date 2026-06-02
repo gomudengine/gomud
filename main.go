@@ -248,6 +248,7 @@ func main() {
 	isCopyover := flags.CopyoverFd() >= 0
 
 	if !isCopyover {
+		timeStart := time.Now()
 		idx := users.InitUserIndex()
 		if !idx.Exists() {
 			// Since it doesn't exist yet, that's a good indication we should do a quick format migration check
@@ -255,7 +256,7 @@ func main() {
 		}
 		idx.Create()
 		idx.Rebuild()
-		mudlog.Info("UserIndex", "info", "User index recreated.", "users", idx.GetMetaData().RecordCount)
+		mudlog.Info("UserIndex", "info", "User index recreated.", "users", idx.GetMetaData().RecordCount, "time taken", time.Since(timeStart))
 	}
 
 	users.GetCharacterIndex().Rebuild()

@@ -250,14 +250,23 @@ func (w *World) SendEnterWorld(userId int, roomId int) {
 }
 
 func (w *World) SendLeaveWorld(userId int) {
+	if !serverAlive.Load() {
+		return
+	}
 	w.leaveWorldUserId <- userId
 }
 
 func (w *World) SendLogoutConnectionId(connId connections.ConnectionId) {
+	if !serverAlive.Load() {
+		return
+	}
 	w.logoutConnectionId <- connId
 }
 
 func (w *World) SendSetLinkDead(userId int, on bool) {
+	if !serverAlive.Load() {
+		return
+	}
 	if on {
 		w.linkDeadFlag <- [2]int{userId, 1}
 	} else {

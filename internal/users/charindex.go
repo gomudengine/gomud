@@ -74,20 +74,22 @@ func (ci *CharacterIndex) Find(name string) (userId int, found bool) {
 // the alt-characters module is responsible for adding alt names after this
 // runs.
 func (ci *CharacterIndex) Rebuild() {
-	ci.mu.Lock()
-	ci.byName = make(map[string]int)
-	ci.mu.Unlock()
+	newMap := make(map[string]int)
 
 	SearchOfflineUsers(func(u *UserRecord) bool {
 		if u.Character != nil && u.Character.Name != "" {
-			ci.Add(u.Character.Name, u.UserId)
+			newMap[strings.ToLower(u.Character.Name)] = u.UserId
 		}
 		return true
 	})
 
 	for _, u := range GetAllActiveUsers() {
 		if u.Character != nil && u.Character.Name != "" {
-			ci.Add(u.Character.Name, u.UserId)
+			newMap[strings.ToLower(u.Character.Name)] = u.UserId
 		}
 	}
+
+	ci.mu.Lock()
+	ci.byName = newMap
+	ci.mu.Unlock()
 }
