@@ -8,20 +8,20 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/stats"
 )
 
-const rankLevel = 25
-
 // MobRank holds the computed metrics for a single mob spec, evaluated at
-// level 25 against a level-matched baseline opponent.
+// the mob's effective level against a level-matched baseline opponent.
 type MobRank struct {
 	MobId   int
 	Name    string
 	Zone    string
+	Level   int
 	Hostile bool
 
-	// Combat metrics at level 25.
+	// Combat metrics at the mob's effective level.
 	DiceRoll string
 	DPS      float64
 	MaxDmg   int
@@ -48,7 +48,6 @@ type MobRank struct {
 
 // baselineCharacterAtLevel returns a neutral character whose six stats are
 // scaled to the given level: stat = clamp(level*2, 1, 100).
-// Level 25 → stat 50, matching the weapon-ranker's neutral baseline.
 func baselineCharacterAtLevel(level int) characters.Character {
 	stat := level * 2
 	if stat < 1 {
@@ -74,23 +73,36 @@ func baselineCharacterAtLevel(level int) characters.Character {
 	return c
 }
 
-// RankMobs computes ranking metrics for every loaded mob spec at level 25
-// and returns slices sorted by three criteria:
+// RankMobs computes ranking metrics for every loaded mob spec at each mob's
+// effective level and returns slices sorted by three criteria:
 //
 //   - byThreat   – DPS × eHP
 //   - byLoot     – expected loot value per kill
 //   - byDefense  – effective HP
 func RankMobs() (byThreat, byLoot, byDefense []MobRank) {
 	allSpecs := mobs.GetAllMobSpecs()
-	baseline := baselineCharacterAtLevel(rankLevel)
 
 	ranks := make([]MobRank, 0, len(allSpecs))
 
 	for _, spec := range allSpecs {
+		// Determine the effective level for this mob.
+		// If the zone has auto-scaling, use the midpoint of the scale range.
+		// Otherwise use the mob's defined level.
+		effectiveLevel := spec.Character.Level
+		if zCfg := rooms.GetZoneConfig(spec.Zone); zCfg != nil && zCfg.MobAutoScale.Maximum > 0 {
+			effectiveLevel = (zCfg.MobAutoScale.Minimum + zCfg.MobAutoScale.Maximum) / 2
+		}
+		if effectiveLevel < 1 {
+			effectiveLevel = 1
+		}
+
+		baseline := baselineCharacterAtLevel(effectiveLevel)
+
 		rank := MobRank{
 			MobId:          int(spec.MobId),
 			Name:           spec.Character.Name,
 			Zone:           spec.Zone,
+			Level:          effectiveLevel,
 			Hostile:        spec.Hostile,
 			Gold:           spec.Character.Gold,
 			ItemDropChance: spec.ItemDropChance,
@@ -105,8 +117,8 @@ func RankMobs() (byThreat, byLoot, byDefense []MobRank) {
 		}
 		rank.LootScore = float64(rank.Gold) + float64(rank.ItemDropChance)/100.0*float64(rank.ItemValue)
 
-		// Combat snapshot at level 25.
-		mob, err := newSimMob(spec.MobId, rankLevel)
+		// Combat snapshot at the mob's effective level.
+		mob, err := newSimMob(spec.MobId, effectiveLevel)
 		if err == nil {
 			rank.DPS = expectedDPS(mob.Character, baseline)
 

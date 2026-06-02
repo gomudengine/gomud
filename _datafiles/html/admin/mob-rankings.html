@@ -116,7 +116,8 @@
 
 <h1>Mob Rankings</h1>
 <p class="subtitle">
-    Combat and loot rankings for all mob types, evaluated at level 25 against a level-matched baseline opponent.
+    Combat and loot rankings for all mob types, evaluated at each mob's effective level.
+    For auto-scaling zones, the midpoint of the scale range is used.
 </p>
 
 <div id="statusBar" class="status-bar"></div>
@@ -164,16 +165,17 @@
                 <th class="sortable" data-key="Name" onclick="sortBy('Name')" data-tip="Mob display name.">Name<span class="sort-arrow"></span></th>
                 <th class="sortable" data-key="Zone" onclick="sortBy('Zone')" data-tip="Zone the mob belongs to.">Zone<span class="sort-arrow"></span></th>
                 <th class="sortable" data-key="Hostile" onclick="sortBy('Hostile')" data-tip="Whether the mob attacks players on sight.">Hostile<span class="sort-arrow"></span></th>
-                <th class="sortable" data-key="DPS" onclick="sortBy('DPS')" data-tip="Expected damage per round at level 25 against a level-matched baseline. Accounts for hit chance, dodge, crits, and defense.">DPS<span class="sort-arrow"></span></th>
-                <th class="sortable" data-key="EHP" onclick="sortBy('EHP')" data-tip="Effective HP at level 25: raw HP divided by the fraction of damage that gets through after expected defense reduction.">eHP<span class="sort-arrow"></span></th>
+                <th class="sortable" data-key="Level" onclick="sortBy('Level')" data-tip="Effective level used for combat evaluation. For auto-scaling zones this is the midpoint of the scale range; otherwise it is the mob's defined level.">Level<span class="sort-arrow"></span></th>
+                <th class="sortable" data-key="DPS" onclick="sortBy('DPS')" data-tip="Expected damage per round against a level-matched baseline at the mob's effective level. Accounts for hit chance, dodge, crits, and defense.">DPS<span class="sort-arrow"></span></th>
+                <th class="sortable" data-key="EHP" onclick="sortBy('EHP')" data-tip="Effective HP at the mob's effective level: raw HP divided by the fraction of damage that gets through after expected defense reduction.">eHP<span class="sort-arrow"></span></th>
                 <th class="sortable" data-key="LootScore" onclick="sortBy('LootScore')" data-tip="Expected loot value per kill: Gold + (ItemDropChance% &times; total carried item value). Gold always drops; items drop at ItemDropChance%.">Loot<span class="sort-arrow"></span></th>
                 <th class="sortable" id="scoreHeader" data-key="ThreatScore" onclick="sortBy('ThreatScore')" data-tip=""><span id="scoreLabel">Score</span><span class="sort-arrow"></span></th>
             </tr>
         </thead>
         <tbody id="rankBody">
-            <tr class="skeleton-row"><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:140px"></div></td><td><div class="skel" style="width:80px"></div></td><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:60px"></div></td><td><div class="skel" style="width:60px"></div></td><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:100px"></div></td></tr>
-            <tr class="skeleton-row"><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:110px"></div></td><td><div class="skel" style="width:80px"></div></td><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:60px"></div></td><td><div class="skel" style="width:60px"></div></td><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:100px"></div></td></tr>
-            <tr class="skeleton-row"><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:160px"></div></td><td><div class="skel" style="width:80px"></div></td><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:60px"></div></td><td><div class="skel" style="width:60px"></div></td><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:100px"></div></td></tr>
+            <tr class="skeleton-row"><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:140px"></div></td><td><div class="skel" style="width:80px"></div></td><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:60px"></div></td><td><div class="skel" style="width:60px"></div></td><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:100px"></div></td></tr>
+            <tr class="skeleton-row"><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:110px"></div></td><td><div class="skel" style="width:80px"></div></td><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:60px"></div></td><td><div class="skel" style="width:60px"></div></td><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:100px"></div></td></tr>
+            <tr class="skeleton-row"><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:160px"></div></td><td><div class="skel" style="width:80px"></div></td><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:40px"></div></td><td><div class="skel" style="width:60px"></div></td><td><div class="skel" style="width:60px"></div></td><td><div class="skel" style="width:50px"></div></td><td><div class="skel" style="width:100px"></div></td></tr>
         </tbody>
     </table>
 </div>
@@ -246,9 +248,9 @@
         var labelMap = { threat: 'Threat', loot: 'Loot', defense: 'Defense' };
         document.getElementById('scoreLabel').textContent = labelMap[v];
         var tipMap = {
-            threat:  'DPS \u00d7 eHP at level 25. Mobs that deal high damage and are hard to kill score highest.',
+            threat:  'DPS \u00d7 eHP at the mob\'s effective level. Mobs that deal high damage and are hard to kill score highest.',
             loot:    'Expected loot value per kill: Gold + (ItemDropChance% \u00d7 total item value).',
-            defense: 'Effective HP at level 25: raw HP \u00f7 (1 \u2212 defense/200).'
+            defense: 'Effective HP at the mob\'s effective level: raw HP \u00f7 (1 \u2212 defense/200).'
         };
         header.dataset.tip = tipMap[v];
         renderTable();
@@ -272,7 +274,7 @@
 
         var tbody = document.getElementById('rankBody');
         if (rows.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No mobs match the current filters.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" class="empty-state">No mobs match the current filters.</td></tr>';
             return;
         }
 
@@ -295,6 +297,7 @@
                 '<td class="mob-name"><a href="/admin/mobs#' + r.MobId + '" onclick="event.stopPropagation()">' + escHtml(r.Name) + '</a></td>' +
                 '<td>' + (r.Zone ? '<span class="zone-pill">' + escHtml(r.Zone) + '</span>' : '<span class="muted">&mdash;</span>') + '</td>' +
                 '<td>' + (r.Hostile ? '<span class="hostile-badge hostile-yes">hostile</span>' : '<span class="hostile-badge hostile-no">passive</span>') + '</td>' +
+                '<td class="num">' + (r.Level || '&mdash;') + '</td>' +
                 '<td class="num">' + dps + '</td>' +
                 '<td class="num">' + ehp + '</td>' +
                 '<td class="num">' + loot + '</td>' +
@@ -315,7 +318,7 @@
         var html = '';
 
         html += '<div class="detail-card">';
-        html += '<div class="detail-card-header">Combat (Lv25)</div>';
+        html += '<div class="detail-card-header">Combat (Lv' + (mob.Level || '?') + ')</div>';
         html += ds('Dice',    mob.DiceRoll || '&mdash;');
         html += ds('DPS',     mob.DPS  != null ? mob.DPS.toFixed(3)  : '&mdash;');
         html += ds('Max Hit', mob.MaxDmg > 0   ? mob.MaxDmg          : '&mdash;');
@@ -412,9 +415,9 @@
     (function() {
         var tip = document.getElementById('tooltip');
         var SCORE_TIPS = {
-            threat:  'DPS \u00d7 eHP at level 25.',
+            threat:  'DPS \u00d7 eHP at the mob\'s effective level.',
             loot:    'Expected loot value per kill: Gold + (ItemDropChance% \u00d7 total item value).',
-            defense: 'Effective HP at level 25: raw HP \u00f7 (1 \u2212 defense/200).'
+            defense: 'Effective HP at the mob\'s effective level: raw HP \u00f7 (1 \u2212 defense/200).'
         };
         document.getElementById('scoreHeader').dataset.tip = SCORE_TIPS['threat'];
 
