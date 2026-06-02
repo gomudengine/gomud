@@ -247,6 +247,14 @@ func buildAdminNav() []WebNavItem {
 						{Label: "Amazon S3 Setup", Target: "/admin/docs-backups", Description: "Step-by-step guide to setting up S3 backups."},
 					},
 				},
+				{
+					Name:        "Hosting",
+					Target:      "/admin/docs-aws",
+					Description: "Guides for hosting GoMud on cloud providers.",
+					Children: []WebNavItem{
+						{Label: "Amazon / AWS", Target: "/admin/docs-aws", Description: "Step-by-step guide to launching and configuring an AWS EC2 instance for GoMud."},
+					},
+				},
 			},
 		},
 	}

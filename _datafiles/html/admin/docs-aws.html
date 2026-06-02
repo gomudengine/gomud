@@ -1,0 +1,1361 @@
+{{template "header" .}}
+
+<style>
+/* ── shared doc layout ────────────────────────────────────────────── */
+.doc-layout { display: grid; grid-template-columns: 220px 1fr; gap: 2rem; align-items: start; }
+.doc-sidebar {
+    position: sticky; top: 1rem;
+    max-height: calc(100vh - 5rem); overflow-y: auto;
+    background: var(--color-surface-white); border: 1px solid var(--color-border);
+    border-radius: 8px; padding: 1rem 0;
+    scrollbar-width: thin;
+}
+.doc-sidebar h3 {
+    font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
+    color: var(--color-text-subtle); padding: 0 1rem 0.4rem; margin-bottom: 0.25rem;
+    border-bottom: 1px solid var(--color-border-light);
+}
+.doc-sidebar a {
+    display: block; padding: 0.3rem 1rem; font-size: 0.85rem;
+    color: var(--color-text-secondary); text-decoration: none;
+    transition: background 0.1s, color 0.1s;
+}
+.doc-sidebar a:hover { background: var(--color-surface-alt); color: var(--color-primary); }
+.doc-sidebar a.active { background: var(--color-surface-alt); color: var(--color-primary); font-weight: 600; border-left: 3px solid var(--color-primary); padding-left: calc(1rem - 3px); }
+.doc-sidebar .sidebar-group { margin-bottom: 0.5rem; }
+.doc-sidebar .sidebar-section-label {
+    font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--color-text-faint); padding: 0.5rem 1rem 0.15rem; display: block;
+}
+
+/* ── page header ──────────────────────────────────────────────────── */
+.page-header { margin-bottom: 2rem; }
+.page-header h1 { font-size: 1.6rem; margin-bottom: 0.3rem; display: flex; align-items: center; gap: 0.6rem; }
+.page-header .subtitle { color: var(--color-text-muted); font-size: 0.9rem; }
+.breadcrumb { font-size: 0.8rem; color: var(--color-text-faint); margin-bottom: 0.5rem; }
+.breadcrumb a { color: var(--color-text-muted); text-decoration: none; }
+.breadcrumb a:hover { color: var(--color-primary); }
+.breadcrumb span { margin: 0 0.3rem; }
+
+/* ── callout boxes ────────────────────────────────────────────────── */
+.callout {
+    display: flex; gap: 0.75rem; align-items: flex-start;
+    padding: 0.85rem 1rem; border-radius: 6px; margin-bottom: 1.5rem;
+    font-size: 0.875rem; line-height: 1.6;
+}
+.callout-info  { background: var(--color-info-bg,  #dbeafe); border: 1px solid var(--color-info-border,  #93c5fd); color: var(--color-info-text,  #1e40af); }
+.callout-warn  { background: var(--color-warn-bg,  #fef3c7); border: 1px solid var(--color-warn-border,  #fcd34d); color: var(--color-warn-text,  #92400e); }
+.callout-tip   { background: var(--color-tip-bg,   #d1fae5); border: 1px solid var(--color-tip-border,   #6ee7b7); color: var(--color-tip-text,   #065f46); }
+.callout-icon  { flex-shrink: 0; margin-top: 0.1rem; }
+.callout p     { margin: 0; }
+.callout p + p { margin-top: 0.4rem; }
+.callout code  { font-family: monospace; font-size: 0.85em; background: rgba(0,0,0,0.08); padding: 0.1em 0.3em; border-radius: 3px; }
+
+/* ── section headings ─────────────────────────────────────────────── */
+.doc-section { margin-bottom: 2.5rem; scroll-margin-top: 1rem; }
+.doc-section h2 {
+    font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem;
+    padding-bottom: 0.4rem; border-bottom: 2px solid var(--color-border-light);
+    color: var(--color-text);
+}
+.doc-section h3 { font-size: 0.95rem; font-weight: 700; margin: 1.5rem 0 0.6rem; color: var(--color-text); }
+.doc-section p  { font-size: 0.875rem; color: var(--color-text-tertiary); line-height: 1.7; margin-bottom: 0.75rem; }
+.doc-section ul, .doc-section ol { font-size: 0.875rem; color: var(--color-text-tertiary); line-height: 1.7; margin-bottom: 0.75rem; padding-left: 1.5rem; }
+.doc-section ul li, .doc-section ol li { margin-bottom: 0.3rem; }
+
+/* ── reference tables ─────────────────────────────────────────────── */
+.ref-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; margin-bottom: 1rem; }
+.ref-table thead tr { border-bottom: 2px solid var(--color-border); }
+.ref-table th { text-align: left; padding: 0.4rem 0.75rem; color: var(--color-text-secondary); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.ref-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--color-border-faint); color: var(--color-text-tertiary); vertical-align: top; }
+.ref-table tr:last-child td { border-bottom: none; }
+.ref-table code { font-family: monospace; font-size: 0.85em; background: var(--color-surface-alt); padding: 0.1em 0.35em; border-radius: 3px; color: var(--color-primary); }
+
+/* ── code blocks ──────────────────────────────────────────────────── */
+.code-block {
+    background: var(--color-surface-alt); border: 1px solid var(--color-border);
+    border-radius: 6px; margin-bottom: 1.25rem; overflow: hidden;
+}
+.code-block-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.4rem 0.85rem; background: var(--color-border-faint);
+    border-bottom: 1px solid var(--color-border);
+    font-size: 0.75rem; font-family: monospace; color: var(--color-text-muted);
+}
+.code-block pre { margin: 0; padding: 1rem; overflow-x: auto; font-size: 0.82rem; line-height: 1.6; }
+.code-block code { background: none; padding: 0; border: none; color: var(--color-text); font-family: 'Fira Mono', 'Cascadia Code', 'Consolas', monospace; }
+
+/* ── step list ────────────────────────────────────────────────────── */
+.step-list { list-style: none; padding: 0; margin-bottom: 1.5rem; }
+.step-list li { display: flex; gap: 1rem; margin-bottom: 1.25rem; align-items: flex-start; }
+.step-num {
+    flex-shrink: 0; width: 1.75rem; height: 1.75rem;
+    background: var(--color-primary); color: #fff;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem; font-weight: 700; margin-top: 0.1rem;
+}
+.step-body { flex: 1; }
+.step-body strong { font-size: 0.9rem; color: var(--color-text); display: block; margin-bottom: 0.2rem; }
+.step-body p { font-size: 0.85rem; color: var(--color-text-muted); margin: 0 0 0.4rem; line-height: 1.5; }
+.step-body code { font-family: monospace; font-size: 0.82em; background: var(--color-surface-alt); padding: 0.1em 0.3em; border-radius: 3px; color: var(--color-primary); }
+.step-body ul { font-size: 0.85rem; color: var(--color-text-muted); line-height: 1.5; padding-left: 1.25rem; margin: 0.25rem 0 0; }
+.step-body ul li { margin-bottom: 0.15rem; }
+
+/* ── feature cards ────────────────────────────────────────────────── */
+.feature-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+.feature-card {
+    background: var(--color-surface-white); border: 1px solid var(--color-border);
+    border-radius: 8px; padding: 1.25rem;
+    display: flex; align-items: flex-start; gap: 1rem;
+}
+.feature-card-icon { font-size: 1.6rem; flex-shrink: 0; line-height: 1; }
+.feature-card-body { flex: 1; }
+.feature-card-title { font-size: 0.95rem; font-weight: 700; color: var(--color-text); margin-bottom: 0.2rem; }
+.feature-card-desc { font-size: 0.82rem; color: var(--color-text-muted); line-height: 1.5; }
+
+/* ── responsive ──────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+    .doc-layout  { grid-template-columns: 1fr; }
+    .doc-sidebar { position: static; max-height: none; }
+    .feature-row { grid-template-columns: 1fr; }
+}
+</style>
+
+<div class="doc-layout">
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     SIDEBAR
+═══════════════════════════════════════════════════════════════════ -->
+<aside class="doc-sidebar" id="doc-sidebar">
+    <h3>AWS Hosting</h3>
+
+    <span class="sidebar-section-label">Overview</span>
+    <div class="sidebar-group">
+        <a href="#overview">What You Will Build</a>
+        <a href="#account">Create an AWS Account</a>
+    </div>
+
+    <span class="sidebar-section-label">Launch an Instance</span>
+    <div class="sidebar-group">
+        <a href="#region">Choose a Region</a>
+        <a href="#launch">Launch EC2 Instance</a>
+        <a href="#instance-type">Instance Type</a>
+        <a href="#key-pair">SSH Key Pair</a>
+        <a href="#security-group">Security Groups &amp; Ports</a>
+        <a href="#storage">Storage</a>
+        <a href="#launch-confirm">Review &amp; Launch</a>
+    </div>
+
+    <span class="sidebar-section-label">First Login</span>
+    <div class="sidebar-group">
+        <a href="#connect">Connect via SSH</a>
+        <a href="#update">Update the System</a>
+        <a href="#swap">Set Up Swap Space</a>
+    </div>
+
+    <span class="sidebar-section-label">Install GoMud</span>
+    <div class="sidebar-group">
+        <a href="#install-go">Install Go</a>
+        <a href="#install-gomud">Download &amp; Build GoMud</a>
+        <a href="#run">Run the Server</a>
+        <a href="#autostart">Auto-Start on Boot</a>
+    </div>
+
+    <span class="sidebar-section-label">Reference</span>
+    <div class="sidebar-group">
+        <a href="#ports-ref">Port Reference</a>
+        <a href="#troubleshooting">Troubleshooting</a>
+    </div>
+</aside>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     MAIN CONTENT
+═══════════════════════════════════════════════════════════════════ -->
+<div class="doc-content">
+
+<div class="page-header">
+    <div class="breadcrumb">
+        <a href="/admin/">Home</a>
+        <span>&rsaquo;</span>
+        <a href="/admin/docs-aws">Docs</a>
+        <span>&rsaquo;</span>
+        Hosting &rsaquo; Amazon / AWS
+    </div>
+    <h1>
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--color-primary)"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        Hosting on Amazon AWS
+    </h1>
+    <p class="subtitle">A complete beginner-friendly guide to launching GoMud on an Amazon EC2 virtual server.</p>
+</div>
+
+
+<!-- ────────────────────────────────────────────────────────────────
+     OVERVIEW
+──────────────────────────────────────────────────────────────── -->
+<section class="doc-section" id="overview">
+    <h2>What You Will Build</h2>
+
+    <p>
+        This guide walks you through renting a virtual Linux server on Amazon Web Services (AWS),
+        configuring it so players can connect, and running GoMud on it. By the end you will have
+        a server that starts automatically when the machine boots and is reachable over the internet.
+    </p>
+
+    <div class="feature-row">
+        <div class="feature-card">
+            <div class="feature-card-icon">&#9729;</div>
+            <div class="feature-card-body">
+                <div class="feature-card-title">EC2 Instance</div>
+                <div class="feature-card-desc">A virtual Linux machine hosted in an AWS data center. You pay only for what you use &mdash; there is no physical hardware to buy.</div>
+            </div>
+        </div>
+        <div class="feature-card">
+            <div class="feature-card-icon">&#128274;</div>
+            <div class="feature-card-body">
+                <div class="feature-card-title">Security Group</div>
+                <div class="feature-card-desc">AWS&rsquo;s built-in firewall. Controls which numbered ports (network &ldquo;doors&rdquo;) players can reach and which are blocked.</div>
+            </div>
+        </div>
+        <div class="feature-card">
+            <div class="feature-card-icon">&#128273;</div>
+            <div class="feature-card-body">
+                <div class="feature-card-title">SSH Key Pair</div>
+                <div class="feature-card-desc">A pair of cryptographic files used instead of a password. You keep one half; the server holds the other. Only someone with your half can log in.</div>
+            </div>
+        </div>
+        <div class="feature-card">
+            <div class="feature-card-icon">&#128260;</div>
+            <div class="feature-card-body">
+                <div class="feature-card-title">Swap File</div>
+                <div class="feature-card-desc">A file on disk that acts as overflow memory when RAM (the server&rsquo;s fast working memory) fills up. Prevents crashes during Go compilation. <a href="#swap">Set up in Step 10.</a></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="callout callout-info">
+        <div class="callout-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        </div>
+        <p>
+            <strong>No prior AWS experience needed.</strong> Every step is explained in plain language.
+            Where a choice exists between options, this guide explains the trade-offs so you can
+            decide what is right for your situation.
+        </p>
+    </div>
+</section>
+
+
+<!-- ────────────────────────────────────────────────────────────────
+     CREATE ACCOUNT
+──────────────────────────────────────────────────────────────── -->
+<section class="doc-section" id="account">
+    <h2>Create an AWS Account</h2>
+
+    <p>
+        If you do not already have an AWS account, go to
+        <a href="https://aws.amazon.com/" target="_blank" rel="noopener">aws.amazon.com</a>
+        and click <strong>Create an AWS Account</strong>. You will need:
+    </p>
+
+    <ul>
+        <li>An email address</li>
+        <li>A credit or debit card (AWS will charge a small verification amount, typically refunded)</li>
+        <li>A phone number for identity verification</li>
+    </ul>
+
+    <p>
+        AWS offers a <strong>Free Tier</strong> for new accounts. The <code>t2.micro</code> and
+        <code>t3.micro</code> instance types are free for 750 hours per month for the first 12 months.
+        That is enough to run a small MUD server at no cost while you are getting started.
+    </p>
+
+    <div class="callout callout-warn">
+        <div class="callout-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <p>
+            Set up <strong>billing alerts</strong> immediately after creating your account. Go to
+            <em>Billing &rarr; Budgets</em> and create a budget with a $5 or $10 monthly threshold.
+            AWS will email you if you are about to be charged unexpectedly. This is a safety net
+            against accidentally leaving resources running.
+        </p>
+    </div>
+</section>
+
+
+<!-- ────────────────────────────────────────────────────────────────
+     CHOOSE A REGION
+──────────────────────────────────────────────────────────────── -->
+<section class="doc-section" id="region">
+    <h2>Step 1 &mdash; Choose a Region</h2>
+
+    <p>
+        AWS operates data centers in many locations around the world, called <strong>regions</strong>.
+        When you launch a server, you pick which region it lives in. This affects:
+    </p>
+
+    <ul>
+        <li><strong>Latency:</strong> Players connect faster when the server is geographically close to them.</li>
+        <li><strong>Price:</strong> Prices vary slightly between regions. <code>us-east-1</code> (Northern Virginia) is typically the cheapest.</li>
+        <li><strong>Free Tier eligibility:</strong> Free Tier applies per region, so it does not matter which one you pick for that purpose.</li>
+    </ul>
+
+    <p>
+        The region selector is the dropdown in the top-right corner of the AWS console, showing
+        something like <strong>N. Virginia</strong> or <strong>us-east-1</strong>. Pick the region
+        closest to where most of your players will be, or just leave it as the default
+        (<code>us-east-1</code>) if you are unsure.
+    </p>
+
+    <div class="callout callout-tip">
+        <div class="callout-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <p>
+            Once you pick a region, stick with it. Resources in one region cannot directly see
+            resources in another region, so keeping everything in the same region avoids confusion.
+        </p>
+    </div>
+</section>
+
+
+<!-- ────────────────────────────────────────────────────────────────
+     LAUNCH EC2
+──────────────────────────────────────────────────────────────── -->
+<section class="doc-section" id="launch">
+    <h2>Step 2 &mdash; Open the EC2 Launch Wizard</h2>
+
+    <ol class="step-list">
+        <li>
+            <div class="step-num">1</div>
+            <div class="step-body">
+                <strong>Go to the EC2 service</strong>
+                <p>In the AWS console, type <code>EC2</code> in the search bar at the top and click
+                <strong>EC2</strong> in the results. EC2 stands for &ldquo;Elastic Compute Cloud&rdquo;&mdash;it is
+                the AWS service for renting virtual machines.</p>
+            </div>
+        </li>
+        <li>
+            <div class="step-num">2</div>
+            <div class="step-body">
+                <strong>Click &ldquo;Launch instance&rdquo;</strong>
+                <p>On the EC2 dashboard, click the orange <strong>Launch instance</strong> button.
+                This opens a multi-step form where you configure your new server.</p>
+            </div>
+        </li>
+        <li>
+            <div class="step-num">3</div>
+            <div class="step-body">
+                <strong>Give it a name</strong>
+                <p>In the <em>Name and tags</em> field, type something descriptive like
+                <code>gomud-server</code>. This is just a label for your own reference in the console.</p>
+            </div>
+        </li>
+        <li>
+            <div class="step-num">4</div>
+            <div class="step-body">
+                <strong>Choose an AMI (the operating system image)</strong>
+                <p>An <strong>AMI</strong> (Amazon Machine Image) is a pre-built snapshot of an
+                operating system that AWS uses to set up your server. Think of it as the installer
+                disc for your server&rsquo;s OS.</p>
+                <p>Under <em>Application and OS Images</em>, select <strong>Ubuntu</strong>.
+                Choose the latest <strong>Ubuntu Server LTS</strong> (Long Term Support) version&mdash;
+                at the time of writing this is Ubuntu 24.04 LTS. LTS releases receive security updates
+                for five years, making them the safe choice for a server you intend to leave running
+                without constant maintenance.</p>
+                <p>Make sure the architecture is set to <strong>64-bit (x86)</strong>. This means the
+                server uses the standard Intel/AMD processor instruction set that most software is
+                built for. The alternative (ARM/Graviton) is cheaper but requires a different build
+                of Go and is not covered here.</p>
+            </div>
+        </li>
+    </ol>
+</section>
+
+
+<!-- ────────────────────────────────────────────────────────────────
+     INSTANCE TYPE
+──────────────────────────────────────────────────────────────── -->
+<section class="doc-section" id="instance-type">
+    <h2>Step 3 &mdash; Choose an Instance Type</h2>
+
+    <p>
+        The instance type determines how much CPU (<em>processing power</em>) and RAM
+        (<em>Random Access Memory &mdash; the fast working memory programs use while running</em>)
+        your server has. AWS charges more for larger instance types. Here are the common choices
+        for GoMud:
+    </p>
+
+    <table class="ref-table">
+        <thead>
+            <tr><th>Type</th><th>vCPU <small style="font-weight:normal;text-transform:none">(virtual cores)</small></th><th>RAM</th><th>Best For</th><th>Free Tier</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>t2.micro</code></td>
+                <td>1</td>
+                <td>1 GB</td>
+                <td>Testing, very small player counts (&lt;10 simultaneous players)</td>
+                <td>Yes (first 12 months)</td>
+            </tr>
+            <tr>
+                <td><code>t3.micro</code></td>
+                <td>2</td>
+                <td>1 GB</td>
+                <td>Small production server; better CPU burst performance than t2. (<em>Burst</em> means it can briefly use extra CPU power when needed, then throttles back.)</td>
+                <td>Yes (first 12 months)</td>
+            </tr>
+            <tr>
+                <td><code>t3.small</code></td>
+                <td>2</td>
+                <td>2 GB</td>
+                <td>Comfortable for most MUD servers; enough RAM to compile GoMud without needing a <a href="#swap">swap file</a></td>
+                <td>No (~$15/month)</td>
+            </tr>
+            <tr>
+                <td><code>t3.medium</code></td>
+                <td>2</td>
+                <td>4 GB</td>
+                <td>Larger worlds, many concurrent players, future growth</td>
+                <td>No (~$30/month)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <p>
+        <strong>Recommendation:</strong> Start with <code>t3.micro</code> if you want to stay on
+        the Free Tier, or <code>t3.small</code> if you want a more comfortable experience.
+        The 1 GB RAM on micro instances is tight for Go compilation&mdash;that is why you will
+        <a href="#swap">set up a swap file</a> later in this guide. A swap file lets the OS use
+        disk space as overflow memory when RAM fills up.
+    </p>
+
+    <div class="callout callout-info">
+        <div class="callout-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        </div>
+        <p>
+            You can resize your instance type later without losing your data. If you start on
+            <code>t3.micro</code> and find it underpowered, you can stop the instance, change
+            the type, and start it again.
+        </p>
+    </div>
+</section>
+
+
+<!-- ────────────────────────────────────────────────────────────────
+     KEY PAIR
+──────────────────────────────────────────────────────────────── -->
+<section class="doc-section" id="key-pair">
+    <h2>Step 4 &mdash; Create an SSH Key Pair</h2>
+
+    <p>
+        <strong>SSH</strong> (Secure Shell) is the standard way to log in to a remote Linux server
+        and type commands into it from your own computer. The connection is fully encrypted, so
+        nobody watching the network can see what you type.
+    </p>
+    <p>
+        Instead of a password, AWS uses a <strong>key pair</strong>. This is a matched pair of
+        very long numbers generated together: a <em>private key</em> (a file that stays on your
+        computer and must never be shared) and a <em>public key</em> (stored on the server). When
+        you connect, SSH proves you have the private key without ever sending it over the network.
+        Only someone with the private key file can log in, even if they know the server&rsquo;s
+        IP address.
+    </p>
+
+    <ol class="step-list">
+        <li>
+            <div class="step-num">1</div>
+            <div class="step-body">
+                <strong>Click &ldquo;Create new key pair&rdquo;</strong>
+                <p>In the <em>Key pair (login)</em> section, click <strong>Create new key pair</strong>.</p>
+            </div>
+        </li>
+        <li>
+            <div class="step-num">2</div>
+            <div class="step-body">
+                <strong>Name it and choose the format</strong>
+                <p>Give it a name like <code>gomud-key</code>.</p>
+                <ul>
+                    <li><strong>Key pair type:</strong> Choose <code>RSA</code>. RSA and ED25519 are both strong encryption algorithms; RSA has slightly wider compatibility with older SSH clients, so it is the safer default choice.</li>
+                    <li><strong>Private key file format:</strong> Choose <code>.pem</code> if you are on Mac or Linux. <code>.pem</code> is the standard format for the built-in SSH tools on those systems. Choose <code>.ppk</code> only if you are using the PuTTY SSH client on Windows. Most modern Windows users should also choose <code>.pem</code> since Windows 10 and later include a built-in SSH client that works with <code>.pem</code> directly.</li>
+                </ul>
+            </div>
+        </li>
+        <li>
+            <div class="step-num">3</div>
+            <div class="step-body">
+                <strong>Download and save the key file</strong>
+                <p>Click <strong>Create key pair</strong>. Your browser will download a file like
+                <code>gomud-key.pem</code>. <strong>Save this file somewhere safe.</strong>
+                AWS will never let you download it again. If you lose it, you will be locked out
+                of your server and will need to create a new one.</p>
+                <p>A good place to keep it is in a folder like <code>~/.ssh/</code> on your computer.
+                The <code>~</code> (tilde) symbol is a shorthand for your home directory&mdash;on
+                Mac it is <code>/Users/yourname</code>, on Linux it is <code>/home/yourname</code>.</p>
+            </div>
+        </li>
+        <li>
+            <div class="step-num">4</div>
+            <div class="step-body">
+                <strong>Restrict the key file permissions (Mac/Linux)</strong>
+                <p>SSH refuses to use a key file that other users on your computer can read.
+                Open a terminal and run:</p>
+            </div>
+        </li>
+    </ol>
+
+    <div class="code-block">
+        <div class="code-block-header">Terminal (Mac / Linux)</div>
+<pre><code>chmod 400 ~/.ssh/gomud-key.pem</code></pre>
+    </div>
+
+    <p>
+        This sets the file to read-only for your user only. On Windows, right-click the file,
+        go to <em>Properties &rarr; Security</em>, and ensure only your user account has access.
+    </p>
+</section>
+
+
+<!-- ────────────────────────────────────────────────────────────────
+     SECURITY GROUP
+──────────────────────────────────────────────────────────────── -->
+<section class="doc-section" id="security-group">
+    <h2>Step 5 &mdash; Configure the Security Group (Firewall)</h2>
+
+    <p>
+        A <strong>security group</strong> is AWS&rsquo;s built-in firewall. A firewall sits in front
+        of your server and decides which incoming network connections to allow and which to silently
+        drop. By default, all inbound traffic to your server is blocked. You must explicitly open
+        each <strong>port</strong> you want to allow.
+    </p>
+
+    <p>
+        A <strong>port</strong> is a numbered channel on a network connection &mdash; like different
+        doors into the same building. Every network service listens on a specific port number.
+        For example, web browsers expect port 80 for regular websites and port 443 for secure ones.
+        MUD clients traditionally connect on port 23 (the Telnet port). You open only the ports
+        your server actually needs.
+    </p>
+
+    <p>
+        In the <em>Network settings</em> section, click <strong>Edit</strong> to expand the rules.
+        You will add the following inbound rules:
+    </p>
+
+    <table class="ref-table">
+        <thead>
+            <tr><th>Type</th><th>Protocol</th><th>Port</th><th>Source</th><th>Why</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>SSH</td>
+                <td>TCP</td>
+                <td>22</td>
+                <td>My IP</td>
+                <td>Lets you log in to manage the server. Using <em>My IP</em> restricts this to your current IP address, which is much safer than allowing the whole internet.</td>
+            </tr>
+            <tr>
+                <td>Custom TCP</td>
+                <td>TCP</td>
+                <td>23</td>
+                <td>Anywhere (0.0.0.0/0)</td>
+                <td>The standard <strong>Telnet</strong> port. Telnet is the original plain-text network protocol that MUD clients use to connect. <code>0.0.0.0/0</code> means &ldquo;allow connections from any IP address on the internet.&rdquo;</td>
+            </tr>
+            <tr>
+                <td>Custom TCP</td>
+                <td>TCP</td>
+                <td>80</td>
+                <td>Anywhere (0.0.0.0/0)</td>
+                <td><strong>HTTP</strong> &mdash; the standard protocol for web pages. Used for the GoMud web client and admin panel over a plain (unencrypted) connection.</td>
+            </tr>
+            <tr>
+                <td>Custom TCP</td>
+                <td>TCP</td>
+                <td>443</td>
+                <td>Anywhere (0.0.0.0/0)</td>
+                <td><strong>HTTPS</strong> &mdash; the encrypted version of HTTP. The &ldquo;S&rdquo; stands for Secure. Used for the web client and admin panel when TLS (Transport Layer Security, the technology behind the padlock icon in browsers) is configured.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <p>
+        <strong>TCP</strong> (Transmission Control Protocol) is the network protocol that all of
+        these services use. It is the reliable, connection-oriented way computers send data to
+        each other over the internet. You will always choose TCP here; the alternative (UDP) is
+        for streaming and games that can tolerate dropped packets, which does not apply to a MUD.
+    </p>
+
+    <div class="callout callout-warn">
+        <div class="callout-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <p>
+            <strong>Do not set SSH (port 22) to &ldquo;Anywhere&rdquo;.</strong> Automated bots
+            on the internet constantly scan every IP address for open SSH ports and attempt
+            <em>brute-force</em> logins &mdash; meaning they try thousands of username and password
+            combinations per second. Restricting SSH to <em>My IP</em> means only your computer&rsquo;s
+            current IP address can even attempt to connect. If your home IP address changes (which
+            can happen when your router restarts), you can update this rule in the AWS console under
+            <em>Security Groups</em>.
+        </p>
+    </div>
+
+    <h3>How to add a rule</h3>
+    <ol class="step-list">
+        <li>
+            <div class="step-num">1</div>
+            <div class="step-body">
+                <strong>The SSH rule is usually pre-filled</strong>
+                <p>AWS typically adds an SSH rule automatically. Change its source from
+                <em>Anywhere</em> to <strong>My IP</strong> by selecting it from the dropdown.</p>
+            </div>
+        </li>
+        <li>
+            <div class="step-num">2</div>
+            <div class="step-body">
+                <strong>Add port 23 (Telnet)</strong>
+                <p>Click <strong>Add security group rule</strong>. Set Type to
+                <em>Custom TCP</em>, Port range to <code>23</code>, and Source to
+                <em>Anywhere</em> (<code>0.0.0.0/0</code>). Add a description like
+                <code>GoMud Telnet</code>.</p>
+            </div>
+        </li>
+        <li>
+            <div class="step-num">3</div>
+            <div class="step-body">
+                <strong>Add port 80 (HTTP)</strong>
+                <p>Click <strong>Add security group rule</strong> again. Set Type to
+                <em>HTTP</em> (AWS will fill in port 80 automatically). Source:
+                <em>Anywhere</em>.</p>
+            </div>
+        </li>
+        <li>
+            <div class="step-num">4</div>
+            <div class="step-body">
+                <strong>Add port 443 (HTTPS)</strong>
+                <p>Click <strong>Add security group rule</strong> again. Set Type to
+                <em>HTTPS</em> (AWS will fill in port 443 automatically). Source:
+                <em>Anywhere</em>.</p>
+            </div>
+        </li>
+    </ol>
+
+    <div class="callout callout-info">
+        <div class="callout-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        </div>
+        <p>
+            GoMud&rsquo;s default configuration uses port <code>23</code> for Telnet and port <code>80</code>
+            for the web interface. You can change these in the GoMud config file later. If you use
+            non-standard ports (e.g., <code>4000</code> for Telnet), add those ports to the security
+            group instead of or in addition to port 23.
+        </p>
+    </div>
+</section>
+
+
+<!-- ────────────────────────────────────────────────────────────────
+     STORAGE
+──────────────────────────────────────────────────────────────── -->
+<section class="doc-section" id="storage">
+    <h2>Step 6 &mdash; Configure Storage</h2>
+
+    <p>
+        Under <em>Configure storage</em>, you set the size of the server&rsquo;s virtual hard drive
+        (called an <strong>EBS volume</strong> in AWS terminology &mdash; Elastic Block Store, which
+        is just AWS&rsquo;s name for a network-attached disk). The default is usually 8 GB.
+        For GoMud, <strong>20 GB</strong> is a comfortable amount that gives you room for the
+        operating system, Go toolchain, GoMud itself, world data, logs, and backups.
+    </p>
+
+    <p>
+        The volume type should be <strong>gp3</strong> (General Purpose <strong>SSD</strong>,
+        version 3). An SSD (Solid State Drive) has no moving parts and is much faster than a
+        traditional spinning hard disk, which matters for server responsiveness. <code>gp3</code>
+        is faster and cheaper than the older <code>gp2</code> type. AWS may default to
+        <code>gp3</code> already; if it shows <code>gp2</code>, change it.
+    </p>
+
+    <div class="callout callout-tip">
+        <div class="callout-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <p>
+            The Free Tier includes 30 GB of <code>gp2</code> storage. If you are staying on the
+            Free Tier, keep the volume at 8 GB or 30 GB maximum to avoid charges. The 8 GB default
+            is workable for GoMud.
+        </p>
+    </div>
+</section>
+
+
+<!-- ────────────────────────────────────────────────────────────────
+     LAUNCH CONFIRM
+──────────────────────────────────────────────────────────────── -->
+<section class="doc-section" id="launch-confirm">
+    <h2>Step 7 &mdash; Review and Launch</h2>
+
+    <p>
+        The right-hand <em>Summary</em> panel shows your choices. Review them and click
+        <strong>Launch instance</strong>. AWS will take about 30&ndash;60 seconds to start your
+        server.
+    </p>
+
+    <p>
+        Once launched, click <strong>View all instances</strong> to go to the EC2 instances list.
+        Wait until the <em>Instance state</em> column shows <strong>Running</strong> and the
+        <em>Status check</em> column shows <strong>2/2 checks passed</strong>. This means the
+        server has booted successfully.
+    </p>
+
+    <p>
+        In the instance details at the bottom of the page, find the
+        <strong>Public IPv4 address</strong>. An <strong>IP address</strong> is the unique numerical
+        label that identifies your server on the internet &mdash; similar to a postal address but
+        for network traffic. IPv4 addresses look like four numbers separated by dots, for example
+        <code>54.123.45.67</code>. Write this down &mdash; you will need it to connect via SSH
+        and to tell players where to connect.
+    </p>
+
+    <div class="callout callout-warn">
+        <div class="callout-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <p>
+            The <strong>Public IPv4 address changes every time you stop and restart the instance.</strong>
+            AWS recycles IP addresses from a shared pool, so each start gets a different one.
+            If you want a permanent, fixed address, you can allocate an <strong>Elastic IP</strong>
+            from the EC2 console (<em>Network &amp; Security &rarr; Elastic IPs</em>) and associate
+            it with your instance. &ldquo;Elastic&rdquo; just means it stays yours until you
+            explicitly release it. Elastic IPs are free as long as they are attached to a
+            <em>running</em> instance, but cost a small hourly fee if the instance is stopped
+            (to discourage hoarding unused addresses).
+        </p>
+    </div>
+</section>
+
+
+<!-- ────────────────────────────────────────────────────────────────
+     CONNECT VIA SSH
+──────────────────────────────────────────────────────────────── -->
+<section class="doc-section" id="connect">
+    <h2>Step 8 &mdash; Connect to Your Server via SSH</h2>
+
+    <p>
+        A <strong>terminal</strong> (also called a command line or shell) is a text-based window
+        where you type commands directly. On Mac, open <em>Terminal</em> from Applications &rarr;
+        Utilities. On Linux, open your system&rsquo;s terminal application. On Windows 10 or later,
+        open <em>PowerShell</em> from the Start menu (search for &ldquo;PowerShell&rdquo;).
+    </p>
+    <p>
+        Replace <code>YOUR_IP</code> with the Public IPv4 address from the previous step and
+        <code>~/.ssh/gomud-key.pem</code> with the path to your key file.
+    </p>
+
+    <div class="code-block">
+        <div class="code-block-header">Terminal (Mac / Linux / Windows PowerShell)</div>
+<pre><code>ssh -i ~/.ssh/gomud-key.pem ubuntu@YOUR_IP</code></pre>
+    </div>
+
+    <p>
+        The username is <code>ubuntu</code> because you launched an Ubuntu image. AWS creates
+        this user automatically. You do not use a password; the key file authenticates you.
+    </p>
+
+    <p>
+        The first time you connect, SSH will ask:
+    </p>
+
+    <div class="code-block">
+        <div class="code-block-header">Expected prompt</div>
+<pre><code>The authenticity of host '1.2.3.4 (1.2.3.4)' can't be established.
+ED25519 key fingerprint is SHA256:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.
+Are you sure you want to continue connecting (yes/no/[fingerprint])?</code></pre>
+    </div>
+
+    <p>
+        Type <code>yes</code> and press Enter. SSH is showing you a <strong>fingerprint</strong>
+        &mdash; a short unique identifier derived from the server&rsquo;s own cryptographic key &mdash;
+        and asking whether you trust it. On a server you just created yourself it is safe to
+        accept. SSH saves this fingerprint locally so it can warn you if it ever changes
+        unexpectedly (which could indicate someone is intercepting your connection).
+    </p>
+
+    <p>
+        You should now see a prompt like <code>ubuntu@ip-172-31-xx-xx:~$</code>. You are logged
+        in to your server.
+    </p>
+
+    <div class="callout callout-tip">
+        <div class="callout-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <p>
+            <strong>Windows users:</strong> If you are on Windows 10 or later, PowerShell includes
+            a built-in SSH client. The command above works in PowerShell. If you prefer a graphical
+            SSH client, <a href="https://www.putty.org/" target="_blank" rel="noopener">PuTTY</a> is
+            a popular free option (use the <code>.ppk</code> key format with PuTTY).
+        </p>
+    </div>
+</section>
+
+
+<!-- ────────────────────────────────────────────────────────────────
+     UPDATE SYSTEM
+──────────────────────────────────────────────────────────────── -->
+<section class="doc-section" id="update">
+    <h2>Step 9 &mdash; Update the System</h2>
+
+    <p>
+        Before installing anything, update the list of available packages and apply any
+        security patches. This is good practice any time you set up a new Linux server.
+    </p>
+
+    <div class="code-block">
+        <div class="code-block-header">Server terminal</div>
+<pre><code>sudo apt update && sudo apt upgrade -y</code></pre>
+    </div>
+
+    <p>
+        <code>apt</code> is Ubuntu&rsquo;s <strong>package manager</strong> &mdash; think of it as
+        an app store for command-line software. It downloads and installs programs from Ubuntu&rsquo;s
+        official repositories (trusted software libraries maintained by the Ubuntu project).
+        <code>sudo</code> stands for &ldquo;superuser do&rdquo; and runs the command as
+        <strong>root</strong> (the administrator account that has permission to change system files).
+        Without <code>sudo</code>, the command would be blocked because regular users cannot modify
+        system software. The <code>-y</code> flag automatically answers &ldquo;yes&rdquo; to any
+        confirmation prompts so the upgrade runs without you needing to sit and watch it.
+    </p>
+
+    <p>
+        This may take a minute or two. You will see a lot of output scrolling past; that is normal.
+        When it finishes, the prompt returns.
+    </p>
+</section>
+
+
+<!-- ────────────────────────────────────────────────────────────────
+     SWAP FILE
+──────────────────────────────────────────────────────────────── -->
+<section class="doc-section" id="swap">
+    <h2>Step 10 &mdash; Set Up a Swap File</h2>
+
+    <p>
+        Your server has a fixed amount of <strong>RAM</strong> (Random Access Memory) &mdash; the
+        fast working memory that programs use while they are running. When a program needs more RAM
+        than is available, the operating system normally terminates it immediately.
+    </p>
+    <p>
+        <strong>Swap space</strong> gives the OS a safety valve: it reserves a portion of the
+        (slower) disk as overflow memory. When RAM fills up, the OS moves the least-recently-used
+        data out of RAM and onto the swap area to free up space. This is slower than real RAM, but
+        it prevents the program from being killed outright.
+    </p>
+    <p>
+        When you <strong>compile</strong> GoMud (translate its source code into an executable
+        program the computer can run), the Go compiler briefly needs significantly more memory than
+        a 1 GB instance provides. Without swap, the OS kills the compiler mid-way through with a
+        cryptic <code>signal: killed</code> message and the build fails.
+    </p>
+
+    <p>
+        A 2 GB swap file is sufficient. Run the following commands one at a time:
+    </p>
+
+    <div class="code-block">
+        <div class="code-block-header">Server terminal &mdash; create and enable the swap file</div>
+<pre><code>sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile</code></pre>
+    </div>
+
+    <p>What each command does:</p>
+    <ul>
+        <li><code>fallocate -l 2G /swapfile</code> &mdash; allocates a 2 GB file at <code>/swapfile</code>. This is fast because it reserves the space without writing data.</li>
+        <li><code>chmod 600 /swapfile</code> &mdash; restricts the file so only root can read or write it. Linux requires this before it will use a file as swap.</li>
+        <li><code>mkswap /swapfile</code> &mdash; formats the file with the swap filesystem structure.</li>
+        <li><code>swapon /swapfile</code> &mdash; activates the swap file so the OS starts using it immediately.</li>
+    </ul>
+
+    <p>Verify it is active:</p>
+
+    <div class="code-block">
+        <div class="code-block-header">Server terminal</div>
+<pre><code>free -h</code></pre>
+    </div>
+
+    <p>
+        You should see a <code>Swap:</code> row with <code>2.0Gi</code> (or similar) in the
+        <em>total</em> column. The <em>used</em> column will be near zero at this point; swap
+        only gets used when RAM fills up.
+    </p>
+
+    <h3>Make swap permanent across reboots</h3>
+
+    <p>
+        The swap file is active now, but it will not survive a reboot unless you register it
+        permanently. Linux reads a file called <code>/etc/fstab</code> (filesystem table) during
+        boot to know which disks and files to mount. Adding the swap file there tells Linux to
+        activate it automatically every time the server starts.
+    </p>
+
+    <div class="code-block">
+        <div class="code-block-header">Server terminal</div>
+<pre><code>echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab</code></pre>
+    </div>
+
+    <p>
+        This appends one line to <code>/etc/fstab</code>. The fields mean: use <code>/swapfile</code>
+        as swap space, with no mount point (<code>none</code>), of type <code>swap</code>, with
+        standard options (<code>sw</code>), and do not dump or check it on boot (<code>0 0</code>).
+    </p>
+    <p>
+        The <code>tee -a</code> pattern is used instead of a plain shell redirect
+        (<code>&gt;&gt;</code>) because a redirect runs <em>before</em> <code>sudo</code> takes
+        effect, so it would not have permission to write to a system file. Piping into
+        <code>sudo tee -a</code> routes the output through a command that <em>does</em> run as root.
+    </p>
+
+    <div class="callout callout-tip">
+        <div class="callout-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <p>
+            If you chose a <code>t3.small</code> or larger instance with 2 GB+ RAM, you can skip
+            the swap file. It does not hurt to have it anyway as a safety net, but it is not
+            strictly required for compilation on larger instances.
+        </p>
+    </div>
+</section>
+
+
+<!-- ────────────────────────────────────────────────────────────────
+     INSTALL GO
+──────────────────────────────────────────────────────────────── -->
+<section class="doc-section" id="install-go">
+    <h2>Step 11 &mdash; Install Go</h2>
+
+    <p>
+        GoMud is written in the <strong>Go</strong> programming language and must be
+        <strong>compiled from source</strong>. Compiling means taking the human-readable source
+        code files and translating them into a single executable binary file that the computer
+        can run directly. You only need to do this once (and again after any updates).
+    </p>
+    <p>
+        Ubuntu&rsquo;s built-in Go package is often several versions behind the latest release,
+        which can cause build errors. It is safer to install Go directly from the official Go
+        website to get the current stable version.
+    </p>
+
+    <p>
+        First, find the latest Go version at
+        <a href="https://go.dev/dl/" target="_blank" rel="noopener">go.dev/dl</a>.
+        At the time of writing, the latest stable release is <code>go1.23</code>. Substitute the
+        correct version number in the commands below.
+    </p>
+
+    <div class="code-block">
+        <div class="code-block-header">Server terminal &mdash; download and install Go</div>
+<pre><code># Download the Go archive (replace 1.23.0 with the current version)
+wget https://go.dev/dl/go1.23.0.linux-amd64.tar.gz
+
+# Remove any previous Go installation and extract the new one
+sudo rm -rf /usr/local/go
+sudo tar -C /usr/local -xzf go1.23.0.linux-amd64.tar.gz
+
+# Clean up the downloaded archive
+rm go1.23.0.linux-amd64.tar.gz</code></pre>
+    </div>
+
+    <p>
+        Next, add Go to your shell&rsquo;s <strong>PATH</strong>. The PATH is a list of directories
+        the shell searches when you type a command. Without adding Go&rsquo;s directory to PATH,
+        you would have to type the full path (<code>/usr/local/go/bin/go</code>) every time
+        instead of just <code>go</code>:
+    </p>
+
+    <div class="code-block">
+        <div class="code-block-header">Server terminal &mdash; add Go to PATH</div>
+<pre><code>echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+source ~/.bashrc</code></pre>
+    </div>
+
+    <p>
+        <code>~/.bashrc</code> is a configuration script that Bash (the default shell on Ubuntu)
+        runs automatically every time you open a new terminal session. Adding the
+        <code>export PATH=...</code> line there means Go will always be on your PATH in every
+        future session. The <code>source</code> command reads and executes a file in the
+        <em>current</em> shell session, so <code>source ~/.bashrc</code> applies the change
+        immediately without requiring you to log out and back in.
+    </p>
+
+    <p>Verify Go is installed:</p>
+
+    <div class="code-block">
+        <div class="code-block-header">Server terminal</div>
+<pre><code>go version</code></pre>
+    </div>
+
+    <p>You should see output like <code>go version go1.23.0 linux/amd64</code>.</p>
+</section>
+
+
+<!-- ────────────────────────────────────────────────────────────────
+     INSTALL GOMUD
+──────────────────────────────────────────────────────────────── -->
+<section class="doc-section" id="install-gomud">
+    <h2>Step 12 &mdash; Download and Build GoMud</h2>
+
+    <p>
+        You will need <code>git</code> to download the GoMud source code. <strong>Git</strong> is
+        a version control tool; here you are using it simply to download (or &ldquo;clone&rdquo;)
+        a copy of the GoMud code from GitHub onto your server.
+    </p>
+
+    <div class="code-block">
+        <div class="code-block-header">Server terminal</div>
+<pre><code>sudo apt install -y git make</code></pre>
+    </div>
+
+    <p>Now clone the GoMud <strong>repository</strong> (the hosted collection of source code files)
+    and build it:</p>
+
+    <div class="code-block">
+        <div class="code-block-header">Server terminal</div>
+<pre><code># Clone the repository into a folder called gomud
+git clone https://github.com/GoMudEngine/GoMud.git gomud
+
+# Enter the directory
+cd gomud
+
+# Build the server binary
+make build</code></pre>
+    </div>
+
+    <p>
+        The <code>make build</code> command compiles GoMud. This will take a few minutes on a
+        small instance, especially the first time. You will see output from the Go compiler
+        scrolling past. When it finishes successfully, the prompt returns without an error.
+    </p>
+
+    <div class="callout callout-info">
+        <div class="callout-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        </div>
+        <p>
+            If the build is killed mid-way with a message like <code>signal: killed</code>, it
+            ran out of memory. Make sure you completed the swap file step above, then try again.
+            The swap file gives the compiler the extra memory it needs.
+        </p>
+    </div>
+</section>
+
+
+<!-- ────────────────────────────────────────────────────────────────
+     RUN
+──────────────────────────────────────────────────────────────── -->
+<section class="doc-section" id="run">
+    <h2>Step 13 &mdash; Run GoMud</h2>
+
+    <p>
+        Start the server with:
+    </p>
+
+    <div class="code-block">
+        <div class="code-block-header">Server terminal (from inside the gomud directory)</div>
+<pre><code>make run</code></pre>
+    </div>
+
+    <p>
+        You should see log output as GoMud loads its data files and starts listening for
+        connections. Look for a line indicating the server is ready, such as:
+    </p>
+
+    <div class="code-block">
+        <div class="code-block-header">Expected log output</div>
+<pre><code>INFO  Server listening  telnet=":23"  web=":80"</code></pre>
+    </div>
+
+    <p>
+        From your own computer, open a MUD client (or telnet) and connect to
+        <code>YOUR_IP</code> on port <code>23</code>. You should see the GoMud welcome screen.
+        You can also open a browser and navigate to <code>http://YOUR_IP</code> to reach the
+        web client.
+    </p>
+
+    <p>
+        To stop the server, press <strong>Ctrl+C</strong> in the terminal.
+    </p>
+
+    <div class="callout callout-warn">
+        <div class="callout-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <p>
+            Running with <code>make run</code> directly in your SSH session means the server will
+            stop when you disconnect. The next section shows how to set it up as a background
+            service that keeps running even after you log out.
+        </p>
+    </div>
+</section>
+
+
+<!-- ────────────────────────────────────────────────────────────────
+     AUTOSTART
+──────────────────────────────────────────────────────────────── -->
+<section class="doc-section" id="autostart">
+    <h2>Step 14 &mdash; Auto-Start GoMud on Boot</h2>
+
+    <p>
+        To keep GoMud running after you disconnect from SSH, and to have it start automatically
+        when the server reboots, you will create a <strong>systemd service</strong>.
+        <strong>Systemd</strong> is the init system and process manager built into Ubuntu. It
+        starts system services in the right order when the machine boots, monitors them while
+        they run, and restarts them if they crash. A &ldquo;service&rdquo; in systemd terms is
+        just a program that systemd manages, defined by a small configuration file.
+    </p>
+
+    <ol class="step-list">
+        <li>
+            <div class="step-num">1</div>
+            <div class="step-body">
+                <strong>Find the full path to your gomud directory</strong>
+                <p>Run <code>pwd</code> from inside the <code>gomud</code> directory to see the
+                full path. It will be something like <code>/home/ubuntu/gomud</code>.</p>
+            </div>
+        </li>
+        <li>
+            <div class="step-num">2</div>
+            <div class="step-body">
+                <strong>Create the service file</strong>
+                <p>Run the following command, substituting the correct path if yours differs:</p>
+            </div>
+        </li>
+    </ol>
+
+    <div class="code-block">
+        <div class="code-block-header">Server terminal &mdash; create the systemd service</div>
+<pre><code>sudo tee /etc/systemd/system/gomud.service > /dev/null << 'EOF'
+[Unit]
+Description=GoMud Server
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/gomud
+ExecStart=/home/ubuntu/gomud/bin/gomud
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF</code></pre>
+    </div>
+
+    <p>What the key fields mean:</p>
+    <ul>
+        <li><code>After=network.target</code> &mdash; wait until the network is fully up before starting GoMud. Without this, GoMud might start before the network is ready and fail to open its ports (the numbered network channels it listens on for incoming connections).</li>
+        <li><code>User=ubuntu</code> &mdash; run the process as the <code>ubuntu</code> user, not as root. This limits the damage if the process is ever compromised.</li>
+        <li><code>WorkingDirectory</code> &mdash; the directory GoMud expects to run from. It looks for its <code>_datafiles</code> folder relative to this path.</li>
+        <li><code>ExecStart</code> &mdash; the full path to the compiled GoMud binary. The binary is placed in the <code>bin/</code> subdirectory by <code>make build</code>.</li>
+        <li><code>Restart=on-failure</code> &mdash; if GoMud crashes, systemd will restart it automatically after 5 seconds.</li>
+    </ul>
+
+    <ol class="step-list" start="3">
+        <li>
+            <div class="step-num">3</div>
+            <div class="step-body">
+                <strong>Enable and start the service</strong>
+            </div>
+        </li>
+    </ol>
+
+    <div class="code-block">
+        <div class="code-block-header">Server terminal</div>
+<pre><code># Reload systemd so it picks up the new service file
+sudo systemctl daemon-reload
+
+# Enable the service so it starts automatically on boot
+sudo systemctl enable gomud
+
+# Start it now
+sudo systemctl start gomud</code></pre>
+    </div>
+
+    <ol class="step-list" start="4">
+        <li>
+            <div class="step-num">4</div>
+            <div class="step-body">
+                <strong>Check that it is running</strong>
+            </div>
+        </li>
+    </ol>
+
+    <div class="code-block">
+        <div class="code-block-header">Server terminal</div>
+<pre><code>sudo systemctl status gomud</code></pre>
+    </div>
+
+    <p>
+        You should see <code>Active: active (running)</code> in green. If it shows
+        <code>failed</code> instead, run <code>sudo journalctl -u gomud -n 50</code> to see
+        the last 50 lines of output and look for an error message.
+    </p>
+    <p>To follow the live server logs as they are written, use:</p>
+
+    <div class="code-block">
+        <div class="code-block-header">Server terminal &mdash; follow live logs</div>
+<pre><code>sudo journalctl -u gomud -f</code></pre>
+    </div>
+
+    <p>
+        <code>journalctl</code> is the tool for reading systemd&rsquo;s log journal &mdash; the
+        central log store where all service output is collected. The <code>-u gomud</code> flag
+        filters to only GoMud&rsquo;s output, and <code>-f</code> means &ldquo;follow&rdquo;
+        (keep streaming new lines as they appear, like <code>tail -f</code>).
+        Press <strong>Ctrl+C</strong> to stop following. The server keeps running.
+    </p>
+
+    <h3>Managing the service</h3>
+
+    <table class="ref-table">
+        <thead>
+            <tr><th>Task</th><th>Command</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>Start</td><td><code>sudo systemctl start gomud</code></td></tr>
+            <tr><td>Stop</td><td><code>sudo systemctl stop gomud</code></td></tr>
+            <tr><td>Restart</td><td><code>sudo systemctl restart gomud</code></td></tr>
+            <tr><td>View status</td><td><code>sudo systemctl status gomud</code></td></tr>
+            <tr><td>View logs</td><td><code>sudo journalctl -u gomud -f</code></td></tr>
+            <tr><td>Disable auto-start</td><td><code>sudo systemctl disable gomud</code></td></tr>
+        </tbody>
+    </table>
+</section>
+
+
+<!-- ════════════════════════════════════════════════════════════════
+     REFERENCE
+════════════════════════════════════════════════════════════════ -->
+<section class="doc-section" id="ports-ref">
+    <h2>Port Reference</h2>
+
+    <table class="ref-table">
+        <thead>
+            <tr><th>Port</th><th>Protocol</th><th>Purpose</th><th>Who Needs It</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>22</code></td>
+                <td>TCP</td>
+                <td>SSH &mdash; server administration</td>
+                <td>You only. Restrict to <em>My IP</em> in the security group.</td>
+            </tr>
+            <tr>
+                <td><code>23</code></td>
+                <td>TCP</td>
+                <td>Telnet &mdash; traditional MUD client connections</td>
+                <td>All players. Open to the internet.</td>
+            </tr>
+            <tr>
+                <td><code>80</code></td>
+                <td>TCP</td>
+                <td>HTTP &mdash; web client and admin panel</td>
+                <td>All players and admins. Open to the internet.</td>
+            </tr>
+            <tr>
+                <td><code>443</code></td>
+                <td>TCP</td>
+                <td>HTTPS &mdash; encrypted web client and admin panel</td>
+                <td>All players and admins. Open to the internet. Required for HTTPS setup.</td>
+            </tr>
+        </tbody>
+    </table>
+</section>
+
+
+<section class="doc-section" id="troubleshooting">
+    <h2>Troubleshooting</h2>
+
+    <table class="ref-table">
+        <thead>
+            <tr><th>Symptom</th><th>Likely Cause</th><th>Solution</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>SSH connection refused or times out</td>
+                <td>Security group does not allow port 22 from your IP, or the instance is not running</td>
+                <td>Check the security group inbound rules in the AWS console. Make sure port 22 is open for your IP. Verify the instance state is <em>Running</em>.</td>
+            </tr>
+            <tr>
+                <td><code>Permission denied (publickey)</code> when connecting via SSH</td>
+                <td>Wrong key file, wrong username, or key file permissions are too open</td>
+                <td>Make sure you are using the correct <code>.pem</code> file and the username <code>ubuntu</code>. Run <code>chmod 400 ~/.ssh/gomud-key.pem</code> to fix permissions.</td>
+            </tr>
+            <tr>
+                <td>Build is killed with <code>signal: killed</code></td>
+                <td>Out of memory during compilation</td>
+                <td>Set up the swap file as described in Step 10, then run <code>make build</code> again.</td>
+            </tr>
+            <tr>
+                <td>Players cannot connect on port 23</td>
+                <td>Port 23 is not open in the security group, or GoMud is not running</td>
+                <td>Check the security group has a rule for port 23 with source <code>0.0.0.0/0</code>. Run <code>sudo systemctl status gomud</code> to verify the service is running.</td>
+            </tr>
+            <tr>
+                <td>Admin panel at <code>http://YOUR_IP</code> is not reachable</td>
+                <td>Port 80 is not open in the security group</td>
+                <td>Add an HTTP (port 80) inbound rule in the security group.</td>
+            </tr>
+            <tr>
+                <td>IP address changed after restarting the instance</td>
+                <td>AWS assigns a new public IP each time a non-Elastic-IP instance starts</td>
+                <td>Allocate an <em>Elastic IP</em> from the EC2 console and associate it with your instance for a permanent address.</td>
+            </tr>
+            <tr>
+                <td>GoMud service does not start after reboot</td>
+                <td>Service not enabled, or binary path in the service file is wrong</td>
+                <td>Run <code>sudo systemctl enable gomud</code> to enable auto-start. Verify the <code>ExecStart</code> path in <code>/etc/systemd/system/gomud.service</code> matches where <code>make build</code> placed the binary.</td>
+            </tr>
+        </tbody>
+    </table>
+</section>
+
+
+</div><!-- .doc-content -->
+</div><!-- .doc-layout -->
+
+<script>
+(function () {
+    'use strict';
+
+    var sidebar = document.getElementById('doc-sidebar');
+    var links = sidebar ? sidebar.querySelectorAll('a[href^="#"]') : [];
+    var sections = [];
+
+    for (var i = 0; i < links.length; i++) {
+        var id = links[i].getAttribute('href').slice(1);
+        var el = document.getElementById(id);
+        if (el) sections.push({ link: links[i], el: el });
+    }
+
+    function highlightSidebar() {
+        var scrollY = window.scrollY || document.documentElement.scrollTop;
+        var active = null;
+        for (var i = 0; i < sections.length; i++) {
+            if (sections[i].el.offsetTop - 60 <= scrollY) active = sections[i];
+        }
+        for (var j = 0; j < sections.length; j++) {
+            sections[j].link.classList.toggle('active', sections[j] === active);
+        }
+    }
+
+    window.addEventListener('scroll', highlightSidebar, { passive: true });
+    highlightSidebar();
+})();
+</script>
+
+{{template "footer" .}}
