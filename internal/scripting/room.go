@@ -3,6 +3,7 @@ package scripting
 import (
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
@@ -19,6 +20,12 @@ var (
 
 func ClearRoomVMs() {
 	clear(roomVMCache)
+}
+
+// InvalidateRoomVM removes the cached VM for a room so the next call reloads
+// the script from disk. Call this after saving a room script via the admin API.
+func InvalidateRoomVM(roomId int) {
+	delete(roomVMCache, roomId)
 }
 
 func PruneRoomVMs(roomIds ...int) {
@@ -67,36 +74,16 @@ func TryRoomScriptEvent(eventName string, userId int, roomId int) (bool, error) 
 		sUser := GetActor(userId, 0)
 		sRoom := GetRoom(roomId)
 
-		tmr := time.AfterFunc(scriptRoomTimeout, func() {
-			vmw.VM.Interrupt(errTimeout)
-		})
-
-		res, err := onCommandFunc(goja.Undefined(),
+		res, err := runCallable(vmw, scriptRoomTimeout, onCommandFunc,
 			vmw.VM.ToValue(sUser),
 			vmw.VM.ToValue(sRoom),
 		)
-
-		vmw.VM.ClearInterrupt()
-		tmr.Stop()
 
 		userTextWrap.Reset()
 		roomTextWrap.Reset()
 
 		if err != nil {
-
-			// Wrap the error
-			finalErr := fmt.Errorf("%s(): %w", eventName, err)
-
-			if _, ok := finalErr.(*goja.Exception); ok {
-				mudlog.Error("JSVM", "exception", finalErr)
-				return false, finalErr
-			} else if errors.Is(finalErr, errTimeout) {
-				mudlog.Error("JSVM", "interrupted", finalErr)
-				return false, finalErr
-			}
-
-			mudlog.Error("JSVM", "error", finalErr)
-			return false, finalErr
+			return false, fmt.Errorf("%s(): %w", eventName, err)
 		}
 
 		if boolVal, ok := res.Export().(bool); ok {
@@ -127,35 +114,15 @@ func TryRoomIdleEvent(roomId int) (bool, error) {
 
 		sRoom := GetRoom(roomId)
 
-		tmr := time.AfterFunc(scriptRoomTimeout, func() {
-			vmw.VM.Interrupt(errTimeout)
-		})
-
-		res, err := onCommandFunc(goja.Undefined(),
+		res, err := runCallable(vmw, scriptRoomTimeout, onCommandFunc,
 			vmw.VM.ToValue(sRoom),
 		)
-
-		vmw.VM.ClearInterrupt()
-		tmr.Stop()
 
 		userTextWrap.Reset()
 		roomTextWrap.Reset()
 
 		if err != nil {
-
-			// Wrap the error
-			finalErr := fmt.Errorf("TryRoomIdleEvent(): %w", err)
-
-			if _, ok := finalErr.(*goja.Exception); ok {
-				mudlog.Error("JSVM", "exception", finalErr)
-				return false, finalErr
-			} else if errors.Is(finalErr, errTimeout) {
-				mudlog.Error("JSVM", "interrupted", finalErr)
-				return false, finalErr
-			}
-
-			mudlog.Error("JSVM", "error", finalErr)
-			return false, finalErr
+			return false, fmt.Errorf("TryRoomIdleEvent(): %w", err)
 		}
 
 		if boolVal, ok := res.Export().(bool); ok {
@@ -216,35 +183,17 @@ func TryRoomCommand(cmd string, rest string, userId int) (bool, error) {
 		sUser := GetUser(userId)
 		sRoom := GetRoom(user.Character.RoomId)
 
-		tmr := time.AfterFunc(scriptRoomTimeout, func() {
-			vmw.VM.Interrupt(errTimeout)
-		})
-		res, err := onCommandFunc(goja.Undefined(),
+		res, err := runCallable(vmw, scriptRoomTimeout, onCommandFunc,
 			vmw.VM.ToValue(rest),
 			vmw.VM.ToValue(sUser),
 			vmw.VM.ToValue(sRoom),
 		)
-		vmw.VM.ClearInterrupt()
-		tmr.Stop()
 
 		userTextWrap.Reset()
 		roomTextWrap.Reset()
 
 		if err != nil {
-
-			// Wrap the error
-			finalErr := fmt.Errorf("onCommand_%s(): %w", cmd, err)
-
-			if _, ok := finalErr.(*goja.Exception); ok {
-				mudlog.Error("JSVM", "exception", finalErr)
-				return false, finalErr
-			} else if errors.Is(finalErr, errTimeout) {
-				mudlog.Error("JSVM", "interrupted", finalErr)
-				return false, finalErr
-			}
-
-			mudlog.Error("JSVM", "error", finalErr)
-			return false, finalErr
+			return false, fmt.Errorf("onCommand_%s(): %w", cmd, err)
 		}
 
 		if boolVal, ok := res.Export().(bool); ok {
@@ -260,36 +209,18 @@ func TryRoomCommand(cmd string, rest string, userId int) (bool, error) {
 		sUser := GetUser(userId)
 		sRoom := GetRoom(user.Character.RoomId)
 
-		tmr := time.AfterFunc(scriptRoomTimeout, func() {
-			vmw.VM.Interrupt(errTimeout)
-		})
-		res, err := onCommandFunc(goja.Undefined(),
+		res, err := runCallable(vmw, scriptRoomTimeout, onCommandFunc,
 			vmw.VM.ToValue(cmd),
 			vmw.VM.ToValue(rest),
 			vmw.VM.ToValue(sUser),
 			vmw.VM.ToValue(sRoom),
 		)
-		vmw.VM.ClearInterrupt()
-		tmr.Stop()
 
 		userTextWrap.Reset()
 		roomTextWrap.Reset()
 
 		if err != nil {
-
-			// Wrap the error
-			finalErr := fmt.Errorf("onCommand(): %w", err)
-
-			if _, ok := finalErr.(*goja.Exception); ok {
-				mudlog.Error("JSVM", "exception", finalErr)
-				return false, finalErr
-			} else if errors.Is(finalErr, errTimeout) {
-				mudlog.Error("JSVM", "interrupted", finalErr)
-				return false, finalErr
-			}
-
-			mudlog.Error("JSVM", "error", finalErr)
-			return false, finalErr
+			return false, fmt.Errorf("onCommand(): %w", err)
 		}
 
 		if boolVal, ok := res.Export().(bool); ok {
@@ -302,11 +233,29 @@ func TryRoomCommand(cmd string, rest string, userId int) (bool, error) {
 
 func getRoomVM(roomId int) (*VMWrapper, error) {
 
-	if vm, ok := roomVMCache[roomId]; ok {
-		if vm == nil {
+	if vmw, ok := roomVMCache[roomId]; ok {
+		if vmw == nil {
 			return nil, errNoScript
 		}
-		return vm, nil
+		if scriptHotReload {
+			room := rooms.LoadRoom(roomId)
+			if room != nil {
+				if info, err := os.Stat(room.GetScriptPath()); err == nil {
+					if info.ModTime().After(vmw.loadedAt) {
+						delete(roomVMCache, roomId)
+						// fall through to reload
+					} else {
+						return vmw, nil
+					}
+				} else {
+					return vmw, nil
+				}
+			} else {
+				return vmw, nil
+			}
+		} else {
+			return vmw, nil
+		}
 	}
 
 	room := rooms.LoadRoom(roomId)

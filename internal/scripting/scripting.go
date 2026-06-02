@@ -79,6 +79,10 @@ var (
 	// If non empty, will wrap output to users or rooms in this style
 	userTextWrap = TextWrapperStyle{}
 	roomTextWrap = TextWrapperStyle{}
+
+	// scriptHotReload enables mtime-based cache invalidation on every VM
+	// lookup. Off by default; enable in development or admin environments.
+	scriptHotReload bool
 )
 
 func Setup(scriptLoadTimeoutMs int, scriptRoomTimeoutMs int) {
@@ -92,6 +96,13 @@ func Setup(scriptLoadTimeoutMs int, scriptRoomTimeoutMs int) {
 	scriptMobTimeout = t
 	scriptPetTimeout = t
 	scriptSpellTimeout = t
+}
+
+// SetHotReload enables or disables mtime-based script hot-reload.
+// When enabled, each VM lookup checks whether the script file on disk is newer
+// than the cached VM and reloads automatically if so.
+func SetHotReload(enabled bool) {
+	scriptHotReload = enabled
 }
 
 func setAllScriptingFunctions(vm *goja.Runtime) {

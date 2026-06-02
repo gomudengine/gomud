@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/GoMudEngine/GoMud/internal/buffs"
+	"github.com/GoMudEngine/GoMud/internal/scripting"
 )
 
 // GET /admin/api/v1/buffs
@@ -130,6 +131,8 @@ func apiV1PutBuffScript(w http.ResponseWriter, r *http.Request) {
 		writeAPIError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	scripting.InvalidateBuffVM(buffId)
 
 	writeJSON(w, http.StatusOK, APIResponse[struct{}]{Success: true})
 }

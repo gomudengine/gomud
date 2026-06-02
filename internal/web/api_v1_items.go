@@ -7,6 +7,7 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/items"
+	"github.com/GoMudEngine/GoMud/internal/scripting"
 )
 
 // GET /admin/api/v1/items/ranks/weapons
@@ -321,6 +322,8 @@ func apiV1PutItemScript(w http.ResponseWriter, r *http.Request) {
 		writeAPIError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	scripting.InvalidateItemVM(itemId)
 
 	writeJSON(w, http.StatusOK, APIResponse[struct{}]{Success: true})
 }

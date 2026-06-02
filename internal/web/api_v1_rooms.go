@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/scripting"
 )
 
 // ---------------------------------------------------------------------------
@@ -332,6 +333,8 @@ func apiV1PutRoomScript(w http.ResponseWriter, r *http.Request) {
 		writeAPIError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	scripting.InvalidateRoomVM(roomId)
 
 	writeJSON(w, http.StatusOK, APIResponse[struct{}]{Success: true})
 }

@@ -1,14 +1,13 @@
 package scripting
 
 import (
-	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
-	"github.com/dop251/goja"
 )
 
 var (
@@ -20,8 +19,16 @@ func ClearItemVMs() {
 	clear(itemVMCache)
 }
 
+// PruneItemVMs is intentionally a no-op. Item VMs are keyed by item spec ID
+// and are not tied to any instance lifecycle.
 func PruneItemVMs(instanceIds ...int) {
+}
 
+// InvalidateItemVM removes the cached VM for an item spec so the next call
+// reloads the script from disk. Call this after saving an item script via the
+// admin API.
+func InvalidateItemVM(itemId int) {
+	delete(itemVMCache, strconv.Itoa(itemId))
 }
 
 func TryItemScriptEvent(eventName string, item items.Item, userId int) (bool, error) {
@@ -43,36 +50,17 @@ func TryItemScriptEvent(eventName string, item items.Item, userId int) (bool, er
 		sUser := GetActor(userId, 0)
 		sRoom := GetRoom(sUser.GetRoomId())
 
-		tmr := time.AfterFunc(scriptItemTimeout, func() {
-			vmw.VM.Interrupt(errTimeout)
-		})
-		res, err := onCommandFunc(goja.Undefined(),
+		res, err := runCallable(vmw, scriptItemTimeout, onCommandFunc,
 			vmw.VM.ToValue(sUser),
 			vmw.VM.ToValue(sItem),
 			vmw.VM.ToValue(sRoom),
 		)
-		vmw.VM.ClearInterrupt()
-		tmr.Stop()
-
 		if err != nil {
-
-			// Wrap the error
-			finalErr := fmt.Errorf("%s(): %w", eventName, err)
-
-			if _, ok := finalErr.(*goja.Exception); ok {
-				mudlog.Error("JSVM", "exception", finalErr)
-				return false, finalErr
-			} else if errors.Is(finalErr, errTimeout) {
-				mudlog.Error("JSVM", "interrupted", finalErr)
-				return false, finalErr
-			}
-
-			mudlog.Error("JSVM", "error", finalErr)
-			return false, finalErr
+			return false, fmt.Errorf("%s(): %w", eventName, err)
 		}
 
 		if eventName != `onLost` {
-			// Save any changed that might have happened to the item
+			// Save any changes that might have happened to the item
 			sUser.characterRecord.UpdateItem(item, *sItem.itemRecord)
 		}
 
@@ -104,35 +92,16 @@ func TryItemCommand(cmd string, item items.Item, userId int) (bool, error) {
 		sUser := GetActor(userId, 0)
 		sRoom := GetRoom(sUser.GetRoomId())
 
-		tmr := time.AfterFunc(scriptItemTimeout, func() {
-			vmw.VM.Interrupt(errTimeout)
-		})
-		res, err := onCommandFunc(goja.Undefined(),
+		res, err := runCallable(vmw, scriptItemTimeout, onCommandFunc,
 			vmw.VM.ToValue(sUser),
 			vmw.VM.ToValue(sItem),
 			vmw.VM.ToValue(sRoom),
 		)
-		vmw.VM.ClearInterrupt()
-		tmr.Stop()
-
 		if err != nil {
-
-			// Wrap the error
-			finalErr := fmt.Errorf("onCommand_%s(): %w", cmd, err)
-
-			if _, ok := finalErr.(*goja.Exception); ok {
-				mudlog.Error("JSVM", "exception", finalErr)
-				return false, finalErr
-			} else if errors.Is(finalErr, errTimeout) {
-				mudlog.Error("JSVM", "interrupted", finalErr)
-				return false, finalErr
-			}
-
-			mudlog.Error("JSVM", "error", finalErr)
-			return false, finalErr
+			return false, fmt.Errorf("onCommand_%s(): %w", cmd, err)
 		}
 
-		// Save any changed that might have happened to the item
+		// Save any changes that might have happened to the item
 		sUser.characterRecord.UpdateItem(item, *sItem.itemRecord)
 
 		if boolVal, ok := res.Export().(bool); ok {
@@ -144,36 +113,17 @@ func TryItemCommand(cmd string, item items.Item, userId int) (bool, error) {
 		sUser := GetActor(userId, 0)
 		sRoom := GetRoom(sUser.GetRoomId())
 
-		tmr := time.AfterFunc(scriptItemTimeout, func() {
-			vmw.VM.Interrupt(errTimeout)
-		})
-		res, err := onCommandFunc(goja.Undefined(),
+		res, err := runCallable(vmw, scriptItemTimeout, onCommandFunc,
 			vmw.VM.ToValue(cmd),
 			vmw.VM.ToValue(sUser),
 			vmw.VM.ToValue(sItem),
 			vmw.VM.ToValue(sRoom),
 		)
-		vmw.VM.ClearInterrupt()
-		tmr.Stop()
-
 		if err != nil {
-
-			// Wrap the error
-			finalErr := fmt.Errorf("onCommand(): %w", err)
-
-			if _, ok := finalErr.(*goja.Exception); ok {
-				mudlog.Error("JSVM", "exception", finalErr)
-				return false, finalErr
-			} else if errors.Is(finalErr, errTimeout) {
-				mudlog.Error("JSVM", "interrupted", finalErr)
-				return false, finalErr
-			}
-
-			mudlog.Error("JSVM", "error", finalErr)
-			return false, finalErr
+			return false, fmt.Errorf("onCommand(): %w", err)
 		}
 
-		// Save any changed that might have happened to the item
+		// Save any changes that might have happened to the item
 		sUser.characterRecord.UpdateItem(item, *sItem.itemRecord)
 
 		if boolVal, ok := res.Export().(bool); ok {
@@ -189,11 +139,29 @@ func getItemVM(sItem *ScriptItem) (*VMWrapper, error) {
 
 	scriptId := strconv.Itoa(sItem.ItemId())
 
-	if vm, ok := itemVMCache[scriptId]; ok {
-		if vm == nil {
+	if vmw, ok := itemVMCache[scriptId]; ok {
+		if vmw == nil {
 			return nil, errNoScript
 		}
-		return vm, nil
+		if scriptHotReload {
+			spec := items.GetItemSpec(sItem.ItemId())
+			if spec != nil {
+				if info, err := os.Stat(spec.GetScriptPath()); err == nil {
+					if info.ModTime().After(vmw.loadedAt) {
+						delete(itemVMCache, scriptId)
+						// fall through to reload
+					} else {
+						return vmw, nil
+					}
+				} else {
+					return vmw, nil
+				}
+			} else {
+				return vmw, nil
+			}
+		} else {
+			return vmw, nil
+		}
 	}
 
 	script := sItem.getScript()

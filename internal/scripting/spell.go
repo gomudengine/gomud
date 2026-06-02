@@ -1,8 +1,8 @@
 package scripting
 
 import (
-	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/characters"
@@ -21,8 +21,15 @@ func ClearSpellVMs() {
 	clear(spellVMCache)
 }
 
+// PruneSpellVMs is intentionally a no-op. Spell VMs are keyed by spell ID
+// and are not tied to any instance lifecycle.
 func PruneSpellVMs(instanceIds ...int) {
+}
 
+// InvalidateSpellVM removes the cached VM for a spell so the next call reloads
+// the script from disk. Call this after saving a spell script via the admin API.
+func InvalidateSpellVM(spellId string) {
+	delete(spellVMCache, spellId)
 }
 
 func TrySpellScriptEvent(eventName string, sourceUserId int, sourceMobInstanceId int, spellAggro characters.SpellAggroInfo) (bool, error) {
@@ -114,35 +121,17 @@ func TrySpellScriptEvent(eventName string, sourceUserId int, sourceMobInstanceId
 			argValue = vmw.VM.ToValue(stringArg)
 		}
 
-		tmr := time.AfterFunc(scriptItemTimeout, func() {
-			vmw.VM.Interrupt(errTimeout)
-		})
-		res, err := onCommandFunc(goja.Undefined(),
+		res, err := runCallable(vmw, scriptSpellTimeout, onCommandFunc,
 			vmw.VM.ToValue(sourceActor),
 			vmw.VM.ToValue(argValue),
 		)
-		vmw.VM.ClearInterrupt()
-		tmr.Stop()
 
 		// Reset forced ansi tag wrappers
 		userTextWrap.Reset()
 		roomTextWrap.Reset()
 
 		if err != nil {
-
-			// Wrap the error
-			finalErr := fmt.Errorf("%s(): %w", eventName, err)
-
-			if _, ok := finalErr.(*goja.Exception); ok {
-				mudlog.Error("JSVM", "exception", finalErr)
-				return false, finalErr
-			} else if errors.Is(finalErr, errTimeout) {
-				mudlog.Error("JSVM", "interrupted", finalErr)
-				return false, finalErr
-			}
-
-			mudlog.Error("JSVM", "error", finalErr)
-			return false, finalErr
+			return false, fmt.Errorf("%s(): %w", eventName, err)
 		}
 
 		if boolVal, ok := res.Export().(bool); ok {
@@ -157,11 +146,29 @@ func TrySpellScriptEvent(eventName string, sourceUserId int, sourceMobInstanceId
 
 func getSpellVM(scriptId string) (*VMWrapper, error) {
 
-	if vm, ok := spellVMCache[scriptId]; ok {
-		if vm == nil {
+	if vmw, ok := spellVMCache[scriptId]; ok {
+		if vmw == nil {
 			return nil, errNoScript
 		}
-		return vm, nil
+		if scriptHotReload {
+			spellData := spells.GetSpell(scriptId)
+			if spellData != nil {
+				if info, err := os.Stat(spellData.GetScriptPath()); err == nil {
+					if info.ModTime().After(vmw.loadedAt) {
+						delete(spellVMCache, scriptId)
+						// fall through to reload
+					} else {
+						return vmw, nil
+					}
+				} else {
+					return vmw, nil
+				}
+			} else {
+				return vmw, nil
+			}
+		} else {
+			return vmw, nil
+		}
 	}
 
 	spellData := spells.GetSpell(scriptId)

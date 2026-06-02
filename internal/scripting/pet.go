@@ -1,14 +1,13 @@
 package scripting
 
 import (
-	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/pets"
 	"github.com/GoMudEngine/GoMud/internal/users"
-	"github.com/dop251/goja"
 )
 
 var (
@@ -35,16 +34,16 @@ func TryPetScriptEvent(eventName string, userId int) (bool, error) {
 
 	user := users.GetByUserId(userId)
 	if user == nil {
-		return false, errors.New("user not found")
+		return false, fmt.Errorf("user not found")
 	}
 
 	if !user.Character.Pet.Exists() {
-		return false, errors.New("user has no pet")
+		return false, fmt.Errorf("user has no pet")
 	}
 
 	sPet := GetPet(&user.Character.Pet, userId)
 	if sPet == nil {
-		return false, errors.New("pet not found")
+		return false, fmt.Errorf("pet not found")
 	}
 
 	vmw, err := getPetVM(sPet)
@@ -65,31 +64,17 @@ func TryPetScriptEvent(eventName string, userId int) (bool, error) {
 		userTextWrap.Set(`script-text`, ``, ``)
 		roomTextWrap.Set(`script-text`, ``, ``)
 
-		tmr := time.AfterFunc(scriptPetTimeout, func() {
-			vmw.VM.Interrupt(errTimeout)
-		})
-		res, err := onFunc(goja.Undefined(),
+		res, err := runCallable(vmw, scriptPetTimeout, onFunc,
 			vmw.VM.ToValue(sPet),
 			vmw.VM.ToValue(sActor),
 			vmw.VM.ToValue(sRoom),
 		)
-		vmw.VM.ClearInterrupt()
-		tmr.Stop()
 
 		userTextWrap.Reset()
 		roomTextWrap.Reset()
 
 		if err != nil {
-			finalErr := fmt.Errorf("%s(): %w", eventName, err)
-			if _, ok := finalErr.(*goja.Exception); ok {
-				mudlog.Error("JSVM", "exception", finalErr)
-				return false, finalErr
-			} else if errors.Is(finalErr, errTimeout) {
-				mudlog.Error("JSVM", "interrupted", finalErr)
-				return false, finalErr
-			}
-			mudlog.Error("JSVM", "error", finalErr)
-			return false, finalErr
+			return false, fmt.Errorf("%s(): %w", eventName, err)
 		}
 
 		if boolVal, ok := res.Export().(bool); ok {
@@ -105,7 +90,7 @@ func TryPetCommand(cmd string, rest string, userId int) (bool, error) {
 
 	user := users.GetByUserId(userId)
 	if user == nil {
-		return false, errors.New("user not found")
+		return false, fmt.Errorf("user not found")
 	}
 
 	if !user.Character.Pet.Exists() {
@@ -135,32 +120,18 @@ func TryPetCommand(cmd string, rest string, userId int) (bool, error) {
 		userTextWrap.Set(`script-text`, ``, ``)
 		roomTextWrap.Set(`script-text`, ``, ``)
 
-		tmr := time.AfterFunc(scriptPetTimeout, func() {
-			vmw.VM.Interrupt(errTimeout)
-		})
-		res, err := onCommandFunc(goja.Undefined(),
+		res, err := runCallable(vmw, scriptPetTimeout, onCommandFunc,
 			vmw.VM.ToValue(rest),
 			vmw.VM.ToValue(sPet),
 			vmw.VM.ToValue(sActor),
 			vmw.VM.ToValue(sRoom),
 		)
-		vmw.VM.ClearInterrupt()
-		tmr.Stop()
 
 		userTextWrap.Reset()
 		roomTextWrap.Reset()
 
 		if err != nil {
-			finalErr := fmt.Errorf("onCommand_%s(): %w", cmd, err)
-			if _, ok := finalErr.(*goja.Exception); ok {
-				mudlog.Error("JSVM", "exception", finalErr)
-				return false, finalErr
-			} else if errors.Is(finalErr, errTimeout) {
-				mudlog.Error("JSVM", "interrupted", finalErr)
-				return false, finalErr
-			}
-			mudlog.Error("JSVM", "error", finalErr)
-			return false, finalErr
+			return false, fmt.Errorf("onCommand_%s(): %w", cmd, err)
 		}
 
 		if boolVal, ok := res.Export().(bool); ok {
@@ -172,33 +143,19 @@ func TryPetCommand(cmd string, rest string, userId int) (bool, error) {
 		userTextWrap.Set(`script-text`, ``, ``)
 		roomTextWrap.Set(`script-text`, ``, ``)
 
-		tmr := time.AfterFunc(scriptPetTimeout, func() {
-			vmw.VM.Interrupt(errTimeout)
-		})
-		res, err := onCommandFunc(goja.Undefined(),
+		res, err := runCallable(vmw, scriptPetTimeout, onCommandFunc,
 			vmw.VM.ToValue(cmd),
 			vmw.VM.ToValue(rest),
 			vmw.VM.ToValue(sPet),
 			vmw.VM.ToValue(sActor),
 			vmw.VM.ToValue(sRoom),
 		)
-		vmw.VM.ClearInterrupt()
-		tmr.Stop()
 
 		userTextWrap.Reset()
 		roomTextWrap.Reset()
 
 		if err != nil {
-			finalErr := fmt.Errorf("onCommand(): %w", err)
-			if _, ok := finalErr.(*goja.Exception); ok {
-				mudlog.Error("JSVM", "exception", finalErr)
-				return false, finalErr
-			} else if errors.Is(finalErr, errTimeout) {
-				mudlog.Error("JSVM", "interrupted", finalErr)
-				return false, finalErr
-			}
-			mudlog.Error("JSVM", "error", finalErr)
-			return false, finalErr
+			return false, fmt.Errorf("onCommand(): %w", err)
 		}
 
 		if boolVal, ok := res.Export().(bool); ok {
@@ -213,11 +170,29 @@ func getPetVM(sPet *ScriptPet) (*VMWrapper, error) {
 
 	scriptId := sPet.petRecord.Type
 
-	if vm, ok := petVMCache[scriptId]; ok {
-		if vm == nil {
+	if vmw, ok := petVMCache[scriptId]; ok {
+		if vmw == nil {
 			return nil, errNoScript
 		}
-		return vm, nil
+		if scriptHotReload {
+			spec := pets.GetPetCopy(scriptId)
+			if spec.Exists() {
+				if info, err := os.Stat(spec.GetScriptPath()); err == nil {
+					if info.ModTime().After(vmw.loadedAt) {
+						delete(petVMCache, scriptId)
+						// fall through to reload
+					} else {
+						return vmw, nil
+					}
+				} else {
+					return vmw, nil
+				}
+			} else {
+				return vmw, nil
+			}
+		} else {
+			return vmw, nil
+		}
 	}
 
 	script := sPet.getScript()

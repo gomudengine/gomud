@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/GoMudEngine/GoMud/internal/scripting"
 	"github.com/GoMudEngine/GoMud/internal/spells"
 )
 
@@ -151,6 +152,8 @@ func apiV2PutSpellScript(w http.ResponseWriter, r *http.Request) {
 		writeAPIError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	scripting.InvalidateSpellVM(spellId)
 
 	writeJSON(w, http.StatusOK, APIResponse[struct{}]{Success: true})
 }

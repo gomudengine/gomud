@@ -10,6 +10,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
+	"github.com/GoMudEngine/GoMud/internal/scripting"
 )
 
 type mobListEntry struct {
@@ -189,6 +190,8 @@ func apiV1PutMobScript(w http.ResponseWriter, r *http.Request) {
 		writeAPIError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	scripting.InvalidateMobVMById(int(mobId))
 
 	writeJSON(w, http.StatusOK, APIResponse[struct{}]{Success: true})
 }
