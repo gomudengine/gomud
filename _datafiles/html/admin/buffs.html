@@ -318,7 +318,7 @@
         allStatMods = statmodsRes.data.data || {};
 
         renderList(Object.values(allBuffs).sort((a, b) => a.BuffId - b.BuffId));
-        scriptSync = ScriptEditor.init('f-script');
+        scriptSync = ScriptEditor.init('f-script', 'buff');
         const hashId = parseInt(location.hash.slice(1), 10);
         if (hashId) loadBuff(hashId);
     }

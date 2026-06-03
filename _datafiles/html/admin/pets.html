@@ -267,7 +267,7 @@
         if (!res.ok) { showStatus('error', 'Failed to load pets: ' + res.error); return; }
         petsData = (res.data && res.data.data) || {};
         renderList();
-        scriptSync = ScriptEditor.init('f-script');
+        scriptSync = ScriptEditor.init('f-script', 'pet');
         const hashType = decodeURIComponent(location.hash.slice(1));
         if (hashType && petsData[hashType]) selectPet(hashType);
     }

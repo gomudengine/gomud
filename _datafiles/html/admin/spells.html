@@ -212,7 +212,7 @@
         for (const s of spellList) allSpells[s.SpellId] = s;
 
         renderList(sortedSpells());
-        scriptSync = ScriptEditor.init('f-script');
+        scriptSync = ScriptEditor.init('f-script', 'spell');
         const hashId = location.hash.slice(1);
         if (hashId) loadSpell(hashId);
     }

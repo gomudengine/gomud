@@ -420,7 +420,7 @@
         populateTypeFilter();
         populateTypeSelects();
         renderList(allItems);
-        scriptSync = ScriptEditor.init('f-script');
+        scriptSync = ScriptEditor.init('f-script', 'item');
         DiceRollHelper.attach(document.getElementById('f-diceroll'));
         const hashId = parseInt(location.hash.slice(1), 10);
         if (hashId) loadItem(hashId);

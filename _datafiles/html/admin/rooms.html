@@ -706,7 +706,7 @@
         await loadRoomList();
         const hashId = parseInt(location.hash.slice(1), 10);
         if (hashId) loadRoom(hashId);
-        scriptSync = ScriptEditor.init('f-script');
+        scriptSync = ScriptEditor.init('f-script', 'room');
     }
 
     // -------------------------------------------------------------------------

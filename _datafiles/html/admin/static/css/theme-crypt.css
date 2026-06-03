@@ -139,6 +139,7 @@
     --color-code-keyword:       #c87050;
     --color-code-symbol:        #c8a040;
     --color-code-link:          #88a868;
+    --color-code-engine-fn:     #50b8a8;
     --color-code-addition:      #a0c880;
 
     /* Method badges (API reference) */

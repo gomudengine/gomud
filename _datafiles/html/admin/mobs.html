@@ -578,7 +578,7 @@
 
         populateZoneFilter();
         renderList(allMobs);
-        scriptSync = ScriptEditor.init('f-script');
+        scriptSync = ScriptEditor.init('f-script', 'mob');
         const hashId = parseInt(location.hash.slice(1), 10);
         if (hashId) loadMob(hashId);
     }
