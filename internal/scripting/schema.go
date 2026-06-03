@@ -35,9 +35,18 @@ type ScriptTypeDef struct {
 	Functions   []ScriptFuncDef `json:"functions"`
 }
 
+type EngineGlobalFuncDef struct {
+	Name            string            `json:"name"`
+	Description     string            `json:"description"`
+	Params          []ScriptFuncParam `json:"params"`
+	ReturnType      string            `json:"returnType,omitempty"`
+	ReturnSemantics string            `json:"returnSemantics,omitempty"`
+}
+
 type ScriptFunctionsSchema struct {
-	Version     int                       `json:"version"`
-	ScriptTypes map[string]*ScriptTypeDef `json:"scriptTypes"`
+	Version         int                       `json:"version"`
+	ScriptTypes     map[string]*ScriptTypeDef `json:"scriptTypes"`
+	EngineFunctions []EngineGlobalFuncDef     `json:"engineFunctions"`
 }
 
 var commandDynamic = &DynamicName{
@@ -49,7 +58,7 @@ var commandDynamic = &DynamicName{
 
 func GetScriptFunctionsSchema() *ScriptFunctionsSchema {
 	return &ScriptFunctionsSchema{
-		Version: 1,
+		Version: 2,
 		ScriptTypes: map[string]*ScriptTypeDef{
 			"room":  roomScriptType(),
 			"mob":   mobScriptType(),
@@ -57,6 +66,326 @@ func GetScriptFunctionsSchema() *ScriptFunctionsSchema {
 			"pet":   petScriptType(),
 			"spell": spellScriptType(),
 			"buff":  buffScriptType(),
+		},
+		EngineFunctions: engineGlobalFunctions(),
+	}
+}
+
+func engineGlobalFunctions() []EngineGlobalFuncDef {
+	return []EngineGlobalFuncDef{
+		// Messaging
+		{
+			Name:        "SendUserMessage",
+			Description: "Sends a message to a specific online user by their user ID.",
+			Params: []ScriptFuncParam{
+				{Name: "userId", Type: "number", Description: "The user ID of the recipient."},
+				{Name: "message", Type: "string", Description: "The message text (supports ANSI tags)."},
+			},
+		},
+		{
+			Name:        "SendRoomMessage",
+			Description: "Sends a message to all players currently in a room.",
+			Params: []ScriptFuncParam{
+				{Name: "roomId", Type: "number", Description: "The room ID to send the message to."},
+				{Name: "message", Type: "string", Description: "The message text (supports ANSI tags)."},
+				{Name: "...excludeIds", Type: "number", Description: "Optional user IDs to exclude from receiving the message."},
+			},
+		},
+		{
+			Name:        "SendRoomExitsMessage",
+			Description: "Sends a message to players in all rooms adjacent to the given room.",
+			Params: []ScriptFuncParam{
+				{Name: "roomId", Type: "number", Description: "The source room ID whose exits are targeted."},
+				{Name: "message", Type: "string", Description: "The message text (supports ANSI tags)."},
+				{Name: "isQuiet", Type: "boolean", Description: "If true, suppresses the message in certain quiet contexts."},
+				{Name: "...excludeUserIds", Type: "number", Description: "Optional user IDs to exclude from receiving the message."},
+			},
+		},
+		{
+			Name:        "SendBroadcast",
+			Description: "Sends a server-wide broadcast message to all online players.",
+			Params: []ScriptFuncParam{
+				{Name: "message", Type: "string", Description: "The message text (supports ANSI tags)."},
+			},
+		},
+		// Room
+		{
+			Name:        "GetRoom",
+			Description: "Loads and returns a room by its ID. Returns null if the room does not exist.",
+			Params: []ScriptFuncParam{
+				{Name: "roomId", Type: "number", Description: "The room ID to load."},
+			},
+			ReturnType:      "RoomObject",
+			ReturnSemantics: "The room object, or null if not found.",
+		},
+		{
+			Name:        "GetMap",
+			Description: "Renders an ASCII map centered on a room and returns it as a formatted string.",
+			Params: []ScriptFuncParam{
+				{Name: "mapRoomId", Type: "number", Description: "The room ID the map is centered on."},
+				{Name: "zoomLevel", Type: "number", Description: "Zoom level for the map."},
+				{Name: "mapHeight", Type: "number", Description: "Height of the map in rows."},
+				{Name: "mapWidth", Type: "number", Description: "Width of the map in columns."},
+				{Name: "mapName", Type: "string", Description: "Title displayed above the map."},
+				{Name: "showSecrets", Type: "boolean", Description: "If true, secret exits and rooms are included."},
+				{Name: "...mapMarkers", Type: "string", Description: `Optional custom markers in the format "roomId,symbol,legend" (e.g. "1,×,Here").`},
+			},
+			ReturnType:      "string",
+			ReturnSemantics: "The rendered map string with ANSI color tags.",
+		},
+		{
+			Name:        "CreateEmptyRoomInstances",
+			Description: "Creates a number of blank ephemeral (temporary) rooms and returns their IDs.",
+			Params: []ScriptFuncParam{
+				{Name: "quantity", Type: "number", Description: "How many empty ephemeral rooms to create."},
+			},
+			ReturnType:      "number[]",
+			ReturnSemantics: "Array of newly allocated ephemeral room IDs.",
+		},
+		{
+			Name:        "CreateInstancesFromRoomIds",
+			Description: "Creates ephemeral copies of the specified rooms and returns a mapping of original ID to new ephemeral ID.",
+			Params: []ScriptFuncParam{
+				{Name: "...roomIds", Type: "number", Description: "One or more room IDs to copy into ephemeral instances."},
+			},
+			ReturnType:      "object",
+			ReturnSemantics: "An object mapping each original room ID to its new ephemeral room ID.",
+		},
+		{
+			Name:        "CreateInstancesFromZone",
+			Description: "Creates ephemeral copies of every room in a zone and returns a mapping of original IDs to new ephemeral IDs.",
+			Params: []ScriptFuncParam{
+				{Name: "zoneName", Type: "string", Description: "The name of the zone to duplicate."},
+			},
+			ReturnType:      "object",
+			ReturnSemantics: "An object mapping each original room ID to its new ephemeral room ID.",
+		},
+		// Actor
+		{
+			Name:        "GetUser",
+			Description: "Retrieves a player actor by their user ID. Returns null if the user is not online.",
+			Params: []ScriptFuncParam{
+				{Name: "userId", Type: "number", Description: "The user ID of the player."},
+			},
+			ReturnType:      "ActorObject",
+			ReturnSemantics: "The player's actor object, or null if not found.",
+		},
+		{
+			Name:        "GetMob",
+			Description: "Retrieves a mob actor by its instance ID. Returns null if the instance does not exist.",
+			Params: []ScriptFuncParam{
+				{Name: "mobInstanceId", Type: "number", Description: "The instance ID of the mob."},
+			},
+			ReturnType:      "ActorObject",
+			ReturnSemantics: "The mob's actor object, or null if not found.",
+		},
+		{
+			Name:        "ActorNames",
+			Description: "Formats a list of actor objects into a human-readable name string (e.g. \"Alice, Bob and Charlie\").",
+			Params: []ScriptFuncParam{
+				{Name: "actorList", Type: "ActorObject[]", Description: "Array of actor objects whose names should be joined."},
+			},
+			ReturnType:      "string",
+			ReturnSemantics: "A comma-and-\"and\"-separated list of actor names with ANSI color tags.",
+		},
+		// Item
+		{
+			Name:        "CreateItem",
+			Description: "Creates a new item instance by item spec ID. Returns null if the item ID does not exist.",
+			Params: []ScriptFuncParam{
+				{Name: "itemId", Type: "number", Description: "The item spec ID to instantiate."},
+			},
+			ReturnType:      "ItemObject",
+			ReturnSemantics: "A new item instance, or null if the item ID is not found.",
+		},
+		// Panel
+		{
+			Name:        "PanelLayoutLoad",
+			Description: "Loads a panel layout from the datafiles panel-layouts directory by name. Throws on failure.",
+			Params: []ScriptFuncParam{
+				{Name: "name", Type: "string", Description: `Relative path under panel-layouts/ without extension (e.g. "character/status").`},
+			},
+			ReturnType:      "PanelLayoutObject",
+			ReturnSemantics: "The loaded panel layout object.",
+		},
+		{
+			Name:        "PanelLayoutNew",
+			Description: "Creates a panel layout entirely in script without a YAML file.",
+			Params: []ScriptFuncParam{
+				{Name: "opts?", Type: "object", Description: "Optional settings: border (\"full\"/\"top\"/\"none\"), charset (\"single\"/\"double\"/\"rounded\"), gap (number), margin (number)."},
+			},
+			ReturnType:      "PanelLayoutObject",
+			ReturnSemantics: "A new panel layout object ready for slot and panel configuration.",
+		},
+		// Util
+		{
+			Name:        "RandInt",
+			Description: "Returns a random integer between min and max, inclusive.",
+			Params: []ScriptFuncParam{
+				{Name: "min", Type: "number", Description: "Minimum value (inclusive)."},
+				{Name: "max", Type: "number", Description: "Maximum value (inclusive)."},
+			},
+			ReturnType:      "number",
+			ReturnSemantics: "A random integer in the range [min, max].",
+		},
+		{
+			Name:        "UtilGetRoundNumber",
+			Description: "Returns the current game round number.",
+			Params:      []ScriptFuncParam{},
+			ReturnType:  "number",
+		},
+		{
+			Name:        "UtilFindMatchIn",
+			Description: "Fuzzy-matches a search string against a list of strings. Returns an object with found (bool), exact (string), and close (string) fields.",
+			Params: []ScriptFuncParam{
+				{Name: "search", Type: "string", Description: "The string to search for."},
+				{Name: "items", Type: "string[]", Description: "The list of strings to search within."},
+			},
+			ReturnType:      "object",
+			ReturnSemantics: "Object with fields: found (bool), exact (string, the exact match or empty), close (string, a close prefix match or empty).",
+		},
+		{
+			Name:        "UtilGetSecondsToRounds",
+			Description: "Converts a number of real-time seconds to the equivalent number of game rounds.",
+			Params: []ScriptFuncParam{
+				{Name: "seconds", Type: "number", Description: "Number of real-time seconds."},
+			},
+			ReturnType: "number",
+		},
+		{
+			Name:        "UtilGetMinutesToRounds",
+			Description: "Converts a number of real-time minutes to the equivalent number of game rounds.",
+			Params: []ScriptFuncParam{
+				{Name: "minutes", Type: "number", Description: "Number of real-time minutes."},
+			},
+			ReturnType: "number",
+		},
+		{
+			Name:        "UtilGetSecondsToTurns",
+			Description: "Converts a number of real-time seconds to the equivalent number of game turns.",
+			Params: []ScriptFuncParam{
+				{Name: "seconds", Type: "number", Description: "Number of real-time seconds."},
+			},
+			ReturnType: "number",
+		},
+		{
+			Name:        "UtilGetMinutesToTurns",
+			Description: "Converts a number of real-time minutes to the equivalent number of game turns.",
+			Params: []ScriptFuncParam{
+				{Name: "minutes", Type: "number", Description: "Number of real-time minutes."},
+			},
+			ReturnType: "number",
+		},
+		{
+			Name:        "UtilStripPrepositions",
+			Description: "Strips common leading prepositions (e.g. \"at\", \"the\", \"from\") from a string.",
+			Params: []ScriptFuncParam{
+				{Name: "input", Type: "string", Description: "The string to strip prepositions from."},
+			},
+			ReturnType: "string",
+		},
+		{
+			Name:        "UtilDiceRoll",
+			Description: "Rolls a set of dice and returns the total. Equivalent to rolling diceQty dice each with diceSides sides.",
+			Params: []ScriptFuncParam{
+				{Name: "diceQty", Type: "number", Description: "Number of dice to roll."},
+				{Name: "diceSides", Type: "number", Description: "Number of sides on each die."},
+			},
+			ReturnType: "number",
+		},
+		{
+			Name:        "UtilGetTime",
+			Description: "Returns the current in-game date and time as a GameDate object with fields for Year, Month, Day, Hour, Minute, Night, etc.",
+			Params:      []ScriptFuncParam{},
+			ReturnType:  "object",
+		},
+		{
+			Name:        "UtilGetTimeString",
+			Description: "Returns the current in-game time as a human-readable formatted string with ANSI color tags.",
+			Params:      []ScriptFuncParam{},
+			ReturnType:  "string",
+		},
+		{
+			Name:        "UtilSetTime",
+			Description: "Sets the in-game clock to a specific hour and minute.",
+			Params: []ScriptFuncParam{
+				{Name: "hour", Type: "number", Description: "The hour to set (0-23)."},
+				{Name: "minutes", Type: "number", Description: "The minute to set (0-59)."},
+			},
+		},
+		{
+			Name:        "UtilSetTimeDay",
+			Description: "Advances the in-game clock to the next daytime period.",
+			Params:      []ScriptFuncParam{},
+		},
+		{
+			Name:        "UtilSetTimeNight",
+			Description: "Advances the in-game clock to the next nighttime period.",
+			Params:      []ScriptFuncParam{},
+		},
+		{
+			Name:        "UtilIsDay",
+			Description: "Returns true if it is currently daytime in the game world.",
+			Params:      []ScriptFuncParam{},
+			ReturnType:  "boolean",
+		},
+		{
+			Name:        "UtilLocateUser",
+			Description: "Returns the room ID where a user is currently located. Accepts either a user ID (number) or character name (string). Returns 0 if the user is not online.",
+			Params: []ScriptFuncParam{
+				{Name: "idOrName", Type: "number|string", Description: "The user ID or character name to locate."},
+			},
+			ReturnType:      "number",
+			ReturnSemantics: "The room ID the user is in, or 0 if not found.",
+		},
+		{
+			Name:        "UtilApplyColorPattern",
+			Description: "Applies a named color pattern to a string and returns the colorized result.",
+			Params: []ScriptFuncParam{
+				{Name: "input", Type: "string", Description: "The string to colorize."},
+				{Name: "patternName", Type: "string", Description: "The name of the color pattern to apply."},
+				{Name: "wordsOnly?", Type: "boolean", Description: "If true, applies the pattern word-by-word instead of character-by-character."},
+			},
+			ReturnType: "string",
+		},
+		{
+			Name:        "UtilGetConfig",
+			Description: "Returns the current server configuration object. Useful for reading server settings such as game name, limits, and feature flags.",
+			Params:      []ScriptFuncParam{},
+			ReturnType:  "object",
+		},
+		{
+			Name:        "ColorWrap",
+			Description: "Wraps text in ANSI color tags using named color classes.",
+			Params: []ScriptFuncParam{
+				{Name: "txt", Type: "string", Description: "The text to wrap."},
+				{Name: "fg?", Type: "string", Description: "Optional foreground color class name (e.g. \"red\", \"username\")."},
+				{Name: "bg?", Type: "string", Description: "Optional background color class name."},
+			},
+			ReturnType: "string",
+		},
+		{
+			Name:        "RaiseEvent",
+			Description: "Raises a named scripted event with an arbitrary data payload. Other scripts or modules can listen for this event by name.",
+			Params: []ScriptFuncParam{
+				{Name: "name", Type: "string", Description: "The event name."},
+				{Name: "data", Type: "object", Description: "Arbitrary key-value data attached to the event."},
+			},
+		},
+		{
+			Name:        "ExpandCommand",
+			Description: "Expands command aliases in a string. For example, \"n\" may expand to \"north\".",
+			Params: []ScriptFuncParam{
+				{Name: "cmd", Type: "string", Description: "The command string to expand."},
+				{Name: "limit?", Type: "number", Description: "Optional maximum number of tokens to expand. -1 means unlimited."},
+			},
+			ReturnType: "string",
+		},
+		{
+			Name:        "EventFlags",
+			Description: "A constant object mapping event flag names to their numeric values. Use with CommandFlagged() to control command execution behavior (e.g. EventFlags.CmdSkipScripts, EventFlags.CmdSecretly).",
+			Params:      []ScriptFuncParam{},
+			ReturnType:  "object",
 		},
 	}
 }

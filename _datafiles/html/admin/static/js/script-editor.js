@@ -100,7 +100,8 @@ const ScriptEditor = (() => {
                 border-radius: 4px;
                 padding: 3px 8px;
                 font-family: sans-serif; font-size: 0.75rem; font-weight: normal;
-                white-space: nowrap; pointer-events: none;
+                white-space: pre-wrap; max-width: 420px; word-break: break-word;
+                pointer-events: none;
                 opacity: 0; transition: opacity 0.1s;
             }
             .script-editor-tooltip.visible { opacity: 1; }
@@ -109,17 +110,34 @@ const ScriptEditor = (() => {
     }
 
     // Post-processes the raw highlighted HTML string to wrap predefined engine
-    // function names with the .hljs-engine-fn class. highlight.js emits function
-    // definition names as <span class="hljs-title function_"> (the scope
-    // "title.function" maps to two classes: hljs-title and function_). Only
-    // names in that span are promoted so call-site references, strings, and
-    // comments that happen to contain the same text are left alone.
-    function applyEngineFnHighlight(html, nameSet) {
+    // function names with the .hljs-engine-fn class.
+    //
+    // highlight.js uses two different span classes depending on how the identifier
+    // is cased and used:
+    //   - "hljs-title function_"  : function definitions AND lowercase-starting call sites
+    //   - "hljs-title class_"     : PascalCase/UpperCamelCase call sites (e.g. GetRoom, RandInt)
+    //
+    // defNames covers event callback definitions; callNames covers global engine
+    // functions that scripts call. dynamicPrefixes is an array of strings for
+    // dynamic functions like onCommand_ whose suffix is user-defined.
+    // All receive the same visual treatment.
+    function applyEngineFnHighlight(html, defNames, callNames, dynamicPrefixes) {
         return html.replace(
-            /<span class="hljs-title function_">([^<]*)<\/span>/g,
+            /<span class="hljs-title (?:function_|class_)">([^<]*)<\/span>/g,
             function (match, name) {
-                if (nameSet.has(name.trim())) {
-                    return '<span class="hljs-engine-fn">' + name + '</span>';
+                const trimmed = name.trim();
+                if ((defNames && defNames.has(trimmed)) || (callNames && callNames.has(trimmed))) {
+                    return '<span class="hljs-engine-fn" data-engine-fn="' + trimmed + '">' + name + '</span>';
+                }
+                if (dynamicPrefixes) {
+                    for (let i = 0; i < dynamicPrefixes.length; i++) {
+                        const p = dynamicPrefixes[i];
+                        if (trimmed.length > p.prefix.length && trimmed.indexOf(p.prefix) === 0) {
+                            // data-engine-fn holds the concrete name (e.g. onCommand_pull);
+                            // data-engine-schema holds the schema key for meta lookup.
+                            return '<span class="hljs-engine-fn" data-engine-fn="' + trimmed + '" data-engine-schema="' + p.schemaName + '">' + name + '</span>';
+                        }
+                    }
                 }
                 return match;
             }
@@ -148,11 +166,40 @@ const ScriptEditor = (() => {
         // Tooltip element shared across all engine-fn spans in this editor.
         const tooltip = document.createElement('div');
         tooltip.className = 'script-editor-tooltip';
-        tooltip.textContent = 'Engine Function';
         document.body.appendChild(tooltip);
+
+        function buildTooltipContent(el) {
+            const fnName = el.dataset.engineFn;
+            const schemaName = el.dataset.engineSchema || fnName;
+            // Check global engine functions.
+            if (fnName && engineCallMeta && engineCallMeta[fnName]) {
+                const meta = engineCallMeta[fnName];
+                const paramStr = (meta.params || []).map(function (p) {
+                    return p.name + ': ' + p.type;
+                }).join(', ');
+                const retStr = meta.returnType ? ' \u2192 ' + meta.returnType : '';
+                let content = meta.name + '(' + paramStr + ')' + retStr;
+                if (meta.description) { content += '\n' + meta.description; }
+                return content;
+            }
+            // Check event callbacks (static and dynamic). Dynamic entries use the
+            // concrete function name (fnName) in the signature but look up metadata
+            // via the schema name (schemaName, e.g. onCommand_{command}).
+            if (schemaName && engineFnMeta && engineFnMeta[schemaName]) {
+                const meta = engineFnMeta[schemaName];
+                const paramStr = (meta.params || []).map(function (p) {
+                    return p.name + ': ' + p.type;
+                }).join(', ');
+                let content = fnName + '(' + paramStr + ')';
+                if (meta.description) { content += '\n' + meta.description; }
+                return content;
+            }
+            return 'Engine Function';
+        }
 
         pre.addEventListener('mouseover', function (e) {
             if (e.target.classList.contains('hljs-engine-fn')) {
+                tooltip.textContent = buildTooltipContent(e.target);
                 tooltip.classList.add('visible');
             }
         });
@@ -174,13 +221,17 @@ const ScriptEditor = (() => {
             textarea.focus();
         });
 
-        let engineFnNames = null; // Set<string> once loaded, null until then
+        let engineFnNames = null;    // Set<string>: static event callback definition names
+        let engineFnMeta = null;      // object: schemaName -> ScriptFuncDef (for static callbacks)
+        let engineDynamic = null;     // array: [{prefix, schemaName}] for dynamic callbacks
+        let engineCallNames = null;   // Set<string>: global engine function names
+        let engineCallMeta = null;    // object: name -> EngineGlobalFuncDef metadata
         let dirty = false;
 
         function highlight(src) {
             let html = hljs.highlight(src, { language: 'javascript' }).value;
-            if (engineFnNames) {
-                html = applyEngineFnHighlight(html, engineFnNames);
+            if (engineFnNames || engineCallNames || engineDynamic) {
+                html = applyEngineFnHighlight(html, engineFnNames, engineCallNames, engineDynamic);
             }
             return html;
         }
@@ -219,18 +270,48 @@ const ScriptEditor = (() => {
         if (scriptType) {
             AdminAPI.get('/admin/api/v1/scripting/functions').then(function (res) {
                 if (!res.ok) return;
-                const typeDef = res.data && res.data.data && res.data.data.scriptTypes && res.data.data.scriptTypes[scriptType];
-                if (!typeDef || !typeDef.functions) return;
-                const names = new Set();
-                typeDef.functions.forEach(function (fn) {
-                    // For dynamic functions like onCommand_{command} the base
-                    // name contains a placeholder; skip those since the actual
-                    // runtime name is user-defined.
-                    if (!fn.dynamic) {
-                        names.add(fn.name);
-                    }
-                });
-                engineFnNames = names;
+                const schema = res.data && res.data.data;
+
+                // Event callback names for this script type (function definitions).
+                const typeDef = schema && schema.scriptTypes && schema.scriptTypes[scriptType];
+                if (typeDef && typeDef.functions) {
+                    const names = new Set();
+                    const meta = {};
+                    const dynPrefixes = [];
+                    typeDef.functions.forEach(function (fn) {
+                        if (fn.dynamic) {
+                            // Dynamic entries like onCommand_{command}: extract the
+                            // literal prefix before the placeholder and match any
+                            // function name that starts with it.
+                            const placeholder = fn.dynamic.placeholder; // e.g. "{command}"
+                            const idx = fn.name.indexOf(placeholder);
+                            if (idx > 0) {
+                                const prefix = fn.name.slice(0, idx); // e.g. "onCommand_"
+                                dynPrefixes.push({ prefix: prefix, schemaName: fn.name });
+                                meta[fn.name] = fn; // keyed by schema name for tooltip lookup
+                            }
+                        } else {
+                            names.add(fn.name);
+                            meta[fn.name] = fn;
+                        }
+                    });
+                    engineFnNames = names;
+                    engineFnMeta = meta;
+                    engineDynamic = dynPrefixes.length > 0 ? dynPrefixes : null;
+                }
+
+                // Global engine function names and their metadata (call sites).
+                if (schema && schema.engineFunctions) {
+                    const callNames = new Set();
+                    const metaMap = {};
+                    schema.engineFunctions.forEach(function (fn) {
+                        callNames.add(fn.name);
+                        metaMap[fn.name] = fn;
+                    });
+                    engineCallNames = callNames;
+                    engineCallMeta = metaMap;
+                }
+
                 sync();
             }).catch(function () { /* schema fetch failure is non-fatal */ });
         }
