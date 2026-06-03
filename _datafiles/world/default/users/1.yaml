@@ -18,7 +18,6 @@ character:
     dreams. Conversely, he can also mete out justice to those who would seek to disrupt
     the balance of the world, swiftly and decisively.
   roomid: 1
-  roomidonreset: 0
   zone: Frostfang
   raceid: 2
   stats:
@@ -41,12 +40,10 @@ character:
   experience: 37692
   trainingpoints: 46
   statpoints: 8
-  health: 39
+  health: 40
   mana: 44
   actionpoints: 203
-  alignment: 0
   gold: 9950
-  bank: 0
   spellbook:
     curepoison: 1
     heal: 1
@@ -69,17 +66,17 @@ character:
     list:
     - buffid: 29
       permabuff: true
-      roundcounter: 32
+      roundcounter: 34
       triggersleft: 1000000000
       triggersinitial: 1000000000
     - buffid: 28
       permabuff: true
-      roundcounter: 3
+      roundcounter: 5
       triggersleft: 1000000000
       triggersinitial: 1000000000
     - buffid: 1
       permabuff: true
-      roundcounter: 25
+      roundcounter: 27
       triggersleft: 1000000000
       triggersinitial: 1000000000
   equipment:
@@ -132,6 +129,8 @@ character:
     playerkills: {}
     playerdeaths: {}
     totalpvpdeaths: 0
+    elitekills: {}
+    elitedeaths: {}
   extralives: 3
   mobmastery:
     tame:
@@ -142,9 +141,9 @@ character:
     name: fisher
     type: mule
     roundactchance: 10
-    food: 2
+    food: 1
     level: 10
-    lastlevelcheck: "6.73"
+    lastlevelcheck: "6.95"
     abilities:
     - levelgranted: 1
       capacity: 1
@@ -192,6 +191,7 @@ character:
       "6": "0x0000000000000001"
       "11": "0xDFFFFFFFC0000000"
       "12": "0x12000000000000FF"
+      "16": "0x0001000000000000"
     Frostfang:
       "0": "0xFFFFFFFEFFFFFFFE"
       "1": "0x00000000000017FF"
@@ -204,13 +204,16 @@ character:
       "12": "0x2DFFFFF8FFBFFF00"
       "13": "0x0000800000000000"
       "15": "0x00000C0000000000"
+      "16": "0x0000FFFC00000000"
     Frostfang Slums:
       "6": "0xFFFC000000000000"
       "7": "0x00000FFFFFFFFFFF"
-      "15": "0x0000100000000000"
+      "15": "0x0000F00000000000"
     Mirror Caves:
       "3": "0xFFFFFFFFFC000000"
       "4": "0x0000000000000003"
+      "15": "0xFFC0000000000000"
+      "16": "0x00000001FFFFFFFF"
     Mystarion:
       "9": "0x0000027000000000"
       "10": "0xFFFFFFFFFFFFFFF8"

@@ -187,6 +187,12 @@ func (u *UserRecord) ProcessPromptString(promptStr string) string {
 				}
 				promptOut.WriteString(strconv.Itoa(tnlXP))
 
+			case `{xpn}`:
+				if currentXP == -1 && tnlXP == -1 {
+					currentXP, tnlXP = u.Character.XPTNLActual()
+				}
+				promptOut.WriteString(strconv.Itoa(tnlXP - currentXP))
+
 			case `{xp%}`:
 				if currentXP == -1 && tnlXP == -1 {
 					currentXP, tnlXP = u.Character.XPTNLActual()
