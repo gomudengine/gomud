@@ -36,8 +36,8 @@
         roomSize:        28,         // pixels; clamped to [ROOM_SIZE_MIN, ROOM_SIZE_MAX]
         roomSpacing:     42,         // center-to-center grid distance; clamped to [ROOM_SPACING_MIN, ROOM_SPACING_MAX]
         connectionColor: '#7a4a1a',  // color of corridor lines between rooms
-        roomColor:       '#3a3a4a',  // fill color of non-current rooms
         mapBackground:   '#111111',  // canvas background color
+        defaultZoom:     null,       // null = no default; number = zoom level to ease to on room change
     };
 
     var mapSettings = (function () {
@@ -54,6 +54,7 @@
         var delta = {};
         var hasAny = false;
         Object.keys(MAP_SETTINGS_DEFAULTS).forEach(function (k) {
+            // null is the default for defaultZoom; only save when non-null or when different from default
             if (mapSettings[k] !== MAP_SETTINGS_DEFAULTS[k]) {
                 delta[k] = mapSettings[k];
                 hasAny = true;
@@ -84,8 +85,38 @@
         return '\u2022';
     }
 
-    function colorForSymbol(sym, env) {
-        return mapSettings.roomColor;
+    /**
+     * Returns the fill color for a room square.
+     * Cascade (mirrors admin mapper):
+     *   1. per-symbol bg override for this biome
+     *   2. per-symbol fg override for this biome
+     *   3. biome bg color
+     *   4. biome fg color
+     *   5. default room color
+     */
+    function colorForSymbol(sym, biomeId) {
+        var b = biomeTable[biomeId];
+        if (!b) { return '#3a3a4a'; }
+        if (sym && b.overrides && b.overrides[sym]) {
+            if (b.overrides[sym].bg) { return b.overrides[sym].bg; }
+            if (b.overrides[sym].fg) { return b.overrides[sym].fg; }
+        }
+        if (b.color) {
+            if (b.color.bg) { return b.color.bg; }
+            if (b.color.fg) { return b.color.fg; }
+        }
+        return '#3a3a4a';
+    }
+
+    /**
+     * Returns '#ffffff' or '#000000', whichever contrasts better against
+     * the given CSS hex fill color.
+     */
+    function contrastColor(hex) {
+        var r = parseInt(hex.slice(1, 3), 16);
+        var g = parseInt(hex.slice(3, 5), 16);
+        var b = parseInt(hex.slice(5, 7), 16);
+        return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.45 ? '#000000' : '#ffffff';
     }
 
     function smoothstep(t) {
@@ -98,6 +129,12 @@
 
     /** Full GMCP info objects keyed by roomId - used by the view for tooltips. */
     var roomInfoStore = new Map();
+
+    /**
+     * biomeTable: populated from World.Map payload.
+     * keyed by biomeId -> { name, symbol, color: {fg, bg}, overrides: {sym: {fg, bg}} }
+     */
+    var biomeTable = {};
 
     /**
      * roomCache: keyed by roomId.
@@ -149,7 +186,13 @@
         };
     }
 
-    function ingestWorldMap(entries) {
+    function ingestWorldMap(payload) {
+        // Support both the legacy bare-array shape and the new {rooms, biomes} shape.
+        var entries = Array.isArray(payload) ? payload : (payload && payload.rooms ? payload.rooms : []);
+        var newBiomes = (!Array.isArray(payload) && payload && payload.biomes) ? payload.biomes : {};
+
+        Object.keys(newBiomes).forEach(function (id) { biomeTable[id] = newBiomes[id]; });
+
         if (!Array.isArray(entries) || entries.length === 0) { return; }
 
         entries.forEach(function (info) {
@@ -193,10 +236,13 @@
 
         var html = '<div class="tt-name">' + (info.name || 'Unknown') + '</div>';
         var rows = [];
-        if (info.environment) { rows.push({ label: 'Env',    value: info.environment }); }
-        if (info.maplegend)   { rows.push({ label: 'Type',   value: info.maplegend   }); }
-        if (info.mapsymbol)   { rows.push({ label: 'Symbol', value: info.mapsymbol   }); }
-        if (info.area)        { rows.push({ label: 'Area',   value: info.area        }); }
+        var envDisplay = info.environment
+            ? ((biomeTable[info.environment] && biomeTable[info.environment].name) || info.environment)
+            : null;
+        if (envDisplay)        { rows.push({ label: 'Env',    value: envDisplay      }); }
+        if (info.maplegend)    { rows.push({ label: 'Type',   value: info.maplegend  }); }
+        if (info.mapsymbol)    { rows.push({ label: 'Symbol', value: info.mapsymbol  }); }
+        if (info.area)         { rows.push({ label: 'Area',   value: info.area       }); }
         if (rows.length > 0) {
             html += '<hr class="tt-divider">';
             rows.forEach(function (r) {
@@ -424,10 +470,16 @@
 
         function setCameraTarget(tx, ty) {
             panOffsetX = 0; panOffsetY = 0;
-            if (CENTER_EASE_DURATION <= 0) { cameraX = tx; cameraY = ty; render(); return; }
+            var targetZoom = (mapSettings.defaultZoom !== null) ? mapSettings.defaultZoom : zoomScale;
+            if (CENTER_EASE_DURATION <= 0) {
+                cameraX = tx; cameraY = ty;
+                zoomScale = targetZoom;
+                render(); return;
+            }
             if (easeRafId !== null) { cancelAnimationFrame(easeRafId); easeRafId = null; }
             easeStartX = cameraX; easeStartY = cameraY;
             easeTargetX = tx; easeTargetY = ty;
+            var easeStartZoom = zoomScale;
             easeStartTime = null;
             function step(ts) {
                 if (easeStartTime === null) { easeStartTime = ts; }
@@ -435,6 +487,7 @@
                 var s = smoothstep(t);
                 cameraX = easeStartX + (easeTargetX - easeStartX) * s;
                 cameraY = easeStartY + (easeTargetY - easeStartY) * s;
+                zoomScale = easeStartZoom + (targetZoom - easeStartZoom) * s;
                 render();
                 easeRafId = t < 1 ? requestAnimationFrame(step) : null;
             }
@@ -611,22 +664,28 @@
                     ctx.strokeRect(rx, ry, scaledSize, scaledSize);
                 }
 
-                ctx.fillStyle    = isCurrent ? CURRENT_ROOM_TEXT_COLOR : SYMBOL_TEXT_COLOR;
+                var symColor = isCurrent ? CURRENT_ROOM_TEXT_COLOR
+                    : (fill !== '#3a3a4a' ? contrastColor(fill) : SYMBOL_TEXT_COLOR);
+                ctx.fillStyle    = symColor;
                 ctx.font         = 'bold ' + scaledFont + 'px monospace';
                 ctx.textAlign    = 'center'; ctx.textBaseline = 'middle';
                 ctx.fillText(room.symbol || '\u2022', p.px, p.py);
                 if (room.hasUp || room.hasDown) {
                     var arrowSize = Math.max(5, scaledSize * 0.28);
-                    var margin    = Math.max(2, scaledSize * 0.1);
                     ctx.font      = 'bold ' + arrowSize + 'px monospace';
-                    ctx.fillStyle = isCurrent ? CURRENT_ROOM_TEXT_COLOR : SYMBOL_TEXT_COLOR;
+                    ctx.fillStyle = isCurrent ? CURRENT_ROOM_TEXT_COLOR : symColor;
+                    // For circles the bounding-box corners sit outside the circle.
+                    // Inset from centre by half/√2 so the arrows stay inside.
+                    var arrowInset = useCircle
+                        ? Math.max(2, half * 0.707 - arrowSize * 0.5)
+                        : Math.max(2, scaledSize * 0.1);
                     if (room.hasDown) {
                         ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-                        ctx.fillText('\u25be', rx + margin, ry + scaledSize - margin);
+                        ctx.fillText('\u25be', p.px - arrowInset, p.py + arrowInset);
                     }
                     if (room.hasUp) {
                         ctx.textAlign = 'right'; ctx.textBaseline = 'top';
-                        ctx.fillText('\u25b4', rx + scaledSize - margin, ry + margin);
+                        ctx.fillText('\u25b4', p.px + arrowInset, p.py - arrowInset);
                     }
                 }
             });
@@ -870,15 +929,37 @@
             }
 
             panel.appendChild(row('Connections', colorPicker('connectionColor')));
-            panel.appendChild(row('Rooms', colorPicker('roomColor')));
             panel.appendChild(row('Background', colorPicker('mapBackground')));
 
+            // -- Default zoom button --
+            var btnDefaultZoom = document.createElement('button');
+            btnDefaultZoom.className = 'msp-reset';
+            btnDefaultZoom.style.alignSelf = 'stretch';
+            btnDefaultZoom.style.marginTop = '2px';
+            (function updateDefaultZoomLabel() {
+                btnDefaultZoom.textContent = mapSettings.defaultZoom !== null
+                    ? 'Default zoom: ' + mapSettings.defaultZoom.toFixed(2) + ' (click to update)'
+                    : 'Set default zoom';
+            }());
+            btnDefaultZoom.addEventListener('click', function (e) {
+                e.stopPropagation();
+                mapSettings.defaultZoom = Math.round(zoomScale * 100) / 100;
+                saveMapSettings();
+                btnDefaultZoom.textContent = 'Default zoom: ' + mapSettings.defaultZoom.toFixed(2) + ' (click to update)';
+            });
+            panel.appendChild(btnDefaultZoom);
+
+            // -- Import / Export JSON --
+            // (handled by the main webclient settings Export JSON / Import JSON buttons)
+
+            // -- Reset --
             var btnReset = document.createElement('button');
             btnReset.textContent = 'Reset to defaults';
             btnReset.className = 'msp-reset';
             btnReset.addEventListener('click', function (e) {
                 e.stopPropagation();
                 Object.assign(mapSettings, MAP_SETTINGS_DEFAULTS);
+                zoomScale = 1.0;
                 saveMapSettings();
                 panel.remove();
                 document.removeEventListener('click', onOutsideClick, true);
@@ -977,7 +1058,7 @@
 
     function updateWorldMap() {
         var worldData = Client.GMCPStructs.World;
-        if (!worldData || !Array.isArray(worldData.Map)) { return; }
+        if (!worldData || !worldData.Map) { return; }
         win.open();
         if (!win.isOpen()) { return; }
         ingestWorldMap(worldData.Map);
