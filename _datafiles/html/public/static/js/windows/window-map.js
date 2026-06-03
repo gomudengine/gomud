@@ -131,6 +131,12 @@
     var roomInfoStore = new Map();
 
     /**
+     * partyMemberPositions: keyed by member name -> { x, y, z }
+     * Updated whenever Party or Party.Vitals GMCP arrives.
+     */
+    var partyMemberPositions = {};
+
+    /**
      * biomeTable: populated from World.Map payload.
      * keyed by biomeId -> { name, symbol, color: {fg, bg}, overrides: {sym: {fg, bg}} }
      */
@@ -271,6 +277,22 @@
                         '<span class="tt-label">Exits</span>' +
                         '<span class="tt-value">' + exitNames.join(', ') + '</span></div>';
             }
+        }
+
+        var partyHere = [];
+        var hoveredRc = roomCache[info.num];
+        if (hoveredRc) {
+            Object.keys(partyMemberPositions).forEach(function (name) {
+                var pos = partyMemberPositions[name];
+                if (pos.x === hoveredRc.x && pos.y === hoveredRc.y && pos.z === hoveredRc.z) {
+                    partyHere.push(name);
+                }
+            });
+        }
+        if (partyHere.length > 0) {
+            html += '<hr class="tt-divider"><div class="tt-row">' +
+                    '<span class="tt-label">Party</span>' +
+                    '<span class="tt-value" style="color:#ff6666">\u2665 ' + partyHere.join(', ') + '</span></div>';
         }
 
         tooltip.innerHTML     = html;
@@ -450,6 +472,15 @@
         var dragStartPanX = 0, dragStartPanY = 0;
         var zoomScale     = 1.0;
         var currentZoneKey = '';
+        var partyPositions = {}; // name -> { x, y, z }
+
+        // Per-member heart ease state.
+        // keyed by member name -> { fromGx, fromGy, toGx, toGy, startTime }
+        // fromGx/fromGy are the grid coords the heart is easing FROM.
+        // When a member has no previous position, fromGx/fromGy equal toGx/toGy (no animation).
+        var HEART_EASE_DURATION = 0.5; // seconds
+        var partyHeartEase = {}; // name -> { fromGx, fromGy, toGx, toGy, toZ, startTime }
+        var heartRafId = null;
 
         // -- Helpers -----------------------------------------------------------
         function resizeCanvas() {
@@ -689,6 +720,36 @@
                     }
                 }
             });
+
+            // Draw party member hearts over rooms (skip the player's current room).
+            // Each heart eases from its previous grid position to the new one over HEART_EASE_DURATION.
+            // Hearts on a different z-plane than the current room are not drawn.
+            var currentRc = (currentRoomId !== null) ? roomCache[currentRoomId] : null;
+            var currentRoomZ = currentRc ? currentRc.z : null;
+            ctx.font = 'bold ' + Math.round(scaledSize) + 'px serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            var now = performance.now();
+            var anyEasing = false;
+            Object.keys(partyHeartEase).forEach(function (name) {
+                var ease = partyHeartEase[name];
+                if (currentRoomZ === null || ease.toZ !== currentRoomZ) { return; }
+                if (currentRc && ease.toGx === currentRc.x && ease.toGy === currentRc.y) { return; }
+                var t = Math.min((now - ease.startTime) / 1000 / HEART_EASE_DURATION, 1);
+                var s = smoothstep(t);
+                var gx = ease.fromGx + (ease.toGx - ease.fromGx) * s;
+                var gy = ease.fromGy + (ease.toGy - ease.fromGy) * s;
+                var p = gridToCanvas(gx, gy);
+                ctx.fillStyle = ease.aggro ? '#ff3333' : '#00cfcf';
+                ctx.fillText('\u2665', p.px, p.py);
+                if (t < 1) { anyEasing = true; }
+            });
+            if (anyEasing && heartRafId === null) {
+                heartRafId = requestAnimationFrame(function () {
+                    heartRafId = null;
+                    render();
+                });
+            }
         }
 
         function roomAtPoint(cx, cy) {
@@ -995,6 +1056,53 @@
             onRoomUpdate:        onRoomUpdate,
             setupResizeObserver: setupResizeObserver,
             getCurrentRoomId:    function () { return currentRoomId; },
+            setPartyPositions: function (positions) {
+                var newPositions = positions || {};
+                var now = performance.now();
+
+                // Update ease entries for each member in the new state.
+                Object.keys(newPositions).forEach(function (name) {
+                    var pos = newPositions[name];
+                    if (!pos.hasCoordinates) { return; }
+
+                    var existing = partyHeartEase[name];
+                    var fromGx, fromGy;
+
+                    if (existing) {
+                        // Interpolate current visual position as the new start.
+                        var t = Math.min((now - existing.startTime) / 1000 / HEART_EASE_DURATION, 1);
+                        var s = smoothstep(t);
+                        fromGx = existing.fromGx + (existing.toGx - existing.fromGx) * s;
+                        fromGy = existing.fromGy + (existing.toGy - existing.fromGy) * s;
+                    } else if (partyPositions[name] !== undefined) {
+                        var oldPos = partyPositions[name];
+                        fromGx = oldPos.x;
+                        fromGy = oldPos.y;
+                    } else {
+                        // First time we see this member: start at destination (no animation).
+                        fromGx = pos.x;
+                        fromGy = pos.y;
+                    }
+
+                    partyHeartEase[name] = {
+                        fromGx:    fromGx,
+                        fromGy:    fromGy,
+                        toGx:      pos.x,
+                        toGy:      pos.y,
+                        toZ:       pos.z,
+                        aggro:     pos.aggro,
+                        startTime: now,
+                    };
+                });
+
+                // Remove ease entries for members no longer in the party.
+                Object.keys(partyHeartEase).forEach(function (name) {
+                    if (!newPositions[name]) { delete partyHeartEase[name]; }
+                });
+
+                partyPositions = newPositions;
+                render();
+            },
         };
 
     }());
@@ -1064,6 +1172,21 @@
         ingestWorldMap(worldData.Map);
     }
 
+    function updatePartyPositions() {
+        var partyData = Client.GMCPStructs.Party;
+        if (!partyData || !partyData.Vitals) { partyMemberPositions = {}; view2d.setPartyPositions(partyMemberPositions); return; }
+        var vitals = partyData.Vitals;
+        var myName = (Client.GMCPStructs.Char && Client.GMCPStructs.Char.Info && Client.GMCPStructs.Char.Info.name) || '';
+        partyMemberPositions = {};
+        Object.keys(vitals).forEach(function (name) {
+            if (name === myName) { return; }
+            var v = vitals[name];
+            if (!v.hascoordinates) { return; }
+            partyMemberPositions[name] = { x: v.mapx, y: v.mapy, z: v.mapz, hasCoordinates: true, aggro: !!v.aggro };
+        });
+        view2d.setPartyPositions(partyMemberPositions);
+    }
+
     function updateMap() {
         var obj = Client.GMCPStructs.Room;
         if (!obj || !obj.Info) { return; }
@@ -1098,12 +1221,14 @@
 
     VirtualWindows.register({
         window:       win,
-        gmcpHandlers: ['Room', 'World'],
+        gmcpHandlers: ['Room', 'World', 'Party', 'Party.Vitals'],
         onGMCP: function (namespace) {
             if (namespace === 'World.Map') {
                 updateWorldMap();
             } else if (namespace === 'Room.Info' || namespace === 'Room') {
                 updateMap();
+            } else if (namespace === 'Party' || namespace === 'Party.Vitals') {
+                updatePartyPositions();
             }
         },
     });

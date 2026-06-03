@@ -21,8 +21,14 @@ Full party state, sent on membership changes.
 Lightweight update sent whenever a member moves or their health changes. The payload is an object keyed by character name.
 
   Each entry contains:
-  <ansi fg="cyan">level</ansi>     <ansi fg="yellow">number</ansi>  - Character or mob level
-  <ansi fg="cyan">health</ansi>    <ansi fg="yellow">number</ansi>  - Current health as a percentage (0-100)
-  <ansi fg="cyan">location</ansi>  <ansi fg="green">string</ansi>  - Title of the room the member is currently in
+  <ansi fg="cyan">level</ansi>           <ansi fg="yellow">number</ansi>   - Character or mob level
+  <ansi fg="cyan">health</ansi>          <ansi fg="yellow">number</ansi>   - Current health as a percentage (0-100)
+  <ansi fg="cyan">location</ansi>        <ansi fg="green">string</ansi>   - Title of the room the member is currently in
+  <ansi fg="cyan">roomid</ansi>          <ansi fg="yellow">number</ansi>   - Room ID the member is currently in (0 if unknown or invited)
+  <ansi fg="cyan">mapx</ansi>            <ansi fg="yellow">number</ansi>   - World X coordinate of the member's room
+  <ansi fg="cyan">mapy</ansi>            <ansi fg="yellow">number</ansi>   - World Y coordinate of the member's room
+  <ansi fg="cyan">mapz</ansi>            <ansi fg="yellow">number</ansi>   - World Z coordinate of the member's room
+  <ansi fg="cyan">hascoordinates</ansi>  <ansi fg="white-bold">bool</ansi>     - Whether the room has valid map coordinates
+  <ansi fg="cyan">aggro</ansi>           <ansi fg="white-bold">bool</ansi>     - Whether the member is currently in combat (aggro state)
 
 <ansi fg="magenta-bold">See also:</ansi> <ansi fg="command">help gmcp</ansi>, <ansi fg="command">help gmcp-char</ansi>

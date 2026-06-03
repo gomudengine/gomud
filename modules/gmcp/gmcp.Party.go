@@ -33,6 +33,7 @@ func init() {
 	events.RegisterListener(events.RoomChange{}, g.roomChangeHandler)
 	events.RegisterListener(events.PartyUpdated{}, g.onPartyChange)
 	events.RegisterListener(PartyUpdateVitals{}, g.onUpdateVitals)
+	events.RegisterListener(events.AggroChanged{}, g.aggroChangedHandler)
 
 }
 
@@ -48,6 +49,30 @@ type PartyUpdateVitals struct {
 
 func (g PartyUpdateVitals) Type() string     { return `PartyUpdateVitals` }
 func (g PartyUpdateVitals) UniqueID() string { return `PartyVitals-` + strconv.Itoa(g.LeaderId) }
+
+func (g *GMCPPartyModule) aggroChangedHandler(e events.Event) events.ListenerReturn {
+
+	evt, typeOk := e.(events.AggroChanged)
+	if !typeOk {
+		mudlog.Error("Event", "Expected Type", "AggroChanged", "Actual Type", e.Type())
+		return events.Cancel
+	}
+
+	if evt.UserId == 0 {
+		return events.Continue
+	}
+
+	party := parties.Get(evt.UserId)
+	if party == nil {
+		return events.Continue
+	}
+
+	events.AddToQueue(PartyUpdateVitals{
+		LeaderId: party.LeaderUserId,
+	})
+
+	return events.Continue
+}
 
 func (g *GMCPPartyModule) roomChangeHandler(e events.Event) events.ListenerReturn {
 
@@ -173,6 +198,7 @@ func (g *GMCPPartyModule) GetPartyNode(party *parties.Party, gmcpModule string) 
 	}
 
 	roomTitles := map[int]string{}
+	roomCoords := map[int]*rooms.Room{}
 
 	charmedMobInstanceIds := []int{}
 
@@ -186,18 +212,27 @@ func (g *GMCPPartyModule) GetPartyNode(party *parties.Party, gmcpModule string) 
 			}
 
 			roomTitle, ok := roomTitles[user.Character.RoomId]
+			userVitals := GMCPPartyModule_Payload_Vitals{
+				Level:         user.Character.Level,
+				HealthPercent: hPct,
+				RoomId:        user.Character.RoomId,
+				Aggro:         user.Character.Aggro != nil,
+			}
 			if !ok {
 				if uRoom := rooms.LoadRoom(user.Character.RoomId); uRoom != nil {
 					roomTitle = uRoom.Title
 					roomTitles[user.Character.RoomId] = roomTitle
+					roomCoords[user.Character.RoomId] = uRoom
 				}
 			}
-
-			partyPayload.Vitals[user.Character.Name] = GMCPPartyModule_Payload_Vitals{
-				Level:         user.Character.Level,
-				HealthPercent: hPct,
-				Location:      roomTitle,
+			if r := roomCoords[user.Character.RoomId]; r != nil {
+				userVitals.MapX = r.MapX
+				userVitals.MapY = r.MapY
+				userVitals.MapZ = r.MapZ
+				userVitals.HasCoordinates = r.HasCoordinates
 			}
+			userVitals.Location = roomTitle
+			partyPayload.Vitals[user.Character.Name] = userVitals
 
 			charmedMobInstanceIds = append(charmedMobInstanceIds, user.Character.GetCharmIds()...)
 
@@ -233,18 +268,26 @@ func (g *GMCPPartyModule) GetPartyNode(party *parties.Party, gmcpModule string) 
 		}
 
 		mRoomTitle, ok := roomTitles[m.Character.RoomId]
+		mobVitals := GMCPPartyModule_Payload_Vitals{
+			Level:         m.Character.Level,
+			HealthPercent: mHPct,
+			RoomId:        m.Character.RoomId,
+		}
 		if !ok {
 			if mRoom := rooms.LoadRoom(m.Character.RoomId); mRoom != nil {
 				mRoomTitle = mRoom.Title
 				roomTitles[m.Character.RoomId] = mRoomTitle
+				roomCoords[m.Character.RoomId] = mRoom
 			}
 		}
-
-		partyPayload.Vitals[m.Character.Name] = GMCPPartyModule_Payload_Vitals{
-			Level:         m.Character.Level,
-			HealthPercent: mHPct,
-			Location:      mRoomTitle,
+		if r := roomCoords[m.Character.RoomId]; r != nil {
+			mobVitals.MapX = r.MapX
+			mobVitals.MapY = r.MapY
+			mobVitals.MapZ = r.MapZ
+			mobVitals.HasCoordinates = r.HasCoordinates
 		}
+		mobVitals.Location = mRoomTitle
+		partyPayload.Vitals[m.Character.Name] = mobVitals
 
 		if gmcpModule == `Party.Vitals` {
 			continue
@@ -267,6 +310,7 @@ func (g *GMCPPartyModule) GetPartyNode(party *parties.Party, gmcpModule string) 
 				Level:         0,
 				HealthPercent: 0,
 				Location:      ``,
+				RoomId:        0,
 			}
 
 			if gmcpModule == `Party.Vitals` {
@@ -312,7 +356,13 @@ type GMCPPartyModule_Payload_User struct {
 }
 
 type GMCPPartyModule_Payload_Vitals struct {
-	Level         int    `json:"level"`    // level of user
-	HealthPercent int    `json:"health"`   // 1 = 1%, 23 = 23% etc.
-	Location      string `json:"location"` // Title of room they are in
+	Level          int    `json:"level"`          // level of user
+	HealthPercent  int    `json:"health"`         // 1 = 1%, 23 = 23% etc.
+	Location       string `json:"location"`       // Title of room they are in
+	RoomId         int    `json:"roomid"`         // Room ID they are in (0 if unknown/invited)
+	MapX           int    `json:"mapx"`           // World X coordinate of the room
+	MapY           int    `json:"mapy"`           // World Y coordinate of the room
+	MapZ           int    `json:"mapz"`           // World Z coordinate of the room
+	HasCoordinates bool   `json:"hascoordinates"` // Whether the room has map coordinates
+	Aggro          bool   `json:"aggro"`          // Whether the user is currently in aggro state
 }
