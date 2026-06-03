@@ -172,7 +172,8 @@ install_go() {
     archive_name="${go_version}.${GO_OS}-${GO_ARCH}.tar.gz"
 
     # Extract the SHA256 for that specific filename from the JSON.
-    sha256=$(printf '%s' "$json" | tr '{}' '\n' | grep "\"filename\":\"${archive_name}\"" | grep -o '"sha256":"[^"]*"' | sed 's/"sha256":"//;s/"//')
+    # Collapse whitespace first so each object is on one line, then filter.
+    sha256=$(printf '%s' "$json" | tr -d '\n\r' | tr '{' '\n' | grep "\"filename\":\"${archive_name}\"" | grep -o '"sha256":"[^"]*"' | sed 's/"sha256":"//;s/"//')
 
     if [ -z "$sha256" ]; then
         fatal "Could not find SHA256 for $archive_name in the Go download API response."
