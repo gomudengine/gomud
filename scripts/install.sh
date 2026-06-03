@@ -21,7 +21,7 @@ MIN_GO_MAJOR=1
 MIN_GO_MINOR=24
 
 GO_INSTALL_DIR="/usr/local/go"
-GO_DL_API="https://go.dev/dl/\?mode=json"
+GO_DL_API="https://go.dev/dl/?mode=json"
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -163,7 +163,7 @@ install_go() {
     json=$(fetch "$GO_DL_API")
 
     # Extract the first stable version string from the JSON array.
-    go_version=$(printf '%s' "$json" | grep -o '"version":"go[^"]*"' | head -1 | sed 's/"version":"//;s/"//')
+    go_version=$(printf '%s' "$json" | grep -o '"version": *"go[^"]*"' | head -1 | sed 's/"version": *"//;s/"//')
     if [ -z "$go_version" ]; then
         fatal "Could not determine the latest Go version from $GO_DL_API."
     fi
@@ -173,7 +173,7 @@ install_go() {
 
     # Extract the SHA256 for that specific filename from the JSON.
     # Collapse whitespace first so each object is on one line, then filter.
-    sha256=$(printf '%s' "$json" | tr -d '\n\r' | tr '{' '\n' | grep "\"filename\":\"${archive_name}\"" | grep -o '"sha256":"[^"]*"' | sed 's/"sha256":"//;s/"//')
+    sha256=$(printf '%s' "$json" | tr -d '\n\r' | tr '{' '\n' | grep "\"filename\": *\"${archive_name}\"" | grep -o '"sha256": *"[^"]*"' | sed 's/"sha256": *"//;s/"//')
 
     if [ -z "$sha256" ]; then
         fatal "Could not find SHA256 for $archive_name in the Go download API response."
