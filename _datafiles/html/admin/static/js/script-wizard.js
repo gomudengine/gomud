@@ -163,7 +163,7 @@ const ScriptWizard = (() => {
 
         const header = document.createElement('div');
         header.className = 'sw-header';
-        header.innerHTML = '<span class="sw-title">Add Script Function</span>';
+        header.innerHTML = '<span class="sw-title">Add Event Handler</span>';
         const closeBtn = document.createElement('button');
         closeBtn.className = 'sw-close';
         closeBtn.textContent = '×';
