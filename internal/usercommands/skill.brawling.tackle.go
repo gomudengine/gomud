@@ -46,11 +46,12 @@ func Tackle(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 
 		if m != nil {
 
-			chanceIn100 := user.Character.Stats.Speed.ValueAdj - m.Character.Stats.Perception.ValueAdj
-			if chanceIn100 < 0 {
-				chanceIn100 = 0
+			chanceIn100 := user.Character.Stats.Speed.ValueAdj - m.Character.Stats.Perception.ValueAdj + 20
+			if chanceIn100 < 20 {
+				chanceIn100 = 20
+			} else if chanceIn100 > 80 {
+				chanceIn100 = 80
 			}
-			chanceIn100 += 10
 			roll := util.Rand(100)
 
 			util.LogRoll(`Tackle`, roll, chanceIn100)
@@ -93,11 +94,12 @@ func Tackle(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 
 		if u != nil {
 
-			chanceIn100 := user.Character.Stats.Speed.ValueAdj - u.Character.Stats.Perception.ValueAdj
-			if chanceIn100 < 0 {
-				chanceIn100 = 0
+			chanceIn100 := user.Character.Stats.Speed.ValueAdj - u.Character.Stats.Perception.ValueAdj + 20
+			if chanceIn100 < 20 {
+				chanceIn100 = 20
+			} else if chanceIn100 > 80 {
+				chanceIn100 = 80
 			}
-			chanceIn100 += 10
 			roll := util.Rand(100)
 
 			util.LogRoll(`Tackle`, roll, chanceIn100)

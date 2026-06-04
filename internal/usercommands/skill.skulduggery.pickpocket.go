@@ -66,14 +66,14 @@ func Pickpocket(rest string, user *users.UserRecord, room *rooms.Room, flags eve
 
 		if m != nil {
 
-			levelDelta := user.Character.Level - m.Character.Level
-			if levelDelta < 1 {
-				levelDelta = 1
+			levelDelta := m.Character.Level - user.Character.Level
+			if levelDelta < 0 {
+				levelDelta = 0
 			}
 
 			chanceIn100 := (user.Character.Stats.Speed.ValueAdj+user.Character.Stats.Smarts.ValueAdj+user.Character.Stats.Perception.ValueAdj)/3 - m.Character.Stats.Perception.ValueAdj
-			chanceIn100 /= levelDelta
-			if chanceIn100 < 0 {
+			chanceIn100 -= levelDelta
+			if chanceIn100 < 1 {
 				chanceIn100 = 1
 			}
 			if isSneaking {
@@ -166,14 +166,14 @@ func Pickpocket(rest string, user *users.UserRecord, room *rooms.Room, flags eve
 				return true, nil
 			}
 
-			levelDelta := user.Character.Level - p.Character.Level
-			if levelDelta < 1 {
-				levelDelta = 1
+			levelDelta := p.Character.Level - user.Character.Level
+			if levelDelta < 0 {
+				levelDelta = 0
 			}
 
 			chanceIn100 := (user.Character.Stats.Speed.ValueAdj+user.Character.Stats.Smarts.ValueAdj+user.Character.Stats.Perception.ValueAdj)/3 - p.Character.Stats.Perception.ValueAdj
-			chanceIn100 /= levelDelta
-			if chanceIn100 < 0 {
+			chanceIn100 -= levelDelta
+			if chanceIn100 < 1 {
 				chanceIn100 = 1
 			}
 			if isSneaking {

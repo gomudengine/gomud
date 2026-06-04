@@ -13,4 +13,4 @@ As you level up the ~search~ skill, new things can become revealed.
 (Lvl 3) ~search~ Finds special/unknown "things of interest" in the area.  
 (Lvl 4) ~search~ Doubles your chance of success when searching.
 
-Your chances of success when searching are calculated as follows: **Smarts/4 + Perception/2 + 5**
+Your chances of success when searching are calculated as follows: **10 + Perception/2** (doubled at level 4)

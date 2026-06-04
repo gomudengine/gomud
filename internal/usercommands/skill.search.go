@@ -46,8 +46,11 @@ func Search(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 	// Fire an event that a skill has been used
 	events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: skills.Search, Details: ``})
 
-	// 10% + 1% for every 2 smarts
+	// 10% + 1% for every 2 perception
 	searchOddsIn100 := 10 + int(math.Ceil(float64(user.Character.Stats.Perception.ValueAdj)/2))
+	if skillLevel >= 4 {
+		searchOddsIn100 *= 2
+	}
 
 	user.SendText("You snoop around for a bit...\n")
 	room.SendText(

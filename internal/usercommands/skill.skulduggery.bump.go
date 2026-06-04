@@ -66,14 +66,13 @@ func Bump(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 
 		if m != nil {
 
-			levelDelta := user.Character.Level - m.Character.Level
-			if levelDelta < 1 {
-				levelDelta = 1
+			levelDelta := m.Character.Level - user.Character.Level
+			if levelDelta < 0 {
+				levelDelta = 0
 			}
 
-			chanceIn100 := user.Character.Stats.Strength.ValueAdj / 2
-			chanceIn100 /= levelDelta
-			if chanceIn100 < 0 {
+			chanceIn100 := user.Character.Stats.Strength.ValueAdj/2 - levelDelta
+			if chanceIn100 < 1 {
 				chanceIn100 = 1
 			}
 
@@ -112,13 +111,12 @@ func Bump(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 				return true, nil
 			}
 
-			levelDelta := user.Character.Level - p.Character.Level
-			if levelDelta < 1 {
-				levelDelta = 1
+			levelDelta := p.Character.Level - user.Character.Level
+			if levelDelta < 0 {
+				levelDelta = 0
 			}
-			chanceIn100 := user.Character.Stats.Strength.ValueAdj / 2
-			chanceIn100 /= levelDelta
-			if chanceIn100 < 0 {
+			chanceIn100 := user.Character.Stats.Strength.ValueAdj/2 - levelDelta
+			if chanceIn100 < 1 {
 				chanceIn100 = 1
 			}
 
