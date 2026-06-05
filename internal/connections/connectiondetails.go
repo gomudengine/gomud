@@ -272,7 +272,7 @@ func (cd *ConnectionDetails) Write(p []byte) (n int, err error) {
 		return 0, nil
 	}
 
-	if cd.stripAnsi && (len(p) == 0 || p[0] != byte(term.TELNET_IAC)) {
+	if cd.stripAnsi && p[0] != byte(term.TELNET_IAC) {
 		p = StripAnsi(p)
 		if len(p) == 0 {
 			return 0, nil
