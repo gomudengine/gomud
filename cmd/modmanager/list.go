@@ -157,10 +157,12 @@ func printRegistryTable(reg *Registry, lf *LockFile) {
 	// Compute minimum column widths from actual data.
 	colName := len("NAME")
 	colVersion := len("VERSION")
+	colAuthor := len("AUTHOR")
 	colStatus := len("STATUS")
 
 	type row struct {
-		name, version, status, description string
+		name, version, author, status, description string
+		official                                    bool
 	}
 	rows := make([]row, 0, len(reg.Modules))
 	for _, e := range reg.Modules {
@@ -172,7 +174,8 @@ func printRegistryTable(reg *Registry, lf *LockFile) {
 				status = "update avail"
 			}
 		}
-		r := row{e.Name, e.Version, status, e.Description}
+		official := e.Author == officialAuthor
+		r := row{e.Name, e.Version, e.Author, status, e.Description, official}
 		rows = append(rows, r)
 		if len(r.name) > colName {
 			colName = len(r.name)
@@ -180,37 +183,48 @@ func printRegistryTable(reg *Registry, lf *LockFile) {
 		if len(r.version) > colVersion {
 			colVersion = len(r.version)
 		}
+		if len(r.author) > colAuthor {
+			colAuthor = len(r.author)
+		}
 		if len(r.status) > colStatus {
 			colStatus = len(r.status)
 		}
 	}
 
 	// Separator widths are based on plain-text column widths.
-	totalSep := colName + 2 + colVersion + 2 + colStatus + 2 + 11 // rough desc header
+	totalSep := colName + 2 + colVersion + 2 + colAuthor + 2 + colStatus + 2 + 11 // rough desc header
 	if totalSep > terminalWidth() {
 		totalSep = terminalWidth()
 	}
 
 	fmt.Println()
-	fmt.Printf("  %s  %s  %s  %s\n",
+	fmt.Printf("  %s  %s  %s  %s  %s\n",
 		padRight(bold("NAME"), colName),
 		padRight(bold("VERSION"), colVersion),
+		padRight(bold("AUTHOR"), colAuthor),
 		padRight(bold("STATUS"), colStatus),
 		bold("DESCRIPTION"),
 	)
 	fmt.Println("  " + divider(totalSep))
 
-	descIndent := colName + 2 + colVersion + 2 + colStatus + 2
+	descIndent := colName + 2 + colVersion + 2 + colAuthor + 2 + colStatus + 2
 	indent := strings.Repeat(" ", descIndent+2) // +2 for leading "  "
 
 	for _, r := range rows {
 		coloredStatus := statusColor(r.status)
+		var authorStr string
+		if r.official {
+			authorStr = green(r.author)
+		} else {
+			authorStr = dimStr(r.author)
+		}
 		if wrapDescriptions {
 			descWidth := terminalWidth() - descIndent - 2
 			lines := wrapText(r.description, descWidth)
-			fmt.Printf("  %s  %s  %s  %s\n",
+			fmt.Printf("  %s  %s  %s  %s  %s\n",
 				padRight(cyan(r.name), colName),
 				padRight(dimStr(r.version), colVersion),
+				padRight(authorStr, colAuthor),
 				padRight(coloredStatus, colStatus),
 				lines[0],
 			)
@@ -218,9 +232,10 @@ func printRegistryTable(reg *Registry, lf *LockFile) {
 				fmt.Printf("%s%s\n", indent, line)
 			}
 		} else {
-			fmt.Printf("  %s  %s  %s  %s\n",
+			fmt.Printf("  %s  %s  %s  %s  %s\n",
 				padRight(cyan(r.name), colName),
 				padRight(dimStr(r.version), colVersion),
+				padRight(authorStr, colAuthor),
 				padRight(coloredStatus, colStatus),
 				r.description,
 			)

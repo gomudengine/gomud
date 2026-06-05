@@ -285,6 +285,105 @@ func TestCommonPrefix(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// officialModules / unofficial confirmation helper
+// ---------------------------------------------------------------------------
+
+func TestOfficialModules(t *testing.T) {
+	reg := &Registry{
+		Modules: []RegistryEntry{
+			{Name: "birds", Author: officialAuthor},
+			{Name: "fishing", Author: "alice"},
+			{Name: "weather", Author: officialAuthor},
+		},
+	}
+	official := reg.officialModules()
+	require.Len(t, official, 2)
+	assert.Equal(t, "birds", official[0].Name)
+	assert.Equal(t, "weather", official[1].Name)
+}
+
+func TestConfirmUnofficialInstall_yesAnswer(t *testing.T) {
+	// Simulate a user typing "y" on stdin.
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+	oldStdin := stdinForPrompt
+	oldInteractive := isInteractivePrompt
+	stdinForPrompt = r
+	isInteractivePrompt = func() bool { return true }
+	defer func() {
+		stdinForPrompt = oldStdin
+		isInteractivePrompt = oldInteractive
+	}()
+
+	_, _ = w.WriteString("y\n")
+	w.Close()
+
+	assert.True(t, confirmUnofficialInstall("fishing", "alice"))
+}
+
+func TestConfirmUnofficialInstall_noAnswer(t *testing.T) {
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+	oldStdin := stdinForPrompt
+	oldInteractive := isInteractivePrompt
+	stdinForPrompt = r
+	isInteractivePrompt = func() bool { return true }
+	defer func() {
+		stdinForPrompt = oldStdin
+		isInteractivePrompt = oldInteractive
+	}()
+
+	_, _ = w.WriteString("n\n")
+	w.Close()
+
+	assert.False(t, confirmUnofficialInstall("fishing", "alice"))
+}
+
+func TestConfirmUnofficialInstall_emptyAnswer(t *testing.T) {
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+	oldStdin := stdinForPrompt
+	oldInteractive := isInteractivePrompt
+	stdinForPrompt = r
+	isInteractivePrompt = func() bool { return true }
+	defer func() {
+		stdinForPrompt = oldStdin
+		isInteractivePrompt = oldInteractive
+	}()
+
+	_, _ = w.WriteString("\n")
+	w.Close()
+
+	assert.False(t, confirmUnofficialInstall("fishing", "alice"))
+}
+
+func TestConfirmUnofficialInstall_eofReturnsFalse(t *testing.T) {
+	// EOF on stdin (pipe closed immediately) should return false.
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
+	oldStdin := stdinForPrompt
+	oldInteractive := isInteractivePrompt
+	stdinForPrompt = r
+	isInteractivePrompt = func() bool { return true }
+	defer func() {
+		stdinForPrompt = oldStdin
+		isInteractivePrompt = oldInteractive
+	}()
+
+	w.Close()
+
+	assert.False(t, confirmUnofficialInstall("fishing", "alice"))
+}
+
+func TestConfirmUnofficialInstall_nonInteractiveReturnsFalse(t *testing.T) {
+	oldInteractive := isInteractivePrompt
+	isInteractivePrompt = func() bool { return false }
+	defer func() { isInteractivePrompt = oldInteractive }()
+
+	assert.False(t, confirmUnofficialInstall("fishing", "alice"))
+}
+
+// ---------------------------------------------------------------------------
 // validateName
 // ---------------------------------------------------------------------------
 

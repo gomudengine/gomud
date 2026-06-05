@@ -3,6 +3,7 @@ package main
 import (
 	"archive/tar"
 	"archive/zip"
+	"bufio"
 	"compress/gzip"
 	"fmt"
 	"io"
@@ -41,6 +42,13 @@ func cmdInstall(name string) error {
 	if existing := lf.findLocked(name); existing != nil && existing.Version == entry.Version {
 		fmt.Printf("%s Module %s is already installed at version %s.\n", green("✓"), bold(name), cyan(entry.Version))
 		return nil
+	}
+
+	if entry.Author != officialAuthor {
+		if !confirmUnofficialInstall(entry.Name, entry.Author) {
+			fmt.Println(dimStr("Installation cancelled."))
+			return nil
+		}
 	}
 
 	printStep("Downloading %s %s...", bold(entry.Name), cyan("v"+entry.Version))
@@ -381,4 +389,41 @@ func max(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// stdinForPrompt is the reader used by confirmUnofficialInstall. It is a
+// package-level variable so tests can substitute a pipe without needing a
+// real TTY.
+var stdinForPrompt = os.Stdin
+
+// isInteractivePrompt reports whether stdin is interactive for the purpose of
+// the unofficial-module confirmation prompt. Tests override this to true so
+// they can exercise the prompt path without a real TTY.
+var isInteractivePrompt = isInteractiveTerminal
+
+// confirmUnofficialInstall prints a warning that the named module is not
+// official and prompts the user to confirm. It returns true if the user
+// confirms, false otherwise. When stdin is not a terminal the prompt is
+// skipped and the function returns false so non-interactive pipelines never
+// silently install third-party code.
+func confirmUnofficialInstall(name, author string) bool {
+	fmt.Println()
+	fmt.Println(yellow("  Warning: unofficial module"))
+	fmt.Printf("  %s is authored by %s, not by the GoMud team.\n", bold(name), bold(author))
+	fmt.Println("  Third-party modules are not reviewed or endorsed by GoMud.")
+	fmt.Println("  Only install modules from authors you trust.")
+	fmt.Println()
+
+	if !isInteractivePrompt() {
+		printWarning("non-interactive mode: refusing to install unofficial module %q without confirmation", name)
+		return false
+	}
+
+	fmt.Print("  Continue with installation? [y/N] ")
+	scanner := bufio.NewScanner(stdinForPrompt)
+	if !scanner.Scan() {
+		return false
+	}
+	answer := strings.TrimSpace(strings.ToLower(scanner.Text()))
+	return answer == "y" || answer == "yes"
 }
