@@ -23,6 +23,14 @@ const (
 	MaxHistory = 10
 )
 
+// ConnType distinguishes human telnet/web connections from AI client connections.
+type ConnType uint32
+
+const (
+	ConnHuman ConnType = 0
+	ConnAI    ConnType = 1
+)
+
 type InputHistory struct {
 	inhistory bool
 	position  int
@@ -128,6 +136,7 @@ type ConnectionDetails struct {
 	outputSuppressed  bool
 	clientSettings    ClientSettings
 	heartbeat         *heartbeatManager
+	connType          ConnType
 }
 
 func (cd *ConnectionDetails) IsLocal() bool {
@@ -335,6 +344,16 @@ func (cd *ConnectionDetails) State() ConnectState {
 
 func (cd *ConnectionDetails) SetState(state ConnectState) {
 	atomic.StoreUint32((*uint32)(&cd.state), uint32(state))
+}
+
+// ConnType returns the connection type (human or AI). Safe for concurrent reads.
+func (cd *ConnectionDetails) ConnType() ConnType {
+	return ConnType(atomic.LoadUint32((*uint32)(&cd.connType)))
+}
+
+// SetConnType sets the connection type. Set once at accept time.
+func (cd *ConnectionDetails) SetConnType(t ConnType) {
+	atomic.StoreUint32((*uint32)(&cd.connType), uint32(t))
 }
 
 func (cd *ConnectionDetails) InputDisabled(setTo ...bool) bool {
