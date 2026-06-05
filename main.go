@@ -16,7 +16,6 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/audio"
 	"github.com/GoMudEngine/GoMud/internal/buffs"
-	"github.com/GoMudEngine/GoMud/internal/modmanager"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/colorpatterns"
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -32,6 +31,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/keywords"
 	"github.com/GoMudEngine/GoMud/internal/language"
 	"github.com/GoMudEngine/GoMud/internal/migration"
+	"github.com/GoMudEngine/GoMud/internal/modmanager"
 	"github.com/GoMudEngine/GoMud/internal/usercommands"
 	"github.com/GoMudEngine/GoMud/internal/version"
 	"github.com/gorilla/websocket"
@@ -326,14 +326,20 @@ func main() {
 	allServerListeners := make([]net.Listener, 0, len(c.Network.TelnetPort))
 	for _, port := range c.Network.TelnetPort {
 		if p, err := strconv.Atoi(port); err == nil && p > 0 {
-			if s := TelnetListenOnPort(``, p, &wg, int(c.Network.MaxTelnetConnections)); s != nil {
+			if s := TelnetListenOnPort(``, p, &wg, int(c.Network.MaxTelnetConnections), connections.ConnHuman); s != nil {
 				allServerListeners = append(allServerListeners, s)
 			}
 		}
 	}
 
 	if c.Network.LocalPort > 0 {
-		TelnetListenOnPort(`127.0.0.1`, int(c.Network.LocalPort), &wg, 0)
+		TelnetListenOnPort(`127.0.0.1`, int(c.Network.LocalPort), &wg, 0, connections.ConnHuman)
+	}
+
+	if c.Network.AIPort > 0 {
+		if s := TelnetListenOnPort(``, int(c.Network.AIPort), &wg, int(c.Network.MaxAIConnections), connections.ConnAI); s != nil {
+			allServerListeners = append(allServerListeners, s)
+		}
 	}
 
 	if sshPort := int(c.Network.SSHPort); sshPort > 0 {
@@ -698,6 +704,10 @@ func handleTelnetConnection(connDetails *connections.ConnectionDetails, wg *sync
 	splashTxt, _ := templates.Process("login/connect-splash", nil)
 	connections.SendTo([]byte(templates.AnsiParse(splashTxt)), connDetails.ConnectionId())
 
+	if connDetails.ConnType() == connections.ConnAI {
+		connections.SendTo([]byte("\r\nThis port is for AI clients. Human players, please use the standard telnet port.\r\n\r\n"), connDetails.ConnectionId())
+	}
+
 	// --- Trigger the Prompt Handler to initialize state and send the FIRST prompt ---
 	// Create a dummy input that signifies "start the process" but has no actual user data/control codes.
 	initialTriggerInput := &connections.ClientInput{
@@ -885,6 +895,12 @@ func handleTelnetConnection(connDetails *connections.ConnectionDetails, wg *sync
 
 			worldManager.SendEnterWorld(userObject.UserId, userObject.Character.RoomId)
 
+			if connDetails.ConnType() == connections.ConnAI && !userObject.IsAI {
+				connections.SendTo([]byte("\r\nWarning: this account is not flagged as AI but connected on the AI port.\r\n"), connDetails.ConnectionId())
+			} else if connDetails.ConnType() == connections.ConnHuman && userObject.IsAI {
+				connections.SendTo([]byte("\r\nWarning: this AI account is connected on a human port. Please use the AI port.\r\n"), connDetails.ConnectionId())
+			}
+
 			clientInput.Reset()
 			continue
 		}
@@ -940,6 +956,19 @@ func handleTelnetConnection(connDetails *connections.ConnectionDetails, wg *sync
 						connections.SendTo([]byte(templates.AnsiParse(userObject.GetCommandPrompt())), clientInput.ConnectionId)
 					}
 
+				}
+
+				if connDetails.ConnType() == connections.ConnAI {
+					if !connDetails.AICommandAllowed(int64(util.GetRoundCount()), int(c.Network.AICommandsPerRound)) {
+						connections.SendTo(
+							[]byte(fmt.Sprintf("Command dropped — AI rate limit (%d/round). Wait for the next round.\r\n", int(c.Network.AICommandsPerRound))),
+							connDetails.ConnectionId(),
+						)
+						clientInput.Reset()
+						userObject.SetUnsentText(``, ``)
+						time.Sleep(time.Duration(10) * time.Millisecond)
+						continue
+					}
 				}
 
 				wi := WorldInput{
@@ -1182,7 +1211,7 @@ func HandleWebSocketConnection(conn *websocket.Conn) {
 	}
 }
 
-func TelnetListenOnPort(hostname string, portNum int, wg *sync.WaitGroup, maxConnections int) net.Listener {
+func TelnetListenOnPort(hostname string, portNum int, wg *sync.WaitGroup, maxConnections int, connType connections.ConnType) net.Listener {
 
 	server, err := net.Listen("tcp", fmt.Sprintf("%s:%d", hostname, portNum))
 	if err != nil {
@@ -1208,19 +1237,28 @@ func TelnetListenOnPort(hostname string, portNum int, wg *sync.WaitGroup, maxCon
 			}
 
 			if maxConnections > 0 {
-				if connections.ActiveConnectionCount() >= maxConnections {
-					conn.Write([]byte(fmt.Sprintf("\n\n\n!!! Server is full (%d connections). Try again later. !!!\n\n\n", connections.ActiveConnectionCount())))
+				activeCount := connections.ActiveConnectionCount()
+				if connType == connections.ConnAI {
+					activeCount = connections.ActiveAIConnectionCount()
+				}
+				if activeCount >= maxConnections {
+					if connType == connections.ConnAI {
+						conn.Write([]byte("\n\n\n!!! AI connection pool is full. Try again later. !!!\n\n\n"))
+					} else {
+						conn.Write([]byte(fmt.Sprintf("\n\n\n!!! Server is full (%d connections). Try again later. !!!\n\n\n", activeCount)))
+					}
 					conn.Close()
 					continue
 				}
 			}
 
 			wg.Add(1)
+			connDetails := connections.Add(conn, nil, connType)
+			if connType == connections.ConnAI {
+				connDetails.SetStripAnsi(true)
+			}
 			// hand off the connection to a handler goroutine so that we can continue handling new connections
-			go handleTelnetConnection(
-				connections.Add(conn, nil),
-				wg,
-			)
+			go handleTelnetConnection(connDetails, wg)
 
 		}
 	}()
