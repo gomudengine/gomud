@@ -147,6 +147,8 @@ type ConnectionDetails struct {
 	heartbeat         *heartbeatManager
 	connType          ConnType
 	stripAnsi         bool
+	aiCommandRound    int64
+	aiCommandCount    int
 }
 
 func (cd *ConnectionDetails) IsLocal() bool {
@@ -376,6 +378,17 @@ func (cd *ConnectionDetails) SetConnType(t ConnType) {
 // SetStripAnsi enables ANSI escape stripping on output (for AI clients).
 func (cd *ConnectionDetails) SetStripAnsi(on bool) {
 	cd.stripAnsi = on
+}
+
+// AICommandAllowed enforces a per-round command budget for AI connections.
+// It is called only from the connection's own input goroutine, so it needs no lock.
+func (cd *ConnectionDetails) AICommandAllowed(currentRound int64, maxPerRound int) bool {
+	if currentRound != cd.aiCommandRound {
+		cd.aiCommandRound = currentRound
+		cd.aiCommandCount = 0
+	}
+	cd.aiCommandCount++
+	return cd.aiCommandCount <= maxPerRound
 }
 
 func (cd *ConnectionDetails) InputDisabled(setTo ...bool) bool {
