@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"golang.org/x/term"
 )
 
 // cmdList fetches the registry and prints a table of available modules,
@@ -130,22 +132,32 @@ func cmdUpdate(name string) error {
 	return nil
 }
 
+// wrapDescriptions controls whether long descriptions in the list table are
+// wrapped to fit the terminal width. When false, each row prints on a single
+// line regardless of description length.
+const wrapDescriptions = true
+
+// fallbackWidth is used when the terminal width cannot be determined.
+const fallbackWidth = 80
+
+func terminalWidth() int {
+	w, _, err := term.GetSize(int(os.Stdout.Fd()))
+	if err != nil || w <= 0 {
+		return fallbackWidth
+	}
+	return w
+}
+
 func printRegistryTable(reg *Registry, lf *LockFile) {
-	const (
-		colName    = 20
-		colVersion = 10
-		colStatus  = 12
-	)
+	// Compute minimum column widths from actual data.
+	colName := len("NAME")
+	colVersion := len("VERSION")
+	colStatus := len("STATUS")
 
-	header := fmt.Sprintf("%-*s  %-*s  %-*s  %s",
-		colName, "NAME",
-		colVersion, "VERSION",
-		colStatus, "STATUS",
-		"DESCRIPTION",
-	)
-	fmt.Println(header)
-	fmt.Println(strings.Repeat("-", len(header)+20))
-
+	type row struct {
+		name, version, status, description string
+	}
+	rows := make([]row, 0, len(reg.Modules))
 	for _, e := range reg.Modules {
 		status := "available"
 		if locked := lf.findLocked(e.Name); locked != nil {
@@ -155,17 +167,85 @@ func printRegistryTable(reg *Registry, lf *LockFile) {
 				status = "update avail"
 			}
 		}
-		desc := e.Description
-		if len(desc) > 50 {
-			desc = desc[:47] + "..."
+		r := row{e.Name, e.Version, status, e.Description}
+		rows = append(rows, r)
+		if len(r.name) > colName {
+			colName = len(r.name)
 		}
-		fmt.Printf("%-*s  %-*s  %-*s  %s\n",
-			colName, e.Name,
-			colVersion, e.Version,
-			colStatus, status,
-			desc,
-		)
+		if len(r.version) > colVersion {
+			colVersion = len(r.version)
+		}
+		if len(r.status) > colStatus {
+			colStatus = len(r.status)
+		}
 	}
+
+	header := fmt.Sprintf("%-*s  %-*s  %-*s  %s",
+		colName, "NAME",
+		colVersion, "VERSION",
+		colStatus, "STATUS",
+		"DESCRIPTION",
+	)
+	fmt.Println(header)
+	fmt.Println(strings.Repeat("-", len(header)))
+
+	descIndent := colName + 2 + colVersion + 2 + colStatus + 2
+	indent := strings.Repeat(" ", descIndent)
+
+	for _, r := range rows {
+		if wrapDescriptions {
+			descWidth := terminalWidth() - descIndent
+			lines := wrapText(r.description, descWidth)
+			fmt.Printf("%-*s  %-*s  %-*s  %s\n",
+				colName, r.name,
+				colVersion, r.version,
+				colStatus, r.status,
+				lines[0],
+			)
+			for _, line := range lines[1:] {
+				fmt.Printf("%s%s\n", indent, line)
+			}
+		} else {
+			fmt.Printf("%-*s  %-*s  %-*s  %s\n",
+				colName, r.name,
+				colVersion, r.version,
+				colStatus, r.status,
+				r.description,
+			)
+		}
+	}
+}
+
+// wrapText splits text into lines of at most width characters, breaking on
+// word boundaries. It always returns at least one element.
+func wrapText(text string, width int) []string {
+	if width <= 0 || len(text) <= width {
+		return []string{text}
+	}
+	var lines []string
+	words := strings.Fields(text)
+	var current strings.Builder
+	for _, word := range words {
+		if current.Len() == 0 {
+			current.WriteString(word)
+			continue
+		}
+		if current.Len()+1+len(word) > width {
+			lines = append(lines, current.String())
+			current.Reset()
+			current.WriteString(word)
+		} else {
+			current.WriteByte(' ')
+			current.WriteString(word)
+		}
+	}
+	if current.Len() > 0 {
+		lines = append(lines, current.String())
+	}
+	if len(lines) == 0 {
+		return []string{""}
+	}
+	return lines
 }
 
 func printInstalledOnly(lf *LockFile) {

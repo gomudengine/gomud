@@ -6,22 +6,4 @@
 package modules
 
 import (
-	_ "github.com/GoMudEngine/GoMud/modules/alt-characters"
-	_ "github.com/GoMudEngine/GoMud/modules/auctions"
-	_ "github.com/GoMudEngine/GoMud/modules/automission"
-	_ "github.com/GoMudEngine/GoMud/modules/cleanup"
-	_ "github.com/GoMudEngine/GoMud/modules/clibridge"
-	_ "github.com/GoMudEngine/GoMud/modules/elections"
-	_ "github.com/GoMudEngine/GoMud/modules/fasttravel"
-	_ "github.com/GoMudEngine/GoMud/modules/fishing"
-	_ "github.com/GoMudEngine/GoMud/modules/follow"
-	_ "github.com/GoMudEngine/GoMud/modules/gambling"
-	_ "github.com/GoMudEngine/GoMud/modules/gmcp"
-	_ "github.com/GoMudEngine/GoMud/modules/leaderboards"
-	_ "github.com/GoMudEngine/GoMud/modules/mudmail"
-	_ "github.com/GoMudEngine/GoMud/modules/newbieguide"
-	_ "github.com/GoMudEngine/GoMud/modules/storage"
-	_ "github.com/GoMudEngine/GoMud/modules/time"
-	_ "github.com/GoMudEngine/GoMud/modules/webhelp"
-	_ "github.com/GoMudEngine/GoMud/modules/zombiemode"
 )

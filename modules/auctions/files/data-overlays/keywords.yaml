@@ -1,8 +1,0 @@
-help:
-  command:
-    shops:
-      - auction
-help-aliases:
-  auction: [bid]
-command-aliases:
-  'auction bid': ['bid']

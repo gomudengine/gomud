@@ -1,6 +1,0 @@
-help:
-  command:
-    travel:
-      - fasttravel
-command-aliases:
-  'fasttravel': ['ft']
