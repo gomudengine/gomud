@@ -553,6 +553,16 @@ Network:
   # - MaxSSHConnections -
   #   The maximum number of SSH connections the server will accept.
   MaxSSHConnections: 100
+  # - AIPort -
+  #   Dedicated telnet port for AI playtest clients.
+  #   0 (zero) means disabled. Set e.g. 55555 to enable.
+  AIPort: 0
+  # - MaxAIConnections -
+  #   The maximum number of concurrent AI connections the server will accept.
+  MaxAIConnections: 20
+  # - AICommandsPerRound -
+  #   Maximum number of commands an AI connection may submit per round.
+  AICommandsPerRound: 2
   # - AfkSeconds -
   #   If this many seconds pass without player input, they are flagged as afk
   #   Set to zero to never mark anyone as AFK
