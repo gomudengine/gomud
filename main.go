@@ -336,8 +336,8 @@ func main() {
 		TelnetListenOnPort(`127.0.0.1`, int(c.Network.LocalPort), &wg, 0, connections.ConnHuman)
 	}
 
-	if c.Network.AIPort > 0 {
-		if s := TelnetListenOnPort(``, int(c.Network.AIPort), &wg, int(c.Network.MaxAIConnections), connections.ConnAI); s != nil {
+	if c.Network.AI.Port > 0 {
+		if s := TelnetListenOnPort(``, int(c.Network.AI.Port), &wg, int(c.Network.AI.MaxConnections), connections.ConnAI); s != nil {
 			allServerListeners = append(allServerListeners, s)
 		}
 	}
@@ -959,9 +959,9 @@ func handleTelnetConnection(connDetails *connections.ConnectionDetails, wg *sync
 				}
 
 				if connDetails.ConnType() == connections.ConnAI {
-					if !connDetails.AICommandAllowed(int64(util.GetRoundCount()), int(c.Network.AICommandsPerRound)) {
+					if !connDetails.AICommandAllowed(int64(util.GetRoundCount()), int(c.Network.AI.CommandsPerRound)) {
 						connections.SendTo(
-							[]byte(fmt.Sprintf("Command dropped — AI rate limit (%d/round). Wait for the next round.\r\n", int(c.Network.AICommandsPerRound))),
+							[]byte(fmt.Sprintf("Command dropped — AI rate limit (%d/round). Wait for the next round.\r\n", int(c.Network.AI.CommandsPerRound))),
 							connDetails.ConnectionId(),
 						)
 						clientInput.Reset()
