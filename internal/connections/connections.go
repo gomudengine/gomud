@@ -44,7 +44,7 @@ func SignalShutdown(s os.Signal) {
 	}
 }
 
-func Add(conn net.Conn, wsConn *websocket.Conn) *ConnectionDetails {
+func Add(conn net.Conn, wsConn *websocket.Conn, connType ...ConnType) *ConnectionDetails {
 
 	lock.Lock()
 	defer lock.Unlock()
@@ -57,6 +57,10 @@ func Add(conn net.Conn, wsConn *websocket.Conn) *ConnectionDetails {
 		wsConn,
 		nil,
 	)
+
+	if len(connType) > 0 {
+		connDetails.SetConnType(connType[0])
+	}
 
 	netConnections[connDetails.ConnectionId()] = connDetails
 
@@ -293,6 +297,20 @@ func ActiveConnectionCount() int {
 	defer lock.RUnlock()
 
 	return len(netConnections)
+}
+
+// ActiveAIConnectionCount returns the number of currently-registered AI connections.
+func ActiveAIConnectionCount() int {
+	lock.RLock()
+	defer lock.RUnlock()
+
+	count := 0
+	for _, cd := range netConnections {
+		if cd.ConnType() == ConnAI {
+			count++
+		}
+	}
+	return count
 }
 
 // make this more efficient later
