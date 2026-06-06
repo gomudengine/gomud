@@ -3,6 +3,7 @@ package connections
 import (
 	"errors"
 	"net"
+	"regexp"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -22,6 +23,22 @@ const (
 	LinkDead
 	MaxHistory = 10
 )
+
+// ConnType distinguishes human telnet/web connections from AI client connections.
+type ConnType uint32
+
+const (
+	ConnHuman ConnType = 0
+	ConnAI    ConnType = 1
+)
+
+// ansiStripRegexp matches SGR (color/style) escape sequences.
+var ansiStripRegexp = regexp.MustCompile("\x1b\\[[0-9;]*m")
+
+// StripAnsi removes ANSI SGR escape sequences from p, returning clean text.
+func StripAnsi(p []byte) []byte {
+	return ansiStripRegexp.ReplaceAll(p, nil)
+}
 
 type InputHistory struct {
 	inhistory bool
@@ -128,6 +145,10 @@ type ConnectionDetails struct {
 	outputSuppressed  bool
 	clientSettings    ClientSettings
 	heartbeat         *heartbeatManager
+	connType          ConnType
+	stripAnsi         bool
+	aiCommandRound    int64
+	aiCommandCount    int
 }
 
 func (cd *ConnectionDetails) IsLocal() bool {
@@ -251,6 +272,13 @@ func (cd *ConnectionDetails) Write(p []byte) (n int, err error) {
 		return 0, nil
 	}
 
+	if cd.stripAnsi && p[0] != byte(term.TELNET_IAC) {
+		p = StripAnsi(p)
+		if len(p) == 0 {
+			return 0, nil
+		}
+	}
+
 	if cd.sshChannel != nil {
 		return cd.sshChannel.Write(p)
 	}
@@ -335,6 +363,32 @@ func (cd *ConnectionDetails) State() ConnectState {
 
 func (cd *ConnectionDetails) SetState(state ConnectState) {
 	atomic.StoreUint32((*uint32)(&cd.state), uint32(state))
+}
+
+// ConnType returns the connection type (human or AI). Safe for concurrent reads.
+func (cd *ConnectionDetails) ConnType() ConnType {
+	return ConnType(atomic.LoadUint32((*uint32)(&cd.connType)))
+}
+
+// SetConnType sets the connection type. Set once at accept time.
+func (cd *ConnectionDetails) SetConnType(t ConnType) {
+	atomic.StoreUint32((*uint32)(&cd.connType), uint32(t))
+}
+
+// SetStripAnsi enables ANSI escape stripping on output (for AI clients).
+func (cd *ConnectionDetails) SetStripAnsi(on bool) {
+	cd.stripAnsi = on
+}
+
+// AICommandAllowed enforces a per-round command budget for AI connections.
+// It is called only from the connection's own input goroutine, so it needs no lock.
+func (cd *ConnectionDetails) AICommandAllowed(currentRound int64, maxPerRound int) bool {
+	if currentRound != cd.aiCommandRound {
+		cd.aiCommandRound = currentRound
+		cd.aiCommandCount = 0
+	}
+	cd.aiCommandCount++
+	return cd.aiCommandCount <= maxPerRound
 }
 
 func (cd *ConnectionDetails) InputDisabled(setTo ...bool) bool {

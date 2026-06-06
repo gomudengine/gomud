@@ -664,12 +664,18 @@ func GetMap(mapRoomId int, zoomLevel int, mapHeight int, mapWidth int, mapName s
 	}
 
 	mapData := map[string]any{
-		"Title":        mapName,
-		"DisplayLines": displayLines,
-		"Height":       len(displayLines),
-		"Width":        runewidth.StringWidth(displayLines[0]),
-		"Legend":       legend,
-		"LegendWidth":  runewidth.StringWidth(displayLines[0]),
+		"Title": mapName,
+		// The maps/map template renders the title with a zone-completion percent.
+		// Script-rendered maps (e.g. a map sign) have no viewing user to measure
+		// against, so default to 0 — matching the `map` command's own fallback
+		// (internal/usercommands/skill.map.go). Without this the template formats
+		// a nil with %d and leaks "%!d(<nil>)" into the title.
+		"ZoneCompletePct": 0,
+		"DisplayLines":    displayLines,
+		"Height":          len(displayLines),
+		"Width":           runewidth.StringWidth(displayLines[0]),
+		"Legend":          legend,
+		"LegendWidth":     runewidth.StringWidth(displayLines[0]),
 		"LeftBorder": map[string]any{
 			"Top":    ".-=~=-.",
 			"Mid":    []string{"( _ __)", "(__  _)"},
