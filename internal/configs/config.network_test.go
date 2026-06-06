@@ -1,6 +1,10 @@
 package configs
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
 
 func TestNetworkValidateAIDefaults(t *testing.T) {
 	n := &Network{
@@ -10,15 +14,9 @@ func TestNetworkValidateAIDefaults(t *testing.T) {
 	}
 	n.Validate()
 
-	if int(n.AIPort) != 0 {
-		t.Errorf("AIPort: negative should clamp to 0 (disabled), got %d", int(n.AIPort))
-	}
-	if int(n.MaxAIConnections) != 20 {
-		t.Errorf("MaxAIConnections: <1 should default to 20, got %d", int(n.MaxAIConnections))
-	}
-	if int(n.AICommandsPerRound) != 2 {
-		t.Errorf("AICommandsPerRound: <1 should default to 2, got %d", int(n.AICommandsPerRound))
-	}
+	assert.Equal(t, 0, int(n.AIPort), "negative AIPort should clamp to 0 (disabled)")
+	assert.Equal(t, 20, int(n.MaxAIConnections), "MaxAIConnections <1 should default to 20")
+	assert.Equal(t, 2, int(n.AICommandsPerRound), "AICommandsPerRound <1 should default to 2")
 }
 
 func TestNetworkValidateAIPreservesValidValues(t *testing.T) {
@@ -29,8 +27,7 @@ func TestNetworkValidateAIPreservesValidValues(t *testing.T) {
 	}
 	n.Validate()
 
-	if int(n.AIPort) != 55555 || int(n.MaxAIConnections) != 10 || int(n.AICommandsPerRound) != 5 {
-		t.Errorf("Validate must not overwrite valid values: got AIPort=%d Max=%d Cmds=%d",
-			int(n.AIPort), int(n.MaxAIConnections), int(n.AICommandsPerRound))
-	}
+	assert.Equal(t, 55555, int(n.AIPort))
+	assert.Equal(t, 10, int(n.MaxAIConnections))
+	assert.Equal(t, 5, int(n.AICommandsPerRound))
 }

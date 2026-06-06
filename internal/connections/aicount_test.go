@@ -3,6 +3,8 @@ package connections
 import (
 	"net"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestActiveAIConnectionCount(t *testing.T) {
@@ -17,16 +19,12 @@ func TestActiveAIConnectionCount(t *testing.T) {
 	ai1 := Add(a1Conn, nil, ConnAI)
 	ai2 := Add(a2Conn, nil, ConnAI)
 
-	if got := ActiveAIConnectionCount(); got != base+2 {
-		t.Errorf("expected %d AI connections, got %d", base+2, got)
-	}
+	assert.Equal(t, base+2, ActiveAIConnectionCount())
 
 	// cleanup
 	Remove(human.ConnectionId())
 	Remove(ai1.ConnectionId())
 	Remove(ai2.ConnectionId())
 
-	if got := ActiveAIConnectionCount(); got != base {
-		t.Errorf("expected count to return to %d after removal, got %d", base, got)
-	}
+	assert.Equal(t, base, ActiveAIConnectionCount())
 }
