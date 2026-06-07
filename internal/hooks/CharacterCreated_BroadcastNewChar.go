@@ -21,13 +21,6 @@ func BroadcastNewChar(e events.Event) events.ListenerReturn {
 		return events.Continue
 	}
 
-	if evt, typeOk := e.(events.CharacterChanged); typeOk {
-		events.AddToQueue(events.Broadcast{
-			Text: fmt.Sprintf(`<ansi fg="character-joined"><ansi fg="username">%s</ansi> has entered the realm!`, evt.CharacterName) + term.CRLFStr,
-		})
-		return events.Continue
-	}
-
 	mudlog.Error("Event", "Expected Type", "CharacterCreated/CharacterChanged", "Actual Type", e.Type())
 
 	return events.Cancel

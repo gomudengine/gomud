@@ -93,7 +93,7 @@ function onEnter(user, room) {
 
     teacherMob.Command('emote appears in a ' + UtilApplyColorPattern("flash of light!", "glowing"));
 
-    teacherMob.Command('say Congratulation on getting to the end of the training course!', 1.0);
+    teacherMob.Command('say Congratulations on getting to the end of the training course!', 1.0);
     teacherMob.Command('drop cap', 1.0);
     teacherMob.Command('emote gestures to the <ansi fg="item">graduation cap</ansi> on the ground.', 3.0);
     teacherMob.Command('say type <ansi fg="command">get cap</ansi> to pick up the <ansi fg="item">graduation cap</ansi>.', 1.0);

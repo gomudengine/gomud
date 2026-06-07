@@ -182,7 +182,7 @@ func Start(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 	// Trigger a player changed event
 	events.AddToQueue(events.PlayerChanged{UserId: user.UserId})
 
-	question := cmdPrompt.Ask(`Would you l ike to skip the tutorial?`, []string{`yes`, `no`}, `yes`)
+	question := cmdPrompt.Ask(`Would you like to skip the tutorial?`, []string{`yes`, `no`}, `yes`)
 	if !question.Done {
 		return true, nil
 	}

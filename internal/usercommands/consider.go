@@ -27,6 +27,11 @@ func Consider(rest string, user *users.UserRecord, room *rooms.Room, flags event
 	}
 
 	if playerId == 0 && mobId == 0 {
+		if lookAt == `` {
+			user.SendText(`<ansi fg="command">consider</ansi> whom??`)
+		} else {
+			user.SendText(`<ansi fg="mobname">` + lookAt + `</ansi> can't be found.`)
+		}
 		return true, nil
 	}
 
