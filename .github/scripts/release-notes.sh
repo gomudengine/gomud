@@ -11,6 +11,11 @@ commit_sha="${GITHUB_SHA:-}"
 ref_name="${GITHUB_REF_NAME:-}"
 datafiles_archive="${DATAFILES_ARCHIVE:-gomud-ALL-datafiles.zip}"
 checksums_file="${CHECKSUMS_FILE:-SHA256SUMS.txt}"
+downloads="$(
+	DATAFILES_ARCHIVE="$datafiles_archive" \
+		CHECKSUMS_FILE="$checksums_file" \
+		.github/scripts/release-assets.sh downloads-markdown
+)"
 
 require_env() {
 	local name="$1"
@@ -100,15 +105,7 @@ ${summary}
 
 ## Downloads
 
-- Linux amd64: \`gomud-linux_x64\`
-- Linux arm64: \`gomud-linux_arm64\`
-- Linux arm/v7: \`gomud-linux_armv7\`
-- Windows amd64: \`gomud-windows_x64.exe\`
-- Windows arm64: \`gomud-windows_arm64.exe\`
-- macOS amd64: \`gomud-darwin_x64\`
-- macOS arm64: \`gomud-darwin_arm64\`
-- Datafiles: \`${datafiles_archive}\`
-- Checksums: \`${checksums_file}\`
+${downloads}
 
 ## Install From Source
 

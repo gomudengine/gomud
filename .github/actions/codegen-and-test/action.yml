@@ -30,11 +30,7 @@ runs:
           echo "::endgroup::"
         }
 
-        build_target linux amd64 "" gomud-linux_x64
-        build_target linux arm64 "" gomud-linux_arm64
-        build_target linux arm 7 gomud-linux_armv7
-        build_target windows amd64 "" gomud-windows_x64.exe
-        build_target windows arm64 "" gomud-windows_arm64.exe
-        build_target darwin amd64 "" gomud-darwin_x64
-        build_target darwin arm64 "" gomud-darwin_arm64
+        while IFS='|' read -r _label goos goarch goarm output; do
+          build_target "$goos" "$goarch" "$goarm" "$output"
+        done < <(.github/scripts/release-assets.sh targets)
       shell: bash

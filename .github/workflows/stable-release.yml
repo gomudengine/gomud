@@ -102,38 +102,6 @@ jobs:
       - test
     permissions:
       contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        target:
-          - goos: linux
-            goarch: amd64
-            goarm: ''
-            asset: gomud-linux_x64
-          - goos: linux
-            goarch: arm64
-            goarm: ''
-            asset: gomud-linux_arm64
-          - goos: linux
-            goarch: arm
-            goarm: '7'
-            asset: gomud-linux_armv7
-          - goos: windows
-            goarch: amd64
-            goarm: ''
-            asset: gomud-windows_x64.exe
-          - goos: windows
-            goarch: arm64
-            goarm: ''
-            asset: gomud-windows_arm64.exe
-          - goos: darwin
-            goarch: amd64
-            goarm: ''
-            asset: gomud-darwin_x64
-          - goos: darwin
-            goarch: arm64
-            goarm: ''
-            asset: gomud-darwin_arm64
     env:
       BINARY_VERSION: ${{ needs.validate-release.outputs.binary_version }}
     steps:
@@ -147,27 +115,33 @@ jobs:
       - name: Generate code
         run: go generate ./...
 
-      - name: Build release binary
-        env:
-          GOOS: ${{ matrix.target.goos }}
-          GOARCH: ${{ matrix.target.goarch }}
-          GOARM: ${{ matrix.target.goarm }}
-          ASSET_NAME: ${{ matrix.target.asset }}
+      - name: Build release binaries
         run: |
           set -euo pipefail
 
           mkdir -p dist
-          go build \
-            -ldflags "-X main.version=${BINARY_VERSION}" \
-            -o "dist/${ASSET_NAME}" \
-            .
 
-      - name: Upload release binary
+          while IFS='|' read -r _label goos goarch goarm asset; do
+            target="${goos}/${goarch}"
+            if [ -n "$goarm" ]; then
+              target="${target} GOARM=${goarm}"
+            fi
+
+            echo "::group::Build ${asset} (${target})"
+            env GOOS="$goos" GOARCH="$goarch" GOARM="$goarm" \
+              go build \
+                -ldflags "-X main.version=${BINARY_VERSION}" \
+                -o "dist/${asset}" \
+                .
+            echo "::endgroup::"
+          done < <(.github/scripts/release-assets.sh targets)
+
+      - name: Upload release binaries
         # actions/upload-artifact v7.0.1
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: release-binary-${{ matrix.target.asset }}
-          path: dist/${{ matrix.target.asset }}
+          name: release-binaries
+          path: dist/*
           if-no-files-found: error
 
   publish:
@@ -214,27 +188,21 @@ jobs:
         # actions/download-artifact v8.0.1
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
-          pattern: release-binary-*
+          name: release-binaries
           path: bin/
-          merge-multiple: true
 
       - name: Assemble release assets
         run: |
           set -euo pipefail
 
+          mapfile -t checksum_assets < <(
+            .github/scripts/release-assets.sh checksum-names
+          )
+
           zip -r "bin/${DATAFILES_ARCHIVE}" _datafiles
 
           cd bin
-          sha256sum \
-            gomud-linux_x64 \
-            gomud-linux_arm64 \
-            gomud-linux_armv7 \
-            gomud-windows_x64.exe \
-            gomud-windows_arm64.exe \
-            gomud-darwin_x64 \
-            gomud-darwin_arm64 \
-            "${DATAFILES_ARCHIVE}" \
-            > "${CHECKSUMS_FILE}"
+          sha256sum "${checksum_assets[@]}" > "${CHECKSUMS_FILE}"
 
       - name: Write release notes
         env:
@@ -242,61 +210,21 @@ jobs:
           RELEASE_NOTES_FILE: release-notes.md
         run: .github/scripts/release-notes.sh
 
-      - name: Attest linux x64 binary
-        # actions/attest-build-provenance v4.1.0
-        # yamllint disable-line rule:line-length
-        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32
-        with:
-          subject-path: bin/gomud-linux_x64
+      - name: Resolve attestation paths
+        id: release-assets
+        run: |
+          {
+            echo 'attestation_paths<<EOF'
+            .github/scripts/release-assets.sh attestation-paths
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
 
-      - name: Attest linux arm64 binary
+      - name: Attest release assets
         # actions/attest-build-provenance v4.1.0
         # yamllint disable-line rule:line-length
         uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32
         with:
-          subject-path: bin/gomud-linux_arm64
-
-      - name: Attest linux armv7 binary
-        # actions/attest-build-provenance v4.1.0
-        # yamllint disable-line rule:line-length
-        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32
-        with:
-          subject-path: bin/gomud-linux_armv7
-
-      - name: Attest windows x64 binary
-        # actions/attest-build-provenance v4.1.0
-        # yamllint disable-line rule:line-length
-        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32
-        with:
-          subject-path: bin/gomud-windows_x64.exe
-
-      - name: Attest windows arm64 binary
-        # actions/attest-build-provenance v4.1.0
-        # yamllint disable-line rule:line-length
-        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32
-        with:
-          subject-path: bin/gomud-windows_arm64.exe
-
-      - name: Attest darwin x64 binary
-        # actions/attest-build-provenance v4.1.0
-        # yamllint disable-line rule:line-length
-        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32
-        with:
-          subject-path: bin/gomud-darwin_x64
-
-      - name: Attest darwin arm64 binary
-        # actions/attest-build-provenance v4.1.0
-        # yamllint disable-line rule:line-length
-        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32
-        with:
-          subject-path: bin/gomud-darwin_arm64
-
-      - name: Attest checksum manifest
-        # actions/attest-build-provenance v4.1.0
-        # yamllint disable-line rule:line-length
-        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32
-        with:
-          subject-path: bin/SHA256SUMS.txt
+          subject-path: ${{ steps.release-assets.outputs.attestation_paths }}
 
       - name: Create stable draft release
         id: draft
@@ -323,16 +251,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          assets=(
-            bin/gomud-linux_x64
-            bin/gomud-linux_arm64
-            bin/gomud-linux_armv7
-            bin/gomud-windows_x64.exe
-            bin/gomud-windows_arm64.exe
-            bin/gomud-darwin_x64
-            bin/gomud-darwin_arm64
-            "bin/${DATAFILES_ARCHIVE}"
-            "bin/${CHECKSUMS_FILE}"
+          mapfile -t assets < <(
+            .github/scripts/release-assets.sh upload-paths
           )
 
           gh release upload "$RELEASE_TAG" "${assets[@]}"

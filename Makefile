@@ -205,13 +205,23 @@ coverage:
 
 .PHONY: js-lint
 js-lint:  ### Run Javascript linter
-#   Grep filtering it to remove errors reported by docker image around npm packages
-#   if "### errors" is found in the output, exits with an error code of 1
-#   This should allow us to use it in CI/CD.
-	@docker run --rm -v "$(PWD)":/app -w /app node:22 sh -lc "\
-	  npx --yes jshint@$(JSHINT_VERSION) $(WEBCLIENT_BASE_JS) && \
-	  npx --yes jshint@$(JSHINT_VERSION) --config .jshintrc.webclient-windows $(WEBCLIENT_WINDOW_JS)" \
-	 2>&1 | grep -v "^npm " | tee /dev/stderr | grep -Eq "^[0-9]+ errors" && exit 1 || true
+	@if command -v npx >/dev/null 2>&1; then \
+		npx --yes --loglevel=error jshint@$(JSHINT_VERSION) \
+			$(WEBCLIENT_BASE_JS); \
+		npx --yes --loglevel=error jshint@$(JSHINT_VERSION) \
+			--config .jshintrc.webclient-windows \
+			$(WEBCLIENT_WINDOW_JS); \
+	elif command -v docker >/dev/null 2>&1; then \
+		docker run --rm -v "$(PWD)":/app -w /app node:22 sh -lc "\
+			npx --yes --loglevel=error jshint@$(JSHINT_VERSION) \
+				$(WEBCLIENT_BASE_JS) && \
+			npx --yes --loglevel=error jshint@$(JSHINT_VERSION) \
+				--config .jshintrc.webclient-windows \
+				$(WEBCLIENT_WINDOW_JS)"; \
+	else \
+		echo "js-lint requires npx or docker" >&2; \
+		exit 127; \
+	fi
 
 #
 #
