@@ -13,9 +13,15 @@ const ITEM_LIST = [
   30001  // small red potion
 ];
 
+/**
+ * Called when a user issues a use command on the item.
+ * @param {ActorObject} user - The user issuing the command.
+ * @param {ItemObject} item - The item.
+ * @param {RoomObject} room - The room where the command was issued.
+ * @returns {boolean} Return true if the command was handled.
+ */
 function onCommand_use(user, item, room) {
-    
-    
+
     SendUserMessage(user.UserId(), "You break open the <ansi fg=\"itemname\">"+item.Name()+"</ansi> and loot the contents.");
     SendRoomMessage(room.RoomId(), user.GetCharacterName(true)+" breaks open their <ansi fg=\"itemname\">"+item.Name()+"</ansi>, looting the contents.", user.UserId());
 

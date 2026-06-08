@@ -132,14 +132,20 @@
     .flag-desc { font-size: 0.75rem; color: var(--color-text-faint); display: block; margin-top: 0.1rem; }
 
     /* script */
-    .script-toggle { display: flex; align-items: center; gap: 0.6rem; cursor: pointer; font-size: 0.85rem; color: var(--color-primary); font-weight: 600; padding: 0.5rem 0; user-select: none; }
-    .script-toggle::before { content: "\25B6"; font-size: 0.65rem; transition: transform 0.15s; }
-    .script-toggle.open::before { transform: rotate(90deg); }
-    .script-area { display: none; margin-top: 0.5rem; }
-    .script-area.open { display: block; }
-    .script-area textarea { width: 100%; min-height: 660px; font-family: monospace; font-size: 0.82rem; padding: 0.6rem 0.75rem; border: 1px solid var(--color-border-medium); border-radius: 4px; resize: vertical; background: var(--color-primary); color: var(--color-code-text); line-height: 1.55; }
-    .script-area textarea:focus { outline: 2px solid var(--color-accent-link); outline-offset: 1px; }
-    .script-hint { font-size: 0.75rem; color: var(--color-text-faint); margin-top: 0.3rem; }
+    .script-section {
+        margin-top: 1.25rem; border-top: 1px solid var(--color-border-light); padding-top: 1rem;
+        display: flex; flex-direction: column; gap: 0.5rem;
+    }
+    .script-section-toolbar {
+        display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;
+    }
+    .script-section-label { font-size: 0.85rem; font-weight: 600; color: var(--color-text-muted); flex: 1; }
+    .script-has-badge {
+        font-size: 0.68rem; padding: 0.15rem 0.45rem; border-radius: 3px;
+        background: var(--color-warning-bg); color: var(--color-warning-text);
+        border: 1px solid var(--color-warning-text); display: none;
+    }
+    .script-has-badge.visible { display: inline; }
 
     .action-bar { display: flex; gap: 0.6rem; margin-top: 1.25rem; align-items: center; flex-wrap: wrap; }
     .btn { padding: 0.45rem 1.1rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.875rem; font-weight: 600; }
@@ -237,16 +243,15 @@
             </div>
 
             <!-- Script editor -->
-            <div style="margin-top:1.25rem; border-top: 1px solid var(--color-border-light); padding-top: 1rem;">
-                <div class="script-toggle" id="script-toggle" onclick="toggleScript()">Script</div>
-                <div class="script-area" id="script-area">
-                    <div style="display:flex;justify-content:flex-end;margin-bottom:0.4rem;">
-                        <button class="btn btn-secondary" style="font-size:0.78rem;padding:0.25rem 0.7rem;" onclick="openScriptWizard()">+ Add Event Handler</button>
-                    </div>
-                    <textarea id="f-script" spellcheck="false" placeholder="// JavaScript for buff events&#10;// Leave blank to delete the script file."></textarea>
-                    <div id="script-error" class="script-error"></div>
-                    <div class="script-hint">Saved as a .js file alongside the buff's YAML. Clear the field and save to delete the script.</div>
+            <div class="script-section">
+                <div class="script-section-toolbar">
+                    <span class="script-section-label">Script</span>
+                    <span class="script-has-badge" id="script-has-badge">has script</span>
+                    <button class="btn btn-secondary" style="font-size:0.78rem;padding:0.25rem 0.7rem;" onclick="openScriptWizard()">+ Add Event Handler</button>
+                    <button class="btn btn-secondary" style="font-size:0.78rem;padding:0.25rem 0.7rem;" onclick="ScriptEditor.open('f-script')">&#x26F6; Pop Out</button>
                 </div>
+                <textarea id="f-script" spellcheck="false" style="display:none"></textarea>
+                <div id="script-error" class="script-error"></div>
             </div>
 
             <div class="action-bar">
@@ -408,8 +413,7 @@
 
         setVal('f-script', script);
         if (scriptSync) scriptSync();
-        document.getElementById('script-toggle').classList.toggle('open', script.length > 0);
-        document.getElementById('script-area').classList.toggle('open', script.length > 0);
+        document.getElementById('script-has-badge').classList.toggle('visible', script.length > 0);
     }
 
     // -------------------------------------------------------------------------
@@ -673,13 +677,8 @@
     // -------------------------------------------------------------------------
     // Script toggle
     // -------------------------------------------------------------------------
-    window.toggleScript = function () {
-        document.getElementById('script-toggle').classList.toggle('open');
-        document.getElementById('script-area').classList.toggle('open');
-    };
-
     window.openScriptWizard = function () {
-        ScriptWizard.open({ scriptType: 'buff', textareaId: 'f-script', syncFn: scriptSync });
+        ScriptWizard.open({ scriptType: 'buff', textareaId: 'f-script' });
     };
 
     // -------------------------------------------------------------------------

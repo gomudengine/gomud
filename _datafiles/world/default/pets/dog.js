@@ -1,9 +1,13 @@
 // Dog pet script
 // The dog is a loyal companion that reacts to its owner's actions.
 
-// PetAct is called approximately once every 10 rounds.
-// No top-level probability check is needed here; add one if you want
-// behaviour that fires less frequently than that.
+/**
+ * Called approximately once every 10 rounds while the pet is active.
+ * @param {PetObject} pet - The pet.
+ * @param {ActorObject} actor - The pet's owner.
+ * @param {RoomObject} room - The room the pet is in.
+ * @returns {void}
+ */
 function PetAct(pet, actor, room) {
     var actions = [
         pet.NameSimple() + ' wags its tail happily.',

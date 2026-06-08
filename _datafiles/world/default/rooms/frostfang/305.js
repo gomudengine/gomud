@@ -5,6 +5,13 @@ crateAvailableRound = 0;
 const crate = ["crate", "crates", "box"];
 const verbs = ["open", "pry"];
 
+/**
+ * Called when a user issues a look command in the room.
+ * @param {string} rest - The arguments following the command.
+ * @param {ActorObject} user - The user issuing the command.
+ * @param {RoomObject} room - The room where the command was issued.
+ * @returns {boolean} Return true if the command was handled.
+ */
 function onCommand_look(rest, user, room) {
 
     roundNow = UtilGetRoundNumber();
@@ -24,7 +31,14 @@ function onCommand_look(rest, user, room) {
     return false;
 }
 
-// Generic Command Handler
+/**
+ * Called when a user issues a command in the room.
+ * @param {string} cmd - The command issued.
+ * @param {string} rest - The arguments following the command.
+ * @param {ActorObject} user - The user issuing the command.
+ * @param {RoomObject} room - The room where the command was issued.
+ * @returns {boolean} Return true if the command was handled.
+ */
 function onCommand(cmd, rest, user, room) {
 
     if ( !verbs.includes(cmd) ) {

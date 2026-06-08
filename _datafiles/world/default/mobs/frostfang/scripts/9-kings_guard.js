@@ -1,7 +1,12 @@
 
 
+/**
+ * Called each round when the mob is idle.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @returns {boolean} Return true if the event was handled.
+ */
 function onIdle(mob, room) {
-
     var random = Math.floor(Math.random() * 10);
     switch (random) {
     case 0:

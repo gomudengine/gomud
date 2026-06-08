@@ -1,7 +1,13 @@
 // Cat pet script
 // The cat is an aloof companion that occasionally deigns to acknowledge its owner.
 
-// PetAct is called approximately once every 10 rounds.
+/**
+ * Called approximately once every 10 rounds while the pet is active.
+ * @param {PetObject} pet - The pet.
+ * @param {ActorObject} actor - The pet's owner.
+ * @param {RoomObject} room - The room the pet is in.
+ * @returns {void}
+ */
 function PetAct(pet, actor, room) {
     var actions = [
         pet.NameSimple() + ' grooms itself with practiced indifference.',

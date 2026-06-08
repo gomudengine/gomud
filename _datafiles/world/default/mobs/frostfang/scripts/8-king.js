@@ -2,13 +2,20 @@
 const startQuestSubjects = ["quest", "bishop",  "arch", "arch-bishop", "archbishop", "trust"];
 const lichSubjects = ["lich", "old king", "evil king", "tomb", "sarcophagus"];
 
+/**
+ * Called when a user asks the mob a question.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @param {object} eventDetails - Details about the ask event (sourceId, askText).
+ * @returns {boolean} Return true if the event was handled.
+ */
 function onAsk(mob, room, eventDetails) {
 
     if ( (user = GetUser(eventDetails.sourceId)) == null ) {
         return false;
     }
 
-    match = UtilFindMatchIn(eventDetails.askText, startQuestSubjects);
+    match = UtilFindMatchIn(eventDetails.askText, startQuestSubjects); 
     if ( match.found ) {
 
         if ( user.HasQuest("2-start") ) {
@@ -35,14 +42,19 @@ function onAsk(mob, room, eventDetails) {
     return true;
 }
 
+/**
+ * Called when a user gives the mob an item or gold.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @param {object} eventDetails - Details about the give event (sourceId, sourceType, item, gold).
+ * @returns {boolean} Return true if the event was handled.
+ */
 function onGive(mob, room, eventDetails) {
-
     if ( (user = GetUser(eventDetails.sourceId)) == null ) {
         return false;
     }    
 
     if (eventDetails.item) {
-
         if (eventDetails.item.ItemId == 20018) {
             
             mob.Command("say Thank you for taking care of that problem. The kingdom is indebted to you.");
@@ -64,6 +76,13 @@ function onGive(mob, room, eventDetails) {
     return false;
 }
 
+/**
+ * Called when a user shows the mob an item.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @param {object} eventDetails - Details about the show event (sourceId, item).
+ * @returns {boolean} Return true if the event was handled.
+ */
 function onShow(mob, room, eventDetails) {
 
     if ( (user = GetUser(eventDetails.sourceId)) == null ) {
@@ -86,6 +105,12 @@ function onShow(mob, room, eventDetails) {
 }
 
 
+/**
+ * Called each round when the mob is idle.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @returns {boolean} Return true if the event was handled.
+ */
 function onIdle(mob, room) {
 
     round = UtilGetRoundNumber();

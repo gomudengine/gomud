@@ -1,11 +1,21 @@
 
-// Invoked when the buff is first applied to the player.
+/**
+ * Called when the buff is first applied to the actor.
+ * @param {ActorObject} actor - The actor the buff is applied to.
+ * @param {number} triggersLeft - How many trigger rounds remain.
+ * @returns {void}
+ */
 function onStart(actor, triggersLeft) {
     SendUserMessage(actor.UserId(),     'You enter a focused state of rest.');
     SendRoomMessage(actor.GetRoomId(),  actor.GetCharacterName(true)+' begins to meditate.', actor.UserId());
 }
 
-// Invoked every time the buff is triggered (see roundinterval)
+/**
+ * Called each round while the buff is active.
+ * @param {ActorObject} actor - The actor the buff is applied to.
+ * @param {number} triggersLeft - How many trigger rounds remain.
+ * @returns {void}
+ */
 function onTrigger(actor, triggersLeft) {
 
     skillLevel = actor.GetSkillLevel("brawling");
@@ -23,7 +33,12 @@ function onTrigger(actor, triggersLeft) {
     SendRoomMessage(actor.GetRoomId(),  actor.GetCharacterName(true)+' is healing while they meditate.', actor.UserId());
 }
 
-// Invoked when the buff has run its course.
+/**
+ * Called when the buff expires or is removed.
+ * @param {ActorObject} actor - The actor the buff is applied to.
+ * @param {number} triggersLeft - How many trigger rounds remain.
+ * @returns {void}
+ */
 function onEnd(actor, triggersLeft) {
     SendUserMessage(actor.UserId(),     'Your restful state abides.');
     SendRoomMessage(actor.GetRoomId(),  actor.GetCharacterName(true)+' is done meditating.', actor.UserId());

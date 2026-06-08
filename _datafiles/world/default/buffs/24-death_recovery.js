@@ -1,6 +1,11 @@
 
 
-// Invoked every time the buff is triggered (see roundinterval)
+/**
+ * Called each round while the buff is active.
+ * @param {ActorObject} actor - The actor the buff is applied to.
+ * @param {number} triggersLeft - How many trigger rounds remain.
+ * @returns {void}
+ */
 function onTrigger(actor, triggersLeft) {
 
     healAmt = actor.AddHealth(UtilDiceRoll(1, 10));

@@ -24,6 +24,13 @@ const randomEmotes = [
     "emote adjusts a loose rock on the path.",
 ];
 
+/**
+ * Called when a user asks the mob a question.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @param {object} eventDetails - Details about the ask event (sourceId, askText).
+ * @returns {boolean} Return true if the event was handled.
+ */
 function onAsk(mob, room, eventDetails) {
 
     var roomId = room.RoomId();
@@ -81,8 +88,14 @@ function onAsk(mob, room, eventDetails) {
 }
 
 
+/**
+ * Called when the mob reaches a waypoint on its path.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @param {object} eventDetails - Details about the path event.
+ * @returns {boolean} Return true if the event was handled.
+ */
 function onPath(mob, room, eventDetails) {
-
     if ( eventDetails.status == "waypoint" && mob.GetRoomId() != CRASH_ROOM_ID ) {
     
         if ( UtilDiceRoll(1, 5) == 1 ) {
@@ -94,6 +107,13 @@ function onPath(mob, room, eventDetails) {
 
 }
 
+/**
+ * Called when a user gives the mob an item or gold.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @param {object} eventDetails - Details about the give event (sourceId, sourceType, item, gold).
+ * @returns {boolean} Return true if the event was handled.
+ */
 function onGive(mob, room, eventDetails) {
 
     if (eventDetails.item) {
@@ -111,6 +131,12 @@ function onGive(mob, room, eventDetails) {
 }
 
 
+/**
+ * Called each round when the mob is idle.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @returns {boolean} Return true if the event was handled.
+ */
 // Invoked once every round if mob is idle
 function onIdle(mob, room) {
 

@@ -1,12 +1,10 @@
-// ScriptWizard - modal dialog for selecting script functions and inserting
-// stub code into a ScriptEditor textarea.
+// ScriptWizard - modal dialog for selecting script event handler stubs and
+// inserting them into the Monaco editor managed by ScriptEditor.
 //
 // Usage:
-//   ScriptWizard.open({
-//     scriptType: 'room',         // room | mob | item | spell | buff
-//     textareaId: 'f-script',     // id of the <textarea> managed by ScriptEditor
-//     syncFn: scriptSync,         // the sync function returned by ScriptEditor.init()
-//   });
+//   ScriptWizard.open({ scriptType: 'room', textareaId: 'f-script' });
+//
+// ScriptWizard.validateScript(text) - validates script text via the server API
 
 const ScriptWizard = (() => {
     'use strict';
@@ -132,7 +130,7 @@ const ScriptWizard = (() => {
     }
 
     function open(opts) {
-        const { scriptType, textareaId, syncFn } = opts;
+        const { scriptType, textareaId } = opts;
         injectStyles();
         close();
 
@@ -152,13 +150,13 @@ const ScriptWizard = (() => {
                 modal.innerHTML = '<div class="sw-loading">No functions found for script type: ' + scriptType + '</div>';
                 return;
             }
-            renderModal(modal, typeDef, scriptType, textareaId, syncFn);
+            renderModal(modal, typeDef, textareaId);
         }).catch((err) => {
             modal.innerHTML = '<div class="sw-loading">Error: ' + err.message + '</div>';
         });
     }
 
-    function renderModal(modal, typeDef, scriptType, textareaId, syncFn) {
+    function renderModal(modal, typeDef, textareaId) {
         modal.innerHTML = '';
 
         const header = document.createElement('div');
@@ -216,8 +214,7 @@ const ScriptWizard = (() => {
             selectedFn = fn;
             dynamicValue = '';
             body.innerHTML = '';
-            insertBtn.disabled = !fn.dynamic;
-            if (!fn.dynamic) insertBtn.disabled = false;
+            insertBtn.disabled = fn.dynamic ? true : false;
 
             const detail = document.createElement('div');
             detail.className = 'sw-detail sw-active';
@@ -261,7 +258,6 @@ const ScriptWizard = (() => {
                 hint.textContent = fn.dynamic.description;
                 detail.appendChild(hint);
 
-                insertBtn.disabled = true;
                 setTimeout(() => inp.focus(), 50);
             }
 
@@ -318,84 +314,69 @@ const ScriptWizard = (() => {
             if (selectedFn.dynamic && dynamicValue) {
                 fnName = fnName.split(selectedFn.dynamic.placeholder).join(dynamicValue);
             }
-            const ta = document.getElementById(textareaId);
-            if (ta && jumpToFunction(ta, fnName, syncFn)) {
+            const stub = buildStub(selectedFn, dynamicValue);
+            const iframeWin = ScriptEditor.getEditor(textareaId);
+            if (iframeWin) {
+                // Modal is open: ask the iframe to jump-to or insert
+                iframeWin.postMessage({ type: 'monaco-jump-or-insert', fnName: fnName, stub: stub }, '*');
                 close();
-                return;
+            } else {
+                // Modal not open: check textarea for existing function, then open
+                const ta = document.getElementById(textareaId);
+                if (ta) {
+                    const escaped = fnName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const exists = new RegExp('(^|\n)[ \t]*function\\s+' + escaped + '\\s*\\(').test(ta.value);
+                    if (!exists) {
+                        let current = ta.value;
+                        if (current.length > 0 && !current.endsWith('\n')) current += '\n';
+                        if (current.length > 0 && !current.endsWith('\n\n')) current += '\n';
+                        ta.value = current + stub;
+                    }
+                }
+                ScriptEditor.open(textareaId);
+                close();
             }
-            var stub = buildStub(selectedFn, dynamicValue);
-            insertStub(textareaId, stub, syncFn);
-            close();
         });
 
         showList();
     }
 
     function buildStub(fn, dynValue) {
-        var lines = [];
-        lines.push('// ' + fn.description);
+        const lines = [];
+
+        // JSDoc block - Monaco's JS type checker reads @param tags to infer
+        // parameter types inside the function body, enabling member completions.
+        lines.push('/**');
+        lines.push(' * ' + fn.description);
         if (fn.params && fn.params.length > 0) {
-            lines.push('//');
             fn.params.forEach(function (p) {
-                var typ = p.type;
+                let typ = p.type;
                 if (p.typeVariants) {
-                    var types = [];
-                    var seen = {};
+                    const seen = {};
+                    const types = [];
                     Object.keys(p.typeVariants).forEach(function (k) {
-                        var t = p.typeVariants[k].type;
+                        const t = p.typeVariants[k].type;
                         if (!seen[t]) { seen[t] = true; types.push(t); }
                     });
-                    typ = types.join(' | ');
+                    typ = types.join('|');
                 }
-                lines.push('//   ' + p.name + ' (' + typ + ') - ' + p.description);
+                // Strip optional/variadic markers from the param name for JSDoc
+                const paramName = p.name.replace(/^\.\.\./, '').replace(/\?$/, '');
+                lines.push(' * @param {' + typ + '} ' + paramName + ' ' + p.description);
             });
         }
-        if (fn.returnSemantics && fn.returnSemantics !== 'Return value is ignored.') {
-            lines.push('//');
-            lines.push('// ' + fn.returnSemantics);
+        if (fn.returnType && fn.returnType !== 'void') {
+            lines.push(' * @returns {' + fn.returnType + '} ' + (fn.returnSemantics || ''));
+        } else if (fn.returnSemantics && fn.returnSemantics !== 'Return value is ignored.') {
+            lines.push(' * ' + fn.returnSemantics);
         }
-        var comment = lines.join('\n') + '\n';
-        var code = fn.stub;
+        lines.push(' */');
+
+        let code = fn.stub;
         if (fn.dynamic && dynValue) {
             code = code.split(fn.dynamic.placeholder).join(dynValue);
         }
-        return comment + code;
-    }
-
-    function jumpToFunction(ta, fnName, syncFn) {
-        var text = ta.value;
-        var pattern = new RegExp('(^|\\n)[ \\t]*function\\s+' + fnName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*\\(');
-        var m = pattern.exec(text);
-        if (!m) return false;
-
-        var pos = m.index + m[0].indexOf('function');
-        ta.focus();
-        ta.setSelectionRange(pos, pos);
-
-        var before = text.substring(0, pos);
-        var lineNumber = before.split('\n').length - 1;
-        var lineHeight = parseFloat(getComputedStyle(ta).lineHeight) || 20;
-        ta.scrollTop = Math.max(0, lineNumber * lineHeight - ta.clientHeight / 3);
-
-        if (typeof syncFn === 'function') syncFn();
-        return true;
-    }
-
-    function insertStub(textareaId, stub, syncFn) {
-        const ta = document.getElementById(textareaId);
-        if (!ta) return;
-
-        let current = ta.value;
-        if (current.length > 0 && !current.endsWith('\n')) {
-            current += '\n';
-        }
-        if (current.length > 0 && !current.endsWith('\n\n')) {
-            current += '\n';
-        }
-        ta.value = current + stub;
-        if (typeof syncFn === 'function') syncFn();
-        ta.focus();
-        ta.scrollTop = ta.scrollHeight;
+        return lines.join('\n') + '\n' + code;
     }
 
     function escHtml(str) {
@@ -405,7 +386,7 @@ const ScriptWizard = (() => {
     }
 
     function showScriptError(msg) {
-        var el = document.getElementById('script-error');
+        const el = document.getElementById('script-error');
         if (!el) return;
         el.textContent = msg;
         el.style.display = msg ? 'block' : 'none';
@@ -413,11 +394,11 @@ const ScriptWizard = (() => {
 
     async function validateScript(scriptText) {
         showScriptError('');
-        var res = await AdminAPI.post('/admin/api/v1/scripting/validate', { script: scriptText });
+        const res = await AdminAPI.post('/admin/api/v1/scripting/validate', { script: scriptText });
         if (res.ok) return { valid: true };
-        var d = (res.data && res.data.data) || {};
-        var msg = d.error || res.error || 'Unknown validation error';
-        if (d.line) msg = 'Line ' + d.line + (d.column ? ':' + d.column : '') + ' - ' + msg;
+        const d = (res.data && res.data.data) || {};
+        const msg = (d.line ? 'Line ' + d.line + (d.column ? ':' + d.column : '') + ' - ' : '') +
+                    (d.error || res.error || 'Unknown validation error');
         showScriptError(msg);
         return { valid: false, error: msg, line: d.line || 0, column: d.column || 0 };
     }

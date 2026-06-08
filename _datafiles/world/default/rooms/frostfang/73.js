@@ -1,7 +1,12 @@
 
 lastSpawnRound = 0;
 
-// If there is no book here, add the book item
+/**
+ * Called when a user enters the room.
+ * @param {ActorObject} user - The user entering the room.
+ * @param {RoomObject} room - The room being entered.
+ * @returns {boolean} Return false to suppress the automatic look.
+ */
 function onEnter(user, room) {
 
     if ( !user.HasQuest("6-return") ) {

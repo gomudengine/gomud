@@ -1,4 +1,9 @@
 
+/**
+ * Called each round when the room is idle (no players or on a timer).
+ * @param {RoomObject} room - The room.
+ * @returns {boolean} Return true if the event was handled.
+ */
 function onIdle(room) {
 
     if ( UtilGetRoundNumber()%30 == 0 ) {

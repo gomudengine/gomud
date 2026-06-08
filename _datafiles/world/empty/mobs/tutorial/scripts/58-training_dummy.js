@@ -1,5 +1,12 @@
 const teacherMobId = 57;
 
+/**
+ * Called when the mob dies.
+ * @param {ActorObject} mob - The mob that died.
+ * @param {RoomObject} room - The room where the mob died.
+ * @param {object} eventDetails - Details about the death event.
+ * @returns {boolean} Return true if the event was handled.
+ */
 function onDie(mob, room, eventDetails) {
 
     room.SendText( mob.GetCharacterName(true) + " crumbles to dust." );

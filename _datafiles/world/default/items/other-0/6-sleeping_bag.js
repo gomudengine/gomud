@@ -1,4 +1,11 @@
 
+/**
+ * Called when a user issues a use command on the item.
+ * @param {ActorObject} user - The user issuing the command.
+ * @param {ItemObject} item - The item.
+ * @param {RoomObject} room - The room where the command was issued.
+ * @returns {boolean} Return true if the command was handled.
+ */
 function onCommand_use(user, item, room) {
     
     SendUserMessage(user.UserId(), "You unroll the <ansi fg=\"itemname\">"+item.Name()+"</ansi> and hop in.");

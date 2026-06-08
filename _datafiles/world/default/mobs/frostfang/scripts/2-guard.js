@@ -7,8 +7,13 @@ const PathTargets = [
     [44, 42, 'home'],              // east castle wing => west castle wing => home
 ];
 
+/**
+ * Called each round when the mob is idle.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @returns {boolean} Return true if the event was handled.
+ */
 function onIdle(mob, room) {
-    
     if ( mob.PathingAtWaypoint() && mob.IsHome() ) {
         mob.SetAdjective("patrolling", false);
     }
@@ -41,10 +46,15 @@ function onIdle(mob, room) {
 
 
 
+/**
+ * Called when the mob reaches a waypoint on its path.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @param {object} eventDetails - Details about the path event.
+ * @returns {boolean} Return true if the event was handled.
+ */
 function onPath(mob, room, eventDetails) {
-
     if ( eventDetails.status == "waypoint" ) {
-
         if ( UtilDiceRoll(1, 5) == 1 ) {
             
 
@@ -67,6 +77,13 @@ function onPath(mob, room, eventDetails) {
 }
 
 
+/**
+ * Called when the mob downs a player.
+ * @param {ActorObject} mob - The mob.
+ * @param {ActorObject} user - The player who was downed.
+ * @param {RoomObject} room - The room where it happened.
+ * @returns {boolean} Return true if the event was handled.
+ */
 function onPlayerDowned(mob, user, room) {
     
     user.SendText(mob.GetCharacterName(true) + " approaches you from behind, striking you with the pommel of their sword.");

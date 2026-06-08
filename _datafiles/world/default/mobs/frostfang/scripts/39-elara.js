@@ -1,8 +1,14 @@
 
 const nouns = ["quest", "book", "books", "library", "spell", "spells", "worried", "worry"];
 
+/**
+ * Called when a user asks the mob a question.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @param {object} eventDetails - Details about the ask event (sourceId, askText).
+ * @returns {boolean} Return true if the event was handled.
+ */
 function onAsk(mob, room, eventDetails) {
-
     if ( (user = GetUser(eventDetails.sourceId)) == null ) {
         return false;
     }
@@ -27,6 +33,13 @@ function onAsk(mob, room, eventDetails) {
     return false;
 }
 
+/**
+ * Called when a user gives the mob an item or gold.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @param {object} eventDetails - Details about the give event (sourceId, sourceType, item, gold).
+ * @returns {boolean} Return true if the event was handled.
+ */
 function onGive(mob, room, eventDetails) {
 
     if (eventDetails.sourceType == "mob") {
@@ -76,6 +89,12 @@ function onGive(mob, room, eventDetails) {
 }
 
 
+/**
+ * Called each round when the mob is idle.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @returns {boolean} Return true if the event was handled.
+ */
 // Invoked once every round if mob is idle
 function onIdle(mob, room) {
 

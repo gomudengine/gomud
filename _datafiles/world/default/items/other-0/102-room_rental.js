@@ -1,5 +1,12 @@
 
 
+/**
+ * Called when a user purchases the item from a shop.
+ * @param {ActorObject} user - The user purchasing the item.
+ * @param {ItemObject} item - The item being purchased.
+ * @param {RoomObject} room - The room where the purchase occurred.
+ * @returns {boolean} Return false to allow the default purchase behavior.
+ */
 function onPurchase(user, item, room) {
 
     var newRoomIds = CreateInstancesFromRoomIds( [432] );

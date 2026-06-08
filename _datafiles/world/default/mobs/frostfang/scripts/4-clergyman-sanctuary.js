@@ -1,8 +1,15 @@
 
 const asksubjects = ["quest", "bishop", "arch-bishop", "king"];
 
+/**
+ * Called when a user asks the mob a question.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @param {object} eventDetails - Details about the ask event (sourceId, askText).
+ * @returns {boolean} Return true if the event was handled.
+ */
 function onAsk(mob, room, eventDetails) {
-
+    
     if ( (user = GetUser(eventDetails.sourceId)) == null ) {
         return false;
     }
@@ -20,8 +27,14 @@ function onAsk(mob, room, eventDetails) {
     return true;
 }
 
+/**
+ * Called when a user gives the mob an item or gold.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @param {object} eventDetails - Details about the give event (sourceId, sourceType, item, gold).
+ * @returns {boolean} Return true if the event was handled.
+ */
 function onGive(mob, room, eventDetails) {
-
     if (eventDetails.gold > 0) {
 
         if ( (user = GetUser(eventDetails.sourceId)) == null ) {
@@ -67,6 +80,12 @@ function onGive(mob, room, eventDetails) {
     return false;
 }
 
+/**
+ * Called each round when the mob is idle.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @returns {boolean} Return true if the event was handled.
+ */
 function onIdle(mob, room) {
 
     round = UtilGetRoundNumber();
