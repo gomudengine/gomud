@@ -17,6 +17,9 @@ JSHINT_VERSION ?= 2.13.6
 JS_LINT_PATHS := $(shell find _datafiles -name '*.js' -print)
 WEBCLIENT_WINDOW_JS := $(shell find _datafiles/html/public/static/js/windows -name '*.js' -print)
 WEBCLIENT_BASE_JS := $(filter-out $(WEBCLIENT_WINDOW_JS),$(JS_LINT_PATHS))
+JSHINT_BASE_CMD := npx --yes --loglevel=error jshint@$(JSHINT_VERSION) $(WEBCLIENT_BASE_JS)
+JSHINT_WINDOWS_CMD := npx --yes --loglevel=error jshint@$(JSHINT_VERSION) --config .jshintrc.webclient-windows $(WEBCLIENT_WINDOW_JS)
+CROSS_BUILD_CMD = env $(strip GOOS=$(CROSS_GOOS) GOARCH=$(CROSS_GOARCH) $(if $(CROSS_GOARM),GOARM=$(CROSS_GOARM))) go build -o $(CROSS_OUTPUT)
 CI_LOCAL_RUN := docker run --rm \
 	--user "$(CI_LOCAL_UID):$(CI_LOCAL_GID)" \
 	--group-add "$(CI_LOCAL_DOCKER_SOCK_GID)" \
@@ -37,8 +40,8 @@ export GOFLAGS := -mod=mod
 go-version: ### Print the Go version pinned in go.mod.
 	@printf '%s\n' "$(GO_VERSION)"
 
-.PHONY: docker_build 
-docker_build: 
+.PHONY: docker_build
+docker_build:
 	GO_VERSION=$(GO_VERSION) TAG=$(VERSION) $(DOCKER_COMPOSE) build server
 
 .PHONY: ci-local-image
@@ -59,30 +62,9 @@ ci-local-inner: ### Run the local CI checks inside the CI tool image.
 	yamllint .github
 	$(MAKE) validate
 	$(MAKE) js-lint
-	act $(ACT_FLAGS) --dryrun push \
-		-e .github/act/push_master.json \
-		-W .github/workflows/lint.yml
-	act $(ACT_FLAGS) --dryrun pull_request \
-		-e .github/act/pull_request.json \
-		-W .github/workflows/lint.yml
-	act $(ACT_FLAGS) --dryrun pull_request \
-		-e .github/act/pull_request.json \
-		-W .github/workflows/run-test.yml
-	act $(ACT_FLAGS) --dryrun pull_request $(ACT_DRYRUN_SECRETS) \
-		-e .github/act/pull_request.json \
-		-W .github/workflows/discord-notify.yml
-	act $(ACT_FLAGS) --dryrun push \
-		-e .github/act/push_master.json \
-		-W .github/workflows/build-and-release.yml
-	act $(ACT_FLAGS) --dryrun workflow_dispatch \
-		-e .github/act/stable_release.json \
-		-W .github/workflows/stable-release.yml
-	act $(ACT_FLAGS) --dryrun push $(ACT_DRYRUN_SECRETS) \
-		-e .github/act/push_master.json \
-		-W .github/workflows/docker-package.yml
-	act $(ACT_FLAGS) --dryrun pull_request $(ACT_DRYRUN_SECRETS) \
-		-e .github/act/pull_request.json \
-		-W .github/workflows/docker-package.yml
+	ACT_FLAGS="$(ACT_FLAGS)" \
+		ACT_DRYRUN_SECRETS="$(ACT_DRYRUN_SECRETS)" \
+		.github/scripts/ci-local-act.sh
 
 DOCKER_CMD ?= bash
 
@@ -105,16 +87,25 @@ docker-%:
 #
 
 .PHONY: build_rpi_zero2w
+build_rpi_zero2w: CROSS_GOOS := linux
+build_rpi_zero2w: CROSS_GOARCH := arm64
+build_rpi_zero2w: CROSS_OUTPUT := $(BIN)-rpi
 build_rpi_zero2w: generate ### Build a binary for a raspberry pi zero 2w
-	env GOOS=linux GOARCH=arm64 go build -o $(BIN)-rpi
+	$(CROSS_BUILD_CMD)
 
 .PHONY: build_win64
+build_win64: CROSS_GOOS := windows
+build_win64: CROSS_GOARCH := amd64
+build_win64: CROSS_OUTPUT := $(BIN)-win64.exe
 build_win64: generate ### Build a binary for 64bit windows
-	env GOOS=windows GOARCH=amd64 go build -o $(BIN)-win64.exe
+	$(CROSS_BUILD_CMD)
 
 .PHONY: build_linux64
+build_linux64: CROSS_GOOS := linux
+build_linux64: CROSS_GOARCH := amd64
+build_linux64: CROSS_OUTPUT := $(BIN)-linux64
 build_linux64: generate ### Build a binary for linux
-	env GOOS=linux GOARCH=amd64 go build -o $(BIN)-linux64
+	$(CROSS_BUILD_CMD)
 
 .PHONY: build
 build: validate build_local  ### Validate the code and build the binary.
@@ -146,7 +137,7 @@ clean-instances: ### Deletes all room instance data. Starts the world fresh.
 
 ## Run Targets
 
-.PHONY: run 
+.PHONY: run
 run: generate  ### Build and run server.
 	@go run .
 
@@ -197,7 +188,7 @@ test: generate js-lint ### Run code generation, lint, and Go tests.
 	@go test -race ./...
 
 .PHONY: coverage
-coverage: 
+coverage:
 	@mkdir -p bin/covdatafiles && \
 	go test ./... -coverprofile=bin/covdatafiles/cover.out && \
 	go tool cover -html=bin/covdatafiles/cover.out && \
@@ -206,18 +197,12 @@ coverage:
 .PHONY: js-lint
 js-lint:  ### Run Javascript linter
 	@if command -v npx >/dev/null 2>&1; then \
-		npx --yes --loglevel=error jshint@$(JSHINT_VERSION) \
-			$(WEBCLIENT_BASE_JS) && \
-		npx --yes --loglevel=error jshint@$(JSHINT_VERSION) \
-			--config .jshintrc.webclient-windows \
-			$(WEBCLIENT_WINDOW_JS); \
+		$(JSHINT_BASE_CMD) && \
+		$(JSHINT_WINDOWS_CMD); \
 	elif command -v docker >/dev/null 2>&1; then \
 		docker run --rm -v "$(PWD)":/app -w /app node:22 sh -lc "\
-			npx --yes --loglevel=error jshint@$(JSHINT_VERSION) \
-				$(WEBCLIENT_BASE_JS) && \
-			npx --yes --loglevel=error jshint@$(JSHINT_VERSION) \
-				--config .jshintrc.webclient-windows \
-				$(WEBCLIENT_WINDOW_JS)"; \
+			$(JSHINT_BASE_CMD) && \
+			$(JSHINT_WINDOWS_CMD)"; \
 	else \
 		echo "js-lint requires npx or docker" >&2; \
 		exit 127; \
@@ -250,12 +235,12 @@ fmt:
 	@go fmt ./...
 
 .PHONY: fmtcheck
-fmtcheck: fmt
+fmtcheck:
 	@set -e; \
-	unformatted=$$(go fmt ./...); \
+	unformatted=$$(gofmt -l $$(find . -path './vendor' -prune -o -name '*.go' -print)); \
 	if [ ! -z "$$unformatted" ]; then \
-		echo Fixed inconsistent format in some files.; \
-		echo $$unformatted; \
+		echo "Go files need formatting:"; \
+		printf '%s\n' "$$unformatted"; \
 		exit 1; \
 	fi
 
@@ -268,7 +253,7 @@ mod:
 
 .PHONY: vet
 vet:
-	@go vet -composites=false ./...           
+	@go vet -composites=false ./...
 
 .PHONY: set_gopath
 set_gopath:
