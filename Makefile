@@ -74,6 +74,9 @@ ci-local-inner: ### Run the local CI checks inside the CI tool image.
 	act $(ACT_FLAGS) --dryrun push \
 		-e .github/act/push_master.json \
 		-W .github/workflows/build-and-release.yml
+	act $(ACT_FLAGS) --dryrun workflow_dispatch \
+		-e .github/act/stable_release.json \
+		-W .github/workflows/stable-release.yml
 	act $(ACT_FLAGS) --dryrun push $(ACT_DRYRUN_SECRETS) \
 		-e .github/act/push_master.json \
 		-W .github/workflows/docker-package.yml
