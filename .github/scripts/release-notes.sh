@@ -56,9 +56,6 @@ if [ "${RELEASE_NOTES_SKIP_GH:-}" = "true" ]; then
 		>"$generated_notes_file"
 else
 	notes_tag="$release_tag"
-	if [ "$release_kind" = "prerelease" ]; then
-		notes_tag="${release_tag}-notes-${commit_sha}"
-	fi
 
 	generate_notes_args=(
 		-f "tag_name=${notes_tag}"
