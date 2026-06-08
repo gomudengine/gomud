@@ -50,8 +50,13 @@ if [ "${RELEASE_NOTES_SKIP_GH:-}" = "true" ]; then
 	printf 'Generated release notes skipped for local dry run.\n' \
 		>"$generated_notes_file"
 else
+	notes_tag="$release_tag"
+	if [ "$release_kind" = "prerelease" ]; then
+		notes_tag="${release_tag}-notes-${commit_sha}"
+	fi
+
 	generate_notes_args=(
-		-f "tag_name=${release_tag}"
+		-f "tag_name=${notes_tag}"
 		-f "target_commitish=${commit_sha}"
 	)
 	if [ -n "$previous_tag" ] && [ "$previous_tag" != "$release_tag" ]; then

@@ -240,7 +240,7 @@ jobs:
         env:
           RELEASE_KIND: stable
           RELEASE_NOTES_FILE: release-notes.md
-        run: scripts/release-notes.sh
+        run: .github/scripts/release-notes.sh
 
       - name: Attest linux x64 binary
         # actions/attest-build-provenance v4.1.0
