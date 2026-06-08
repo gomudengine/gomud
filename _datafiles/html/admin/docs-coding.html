@@ -177,6 +177,8 @@
         <a href="#hook-OnShopListRendered">usercommands.OnShopListRendered</a>
         <a href="#hook-OnInsufficientFunds">usercommands.OnInsufficientFunds</a>
         <a href="#hook-OnAutoComplete">suggestions.OnAutoComplete</a>
+        <a href="#hook-OnBuildPrompt">users.OnBuildPrompt</a>
+        <a href="#hook-OnGetHelpContents">usercommands.OnGetHelpContents</a>
     </div>
 </aside>
 
@@ -629,6 +631,119 @@ d.Alert(
             r.Results = append(r.Results, sub[len(typed):])
         }
     }
+    return r
+})</code></pre>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="doc-section" id="hook-OnBuildPrompt">
+    <h2>users.OnBuildPrompt</h2>
+
+    <div class="hook-card">
+        <div class="hook-card-header">
+            <span class="hook-card-name">OnBuildPrompt</span>
+            <span class="hook-card-pkg">internal/users</span>
+        </div>
+        <div class="hook-card-body">
+            <p>Fired inside <code>ProcessPromptString</code> after all built-in prompt tokens have been resolved and before the final prompt string is assembled. The hook receives the fully-parsed token slice, where each entry holds the original tag and its resolved value. Handlers can replace values for known tokens, supply values for custom tokens, or insert and remove tokens entirely.</p>
+
+            <div class="fire-point">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;margin-top:2px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span>Fires on every prompt render — once per round per connected player. Keep handlers fast.</span>
+            </div>
+
+            <h4>What you can do</h4>
+            <ul>
+                <li>Handle a custom token (e.g. <code>{mystat}</code>) by finding it in <code>Tokens</code> by <code>Tag</code> and setting its <code>Value</code></li>
+                <li>Override the rendered value of any built-in token (e.g. reformat <code>{hp}</code>)</li>
+                <li>Append extra tokens to add content at the end of the prompt</li>
+                <li>Remove tokens by filtering the slice to suppress parts of the prompt</li>
+                <li>Use <code>d.User</code> to access the full player record for context-sensitive rendering</li>
+            </ul>
+
+            <h4>Token format</h4>
+            <p>The <code>Tokens</code> slice contains one entry per segment of the prompt string in order. Literal text between tags (e.g. the <code>[</code> and <code>]</code> brackets in a default prompt) appears as a token with an empty <code>Tag</code> and the literal as <code>Value</code>. Unknown tags (ones not handled by the engine) default to <code>Value = Tag</code>, so <code>{mytoken}</code> round-trips as <code>{mytoken}</code> until a handler replaces it.</p>
+
+            <h4>Data type: <code>users.PromptData</code></h4>
+            <table class="field-table">
+                <thead><tr><th>Field</th><th>Type</th><th>Access</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td><code>User</code></td><td><span class="type-badge">*users.UserRecord</span></td><td><span class="rw-badge rw-ro">read</span></td><td>The player whose prompt is being rendered. Use for character stats, config options, or any player-specific context.</td></tr>
+                    <tr><td><code>Tokens</code></td><td><span class="type-badge">[]users.PromptToken</span></td><td><span class="rw-badge rw-rw">read/write</span></td><td>The ordered slice of prompt segments. Modify <code>Value</code> on individual tokens, append new tokens, or replace the slice entirely.</td></tr>
+                </tbody>
+            </table>
+
+            <h4>Data type: <code>users.PromptToken</code></h4>
+            <table class="field-table">
+                <thead><tr><th>Field</th><th>Type</th><th>Access</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td><code>Tag</code></td><td><span class="type-badge">string</span></td><td><span class="rw-badge rw-ro">read</span></td><td>The original brace-delimited token string (e.g. <code>{hp}</code>), or an empty string for literal text segments.</td></tr>
+                    <tr><td><code>Value</code></td><td><span class="type-badge">string</span></td><td><span class="rw-badge rw-rw">read/write</span></td><td>The resolved output for this segment. Set this to change what is rendered. May contain ANSI tags.</td></tr>
+                </tbody>
+            </table>
+
+            <h4>Example registration</h4>
+            <div class="code-block">
+                <div class="code-block-header">modules/mymodule/mymodule.go</div>
+                <pre><code class="language-go">users.OnBuildPrompt.Register(func(d users.PromptData) users.PromptData {
+    for i, t := range d.Tokens {
+        if t.Tag == "{bounty}" {
+            gold := m.getBounty(d.User.UserId)
+            d.Tokens[i].Value = fmt.Sprintf(`&lt;ansi fg="yellow"&gt;%dg&lt;/ansi&gt;`, gold)
+        }
+    }
+    return d
+})</code></pre>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="doc-section" id="hook-OnGetHelpContents">
+    <h2>usercommands.OnGetHelpContents</h2>
+
+    <div class="hook-card">
+        <div class="hook-card-header">
+            <span class="hook-card-name">OnGetHelpContents</span>
+            <span class="hook-card-pkg">internal/usercommands</span>
+        </div>
+        <div class="hook-card-body">
+            <p>Fired at the end of <code>GetHelpContents</code> with the fully rendered help text and any template error. Handlers can modify the text before it is returned to the caller, supply fallback content when a template is missing, or append supplementary information to existing help pages.</p>
+
+            <div class="fire-point">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;margin-top:2px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span>Fires on every <code>help</code> command lookup, including failed lookups where <code>Err</code> is non-nil.</span>
+            </div>
+
+            <h4>What you can do</h4>
+            <ul>
+                <li>Append module-specific notes to any existing help page</li>
+                <li>Provide a custom help page for a module command by checking <code>r.Err != nil</code> and setting <code>r.Text</code> and <code>r.Err = nil</code></li>
+                <li>Redirect or transform help content based on the rendered text</li>
+            </ul>
+
+            <h4>Data type: <code>usercommands.HelpContentsResult</code></h4>
+            <table class="field-table">
+                <thead><tr><th>Field</th><th>Type</th><th>Access</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr><td><code>Text</code></td><td><span class="type-badge">string</span></td><td><span class="rw-badge rw-rw">read/write</span></td><td>The fully rendered help content. Modify or replace to change what is shown to the player.</td></tr>
+                    <tr><td><code>Err</code></td><td><span class="type-badge">error</span></td><td><span class="rw-badge rw-rw">read/write</span></td><td>The error from template processing, or <code>nil</code> on success. Set to <code>nil</code> and populate <code>Text</code> to handle a missing template. Set to a non-nil value to signal failure.</td></tr>
+                </tbody>
+            </table>
+
+            <h4>Example registration</h4>
+            <div class="code-block">
+                <div class="code-block-header">modules/fishing/fishing.go</div>
+                <pre><code class="language-go">usercommands.OnGetHelpContents.Register(func(r usercommands.HelpContentsResult) usercommands.HelpContentsResult {
+    if r.Err == nil {
+        return r // template rendered fine — nothing to do
+    }
+    // Supply help for our custom command when no template file exists.
+    // Clearing Err prevents the caller from showing a "no help found" error.
+    r.Text = m.renderFishHelp()
+    r.Err = nil
     return r
 })</code></pre>
             </div>

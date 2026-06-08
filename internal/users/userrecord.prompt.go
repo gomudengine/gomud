@@ -3,7 +3,6 @@ package users
 import (
 	"fmt"
 	"math"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -25,9 +24,44 @@ import (
 
 var (
 	promptDefaultCompiled = ``
-	promptColorRegex      = regexp.MustCompile(`\{(\d*)(?::)?(\d*)?\}`)
-	promptFindTagsRegex   = regexp.MustCompile(`\{[a-zA-Z%:\-]+\}`)
 )
+
+// PromptToken is one segment of a parsed prompt string.
+// Tag holds the original brace-delimited token (e.g. "{hp}"), or an empty
+// string for literal text segments that appear between tokens.
+// Value holds the resolved output for this segment. For known tokens Value is
+// the rendered string. For unknown tokens Value defaults to Tag so that
+// unrecognised tokens round-trip unchanged. For literal segments Value is the
+// literal text.
+type PromptToken struct {
+	Tag   string
+	Value string
+}
+
+// PromptData is the value threaded through OnBuildPrompt handlers.
+// User is the player whose prompt is being rendered.
+// Tokens is the fully-resolved token slice. Handlers may modify Value on any
+// token (or append/remove tokens) before the final string is assembled.
+type PromptData struct {
+	User   *UserRecord
+	Tokens []PromptToken
+}
+
+// OnBuildPrompt is fired inside ProcessPromptString after all built-in tokens
+// have been resolved and before the final prompt string is assembled.
+// Modules register handlers here to add, replace, or remove prompt tokens.
+//
+// Example registration from a module:
+//
+//	users.OnBuildPrompt.Register(func(d users.PromptData) users.PromptData {
+//	    for i, t := range d.Tokens {
+//	        if t.Tag == "{mytoken}" {
+//	            d.Tokens[i].Value = computeMyValue(d.User)
+//	        }
+//	    }
+//	    return d
+//	})
+var OnBuildPrompt util.Hook[PromptData]
 
 func (u *UserRecord) GetCommandPrompt() string {
 
@@ -86,8 +120,6 @@ func (u *UserRecord) GetCommandPrompt() string {
 
 func (u *UserRecord) ProcessPromptString(promptStr string) string {
 
-	promptOut := strings.Builder{}
-
 	var currentXP, tnlXP int = -1, -1
 	var hpPct, mpPct int = -1, -1
 	var hpClass, mpClass string
@@ -95,33 +127,49 @@ func (u *UserRecord) ProcessPromptString(promptStr string) string {
 	promptLen := len(promptStr)
 	tagStartPos := -1
 
+	tokens := []PromptToken{}
+	litBuf := strings.Builder{}
+
+	flushLiteral := func() {
+		if litBuf.Len() > 0 {
+			tokens = append(tokens, PromptToken{Tag: ``, Value: litBuf.String()})
+			litBuf.Reset()
+		}
+	}
+
 	for i := 0; i < promptLen; i++ {
 		if promptStr[i] == '{' {
+			flushLiteral()
 			tagStartPos = i
 			continue
 		}
 		if promptStr[i] == '}' {
+			tag := promptStr[tagStartPos : i+1]
+			var value string
 
-			switch promptStr[tagStartPos : i+1] {
+			switch tag {
 
 			case `{\n}`:
-				promptOut.WriteString("\n")
+				value = "\n"
 
 			case `{hp}`:
 				if len(hpClass) == 0 {
 					hpClass = fmt.Sprintf(`health-%d`, util.QuantizeTens(u.Character.Health, u.Character.HealthMax.Value))
 				}
-				promptOut.WriteString(fmt.Sprintf(`<ansi fg="%s">%d</ansi>`, hpClass, u.Character.Health))
+				value = fmt.Sprintf(`<ansi fg="%s">%d</ansi>`, hpClass, u.Character.Health)
 
 			case `{hp:-}`:
-				promptOut.WriteString(strconv.Itoa(u.Character.Health))
+				value = strconv.Itoa(u.Character.Health)
+
 			case `{HP}`:
 				if len(hpClass) == 0 {
 					hpClass = fmt.Sprintf(`health-%d`, util.QuantizeTens(u.Character.Health, u.Character.HealthMax.Value))
 				}
-				promptOut.WriteString(fmt.Sprintf(`<ansi fg="%s">%d</ansi>`, hpClass, u.Character.HealthMax.Value))
+				value = fmt.Sprintf(`<ansi fg="%s">%d</ansi>`, hpClass, u.Character.HealthMax.Value)
+
 			case `{HP:-}`:
-				promptOut.WriteString(strconv.Itoa(u.Character.HealthMax.Value))
+				value = strconv.Itoa(u.Character.HealthMax.Value)
+
 			case `{hp%}`:
 				if hpPct == -1 {
 					hpPct = int(math.Floor(float64(u.Character.Health) / float64(u.Character.HealthMax.Value) * 100))
@@ -129,32 +177,31 @@ func (u *UserRecord) ProcessPromptString(promptStr string) string {
 				if len(hpClass) == 0 {
 					hpClass = fmt.Sprintf(`health-%d`, util.QuantizeTens(u.Character.Health, u.Character.HealthMax.Value))
 				}
-				promptOut.WriteString(fmt.Sprintf(`<ansi fg="%s">%d%%</ansi>`, hpClass, hpPct))
+				value = fmt.Sprintf(`<ansi fg="%s">%d%%</ansi>`, hpClass, hpPct)
 
 			case `{hp%:-}`:
 				if hpPct == -1 {
 					hpPct = int(math.Floor(float64(u.Character.Health) / float64(u.Character.HealthMax.Value) * 100))
 				}
-				promptOut.WriteString(strconv.Itoa(hpPct))
-				promptOut.WriteString(`%`)
+				value = strconv.Itoa(hpPct) + `%`
 
 			case `{mp}`:
 				if len(mpClass) == 0 {
 					mpClass = fmt.Sprintf(`mana-%d`, util.QuantizeTens(u.Character.Mana, u.Character.ManaMax.Value))
 				}
-				promptOut.WriteString(fmt.Sprintf(`<ansi fg="%s">%d</ansi>`, mpClass, u.Character.Mana))
+				value = fmt.Sprintf(`<ansi fg="%s">%d</ansi>`, mpClass, u.Character.Mana)
 
 			case `{mp:-}`:
-				promptOut.WriteString(strconv.Itoa(u.Character.Mana))
+				value = strconv.Itoa(u.Character.Mana)
 
 			case `{MP}`:
 				if len(mpClass) == 0 {
 					mpClass = fmt.Sprintf(`mana-%d`, util.QuantizeTens(u.Character.Mana, u.Character.ManaMax.Value))
 				}
-				promptOut.WriteString(fmt.Sprintf(`<ansi fg="%s">%d</ansi>`, mpClass, u.Character.ManaMax.Value))
+				value = fmt.Sprintf(`<ansi fg="%s">%d</ansi>`, mpClass, u.Character.ManaMax.Value)
 
 			case `{MP:-}`:
-				promptOut.WriteString(strconv.Itoa(u.Character.ManaMax.Value))
+				value = strconv.Itoa(u.Character.ManaMax.Value)
 
 			case `{mp%}`:
 				if mpPct == -1 {
@@ -163,101 +210,109 @@ func (u *UserRecord) ProcessPromptString(promptStr string) string {
 				if len(mpClass) == 0 {
 					mpClass = fmt.Sprintf(`mana-%d`, util.QuantizeTens(u.Character.Mana, u.Character.ManaMax.Value))
 				}
-				promptOut.WriteString(fmt.Sprintf(`<ansi fg="%s">%d%%</ansi>`, mpClass, mpPct))
+				value = fmt.Sprintf(`<ansi fg="%s">%d%%</ansi>`, mpClass, mpPct)
 
 			case `{mp%:-}`:
 				if mpPct == -1 {
 					mpPct = int(math.Floor(float64(u.Character.Mana) / float64(u.Character.ManaMax.Value) * 100))
 				}
-				promptOut.WriteString(strconv.Itoa(mpPct))
-				promptOut.WriteString(`%`)
+				value = strconv.Itoa(mpPct) + `%`
 
 			case `{ap}`:
-				promptOut.WriteString(strconv.Itoa(u.Character.ActionPoints))
+				value = strconv.Itoa(u.Character.ActionPoints)
 
 			case `{xp}`:
 				if currentXP == -1 && tnlXP == -1 {
 					currentXP, tnlXP = u.Character.XPTNLActual()
 				}
-				promptOut.WriteString(strconv.Itoa(currentXP))
+				value = strconv.Itoa(currentXP)
 
 			case `{XP}`:
 				if currentXP == -1 && tnlXP == -1 {
 					currentXP, tnlXP = u.Character.XPTNLActual()
 				}
-				promptOut.WriteString(strconv.Itoa(tnlXP))
+				value = strconv.Itoa(tnlXP)
 
 			case `{xpn}`:
 				if currentXP == -1 && tnlXP == -1 {
 					currentXP, tnlXP = u.Character.XPTNLActual()
 				}
-				promptOut.WriteString(strconv.Itoa(tnlXP - currentXP))
+				value = strconv.Itoa(tnlXP - currentXP)
 
 			case `{xp%}`:
 				if currentXP == -1 && tnlXP == -1 {
 					currentXP, tnlXP = u.Character.XPTNLActual()
 				}
-				tnlPercent := int(math.Floor(float64(currentXP) / float64(tnlXP) * 100))
-				promptOut.WriteString(strconv.Itoa(tnlPercent))
-				promptOut.WriteString(`%`)
+				value = strconv.Itoa(int(math.Floor(float64(currentXP)/float64(tnlXP)*100))) + `%`
 
 			case `{h}`:
-				hiddenFlag := ``
 				if u.Character.HasBuffFlag(buffs.Hidden) {
-					hiddenFlag = `H`
+					value = `H`
 				}
-				promptOut.WriteString(hiddenFlag)
 
 			case `{a}`:
 				alignClass := u.Character.AlignmentName()
-				promptOut.WriteString(fmt.Sprintf(`<ansi fg="%s">%s</ansi>`, alignClass, alignClass[:1]))
+				value = fmt.Sprintf(`<ansi fg="%s">%s</ansi>`, alignClass, alignClass[:1])
 
 			case `{A}`:
 				alignClass := u.Character.AlignmentName()
-				promptOut.WriteString(fmt.Sprintf(`<ansi fg="%s">%s</ansi>`, alignClass, alignClass))
+				value = fmt.Sprintf(`<ansi fg="%s">%s</ansi>`, alignClass, alignClass)
 
 			case `{g}`:
-				promptOut.WriteString(strconv.Itoa(u.Character.Gold))
+				value = strconv.Itoa(u.Character.Gold)
 
 			case `{tp}`:
-				promptOut.WriteString(strconv.Itoa(u.Character.TrainingPoints))
+				value = strconv.Itoa(u.Character.TrainingPoints)
 
 			case `{sp}`:
-				promptOut.WriteString(strconv.Itoa(u.Character.StatPoints))
+				value = strconv.Itoa(u.Character.StatPoints)
 
 			case `{i}`:
-				promptOut.WriteString(strconv.Itoa(len(u.Character.Items)))
+				value = strconv.Itoa(len(u.Character.Items))
 
 			case `{I}`:
-				promptOut.WriteString(strconv.Itoa(u.Character.CarryCapacity()))
+				value = strconv.Itoa(u.Character.CarryCapacity())
 
 			case `{lvl}`:
-				promptOut.WriteString(strconv.Itoa(u.Character.Level))
+				value = strconv.Itoa(u.Character.Level)
 
 			case `{w}`:
 				if u.Character.Aggro != nil {
-					promptOut.WriteString(strconv.Itoa(u.Character.Aggro.RoundsWaiting))
+					value = strconv.Itoa(u.Character.Aggro.RoundsWaiting)
 				} else {
-					promptOut.WriteString(`0`)
+					value = `0`
 				}
 
 			case `{t}`:
-				gd := gametime.GetDate()
-				promptOut.WriteString(gd.String(true))
+				value = gametime.GetDate().String(true)
 
 			case `{T}`:
-				gd := gametime.GetDate()
-				promptOut.WriteString(gd.String())
+				value = gametime.GetDate().String()
 
+			default:
+				value = tag
 			}
+
+			tokens = append(tokens, PromptToken{Tag: tag, Value: value})
 			tagStartPos = -1
 			continue
 		}
 
 		if tagStartPos == -1 {
-			promptOut.WriteByte(promptStr[i])
+			litBuf.WriteByte(promptStr[i])
 		}
 	}
 
-	return promptOut.String()
+	// Flush any trailing literal text (also covers an unclosed '{' at end of
+	// string — tagStartPos would be set but we have nothing to emit for the
+	// incomplete tag, so we just flush whatever accumulated before it).
+	flushLiteral()
+
+	data := OnBuildPrompt.Fire(PromptData{User: u, Tokens: tokens})
+
+	out := strings.Builder{}
+	for _, t := range data.Tokens {
+		out.WriteString(t.Value)
+	}
+	return out.String()
 }
