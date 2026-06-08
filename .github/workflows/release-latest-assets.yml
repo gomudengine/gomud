@@ -99,6 +99,12 @@ jobs:
           -ldflags "-X main.version=${{ env.BINARY_VERSION }}"
           -o bin/gomud-windows_x64.exe .
 
+      - name: Build windows arm64
+        run: >-
+          env GOOS=windows GOARCH=arm64 go build -v
+          -ldflags "-X main.version=${{ env.BINARY_VERSION }}"
+          -o bin/gomud-windows_arm64.exe .
+
       - name: Build darwin/arm64
         run: >-
           env GOOS=darwin GOARCH=arm64 go build -v
@@ -177,6 +183,7 @@ jobs:
           cd bin
           sha256sum \
             gomud-windows_x64.exe \
+            gomud-windows_arm64.exe \
             gomud-darwin_arm64 \
             gomud-darwin_x64 \
             gomud-linux_x64 \
@@ -228,6 +235,7 @@ jobs:
         run: |
           assets=(
             bin/gomud-windows_x64.exe
+            bin/gomud-windows_arm64.exe
             bin/gomud-darwin_arm64
             bin/gomud-darwin_x64
             bin/gomud-linux_x64
@@ -236,21 +244,6 @@ jobs:
             "bin/$DATAFILES_ARCHIVE"
             "bin/$CHECKSUMS_FILE"
           )
-          stale_assets=(
-            gomud-linux_arm5
-          )
-
-          delete_stale_release_assets() {
-            local asset_name
-            for asset_name in "$@"; do
-              if gh release view "$RELEASE_TAG" \
-                --json assets \
-                --jq '.assets[].name' \
-                | grep -Fxq "$asset_name"; then
-                gh release delete-asset "$RELEASE_TAG" "$asset_name" --yes
-              fi
-            done
-          }
 
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             gh api \
@@ -258,7 +251,6 @@ jobs:
               "repos/${GITHUB_REPOSITORY}/git/refs/tags/${RELEASE_TAG}" \
               -f "sha=${GITHUB_SHA}" \
               -F force=true
-            delete_stale_release_assets "${stale_assets[@]}"
             gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
             gh release edit "$RELEASE_TAG" \
               --title "$RELEASE_TITLE" \
