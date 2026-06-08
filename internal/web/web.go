@@ -872,6 +872,36 @@ func serveAdminStaticFile(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// For known text types, open the file ourselves and serve with an explicit
+	// Content-Type so that http.ServeFile's content-type sniffing cannot
+	// override it with "text/plain".
+	switch fileExt {
+	case ".js", ".css", ".html":
+		f, err := os.Open(fullPath)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		defer f.Close()
+		stat, err := f.Stat()
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		var contentType string
+		switch fileExt {
+		case ".js":
+			contentType = "application/javascript"
+		case ".css":
+			contentType = "text/css; charset=utf-8"
+		case ".html":
+			contentType = "text/html; charset=utf-8"
+		}
+		w.Header().Set("Content-Type", contentType)
+		http.ServeContent(w, r, stat.Name(), stat.ModTime(), f)
+		return
+	}
+
 	http.ServeFile(w, r, fullPath)
 }
 
