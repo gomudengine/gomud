@@ -8,7 +8,8 @@ runs:
       shell: bash
     - run: go test -race ./...
       shell: bash
-    - run: |
+    - name: Cross-compile release targets
+      run: |
         tmp_dir="$(mktemp -d)"
         trap 'rm -rf "$tmp_dir"' EXIT
 
@@ -18,13 +19,15 @@ runs:
           local goarm="$3"
           local output="$4"
 
+          echo "::group::Build $output ($goos/$goarch${goarm:+ GOARM=$goarm})"
           if [ -n "$goarm" ]; then
             env GOOS="$goos" GOARCH="$goarch" GOARM="$goarm" \
-              go build -o "$tmp_dir/$output" .
+              go build -v -o "$tmp_dir/$output" .
           else
             env GOOS="$goos" GOARCH="$goarch" \
-              go build -o "$tmp_dir/$output" .
+              go build -v -o "$tmp_dir/$output" .
           fi
+          echo "::endgroup::"
         }
 
         build_target linux amd64 "" gomud-linux_x64
