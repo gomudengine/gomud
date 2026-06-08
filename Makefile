@@ -207,7 +207,7 @@ coverage:
 js-lint:  ### Run Javascript linter
 	@if command -v npx >/dev/null 2>&1; then \
 		npx --yes --loglevel=error jshint@$(JSHINT_VERSION) \
-			$(WEBCLIENT_BASE_JS); \
+			$(WEBCLIENT_BASE_JS) && \
 		npx --yes --loglevel=error jshint@$(JSHINT_VERSION) \
 			--config .jshintrc.webclient-windows \
 			$(WEBCLIENT_WINDOW_JS); \
