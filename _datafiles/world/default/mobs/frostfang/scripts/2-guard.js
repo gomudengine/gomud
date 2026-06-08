@@ -50,7 +50,7 @@ function onIdle(mob, room) {
  * Called when the mob reaches a waypoint on its path.
  * @param {ActorObject} mob - The mob.
  * @param {RoomObject} room - The room the mob is in.
- * @param {object} eventDetails - Details about the path event.
+ * @param {PathEventDetails} eventDetails - Details about the path event.
  * @returns {boolean} Return true if the event was handled.
  */
 function onPath(mob, room, eventDetails) {

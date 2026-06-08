@@ -6,7 +6,7 @@ const nouns = ["train", "training", "forest", "mushroom", "mushrooms", "animals"
  * Called when a user asks the mob a question.
  * @param {ActorObject} mob - The mob.
  * @param {RoomObject} room - The room the mob is in.
- * @param {object} eventDetails - Details about the ask event (sourceId, askText).
+ * @param {AskEventDetails} eventDetails - Details about the ask event.
  * @returns {boolean} Return true if the event was handled.
  */
 function onAsk(mob, room, eventDetails) {
@@ -31,7 +31,7 @@ function onAsk(mob, room, eventDetails) {
  * Called when a user gives the mob an item or gold.
  * @param {ActorObject} mob - The mob.
  * @param {RoomObject} room - The room the mob is in.
- * @param {object} eventDetails - Details about the give event (sourceId, sourceType, item, gold).
+ * @param {GiveEventDetails} eventDetails - Details about the give event.
  * @returns {boolean} Return true if the event was handled.
  */
 function onGive(mob, room, eventDetails) {

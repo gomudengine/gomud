@@ -6,7 +6,7 @@ const trapNouns = ["trap", "rat trap", "rat", "rodric"];
  * Called when a user asks the mob a question.
  * @param {ActorObject} mob - The mob.
  * @param {RoomObject} room - The room the mob is in.
- * @param {object} eventDetails - Details about the ask event (sourceId, askText).
+ * @param {AskEventDetails} eventDetails - Details about the ask event.
  * @returns {boolean} Return true if the event was handled.
  */
 function onAsk(mob, room, eventDetails) {

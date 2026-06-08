@@ -7,7 +7,7 @@ const INN_ROOM_ID = 61;
  * Called when a user asks the mob a question.
  * @param {ActorObject} mob - The mob.
  * @param {RoomObject} room - The room the mob is in.
- * @param {object} eventDetails - Details about the ask event (sourceId, askText).
+ * @param {AskEventDetails} eventDetails - Details about the ask event.
  * @returns {boolean} Return true if the event was handled.
  */
 function onAsk(mob, room, eventDetails) {
@@ -88,7 +88,7 @@ function onAsk(mob, room, eventDetails) {
  * Called when a user gives the mob an item or gold.
  * @param {ActorObject} mob - The mob.
  * @param {RoomObject} room - The room the mob is in.
- * @param {object} eventDetails - Details about the give event (sourceId, sourceType, item, gold).
+ * @param {GiveEventDetails} eventDetails - Details about the give event.
  * @returns {boolean} Return true if the event was handled.
  */
 function onGive(mob, room, eventDetails) {
@@ -128,7 +128,7 @@ function onGive(mob, room, eventDetails) {
  * Called when the mob reaches a waypoint on its path.
  * @param {ActorObject} mob - The mob.
  * @param {RoomObject} room - The room the mob is in.
- * @param {object} eventDetails - Details about the path event.
+ * @param {PathEventDetails} eventDetails - Details about the path event.
  * @returns {boolean} Return true if the event was handled.
  */
 function onPath(mob, room, eventDetails) {
@@ -187,7 +187,7 @@ function onIdle(mob, room) {
  * Called when a user shows the mob an item.
  * @param {ActorObject} mob - The mob.
  * @param {RoomObject} room - The room the mob is in.
- * @param {object} eventDetails - Details about the show event (sourceId, item).
+ * @param {ShowEventDetails} eventDetails - Details about the show event.
  * @returns {boolean} Return true if the event was handled.
  */
 function onShow(mob, room, eventDetails) {
