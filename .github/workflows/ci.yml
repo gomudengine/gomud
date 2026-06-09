@@ -29,7 +29,7 @@ permissions:
 
 jobs:
   detect-changes:
-    name: Detect Relevant Changes
+    name: Detect JavaScript Changes
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
@@ -47,7 +47,7 @@ jobs:
           persist-credentials: false
 
       - id: filter
-        name: Detect JavaScript lint inputs
+        name: Detect relevant inputs
         env:
           BASE_REF: >-
             ${{ github.event.pull_request.base.sha || github.event.before }}
@@ -88,17 +88,26 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     needs: detect-changes
-    if: >-
-      needs.detect-changes.outputs.runtime_build == 'true'
     steps:
+      - name: Skip Go lint checks
+        if: >-
+          needs.detect-changes.outputs.runtime_build != 'true'
+        run: echo "No runtime build inputs changed; skipping Go lint checks."
+
       # actions/checkout v6.0.2
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        if: >-
+          needs.detect-changes.outputs.runtime_build == 'true'
         with:
           persist-credentials: false
 
       - uses: ./.github/actions/setup-go
+        if: >-
+          needs.detect-changes.outputs.runtime_build == 'true'
 
       - name: Run Go lint checks
+        if: >-
+          needs.detect-changes.outputs.runtime_build == 'true'
         run: make validate
 
   js-lint:
@@ -106,37 +115,54 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     needs: detect-changes
-    # The web client JavaScript is linted only when related files change.
-    if: >-
-      needs.detect-changes.outputs.js_lint == 'true'
     steps:
+      - name: Skip JavaScript lint checks
+        if: >-
+          needs.detect-changes.outputs.js_lint != 'true'
+        run: echo "No JavaScript lint inputs changed; skipping JavaScript lint checks."
+
       # actions/checkout v6.0.2
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        if: >-
+          needs.detect-changes.outputs.js_lint == 'true'
         with:
           persist-credentials: false
 
       - name: Set up Node.js
+        if: >-
+          needs.detect-changes.outputs.js_lint == 'true'
         # actions/setup-node v6.4.0
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
           node-version: '22'
 
       - name: Run JavaScript lint checks
+        if: >-
+          needs.detect-changes.outputs.js_lint == 'true'
         run: make js-lint
 
   test:
-    name: Go Tests
+    name: Go Tests And Release Cross-Compile
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     needs: detect-changes
-    if: >-
-      needs.detect-changes.outputs.runtime_build == 'true'
     steps:
+      - name: Skip Go tests
+        if: >-
+          needs.detect-changes.outputs.runtime_build != 'true'
+        run: echo "No runtime build inputs changed; skipping Go tests."
+
       # actions/checkout v6.0.2
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        if: >-
+          needs.detect-changes.outputs.runtime_build == 'true'
         with:
           persist-credentials: false
 
       - uses: ./.github/actions/setup-go
+        if: >-
+          needs.detect-changes.outputs.runtime_build == 'true'
 
       - uses: ./.github/actions/go-checks
+        if: >-
+          needs.detect-changes.outputs.runtime_build == 'true'
