@@ -26,7 +26,8 @@ ACT_FLAGS ?= --pull=false -P ubuntu-24.04=catthehacker/ubuntu:act-latest
 ACT_DRYRUN_SECRETS ?= -s DISCORD_WEBHOOK_URL=https://example.invalid/webhook
 
 JSHINT_VERSION ?= 2.13.6
-JS_LINT_PATHS := $(shell find _datafiles -name '*.js' -print)
+VENDORED_JS_LINT_PATHS := _datafiles/html/admin/static/js/monaco/%
+JS_LINT_PATHS := $(filter-out $(VENDORED_JS_LINT_PATHS),$(shell find _datafiles -name '*.js' -print))
 WEBCLIENT_WINDOW_JS := $(shell find _datafiles/html/public/static/js/windows -name '*.js' -print)
 WEBCLIENT_BASE_JS := $(filter-out $(WEBCLIENT_WINDOW_JS),$(JS_LINT_PATHS))
 JSHINT := npx --yes --loglevel=error jshint@$(JSHINT_VERSION)
@@ -248,4 +249,3 @@ endif
 
 view_pprof_mem: ## Open the saved memory profile in the Go pprof web UI.
 	go tool pprof -http=:8989 source/_datafiles/profiles/mem.pprof
-
