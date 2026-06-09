@@ -124,7 +124,7 @@ jobs:
         run: make js-lint
 
   test:
-    name: Go Tests And Release Cross-Compile
+    name: Go Tests
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     needs: detect-changes

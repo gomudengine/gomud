@@ -10,12 +10,6 @@ repository="${GITHUB_REPOSITORY:-}"
 commit_sha="${GITHUB_SHA:-}"
 ref_name="${GITHUB_REF_NAME:-}"
 datafiles_archive="${DATAFILES_ARCHIVE:-gomud-ALL-datafiles.zip}"
-checksums_file="${CHECKSUMS_FILE:-SHA256SUMS.txt}"
-downloads="$(
-	DATAFILES_ARCHIVE="$datafiles_archive" \
-		CHECKSUMS_FILE="$checksums_file" \
-		.github/scripts/release-assets.sh downloads-markdown
-)"
 
 require_env() {
 	local name="$1"
@@ -140,7 +134,7 @@ irm https://raw.githubusercontent.com/GoMudEngine/GoMud/master/scripts/install.p
 - Go to the GoMud [Release Page](https://github.com/${repository}/releases/tag/${release_tag})
 - Scroll down to the **Assets** section and expand it
 - Download the datafiles (needed by all operating systems):
-  - **\`gomud-ALL-datafiles.zip\`**
+  - **\`${datafiles_archive}\`**
   - Extract this zip file into the same folder as the GoMud binary
 - Download the GoMud binary/executable specific for your operating system, based on the table below:
 
