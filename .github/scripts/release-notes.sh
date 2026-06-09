@@ -98,10 +98,11 @@ ${overview}
 
 ${summary}
 
+## Install GoMud
 
 <details>
 
-<summary>Install GoMud instructions</summary>
+<summary>Instructions (expand)</summary>
 
 ### Quick Install (Recommended)
 
