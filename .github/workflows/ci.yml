@@ -70,14 +70,7 @@ jobs:
             echo "js_lint=false" >> "$GITHUB_OUTPUT"
           fi
 
-          runtime_re='(^|/)[^/]+\.go$'
-          runtime_re="${runtime_re}|^(go\.mod|go\.sum|Makefile|_datafiles/)"
-          runtime_re="${runtime_re}|^(modules/|cmd/|internal/|scripts/)"
-          runtime_re="${runtime_re}|^(provisioning/|compose\.yml)"
-          runtime_re="${runtime_re}|^\.github/actions/(go-checks|setup-go)/"
-          runtime_re="${runtime_re}|^\.github/workflows/ci\.yml"
-
-          if printf '%s\n' "${changed_files}" | grep -Eq "${runtime_re}"; then
+          if printf '%s\n' "${changed_files}" | grep -Eq '(^|/)[^/]+\.go$'; then
             echo "runtime_build=true" >> "$GITHUB_OUTPUT"
           else
             echo "runtime_build=false" >> "$GITHUB_OUTPUT"
