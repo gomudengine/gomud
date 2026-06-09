@@ -18,7 +18,7 @@ name: CI
       - reopened
       - ready_for_review
 
-# Superseded CI runs cancel just like the former Lint and Run Tests workflows.
+# Superseded CI runs cancel previous runs
 concurrency:
   group: >-
     ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
