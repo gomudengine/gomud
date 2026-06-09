@@ -132,8 +132,8 @@ jobs:
           path: dist/*
           if-no-files-found: error
 
-  publish:
-    name: Publish Stable Release
+  stage-release:
+    name: Stage Stable Release
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     needs:
@@ -144,6 +144,8 @@ jobs:
       contents: write
       id-token: write
       attestations: write
+    outputs:
+      release_id: ${{ steps.draft.outputs.release_id }}
     env:
       RELEASE_TAG: ${{ inputs.release_tag }}
       RELEASE_TITLE: ${{ inputs.release_tag }}
@@ -251,23 +253,11 @@ jobs:
             --title "$RELEASE_TITLE" \
             --latest
 
-      - name: Publish stable release
-        env:
-          RELEASE_ID: ${{ steps.draft.outputs.release_id }}
-        run: |
-          set -euo pipefail
-
-          gh api \
-            -X PATCH \
-            "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" \
-            -F draft=false \
-            -F prerelease=false
-
   docker-image:
     name: Publish Stable Docker Image
     needs:
       - validate-release
-      - publish
+      - stage-release
     uses: ./.github/workflows/docker-package.yml
     permissions:
       contents: read
@@ -277,3 +267,26 @@ jobs:
     secrets: inherit
     with:
       release_tag: ${{ inputs.release_tag }}
+
+  publish:
+    name: Publish Stable Release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    needs:
+      - stage-release
+      - docker-image
+    permissions:
+      contents: write
+    env:
+      RELEASE_ID: ${{ needs.stage-release.outputs.release_id }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Publish stable release
+        run: |
+          set -euo pipefail
+
+          gh api \
+            -X PATCH \
+            "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" \
+            -F draft=false \
+            -F prerelease=false

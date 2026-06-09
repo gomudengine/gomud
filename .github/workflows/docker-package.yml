@@ -10,7 +10,7 @@ name: Docker Image
         type: string
 
 concurrency:
-  group: ${{ github.workflow }}-${{ inputs.release_tag }}
+  group: docker-package-${{ inputs.release_tag }}
   cancel-in-progress: false
 
 permissions:
