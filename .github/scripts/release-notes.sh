@@ -104,26 +104,62 @@ ${overview}
 
 ${summary}
 
-## Downloads
+## Install GoMud
 
-${downloads}
+### Requirements
 
-## Install From Source
+- Go 1.24 or newer
+- Optional: Docker (for container-based runs)
 
-Clone the repository, check out this release tag or commit, install the Go
-toolchain from \`go.mod\`, and run \`make build\`.
+### Quick Install (Recommended)
 
-## Manual Binary Install
+- The fastest way to get GoMud running.
+- These scripts install Go and Git (if needed), clone the GoMud repo, and build the server binary automatically.
 
-Download the binary for your operating system and CPU architecture, download
-\`${datafiles_archive}\`, unpack the datafiles next to the binary, and make the
-binary executable on Unix-like systems.
+**Linux / macOS:**
 
-## Verify Provenance
+Open a Terminal and run:
 
-Download \`${checksums_file}\` and run \`sha256sum -c ${checksums_file}\` in the
-directory containing the release assets. Verify build provenance with
-\`gh attestation verify <asset> --repo ${repository}\`.
+```shell
+curl -fsSL https://raw.githubusercontent.com/GoMudEngine/GoMud/master/scripts/install.sh | sh
+```
+
+**Windows:**
+
+Open a `Powershell` window and run:
+
+```powershell
+irm https://raw.githubusercontent.com/GoMudEngine/GoMud/master/scripts/install.ps1 | iex
+```
+
+- Both scripts install GoMud to `~/GoMud` by default.
+- Set the `GOMUD_DIR` environment variable before running to choose a different location.
+
+### Alternative: Manual Binary Install
+
+- Go to the GoMud [Release Page](https://github.com/GoMudEngine/GoMud/releases/latest)
+- Scroll down to the **Assets** section and expand it
+- Download the datafiles (needed by all operating systems):
+  - **`gomud-ALL-datafiles.zip`**
+  - Extract this zip file into the same folder as the GoMud binary
+- Download the GoMud binary/executable specific for your operating system, based on the table below:
+
+**Most common:**
+
+| Filename | Operating System | CPU Architecture | Typical Devices |
+|------------|------------------|------------------|-----------------|
+| gomud-darwin_arm64 | macOS | ARM64 (Apple Silicon) | Apple M1, M2, M3, M4 Macs |
+| gomud-linux_x64 | Linux | x86_64 (Intel/AMD 64-bit) | Most modern desktop/server Linux systems |
+| gomud-windows_x64.exe | Windows | x86_64 (Intel/AMD 64-bit) | Most modern Windows PCs |
+
+**Other options:**
+
+| Filename | Operating System | CPU Architecture | Typical Devices |
+|------------|------------------|------------------|-----------------|
+| gomud-darwin_x64 | macOS | x86_64 (Intel 64-bit) | Older Intel-based Macs |
+| gomud-windows_arm64.exe | Windows | ARM64 | Surface Pro X, Snapdragon X Elite laptops, Windows on ARM
+| gomud-linux_arm64 | Linux | ARM64 (AArch64) | Linux systems using ARM-based CPUs |
+| gomud-linux_armv7 | Linux | ARMv7 (32-bit) | Raspberry Pi 2/3 running 32-bit OS |
 
 ## Changes
 
