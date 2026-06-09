@@ -466,41 +466,57 @@
         <!-- ── Time Periods ── -->
         <section class="doc-section" id="time-periods">
             <h2>Time Periods</h2>
-            <p style="font-size:0.875rem;color:var(--color-text-tertiary);margin-bottom:1rem;">Whenever a function accepts a time period string, use one of these formats:</p>
+            <p style="font-size:0.875rem;color:var(--color-text-tertiary);margin-bottom:1rem;">Whenever a function accepts a time period string (e.g. <code>ActorObject.TimerSet()</code>, <code>ActorObject.TryCooldown()</code>), it is parsed as <code>[quantity] unit [qualifier]</code>. The quantity defaults to <code>1</code> when omitted, the optional qualifier (<code>real</code>/<code>irl</code> or <code>game</code>/<code>gametime</code>) may appear before <em>or</em> after the unit, and unit names match loosely &mdash; singular, plural, and <code>-ly</code> forms all work (<code>"day"</code>, <code>"2 days"</code>, <code>"daily"</code>).</p>
             <table class="ref-table">
                 <thead>
                     <tr><th>Format</th><th>Example</th><th>Notes</th></tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td><code>{num} {unit}</code></td>
-                        <td><code>"3 hours"</code></td>
-                        <td>In-game time. Default when no qualifier is given.</td>
+                        <td><code>{unit}</code></td>
+                        <td><code>"day"</code></td>
+                        <td>Quantity defaults to <code>1</code>. In-game time.</td>
                     </tr>
                     <tr>
-                        <td><code>{num} real {unit}</code></td>
-                        <td><code>"1 real day"</code></td>
-                        <td>Real-world time, not scaled to game speed.</td>
+                        <td><code>{num} {unit}</code></td>
+                        <td><code>"3 hours"</code></td>
+                        <td>In-game time &mdash; the default when no qualifier is given.</td>
+                    </tr>
+                    <tr>
+                        <td><code>{num} real {unit}</code><br><code>{num} {unit} irl</code></td>
+                        <td><code>"1 real day"</code><br><code>"1 day irl"</code></td>
+                        <td>Real-world time, not scaled to game speed. <code>real</code> and <code>irl</code> are interchangeable and may go before or after the unit.</td>
+                    </tr>
+                    <tr>
+                        <td><code>{num} game {unit}</code><br><code>{num} {unit} gametime</code></td>
+                        <td><code>"2 game days"</code><br><code>"2 days gametime"</code></td>
+                        <td>Explicitly in-game time (same as the default). <code>game</code> and <code>gametime</code> are interchangeable.</td>
+                    </tr>
+                    <tr>
+                        <td><code>{num}</code></td>
+                        <td><code>"5"</code></td>
+                        <td>A bare number with no unit is treated as that many in-game <strong>hours</strong>.</td>
                     </tr>
                     <tr>
                         <td colspan="3" style="padding-top:0.6rem;padding-bottom:0.2rem;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-faint);">Available units</td>
                     </tr>
-                    <tr><td><code>rounds</code></td><td><code>"10 rounds"</code></td><td>Raw game rounds (fastest unit).</td></tr>
+                    <tr><td><code>rounds</code></td><td><code>"10 rounds"</code></td><td>Raw game rounds (the smallest unit of time).</td></tr>
                     <tr><td><code>minutes</code></td><td><code>"30 minutes"</code></td><td>In-game minutes.</td></tr>
-                    <tr><td><code>hours</code></td><td><code>"2 hours"</code></td><td>In-game hours.</td></tr>
-                    <tr><td><code>days</code></td><td><code>"1 day"</code></td><td>One full in-game day cycle.</td></tr>
-                    <tr><td><code>weeks</code></td><td><code>"1 week"</code></td><td>7 in-game days.</td></tr>
-                    <tr><td><code>months</code></td><td><code>"1 month"</code></td><td>~30 in-game days.</td></tr>
-                    <tr><td><code>years</code></td><td><code>"1 year"</code></td><td>365 in-game days.</td></tr>
+                    <tr><td><code>hours</code> / <code>hourly</code></td><td><code>"2 hours"</code></td><td>In-game hours.</td></tr>
+                    <tr><td><code>days</code> / <code>daily</code></td><td><code>"1 day"</code></td><td>One full in-game day cycle.</td></tr>
+                    <tr><td><code>weeks</code> / <code>weekly</code></td><td><code>"1 week"</code></td><td>Days-per-week from the active calendar (default 7).</td></tr>
+                    <tr><td><code>months</code> / <code>monthly</code></td><td><code>"1 month"</code></td><td>Hours-per-month from the active calendar (~30 days by default).</td></tr>
+                    <tr><td><code>years</code> / <code>yearly</code></td><td><code>"1 year"</code></td><td>Days-per-year from the active calendar (default 365).</td></tr>
                     <tr>
-                        <td colspan="3" style="padding-top:0.6rem;padding-bottom:0.2rem;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-faint);">Anchor-relative units (snap to last occurrence)</td>
+                        <td colspan="3" style="padding-top:0.6rem;padding-bottom:0.2rem;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-faint);">Anchor-relative units (snap back to the last occurrence, then add N&nbsp;days)</td>
                     </tr>
-                    <tr><td><code>noon</code></td><td><code>"1 noon"</code></td><td>Last in-game noon + N game days.</td></tr>
-                    <tr><td><code>midnight</code></td><td><code>"1 midnight"</code></td><td>Last in-game midnight + N game days.</td></tr>
-                    <tr><td><code>sunrise</code></td><td><code>"2 sunrises"</code></td><td>Last sunrise + N game days.</td></tr>
-                    <tr><td><code>sunset</code></td><td><code>"1 sunset"</code></td><td>Last sunset + N game days.</td></tr>
+                    <tr><td><code>noon</code> / <code>noons</code></td><td><code>"1 noon"</code></td><td>Last in-game noon + N game days.</td></tr>
+                    <tr><td><code>midnight</code> / <code>midnights</code></td><td><code>"1 midnight"</code></td><td>Last in-game midnight (start of day) + N game days.</td></tr>
+                    <tr><td><code>sunrise</code> / <code>sunrises</code></td><td><code>"2 sunrises"</code></td><td>Last sunrise + N game days.</td></tr>
+                    <tr><td><code>sunset</code> / <code>sunsets</code></td><td><code>"1 sunset"</code></td><td>Last sunset + N game days.</td></tr>
                 </tbody>
             </table>
+            <p style="font-size:0.82rem;color:var(--color-text-faint);margin-top:0.75rem;">Notes: Anchor-relative units always use game time &mdash; a <code>real</code>/<code>irl</code> qualifier on them is ignored. Real-world durations are approximate: a "real day" is treated as 23.5&nbsp;hours, so for precise real-world timing prefer <code>real hours</code> or <code>real minutes</code>. An unrecognized unit (e.g. a typo) silently falls back to raw rounds.</p>
         </section>
 
         <!-- ── Targeting Symbols ── -->
