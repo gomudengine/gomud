@@ -99,7 +99,7 @@ fmt: ## Format all Go files.
 
 fmtcheck: ## Fail if any Go file is not gofmt-formatted.
 	@set -e; \
-	unformatted=$$(gofmt -l $$(find . -path './vendor' -prune -o -name '*.go' -print)); \
+	unformatted=$$(gofmt -l $$(git ls-files '*.go')); \
 	if [ -n "$$unformatted" ]; then \
 		echo "Go files need formatting:"; \
 		printf '%s\n' "$$unformatted"; \
