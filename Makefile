@@ -52,7 +52,7 @@ export GOFLAGS := -mod=mod
 ## Help
 help: ## List documented Makefile targets.
 	@awk ' \
-		BEGIN { FS = ":.*##"; printf "\nUsage:\n  make <target>\n" } \
+		BEGIN { FS = ":.*##"; printf "\nUsage:   make <target>\nExample: make build\n" } \
 		/^## / { printf "\n\033[90;3m%s\033[0m\n", substr($$0, 4); next } \
 		/^[[:alnum:]_.%/-]+:.*## / { printf "  \033[93m%-24s\033[0m %s\n", $$1, $$2 } \
 	' $(MAKEFILE_LIST)
