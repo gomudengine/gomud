@@ -102,7 +102,8 @@ For Windows, use the PowerShell installer:
     case "$raw_arch" in
     x86_64)          GO_ARCH="amd64" ;;
     aarch64 | arm64) GO_ARCH="arm64" ;;
-    armv6l)          GO_ARCH="armv6l" ;;
+    # Go distributes 32-bit Linux ARM toolchains as linux-armv6l.
+    armv6l | armv7l | armv8l) GO_ARCH="armv6l" ;;
     i386 | i686)     GO_ARCH="386" ;;
     *)               fatal "Unsupported architecture: $raw_arch." ;;
     esac
@@ -197,6 +198,7 @@ install_go() {
     maybe_sudo tar -C /usr/local -xzf "$archive_path"
 
     # Persist PATH update to ~/.profile if not already present.
+    # shellcheck disable=SC2016
     profile_line='export PATH=$PATH:/usr/local/go/bin'
     if [ -f "$HOME/.profile" ] && grep -qF '/usr/local/go/bin' "$HOME/.profile"; then
         : # already present

@@ -45,6 +45,11 @@ jobs:
         run: |
           set -euo pipefail
 
+          if [ "${GITHUB_REF}" != "refs/heads/master" ]; then
+            echo "Stable releases must be run from the master branch." >&2
+            exit 1
+          fi
+
           semver_re='^v(0|[1-9][0-9]*)\.'
           semver_re="${semver_re}(0|[1-9][0-9]*)\."
           semver_re="${semver_re}(0|[1-9][0-9]*)$"
