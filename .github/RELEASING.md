@@ -19,9 +19,9 @@ Recommended versioning for the next release line:
    assets. This is intentional so the rolling prerelease remains mutable.
 4. The prerelease is marked as a prerelease and is not marked as `Latest`.
 
-Pull requests do not publish release binaries. The generic `Run Tests` workflow
-is PR-focused; `master` release testing happens inside the `Prerelease` workflow
-to avoid duplicate full race-test runs on merge.
+Pull requests do not publish release binaries. The generic `CI` workflow runs
+the PR test gate; `master` release testing happens inside the `Prerelease`
+workflow to avoid duplicate full race-test runs on merge.
 
 ### Stable Release
 

@@ -9,6 +9,8 @@ name: Stable Release
         required: true
         type: string
 
+# Stable releases are intentionally immutable. Re-running with an existing tag
+# or release fails instead of replacing published assets.
 concurrency:
   group: ${{ github.workflow }}-${{ inputs.release_tag }}
   cancel-in-progress: false
@@ -22,6 +24,7 @@ env:
 
 jobs:
   validate-release:
+    name: Validate Stable Release Request
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -75,6 +78,7 @@ jobs:
           echo "binary_version=${binary_version}" >> "$GITHUB_OUTPUT"
 
   test:
+    name: Validate Release Source
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     needs: validate-release
@@ -91,6 +95,7 @@ jobs:
       - uses: ./.github/actions/go-checks
 
   build:
+    name: Build Release Binaries
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     needs:
@@ -123,6 +128,7 @@ jobs:
           if-no-files-found: error
 
   publish:
+    name: Publish Stable Release
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     needs:
@@ -145,6 +151,9 @@ jobs:
           persist-credentials: false
 
       - name: Recheck stable release immutability
+        # The first check catches bad manual inputs early. This second check
+        # runs after environment approval in case someone created the tag or
+        # release while the workflow was waiting.
         run: |
           set -euo pipefail
 
@@ -180,6 +189,8 @@ jobs:
 
       - name: Resolve attestation paths
         id: release-assets
+        # Attest binaries and checksums. The datafiles zip is covered by the
+        # checksum file because it is assembled inside this workflow.
         run: |
           {
             echo 'attestation_paths<<EOF'
@@ -196,6 +207,7 @@ jobs:
 
       - name: Create stable draft release
         id: draft
+        # Draft first so a failed upload does not expose a partial release.
         run: |
           set -euo pipefail
 

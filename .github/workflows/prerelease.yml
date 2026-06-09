@@ -6,6 +6,8 @@ name: Prerelease
     branches:
       - master
 
+# Prerelease is intentionally mutable: each successful merge to master replaces
+# the existing prerelease assets and moves the prerelease tag forward.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
@@ -19,6 +21,7 @@ env:
 
 jobs:
   metadata:
+    name: Read Binary Version
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -47,6 +50,7 @@ jobs:
           echo "binary_version=${binary_version}" >> "$GITHUB_OUTPUT"
 
   test:
+    name: Validate Release Source
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
@@ -62,6 +66,7 @@ jobs:
       - uses: ./.github/actions/go-checks
 
   build:
+    name: Build Release Binaries
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     needs:
@@ -94,6 +99,7 @@ jobs:
           if-no-files-found: error
 
   publish:
+    name: Publish Rolling Prerelease
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     needs:
@@ -132,6 +138,8 @@ jobs:
 
       - name: Resolve attestation paths
         id: release-assets
+        # Attest binaries and checksums. The datafiles zip is covered by the
+        # checksum file because it is assembled inside this workflow.
         run: |
           {
             echo 'attestation_paths<<EOF'
@@ -154,6 +162,8 @@ jobs:
             .github/scripts/release-assets.sh upload-paths
           )
 
+          # Move the lightweight prerelease tag when it already exists. If it
+          # does not exist, gh release create will create it at this commit.
           if gh api \
             "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" \
             >/dev/null 2>&1; then

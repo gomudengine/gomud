@@ -1,10 +1,12 @@
 ---
 name: "Go Checks"
-description: "Run go generate and go test"
+description: "Refresh generated code and run the race-enabled Go test suite"
 runs:
   using: "composite"
   steps:
-    - run: go generate ./...
+    - name: Generate code
+      run: go generate ./...
       shell: bash
-    - run: go test -race ./...
+    - name: Run Go tests
+      run: go test -race ./...
       shell: bash

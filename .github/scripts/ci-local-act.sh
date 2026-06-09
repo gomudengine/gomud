@@ -23,9 +23,10 @@ run_act() {
 		-W "$workflow"
 }
 
-run_act push .github/act/push_master.json .github/workflows/lint.yml
-run_act pull_request .github/act/pull_request.json .github/workflows/lint.yml
-run_act pull_request .github/act/pull_request.json .github/workflows/run-test.yml
+# CI combines the old lint and PR test workflows. Dry-run both event shapes
+# because pull requests cancel superseded runs while pushes to master do not.
+run_act push .github/act/push_master.json .github/workflows/ci.yml
+run_act pull_request .github/act/pull_request.json .github/workflows/ci.yml
 run_act pull_request .github/act/pull_request.json \
 	.github/workflows/discord-notify.yml ${ACT_DRYRUN_SECRETS:-}
 run_act push .github/act/push_master.json .github/workflows/prerelease.yml
