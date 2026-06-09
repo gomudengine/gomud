@@ -1,9 +1,12 @@
-.DEFAULT_GOAL := build
+# --- Makefile Overview ---
 
-# Makefile overview:
-# - Target comments marked with "##" appear in `make help`.
-# - Most values are overridable: `make build BIN=gomud VERSION=v1.2.3`.
-# - The Go version is read from go.mod so Docker workflows use the same toolchain.
+# - Run "make help" to show a full list of commands.
+# - Comments marked with double hash signs ("##") will appear in `make help` output.
+# - Most command values are overridable: `make build BIN=gomud VERSION=v1.2.3`.
+
+# --- Makefile Variables ---
+
+.DEFAULT_GOAL := help
 
 VERSION ?= $(shell git rev-parse HEAD)
 BIN ?= go-mud-server
@@ -43,6 +46,17 @@ CI_LOCAL_RUN := docker run --rm \
 	$(CI_LOCAL_IMAGE)
 
 export GOFLAGS := -mod=mod
+
+# --- Makefile Commands ---
+
+## Help
+help: ## List documented Makefile targets.
+	@awk ' \
+		BEGIN { FS = ":.*##"; printf "\nUsage:\n  make <target>\n" } \
+		/^## / { printf "\n\033[90;3m%s\033[0m\n", substr($$0, 4); next } \
+		/^[[:alnum:]_.%/-]+:.*## / { printf "  \033[93m%-24s\033[0m %s\n", $$1, $$2 } \
+	' $(MAKEFILE_LIST)
+	@printf "\n"
 
 ## Developer Workflow
 .PHONY: build build_local generate module validate test coverage fmt fmtcheck vet mod js-lint
@@ -235,11 +249,3 @@ endif
 view_pprof_mem: ## Open the saved memory profile in the Go pprof web UI.
 	go tool pprof -http=:8989 source/_datafiles/profiles/mem.pprof
 
-## Help
-help: ## List documented Makefile targets.
-	@awk ' \
-		BEGIN { FS = ":.*##"; printf "\nUsage:\n  make <target>\n" } \
-		/^## / { printf "\n\033[90;3m%s\033[0m\n", substr($$0, 4); next } \
-		/^[[:alnum:]_.%/-]+:.*## / { printf "  \033[93m%-24s\033[0m %s\n", $$1, $$2 } \
-	' $(MAKEFILE_LIST)
-	@printf "\n"
