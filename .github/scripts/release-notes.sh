@@ -72,11 +72,6 @@ else
 fi
 
 published_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-if [ -n "$previous_tag" ] && [ "$previous_tag" != "$release_tag" ]; then
-	changes_since="Changes since: \`${previous_tag}\`"
-else
-	changes_since="Changes since: initial release history"
-fi
 
 if [ "$release_kind" = "prerelease" ]; then
 	overview="Rolling prerelease build from \`${ref_name:-master}\`."
@@ -94,7 +89,7 @@ ${overview}
 - Version: \`${binary_version}\`
 - Commit: \`${commit_sha}\`
 - Published: \`${published_at}\`
-- ${changes_since}
+
 
 ${summary}
 
