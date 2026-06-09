@@ -7,7 +7,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
-	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
@@ -18,14 +17,14 @@ Level 4 - Pray to gods for a blessing
 */
 func Pray(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
-	skillLevel := user.Character.GetSkillLevel(skills.Protection)
+	skillLevel := user.Character.GetSkillLevel(`protection`)
 
 	if skillLevel < 4 {
 		user.SendText("You don't know how to pray.")
 		return true, fmt.Errorf("you don't know how to pray")
 	}
 
-	if !user.Character.TryCooldown(skills.Protection.String(), "5 real minutes") {
+	if !user.Character.TryCooldown(`protection`, "5 real minutes") {
 		user.SendText(
 			`You can only pray once every 5 minutes.`,
 		)
@@ -55,7 +54,7 @@ func Pray(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 	if prayPlayerId > 0 {
 
 		// Fire an event that a skill has been used
-		events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: skills.Protection, Details: `pray`})
+		events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: `protection`, Details: `pray`})
 
 		if prayPlayerId == user.UserId {
 			room.SendText(fmt.Sprintf(`<ansi fg="username">%s</ansi> begins to pray.`, user.Character.Name), user.UserId)
@@ -84,7 +83,7 @@ func Pray(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 	} else if prayMobId > 0 {
 
 		// Fire an event that a skill has been used
-		events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: skills.Protection, Details: `pray`})
+		events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: `protection`, Details: `pray`})
 
 		if mob := mobs.GetInstance(prayMobId); mob != nil {
 			room.SendText(fmt.Sprintf(`<ansi fg="username">%s</ansi> puts his hand over <ansi fg="mobname">%s</ansi> and begins to pray.`, user.Character.Name, mob.Character.Name), user.UserId)

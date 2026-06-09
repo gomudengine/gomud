@@ -11,7 +11,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/keywords"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
-	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
@@ -22,7 +21,7 @@ Level 2 - You can throw objects at NPCs or other rooms.
 */
 func Throw(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
-	skillLevel := user.Character.GetSkillLevel(skills.Brawling)
+	skillLevel := user.Character.GetSkillLevel(`brawling`)
 	handled := false
 
 	// If they don't have a skill, act like it's not a valid command
@@ -48,13 +47,13 @@ func Throw(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		return false, nil
 	}
 
-	if !user.Character.TryCooldown(skills.Brawling.String(`throw`), "4 rounds") {
+	if !user.Character.TryCooldown(`brawling:throw`, "4 rounds") {
 		user.SendText("You are too tired to throw objects again so soon!")
 		return true, nil
 	}
 
 	// Fire an event that a skill has been used
-	events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: skills.Brawling, Details: `throw`})
+	events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: `brawling`, Details: `throw`})
 
 	targetPlayerId, targetMobId := room.FindByName(throwWhere)
 

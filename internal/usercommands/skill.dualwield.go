@@ -5,7 +5,6 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
-	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
@@ -18,7 +17,7 @@ Level 4 - Dual wielding incurs fewer penalties
 */
 func DualWield(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
-	skillLevel := user.Character.GetSkillLevel(skills.DualWield)
+	skillLevel := user.Character.GetSkillLevel(`dual-wield`)
 
 	if skillLevel == 0 {
 		user.SendText("You haven't learned how to dual wield.")

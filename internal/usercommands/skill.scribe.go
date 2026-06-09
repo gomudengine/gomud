@@ -7,7 +7,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
-	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
@@ -21,7 +20,7 @@ Level 4 - TODO
 */
 func Scribe(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
-	skillLevel := user.Character.GetSkillLevel(skills.Scribe)
+	skillLevel := user.Character.GetSkillLevel(`scribe`)
 
 	if skillLevel == 0 {
 		user.SendText("You don't know how to scribe.")
@@ -44,7 +43,7 @@ func Scribe(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 	rest = strings.Join(args[1:], " ")
 
 	// Fire an event that a skill has been used
-	events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: skills.Scribe, Details: ``})
+	events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: `scribe`, Details: ``})
 
 	if scribeType == "note" {
 		// Create a note item
@@ -60,11 +59,11 @@ func Scribe(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 
 			user.SendText("You don't know how to create signs yet.")
 
-		} else if !user.Character.TryCooldown(skills.Scribe.String(), "10 rounds") {
+		} else if !user.Character.TryCooldown(`scribe`, "10 rounds") {
 
 			// There's a cooldown on this skill
 			user.SendText(
-				fmt.Sprintf("You need to wait %d more rounds to use that skill again.", user.Character.GetCooldown(skills.Scribe.String())),
+				fmt.Sprintf("You need to wait %d more rounds to use that skill again.", user.Character.GetCooldown(`scribe`)),
 			)
 			return true, fmt.Errorf("you're doing that too often")
 
@@ -94,11 +93,11 @@ func Scribe(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 
 			user.SendText("You don't know how to create runes yet.")
 
-		} else if !user.Character.TryCooldown(skills.Scribe.String(), "2 rounds") {
+		} else if !user.Character.TryCooldown(`scribe`, "2 rounds") {
 
 			// There's a cooldown on this skill
 			user.SendText(
-				fmt.Sprintf("You need to wait %d more rounds to use that skill again.", user.Character.GetCooldown(skills.Scribe.String())),
+				fmt.Sprintf("You need to wait %d more rounds to use that skill again.", user.Character.GetCooldown(`scribe`)),
 			)
 			return true, fmt.Errorf("you're doing that too often")
 

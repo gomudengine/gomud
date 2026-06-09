@@ -1,0 +1,282 @@
+{{template "header" .}}
+
+<style>
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--color-text-muted); margin-bottom: 2rem; font-size: 0.9rem; }
+    .api-section-title { font-size: 1.05rem; font-weight: 700; margin: 1.75rem 0 0.75rem; }
+    .api-list { display: flex; flex-direction: column; gap: 0.5rem; }
+    .api-entry { background: var(--color-surface-white); border: 1px solid var(--color-border); border-radius: 6px; overflow: hidden; }
+    .api-entry summary { display: flex; align-items: baseline; gap: 0.75rem; padding: 0.65rem 1rem; cursor: pointer; user-select: none; list-style: none; }
+    .api-entry summary::-webkit-details-marker { display: none; }
+    .api-entry summary::before { content: "\25B6"; font-size: 0.65rem; color: var(--color-text-faint); transition: transform 0.15s; flex-shrink: 0; }
+    .api-entry[open] summary::before { transform: rotate(90deg); }
+    .api-entry summary:hover { background: var(--color-surface-alt); }
+    .method { font-family: monospace; font-size: 0.8rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 3px; flex-shrink: 0; }
+    .method-get    { background: var(--color-success-bg); color: var(--color-success-text); }
+    .method-post   { background: var(--color-info-bg); color: var(--color-info-text); }
+    .method-patch  { background: var(--color-warning-bg); color: var(--color-warning-text); }
+    .method-delete { background: var(--color-error-bg); color: var(--color-error-text); }
+    .api-path { font-family: monospace; font-size: 0.9rem; color: var(--color-primary); }
+    .api-desc { font-size: 0.85rem; color: var(--color-text-muted); margin-left: auto; text-align: right; }
+    .api-body { padding: 0.75rem 1rem 1rem; border-top: 1px solid var(--color-border-light); background: var(--color-surface-alt); }
+    .api-body p { font-size: 0.85rem; color: var(--color-text-tertiary); margin-bottom: 0.5rem; }
+    .curl-block { background: var(--color-code-bg); color: var(--color-code-text); font-family: monospace; font-size: 0.82rem; padding: 0.85rem 1rem; border-radius: 5px; white-space: pre; overflow-x: auto; line-height: 1.6; margin-bottom: 0.5rem; }
+    .curl-block .kw   { color: var(--color-api-kw); }
+    .curl-block .str  { color: var(--color-api-str); }
+    .curl-block .flag { color: var(--color-api-flag); }
+    .response-examples { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
+    .resp-entry { border: 1px solid var(--color-border); border-radius: 4px; overflow: hidden; }
+    .resp-entry summary { display: flex; align-items: baseline; gap: 0.6rem; padding: 0.45rem 0.75rem; cursor: pointer; user-select: none; list-style: none; background: var(--color-page-bg); font-size: 0.82rem; }
+    .resp-entry summary::-webkit-details-marker { display: none; }
+    .resp-entry summary::before { content: "\25B6"; font-size: 0.6rem; color: var(--color-text-faint); transition: transform 0.15s; flex-shrink: 0; }
+    .resp-entry[open] summary::before { transform: rotate(90deg); }
+    .resp-entry summary:hover { background: var(--color-api-summary-hover); }
+    .resp-body { padding: 0.6rem 0.75rem 0.75rem; border-top: 1px solid var(--color-border-light); background: var(--color-surface-alt); }
+    .status-ok  { background: var(--color-success-bg); color: var(--color-success-text); }
+    .status-err { background: var(--color-error-bg); color: var(--color-error-text); }
+    .resp-label { font-size: 0.8rem; color: var(--color-text-tertiary); }
+    .perm-badge { font-size: 0.72rem; font-family: monospace; padding: 0.1rem 0.4rem; border-radius: 3px; font-weight: 600; background: var(--color-border-faint); color: var(--color-text-tertiary); margin-left: 0.5rem; }
+</style>
+
+<h1>Skills &amp; Professions API Reference</h1>
+<p class="subtitle">REST endpoints for browsing, creating, editing, and deleting skill and profession definitions. Mutations require the <code>skills.write</code> permission.</p>
+
+<div class="api-section-title">Skills</div>
+<div class="api-list">
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-get">GET</span>
+            <span class="api-path">/admin/api/v1/skills</span>
+            <span class="api-desc">Return all skills</span>
+        </summary>
+        <div class="api-body">
+            <p>Returns a map of skillId &rarr; Skill object.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/skills</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"brawling":{"SkillId":"brawling","Name":"Brawling","Description":"Hand-to-hand combat techniques.","MaxLevel":4}}}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-get">GET</span>
+            <span class="api-path">/admin/api/v1/skills/{skillId}/yaml</span>
+            <span class="api-desc">View a skill's raw YAML</span>
+        </summary>
+        <div class="api-body">
+            <p>Returns the raw YAML datafile contents for a skill.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/skills/brawling/yaml</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"yaml":"skillid: brawling\nname: Brawling\n...","path":"skills/brawling.yaml"}}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-post">POST</span>
+            <span class="api-path">/admin/api/v1/skills</span>
+            <span class="api-desc">Create a new skill</span>
+            <span class="perm-badge">skills.write</span>
+        </summary>
+        <div class="api-body">
+            <p>Creates a new skill. <code>SkillId</code> must be lowercase letters/digits/hyphens and unique. Returns the created skill.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> <span class="flag">-X</span> POST \
+     <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
+     <span class="flag">-d</span> <span class="str">'{"SkillId":"fishing","Name":"Fishing","Description":"Catch fish from bodies of water.","MaxLevel":3}'</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/skills</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"SkillId":"fishing","Name":"Fishing","Description":"Catch fish from bodies of water.","MaxLevel":3}}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Validation error</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"skill \"fishing\" already exists"}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-patch">PATCH</span>
+            <span class="api-path">/admin/api/v1/skills/{skillId}</span>
+            <span class="api-desc">Update a skill</span>
+            <span class="perm-badge">skills.write</span>
+        </summary>
+        <div class="api-body">
+            <p><code>{skillId}</code> is the skill's string id. Fields in the request body overwrite the existing skill. The <code>SkillId</code> is immutable and always preserved from the path.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> <span class="flag">-X</span> PATCH \
+     <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
+     <span class="flag">-d</span> <span class="str">'{"Name":"Fishing","Description":"Updated description.","MaxLevel":4}'</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/skills/fishing</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"SkillId":"fishing","Name":"Fishing","Description":"Updated description.","MaxLevel":4}}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">404</span> <span class="resp-label">Not found</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"skill not found: bogus"}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-delete">DELETE</span>
+            <span class="api-path">/admin/api/v1/skills/{skillId}</span>
+            <span class="api-desc">Delete a skill</span>
+            <span class="perm-badge">skills.write</span>
+        </summary>
+        <div class="api-body">
+            <p><code>{skillId}</code> is the skill's string id. Removes the skill data file from disk. A skill referenced by any profession cannot be deleted and returns <code>409 Conflict</code>.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> <span class="flag">-X</span> DELETE \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/skills/fishing</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":null}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">409</span> <span class="resp-label">In use by professions</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"skill \"brawling\" is used by professions: warrior, paladin"}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+</div>
+
+<div class="api-section-title">Professions</div>
+<div class="api-list">
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-get">GET</span>
+            <span class="api-path">/admin/api/v1/professions</span>
+            <span class="api-desc">Return all professions</span>
+        </summary>
+        <div class="api-body">
+            <p>Returns a map of professionId &rarr; Profession object. Profession ids may contain spaces.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/professions</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"warrior":{"ProfessionId":"warrior","Name":"Warrior","Description":"Front-line fighters.","Skills":["brawling","dual-wield"]}}}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-get">GET</span>
+            <span class="api-path">/admin/api/v1/professions/{professionId}/yaml</span>
+            <span class="api-desc">View a profession's raw YAML</span>
+        </summary>
+        <div class="api-body">
+            <p>Returns the raw YAML datafile contents for a profession. Percent-encode spaces in the id (e.g. <code>treasure%20hunter</code>).</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/professions/warrior/yaml</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"yaml":"professionid: warrior\nname: Warrior\n...","path":"professions/warrior.yaml"}}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-post">POST</span>
+            <span class="api-path">/admin/api/v1/professions</span>
+            <span class="api-desc">Create a new profession</span>
+            <span class="perm-badge">skills.write</span>
+        </summary>
+        <div class="api-body">
+            <p>Creates a new profession. Every entry in <code>Skills</code> must reference an existing skill id, otherwise the request is rejected.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> <span class="flag">-X</span> POST \
+     <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
+     <span class="flag">-d</span> <span class="str">'{"ProfessionId":"angler","Name":"Angler","Description":"Masters of the rod.","Skills":["fishing"]}'</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/professions</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"ProfessionId":"angler","Name":"Angler","Description":"Masters of the rod.","Skills":["fishing"]}}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Unknown skill</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"profession references unknown skill: bogus"}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-patch">PATCH</span>
+            <span class="api-path">/admin/api/v1/professions/{professionId}</span>
+            <span class="api-desc">Update a profession</span>
+            <span class="perm-badge">skills.write</span>
+        </summary>
+        <div class="api-body">
+            <p><code>{professionId}</code> is the profession's string id. Fields in the request body overwrite the existing profession. The <code>ProfessionId</code> is immutable. Unknown skill references are rejected.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> <span class="flag">-X</span> PATCH \
+     <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
+     <span class="flag">-d</span> <span class="str">'{"Name":"Angler","Description":"Updated.","Skills":["fishing"]}'</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/professions/angler</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"ProfessionId":"angler","Name":"Angler","Description":"Updated.","Skills":["fishing"]}}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">404</span> <span class="resp-label">Not found</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"profession not found: bogus"}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-delete">DELETE</span>
+            <span class="api-path">/admin/api/v1/professions/{professionId}</span>
+            <span class="api-desc">Delete a profession</span>
+            <span class="perm-badge">skills.write</span>
+        </summary>
+        <div class="api-body">
+            <p><code>{professionId}</code> is the profession's string id. Removes the profession data file from disk.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> <span class="flag">-X</span> DELETE \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/professions/angler</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":null}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">404</span> <span class="resp-label">Not found</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"profession not found: angler"}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+</div>
+
+{{template "footer" .}}

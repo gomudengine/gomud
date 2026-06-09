@@ -8,7 +8,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/races"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
-	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
@@ -21,7 +20,7 @@ Level 4 - Transform into all races. Duration 80 rounds.
 */
 func ChangeForm(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
-	skillLevel := user.Character.GetSkillLevel(skills.ChangeForm)
+	skillLevel := user.Character.GetSkillLevel(`changeform`)
 	if skillLevel == 0 {
 		user.SendText("You don't know how to change form.")
 		return true, errors.New(`you don't know how to change form`)
@@ -50,9 +49,9 @@ func ChangeForm(rest string, user *users.UserRecord, room *rooms.Room, flags eve
 		return true, nil
 	}
 
-	if !user.Character.TryCooldown(skills.ChangeForm.String(), "20 rounds") {
+	if !user.Character.TryCooldown(`changeform`, "20 rounds") {
 		user.SendText(
-			fmt.Sprintf("You need to wait %d more rounds to use that skill again.", user.Character.GetCooldown(skills.ChangeForm.String())),
+			fmt.Sprintf("You need to wait %d more rounds to use that skill again.", user.Character.GetCooldown(`changeform`)),
 		)
 		return true, errors.New(`you're doing that too often`)
 	}
@@ -89,7 +88,7 @@ func ChangeForm(rest string, user *users.UserRecord, room *rooms.Room, flags eve
 	user.Character.ApplyFormChange(raceInfo.RaceId)
 	user.Character.AddBuff(41, false, duration)
 
-	events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: skills.ChangeForm})
+	events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: `changeform`})
 
 	user.SendText(
 		fmt.Sprintf(`Your body twists and reshapes - you are now a <ansi fg="race">%s</ansi>!`, raceInfo.Name),

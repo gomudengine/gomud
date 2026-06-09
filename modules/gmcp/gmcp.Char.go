@@ -797,7 +797,7 @@ func (g *GMCPCharModule) GetCharNode(user *users.UserRecord, gmcpModule string) 
 			payload.Skills = append(payload.Skills, GMCPCharModule_Payload_Skill{
 				Name:    skillName,
 				Level:   skillLevel,
-				Maximum: skillLevel >= 4,
+				Maximum: skillLevel >= skills.MaxSkillLevel(skillName),
 			})
 		}
 

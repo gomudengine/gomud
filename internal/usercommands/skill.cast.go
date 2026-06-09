@@ -11,7 +11,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/parties"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/scripting"
-	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/spells"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
@@ -26,7 +25,7 @@ Level 4 - Become proficient in a spell at 250% rate
 */
 func Cast(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
-	skillLevel := user.Character.GetSkillLevel(skills.Cast)
+	skillLevel := user.Character.GetSkillLevel(`cast`)
 
 	if skillLevel == 0 {
 		user.SendText("You don't know how to cast spells yet.")
@@ -283,7 +282,7 @@ func Cast(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		if continueCasting {
 
 			// Fire an event that a skill has been used
-			events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: skills.Cast, Details: spellInfo.SpellId})
+			events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: `cast`, Details: spellInfo.SpellId})
 
 			user.Character.Mana -= spellInfo.Cost
 			events.AddToQueue(events.CharacterVitalsChanged{UserId: user.UserId})

@@ -6,7 +6,6 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
-	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
@@ -19,7 +18,7 @@ Level 4 - Reveals special magical properties like elemental effects.
 */
 func Inspect(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
-	if user.Character.GetSkillLevel(skills.Inspect) == 0 {
+	if user.Character.GetSkillLevel(`inspect`) == 0 {
 		user.SendText("You don't know how to inspect.")
 		return true, fmt.Errorf("you don't know how to inspect")
 	}
@@ -29,7 +28,7 @@ func Inspect(rest string, user *users.UserRecord, room *rooms.Room, flags events
 		return true, nil
 	}
 
-	skillLevel := user.Character.GetSkillLevel(skills.Inspect)
+	skillLevel := user.Character.GetSkillLevel(`inspect`)
 
 	// Check whether the user has an item in their inventory that matches
 	matchItem, found := user.Character.FindInBackpack(rest)
@@ -38,15 +37,15 @@ func Inspect(rest string, user *users.UserRecord, room *rooms.Room, flags events
 		user.SendText(fmt.Sprintf("You don't have a %s to inspect. Is it still worn, perhaps?", rest))
 	} else {
 
-		if !user.Character.TryCooldown(skills.Inspect.String(), "3 rounds") {
+		if !user.Character.TryCooldown(`inspect`, "3 rounds") {
 			user.SendText(
-				fmt.Sprintf("You need to wait %d more rounds to use that skill again.", user.Character.GetCooldown(skills.Inspect.String())),
+				fmt.Sprintf("You need to wait %d more rounds to use that skill again.", user.Character.GetCooldown(`inspect`)),
 			)
 			return true, errors.New(`you're doing that too often`)
 		}
 
 		// Fire an event that a skill has been used
-		events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: skills.Inspect, Details: ``})
+		events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: `inspect`, Details: ``})
 
 		user.SendText(
 			fmt.Sprintf(`You inspect the <ansi fg="item">%s</ansi>.`, matchItem.DisplayName()),

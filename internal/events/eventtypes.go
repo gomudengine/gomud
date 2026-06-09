@@ -6,7 +6,6 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/connections"
 	"github.com/GoMudEngine/GoMud/internal/items"
-	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/stats"
 )
 
@@ -85,7 +84,7 @@ func (i Input) Type() string { return `Input` }
 // When a skill is used by a player
 type SkillUsed struct {
 	UserId  int
-	Skill   skills.SkillTag
+	Skill   string
 	Details string // usually the specific sub-command of the skill
 }
 

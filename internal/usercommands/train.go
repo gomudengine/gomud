@@ -43,12 +43,17 @@ func Train(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 	trainOpts := map[string]TrainingOption{}
 
 	for skillName, trainingRange := range room.SkillTraining {
-		currentLevel := user.Character.GetSkillLevel(skills.SkillTag(skillName))
+		// Skip skills that no longer exist (e.g. deleted from the datafiles).
+		if !skills.SkillExists(skillName) {
+			continue
+		}
+		maxLevel := skills.MaxSkillLevel(skillName)
+		currentLevel := user.Character.GetSkillLevel(skillName)
 		opt := TrainingOption{
 			Name: skillName,
 		}
 
-		if currentLevel >= 4 {
+		if currentLevel >= maxLevel {
 			opt.CurrentStatus = "Maximum"
 			opt.Message = ""
 			opt.Cost = 0
@@ -74,7 +79,7 @@ func Train(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		}
 
 		trainOpts[skillName] = opt
-		if currentLevel >= 4 {
+		if currentLevel >= maxLevel {
 			maxed = append(maxed, skillName)
 		} else if opt.Cost > 0 {
 			trainables = append(trainables, skillName)
@@ -105,6 +110,10 @@ func Train(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 
 		allSkills := []string{}
 		for skillName, _ := range room.SkillTraining {
+			// Skip skills that no longer exist (e.g. deleted from the datafiles).
+			if !skills.SkillExists(skillName) {
+				continue
+			}
 			allSkills = append(allSkills, skillName)
 		}
 
@@ -115,14 +124,14 @@ func Train(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 
 		trainingRange, ok := room.SkillTraining[match]
 
-		currentLevel := user.Character.GetSkillLevel(skills.SkillTag(match))
+		currentLevel := user.Character.GetSkillLevel(match)
 
-		if !ok { // If it's not something that can be learned here
+		if !ok || !skills.SkillExists(match) { // If it's not something that can be learned here
 			user.SendText(`The trainer pokes you on your chest, "I think you're in the wrong place, pal."`)
 			room.SendText(
 				fmt.Sprintf(`<ansi fg="username">%s</ansi> looks a little confused.`, user.Character.Name),
 				user.UserId)
-		} else if currentLevel == 4 { // Max level
+		} else if currentLevel >= skills.MaxSkillLevel(match) { // Max level
 			user.SendText(`The trainer chuckles, "I admire your ambition, but you have already mastered that skill!"`)
 			room.SendText(
 				fmt.Sprintf(`The trainer chuckles and says something you can't quite make out to <ansi fg="username">%s</ansi>`, user.Character.Name),
@@ -163,7 +172,7 @@ func Train(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 					fmt.Sprintf(`The trainer shakes <ansi fg="username">%ss</ansi> hand while congratulating them. Must be nice.`, user.Character.Name),
 					user.UserId)
 
-				if match == string(skills.Tame) {
+				if match == `tame` {
 					if newLevel == 1 {
 						user.Character.MobMastery.SetTame(1, 1)
 						user.SendText(`You've learned how to tame a <ansi fg="mobname">rat</ansi>!`)

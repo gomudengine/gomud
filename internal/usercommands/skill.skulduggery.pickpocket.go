@@ -8,7 +8,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
-	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
@@ -19,7 +18,7 @@ Level 4 - Pickpocket
 */
 func Pickpocket(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
-	skillLevel := user.Character.GetSkillLevel(skills.Skulduggery)
+	skillLevel := user.Character.GetSkillLevel(`skulduggery`)
 
 	// If they don't have a skill, act like it's not a valid command
 	if skillLevel < 4 {
@@ -50,8 +49,8 @@ func Pickpocket(rest string, user *users.UserRecord, room *rooms.Room, flags eve
 
 	if pickPlayerId > 0 || pickMobInstanceId > 0 {
 
-		if !user.Character.TryCooldown(skills.Skulduggery.String(`pickpocket`), "1 real minute") {
-			user.SendText(fmt.Sprintf("You need to wait %d rounds before you can do that again!", user.Character.GetCooldown(skills.Skulduggery.String(`pickpocket`))))
+		if !user.Character.TryCooldown(`skulduggery:pickpocket`, "1 real minute") {
+			user.SendText(fmt.Sprintf("You need to wait %d rounds before you can do that again!", user.Character.GetCooldown(`skulduggery:pickpocket`)))
 			return true, nil
 		}
 
@@ -60,7 +59,7 @@ func Pickpocket(rest string, user *users.UserRecord, room *rooms.Room, flags eve
 	if pickMobInstanceId > 0 {
 
 		// Fire an event that a skill has been used
-		events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: skills.Skulduggery, Details: `pickpocket`})
+		events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: `skulduggery`, Details: `pickpocket`})
 
 		m := mobs.GetInstance(pickMobInstanceId)
 
@@ -157,7 +156,7 @@ func Pickpocket(rest string, user *users.UserRecord, room *rooms.Room, flags eve
 	} else if pickPlayerId > 0 {
 
 		// Fire an event that a skill has been used
-		events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: skills.Skulduggery, Details: `pickpocket`})
+		events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: `skulduggery`, Details: `pickpocket`})
 
 		if p := users.GetByUserId(pickPlayerId); p != nil {
 

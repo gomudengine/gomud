@@ -9,7 +9,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/races"
-	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
@@ -448,7 +447,7 @@ func expectedDPS(atkChar characters.Character, defChar characters.Character) flo
 	if len(attackWeapons) == 1 {
 		weaponWeight[0] = 1.0
 	} else {
-		dwLevel := atkChar.GetSkillLevel(skills.DualWield)
+		dwLevel := atkChar.GetSkillLevel(`dual-wield`)
 		alwaysDual := atkChar.Equipment.Weapon.GetSpec().Subtype == items.Claws &&
 			atkChar.Equipment.Offhand.GetSpec().Subtype == items.Claws
 		switch {
@@ -467,7 +466,7 @@ func expectedDPS(atkChar characters.Character, defChar characters.Character) flo
 	// hitChance already enforces [ToHitMin, ToHitMax].
 	hitPct := float64(hitChance(atkChar.Stats.Speed.ValueAdj, defChar.Stats.Speed.ValueAdj)) / 100.0
 
-	dwLevel := atkChar.GetSkillLevel(skills.DualWield)
+	dwLevel := atkChar.GetSkillLevel(`dual-wield`)
 	dwPenalty := 0.0
 	if len(attackWeapons) > 1 {
 		dwPenalty = float64(-dualWieldHitPenalty(dwLevel)) / 100.0

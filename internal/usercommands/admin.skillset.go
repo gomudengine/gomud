@@ -33,7 +33,7 @@ func Skillset(rest string, user *users.UserRecord, room *rooms.Room, flags event
 
 		user.SendText(`Skill Names:`)
 		for _, name := range skills.GetAllSkillNames() {
-			user.SendText(`  <ansi fg="skill">` + string(name) + `</ansi>`)
+			user.SendText(`  <ansi fg="skill">` + name + `</ansi>`)
 		}
 
 		return true, nil
@@ -54,7 +54,7 @@ func Skillset(rest string, user *users.UserRecord, room *rooms.Room, flags event
 
 		user.SendText(`Skill Names:`)
 		for _, name := range skills.GetAllSkillNames() {
-			user.SendText(`  <ansi fg="skill">` + string(name) + `</ansi>`)
+			user.SendText(`  <ansi fg="skill">` + name + `</ansi>`)
 		}
 
 		return true, nil
@@ -64,8 +64,9 @@ func Skillset(rest string, user *users.UserRecord, room *rooms.Room, flags event
 		skillValueInt, _ := strconv.Atoi(args[1])
 
 		for _, skillName := range skills.GetAllSkillNames() {
-			targetUser.Character.SetSkill(string(skillName), skillValueInt)
-			targetUser.SendText(fmt.Sprintf(`Your "<ansi fg="skill">%s</ansi>" skill level has been set to <ansi fg="red">%d</ansi>.`, skillName, skillValueInt))
+			if targetUser.Character.SetSkill(skillName, skillValueInt) {
+				targetUser.SendText(fmt.Sprintf(`Your "<ansi fg="skill">%s</ansi>" skill level has been set to <ansi fg="red">%d</ansi>.`, skillName, skillValueInt))
+			}
 		}
 
 		if targetUser.UserId != user.UserId {
@@ -78,10 +79,7 @@ func Skillset(rest string, user *users.UserRecord, room *rooms.Room, flags event
 	skillName := strings.ToLower(args[0])
 	skillValueInt, _ := strconv.Atoi(args[1])
 
-	found := skills.SkillExists(skillName)
-
-	if found {
-		targetUser.Character.SetSkill(skillName, skillValueInt)
+	if skills.SkillExists(skillName) && targetUser.Character.SetSkill(skillName, skillValueInt) {
 		targetUser.SendText(fmt.Sprintf(`Your "<ansi fg="skill">%s</ansi>" skill level has been set to <ansi fg="red">%d</ansi>.`, skillName, skillValueInt))
 
 		if targetUser.UserId != user.UserId {

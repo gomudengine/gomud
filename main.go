@@ -48,6 +48,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/races"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/scripting"
+	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/spells"
 	"github.com/GoMudEngine/GoMud/internal/suggestions"
 	"github.com/GoMudEngine/GoMud/internal/telemetry"
@@ -1623,6 +1624,8 @@ func loadAllDataFiles(isReload bool) {
 	buffs.LoadDataFiles() // Load buffs before items for cost calculation reasons
 	items.LoadDataFiles()
 	races.LoadDataFiles()
+	skills.LoadDataFiles()           // skills before professions for cross-ref warnings
+	skills.LoadProfessionDataFiles() // professions reference skills
 	mobs.LoadDataFiles()
 	pets.LoadDataFiles()
 	quests.LoadDataFiles()

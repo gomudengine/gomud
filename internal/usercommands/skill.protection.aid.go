@@ -8,7 +8,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/scripting"
-	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/spells"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
@@ -20,7 +19,7 @@ Level 3 - Aid (revive) a player, even during combat
 */
 func Aid(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
-	skillLevel := user.Character.GetSkillLevel(skills.Protection)
+	skillLevel := user.Character.GetSkillLevel(`protection`)
 
 	if skillLevel == 0 {
 		user.SendText("You don't know how to provide aid.")
@@ -41,7 +40,7 @@ func Aid(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 	if aidPlayerId > 0 {
 
 		// Fire an event that a skill has been used
-		events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: skills.Protection, Details: `aid`})
+		events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: `protection`, Details: `aid`})
 
 		p := users.GetByUserId(aidPlayerId)
 

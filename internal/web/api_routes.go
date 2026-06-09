@@ -173,6 +173,20 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("PATCH /admin/api/v1/races/{raceId}", doBasicAuth(RequirePermission("races.write", RunWithMUDLocked(apiV1PatchRace))))
 	mux.HandleFunc("DELETE /admin/api/v1/races/{raceId}", doBasicAuth(RequirePermission("races.write", RunWithMUDLocked(apiV1DeleteRace))))
 
+	// Skills
+	mux.HandleFunc("GET /admin/api/v1/skills", doBasicAuth(RunWithMUDLocked(apiV1GetSkills)))
+	mux.HandleFunc("POST /admin/api/v1/skills", doBasicAuth(RequirePermission("skills.write", RunWithMUDLocked(apiV1CreateSkill))))
+	mux.HandleFunc("GET /admin/api/v1/skills/{skillId}/yaml", doBasicAuth(RunWithMUDLocked(apiV1GetSkillYAML)))
+	mux.HandleFunc("PATCH /admin/api/v1/skills/{skillId}", doBasicAuth(RequirePermission("skills.write", RunWithMUDLocked(apiV1PatchSkill))))
+	mux.HandleFunc("DELETE /admin/api/v1/skills/{skillId}", doBasicAuth(RequirePermission("skills.write", RunWithMUDLocked(apiV1DeleteSkill))))
+
+	// Professions
+	mux.HandleFunc("GET /admin/api/v1/professions", doBasicAuth(RunWithMUDLocked(apiV1GetProfessions)))
+	mux.HandleFunc("POST /admin/api/v1/professions", doBasicAuth(RequirePermission("skills.write", RunWithMUDLocked(apiV1CreateProfession))))
+	mux.HandleFunc("GET /admin/api/v1/professions/{professionId}/yaml", doBasicAuth(RunWithMUDLocked(apiV1GetProfessionYAML)))
+	mux.HandleFunc("PATCH /admin/api/v1/professions/{professionId}", doBasicAuth(RequirePermission("skills.write", RunWithMUDLocked(apiV1PatchProfession))))
+	mux.HandleFunc("DELETE /admin/api/v1/professions/{professionId}", doBasicAuth(RequirePermission("skills.write", RunWithMUDLocked(apiV1DeleteProfession))))
+
 	// Pets
 	mux.HandleFunc("GET /admin/api/v1/pets/ranks", doBasicAuth(RunWithMUDLocked(apiV1GetPetRanks)))
 	mux.HandleFunc("GET /admin/api/v1/pets", doBasicAuth(RunWithMUDLocked(apiV1GetPets)))

@@ -341,7 +341,12 @@ func (a ScriptActor) TrainSkill(skillName string, skillLevel int) bool {
 	}
 
 	skillName = strings.ToLower(skillName)
-	currentLevel := a.characterRecord.GetSkillLevel(skills.SkillTag(skillName))
+
+	if !skills.SkillExists(skillName) {
+		return false
+	}
+
+	currentLevel := a.characterRecord.GetSkillLevel(skillName)
 
 	if currentLevel < skillLevel {
 		newLevel := a.characterRecord.TrainSkill(skillName, skillLevel)
@@ -363,7 +368,7 @@ func (a ScriptActor) TrainSkill(skillName string, skillLevel int) bool {
 }
 
 func (a ScriptActor) GetSkillLevel(skillName string) int {
-	return a.characterRecord.GetSkillLevel(skills.SkillTag(skillName))
+	return a.characterRecord.GetSkillLevel(skillName)
 }
 
 func (a ScriptActor) MoveRoom(destRoomId int) {

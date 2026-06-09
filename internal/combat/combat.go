@@ -13,7 +13,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/races"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
-	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/statmods"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
@@ -253,7 +252,7 @@ func calculateCombat(sourceChar characters.Character, targetChar characters.Char
 
 		attackWeapons := resolveAttackWeapons(sourceChar)
 
-		dualWieldLevel := sourceChar.GetSkillLevel(skills.DualWield)
+		dualWieldLevel := sourceChar.GetSkillLevel(`dual-wield`)
 
 		if len(attackWeapons) > 1 {
 			bothClaws := sourceChar.Equipment.Weapon.GetSpec().Subtype == items.Claws &&

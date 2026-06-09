@@ -4,93 +4,10 @@ import (
 	"strings"
 )
 
-type SkillTag string
-
-func (s SkillTag) String(subtag ...string) string {
-	result := string(s)
-	if len(subtag) > 0 {
-		result += `:` + strings.Join(subtag, `:`)
-	}
-	return result
-}
-
-func (s SkillTag) Sub(subtag string) SkillTag {
-	return SkillTag(string(s) + subtag)
-}
-
-const (
-	Cast        SkillTag = `cast`        // [LVL 1-4] Frostfang Magic Academy - ROOM 879
-	DualWield   SkillTag = `dual-wield`  // [LVL 1-4] Fishermans house - ROOM 758
-	Map         SkillTag = `map`         // [LVL 1-4] Frostwarden Rangers - ROOM 74
-	Enchant     SkillTag = `enchant`     // TODO
-	Peep        SkillTag = `peep`        // TODO
-	Inspect     SkillTag = `inspect`     // TODO
-	Portal      SkillTag = `portal`      // [LVL 1] Touch the obelisk in ROOOM 871
-	Search      SkillTag = `search`      // [LVL 1-4] Frostwarden Rangers - ROOM 74
-	Track       SkillTag = `track`       // [LVL 1-4] Frostwarden Rangers - ROOM 74
-	Skulduggery SkillTag = `skulduggery` // [LVL 1-4] Thieves Den - ROOM 491
-	Brawling    SkillTag = `brawling`    // [LVL 1-4] Soldiers Training Yard - ROOM 829
-	Scribe      SkillTag = `scribe`      // [LVL 1-4] Dark Acolyte's Chamber - ROOM 160
-	Protection  SkillTag = `protection`  // TODO
-	Tame        SkillTag = `tame`        // [LVL 1-4] Give mushroom to fairie in ROOM 558, train in ROOM 830
-	Trading     SkillTag = `trading`     // TODO
-	ChangeForm  SkillTag = `changeform`  // TODO
-)
-
-var (
-	allSkillNames = []SkillTag{}
-
-	Professions = map[string][]SkillTag{
-		"treasure hunter": {
-			Map,
-			Search,
-			Peep,
-			Inspect,
-			Trading,
-		},
-		"assassin": {
-			Skulduggery,
-			DualWield,
-			Track,
-		},
-		"explorer": {
-			Map,
-			Portal,
-			Scribe,
-		},
-		"arcane scholar": {
-			Enchant,
-			Scribe,
-			Inspect,
-		},
-		"warrior": {
-			Brawling,
-			DualWield,
-		},
-		"paladin": {
-			Protection,
-			Brawling,
-		},
-		"ranger": {
-			Map,
-			Search,
-			Track,
-		},
-		"monster hunter": {
-			Tame,
-			Track,
-			ChangeForm,
-		},
-		"sorcerer": {
-			Cast,
-			Enchant,
-		},
-		"merchant": {
-			Peep,
-			Trading,
-		},
-	}
-)
+// Skills are identified by lowercase string ids (e.g. "cast", "dual-wield").
+// The YAML datafiles in _datafiles/world/default/skills are the source of truth
+// for which skills exist at runtime. Code that gates behavior on a specific
+// skill references the id as a plain string literal.
 
 type ProfessionRank struct {
 	Profession       string
@@ -101,41 +18,35 @@ type ProfessionRank struct {
 	Skills           []string
 }
 
-func SkillExists(sk string) bool {
-	for _, skTag := range allSkillNames {
-		if sk == string(skTag) {
-			return true
-		}
-	}
-	return false
-}
-
-func GetAllSkillNames() []SkillTag {
-	return append([]SkillTag{}, allSkillNames...)
-}
-
 func GetProfessionRanks(allRanks map[string]int) []ProfessionRank {
 
 	professionList := []ProfessionRank{}
 
-	for professionName, skills := range Professions {
+	for _, profession := range allProfessions {
 
-		ranking := ProfessionRank{Profession: professionName}
+		if len(profession.Skills) == 0 {
+			continue // divide-by-zero guard
+		}
 
-		for _, skillName := range skills {
+		ranking := ProfessionRank{Profession: profession.ProfessionId}
+
+		for _, skillName := range profession.Skills {
+
+			max := MaxSkillLevel(skillName)
 
 			skillLevel := 0
-			if rankVal, ok := allRanks[string(skillName)]; ok {
+			if rankVal, ok := allRanks[skillName]; ok {
 				skillLevel = rankVal
 			}
-			if skillLevel > 4 {
-				skillLevel = 4
+			if skillLevel > max {
+				skillLevel = max
 			}
 			totalSkill := (skillLevel * (skillLevel + 1)) / 2
 
-			ranking.PointsToMax += 10.0 // Each skill has 4 levels, so possible 10 points per skill
+			// Max points spendable on a skill: 1+2+...+max == max*(max+1)/2 (== 10 for max 4).
+			ranking.PointsToMax += float64(max*(max+1)) / 2
 			ranking.TotalPointsSpent += float64(totalSkill)
-			ranking.Skills = append(ranking.Skills, string(skillName))
+			ranking.Skills = append(ranking.Skills, skillName)
 		}
 
 		ranking.Completion = ranking.TotalPointsSpent / ranking.PointsToMax
@@ -182,7 +93,7 @@ func GetProfession(allRanks map[string]int) string {
 		experienceName = experienceName + ` `
 	}
 
-	if len(chosenProfessions) == len(Professions) {
+	if len(chosenProfessions) == len(allProfessions) {
 		return experienceName + `demigod`
 	}
 
@@ -215,22 +126,4 @@ func GetExperienceLevel(percentage float64) string {
 	}
 
 	return `scrub`
-}
-
-func init() {
-
-	skillNameSet := map[SkillTag]struct{}{}
-
-	for _, skills := range Professions {
-		for _, skillName := range skills {
-
-			if _, ok := skillNameSet[skillName]; ok {
-				continue
-			}
-
-			skillNameSet[skillName] = struct{}{}
-			allSkillNames = append(allSkillNames, skillName)
-		}
-	}
-
 }

@@ -10,7 +10,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/parties"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
-	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
@@ -20,7 +19,7 @@ Level 2 - Backstab
 */
 func Backstab(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
-	skillLevel := user.Character.GetSkillLevel(skills.Skulduggery)
+	skillLevel := user.Character.GetSkillLevel(`skulduggery`)
 
 	// If they don't have a skill, act like it's not a valid command
 	if skillLevel < 2 {
@@ -92,7 +91,7 @@ func Backstab(rest string, user *users.UserRecord, room *rooms.Room, flags event
 	}
 
 	// Fire an event that a skill has been used
-	events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: skills.Skulduggery, Details: `backstab`})
+	events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: `skulduggery`, Details: `backstab`})
 
 	if attackMobInstanceId > 0 {
 

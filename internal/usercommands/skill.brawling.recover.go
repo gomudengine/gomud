@@ -5,7 +5,6 @@ import (
 
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
-	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
@@ -15,7 +14,7 @@ Level 1 - Enter a state of rest where health is recovered more quickly
 */
 func Recover(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
-	skillLevel := user.Character.GetSkillLevel(skills.Brawling)
+	skillLevel := user.Character.GetSkillLevel(`brawling`)
 
 	// If they don't have a skill, act like it's not a valid command
 	if skillLevel < 1 {
@@ -27,15 +26,15 @@ func Recover(rest string, user *users.UserRecord, room *rooms.Room, flags events
 		return true, nil
 	}
 
-	if !user.Character.TryCooldown(skills.Brawling.String(`recover`), "2 real minutes") {
+	if !user.Character.TryCooldown(`brawling:recover`, "2 real minutes") {
 		user.SendText(
-			fmt.Sprintf("You need to wait %d more rounds to do that again.", user.Character.GetCooldown(skills.Brawling.String(`recover`))),
+			fmt.Sprintf("You need to wait %d more rounds to do that again.", user.Character.GetCooldown(`brawling:recover`)),
 		)
 		return true, nil
 	}
 
 	// Fire an event that a skill has been used
-	events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: skills.Brawling, Details: `recover`})
+	events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: `brawling`, Details: `recover`})
 
 	user.AddBuff(23, `skill`) // Warriors respite
 
