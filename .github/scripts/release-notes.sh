@@ -120,27 +120,27 @@ ${summary}
 
 Open a Terminal and run:
 
-```shell
+\`\`\`shell
 curl -fsSL https://raw.githubusercontent.com/GoMudEngine/GoMud/master/scripts/install.sh | sh
-```
+\`\`\`
 
 **Windows:**
 
-Open a `Powershell` window and run:
+Open a \`Powershell\` window and run:
 
-```powershell
+\`\`\`powershell
 irm https://raw.githubusercontent.com/GoMudEngine/GoMud/master/scripts/install.ps1 | iex
-```
+\`\`\`
 
-- Both scripts install GoMud to `~/GoMud` by default.
-- Set the `GOMUD_DIR` environment variable before running to choose a different location.
+- Both scripts install GoMud to \`~/GoMud\` by default.
+- Set the \`GOMUD_DIR\` environment variable before running to choose a different location.
 
 ### Alternative: Manual Binary Install
 
-- Go to the GoMud [Release Page](https://github.com/GoMudEngine/GoMud/releases/latest)
+- Go to the GoMud [Release Page](https://github.com/${repository}/releases/tag/${release_tag})
 - Scroll down to the **Assets** section and expand it
 - Download the datafiles (needed by all operating systems):
-  - **`gomud-ALL-datafiles.zip`**
+  - **\`gomud-ALL-datafiles.zip\`**
   - Extract this zip file into the same folder as the GoMud binary
 - Download the GoMud binary/executable specific for your operating system, based on the table below:
 

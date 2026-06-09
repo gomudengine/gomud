@@ -62,7 +62,7 @@ jobs:
           printf '%s\n' "${changed_files}"
 
           docker_re='(^|/)[^/]+\.go$'
-          docker_re="${docker_re}|^(go\.mod|go\.sum|Makefile|_datafiles/)"
+          docker_re="${docker_re}|^(\.dockerignore|go\.mod|go\.sum|Makefile|_datafiles/)"
           docker_re="${docker_re}|^(modules/|cmd/|internal/|scripts/)"
           docker_re="${docker_re}|^(provisioning/|compose\.yml)"
           docker_re="${docker_re}|^\.github/workflows/docker-package\.yml"
