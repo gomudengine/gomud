@@ -46,9 +46,16 @@ STORY = [
         ];
 
 
-function onCommand_read(user, item, room) {
+/**
+ * Called when a user issues a read command on the item.
+ * @param {ActorObject} user - The user issuing the command.
+ * @param {ItemObject} item - The item.
+ * @param {RoomObject} room - The room where the command was issued.
+ * @returns {boolean} Return true if the command was handled.
+ */
+function onCommand_read(user, item, room) { 
 
-    SendRoomMessage(room.RoomId(), user.GetCharacterName(true)+" thumbs through their <ansi fg=\"item\">"+item.Name(true)+"</ansi> book.", user.UserId());   
+    SendRoomMessage(room.RoomId(), user.GetCharacterName(true)+" thumbs through their <ansi fg=\"item\">"+item.Name(true)+"</ansi> book.", user.UserId()); 
 
     SendUserMessage(user.UserId(), "");
     SendUserMessage(user.UserId(), "<ansi fg=\"14\">The History of Frostfang</ansi>");

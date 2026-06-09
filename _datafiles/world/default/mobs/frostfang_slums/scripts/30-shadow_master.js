@@ -5,8 +5,14 @@ const AMETHYST_ROOM_ID = 433;
 
 const ASK_SUBJECTS = ["amethyst", "heist", "bank", "spell", "rats"];
 
+/**
+ * Called when a user asks the mob a question.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @param {AskEventDetails} eventDetails - Details about the ask event.
+ * @returns {boolean} Return true if the event was handled.
+ */
 function onAsk(mob, room, eventDetails) {
-
     if ( (user = GetUser(eventDetails.sourceId)) == null ) {
         return false;
     }
@@ -31,6 +37,13 @@ function onAsk(mob, room, eventDetails) {
 }
 
 
+/**
+ * Called when a user gives the mob an item or gold.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @param {GiveEventDetails} eventDetails - Details about the give event.
+ * @returns {boolean} Return true if the event was handled.
+ */
 function onGive(mob, room, eventDetails) {
 
     if (eventDetails.sourceType == "mob") {

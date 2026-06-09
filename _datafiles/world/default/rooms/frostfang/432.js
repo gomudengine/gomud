@@ -5,12 +5,24 @@ const crowbar = ["crowbar", "rod", "metal", "bar"];
 const verbs = ["get", "take", "grab", "steal", "snatch"];
 
 
+/**
+ * Called when a user enters the room.
+ * @param {ActorObject} user - The user entering the room.
+ * @param {RoomObject} room - The room being entered.
+ * @returns {boolean} Return false to suppress the automatic look.
+ */
 function onEnter(user, room) {
     user.GiveBuff(15, "sleep");
     return false; // return false to prevent the "auto look"
 }
 
-
+/**
+ * Called when a user issues a look command in the room.
+ * @param {string} rest - The arguments following the command.
+ * @param {ActorObject} user - The user issuing the command.
+ * @param {RoomObject} room - The room where the command was issued.
+ * @returns {boolean} Return true if the command was handled.
+ */
 function onCommand_look(rest, user, room) {
 
     matches = UtilFindMatchIn(rest, crowbar);
@@ -30,7 +42,14 @@ function onCommand_look(rest, user, room) {
     return true;
 }
 
-// Generic Command Handler
+/**
+ * Called when a user issues a command in the room.
+ * @param {string} cmd - The command issued.
+ * @param {string} rest - The arguments following the command.
+ * @param {ActorObject} user - The user issuing the command.
+ * @param {RoomObject} room - The room where the command was issued.
+ * @returns {boolean} Return true if the command was handled.
+ */
 function onCommand(cmd, rest, user, room) {
 
     if ( !verbs.includes(cmd) ) {

@@ -1,5 +1,12 @@
 
-// Generic Command Handler
+/**
+ * Called when a user issues a command in the room.
+ * @param {string} cmd - The command issued.
+ * @param {string} rest - The arguments following the command.
+ * @param {ActorObject} user - The user issuing the command.
+ * @param {RoomObject} room - The room where the command was issued.
+ * @returns {boolean} Return true if the command was handled.
+ */
 function onCommand(cmd, rest, user, room) {
 
     if ( rest.substr(rest.length - 2) != "ob" ) {

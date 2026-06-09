@@ -2,6 +2,13 @@
 const sadnessSubjects = ["quest", "locket", "sad", "sadness", "crying", "sniffles", "necklace"];
 const gardenSubjects = ["garden", "where", "gardening", "quest", "locket", "sad", "sadness", "necklace"];
 
+/**
+ * Called when a user asks the mob a question.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @param {AskEventDetails} eventDetails - Details about the ask event.
+ * @returns {boolean} Return true if the event was handled.
+ */
 function onAsk(mob, room, eventDetails) {
 
     if ( (user = GetUser(eventDetails.sourceId)) == null ) {
@@ -50,8 +57,14 @@ function onAsk(mob, room, eventDetails) {
     return true;
 }
 
+/**
+ * Called when a user gives the mob an item or gold.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @param {GiveEventDetails} eventDetails - Details about the give event.
+ * @returns {boolean} Return true if the event was handled.
+ */
 function onGive(mob, room, eventDetails) {
-
     if ( (user = GetUser(eventDetails.sourceId)) == null ) {
         return false;
     }
@@ -103,8 +116,14 @@ function onGive(mob, room, eventDetails) {
 
 
 
+/**
+ * Called when a user shows the mob an item.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @param {ShowEventDetails} eventDetails - Details about the show event.
+ * @returns {boolean} Return true if the event was handled.
+ */
 function onShow(mob, room, eventDetails) {
-
     showLocketCounter = mob.GetTempData('showLocketCounter');
     if ( showLocketCounter === null ) {
         showLocketCounter = {};
@@ -141,6 +160,12 @@ function onShow(mob, room, eventDetails) {
 }
 
 
+/**
+ * Called each round when the mob is idle.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @returns {boolean} Return true if the event was handled.
+ */
 function onIdle(mob, room) {
 
     switch (UtilGetRoundNumber() % 4) {

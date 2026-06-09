@@ -7,6 +7,13 @@ const MUSIC_DESCRIPTIONS = [
 
 const RAT_MOB_IDS = [1, 12];
 
+/**
+ * Called when a user issues a play command on the item.
+ * @param {ActorObject} user - The user issuing the command.
+ * @param {ItemObject} item - The item.
+ * @param {RoomObject} room - The room where the command was issued.
+ * @returns {boolean} Return true if the command was handled.
+ */
 function onCommand_play(user, item, room) {
 
     var randomPhrase = MUSIC_DESCRIPTIONS[UtilDiceRoll(1, MUSIC_DESCRIPTIONS.length)-1];

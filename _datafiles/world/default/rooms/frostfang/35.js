@@ -8,6 +8,13 @@ const EventFlags = {
     CmdBlockInputUntilComplete: 2
 };
 
+/**
+ * Called when a user issues a west command in the room.
+ * @param {string} rest - The arguments following the command.
+ * @param {ActorObject} user - The user issuing the command.
+ * @param {RoomObject} room - The room where the command was issued.
+ * @returns {boolean} Return true if the command was handled.
+ */
 function onCommand_west(rest, user, room) {
 
     if ( !user.HasQuest("3-end") ) {
@@ -38,6 +45,13 @@ function onCommand_west(rest, user, room) {
 }
 
 
+/**
+ * Called when a user issues a say command in the room.
+ * @param {string} rest - The arguments following the command.
+ * @param {ActorObject} user - The user issuing the command.
+ * @param {RoomObject} room - The room where the command was issued.
+ * @returns {boolean} Return true if the command was handled.
+ */
 function onCommand_say(rest, user, room) {
     
     if ( rest.toLowerCase() !== magic_phrase ) {

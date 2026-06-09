@@ -1,6 +1,15 @@
 
 const nouns = ["quest", "hunger", "hungry", "belly", "food"];
 
+/**
+ * Called when a user issues a command to or near the mob.
+ * @param {string} cmd - The command issued.
+ * @param {string} rest - The arguments following the command.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @param {CommandEventDetails} eventDetails - Additional event context.
+ * @returns {boolean} Return true if the event was handled.
+ */
 function onCommand(cmd, rest, mob, room, eventDetails) {
     if (cmd == "wave") {
         mob.Command("wave");
@@ -8,6 +17,13 @@ function onCommand(cmd, rest, mob, room, eventDetails) {
     return false;
 }
 
+/**
+ * Called when a user asks the mob a question.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @param {AskEventDetails} eventDetails - Details about the ask event.
+ * @returns {boolean} Return true if the event was handled.
+ */
 function onAsk(mob, room, eventDetails) {
 
     if ( (user = GetUser(eventDetails.sourceId)) == null ) {
@@ -37,6 +53,13 @@ function onAsk(mob, room, eventDetails) {
     return false;
 }
 
+/**
+ * Called when a user gives the mob an item or gold.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @param {GiveEventDetails} eventDetails - Details about the give event.
+ * @returns {boolean} Return true if the event was handled.
+ */
 function onGive(mob, room, eventDetails) {
 
     if (eventDetails.sourceType == "mob") {
@@ -80,6 +103,12 @@ function onGive(mob, room, eventDetails) {
 }
 
 
+/**
+ * Called each round when the mob is idle.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @returns {boolean} Return true if the event was handled.
+ */
 // Invoked once every round if mob is idle
 function onIdle(mob, room) {
 

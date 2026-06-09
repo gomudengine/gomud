@@ -1,6 +1,10 @@
 
-// Called when the casting is initialized (cast command)
-// Return false if the casting should be ignored/aborted
+/**
+ * Called when the casting is initialized.
+ * @param {ActorObject} sourceActor - The actor casting the spell.
+ * @param {ActorObject} targetActor - The target of the spell.
+ * @returns {boolean} Return false to abort the cast.
+ */
 function onCast(sourceActor, targetActor) {
 
     SendUserMessage(sourceActor.UserId(), 'You begin to meditate deeply, recalling images of nature.');
@@ -14,7 +18,12 @@ function onWait(sourceActor, targetActor) {
     SendRoomMessage(sourceActor.GetRoomId(), sourceActor.GetCharacterName(true)+' sways slightly...', sourceActor.UserId());
 }
 
-// Called when the spell succeeds its cast attempt
+/**
+ * Called when the spell succeeds its cast attempt.
+ * @param {ActorObject} sourceActor - The actor casting the spell.
+ * @param {ActorObject} targetActor - The target of the spell.
+ * @returns {boolean} Return false to prevent default post-cast behavior.
+ */
 function onMagic(sourceActor, targetActor) {
 
     roomId = sourceActor.GetRoomId();

@@ -11,6 +11,14 @@ var canGoEast = false;
 
 
 
+/**
+ * Called when a user issues a command in the room.
+ * @param {string} cmd - The command issued.
+ * @param {string} rest - The arguments following the command.
+ * @param {ActorObject} user - The user issuing the command.
+ * @param {RoomObject} room - The room where the command was issued.
+ * @returns {boolean} Return true if the command was handled.
+ */
 // Generic Command Handler
 function onCommand(cmd, rest, user, room) {
 
@@ -89,6 +97,12 @@ function onCommand(cmd, rest, user, room) {
 
 
 
+/**
+ * Called when a user enters the room.
+ * @param {ActorObject} user - The user entering the room.
+ * @param {RoomObject} room - The room being entered.
+ * @returns {boolean} Return false to suppress the automatic look.
+ */
 // If there is no book here, add the book item
 function onEnter(user, room) {
     teacherMob = getTeacher(room);
@@ -107,11 +121,22 @@ function onEnter(user, room) {
     return true;
 }
 
+/**
+ * Called when a user exits the room.
+ * @param {ActorObject} user - The user exiting the room.
+ * @param {RoomObject} room - The room being exited.
+ * @returns {boolean} Return true if the event was handled.
+ */
 function onExit(user , room) {
     // Destroy the guide (cleanup)
     destroyTeacher(room);
 }
 
+/**
+ * Called when the room first loads.
+ * @param {RoomObject} room - The room that loaded.
+ * @returns {void}
+ */
 function onLoad(room) {
     canGoEast = false;
     commandNow = 0;

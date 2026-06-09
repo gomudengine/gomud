@@ -1,7 +1,14 @@
 
 mapSignData = "";
 
-// Generic Command Handler
+/**
+ * Called when a user issues a command in the room.
+ * @param {string} cmd - The command issued.
+ * @param {string} rest - The arguments following the command.
+ * @param {ActorObject} user - The user issuing the command.
+ * @param {RoomObject} room - The room where the command was issued.
+ * @returns {boolean} Return true if the command was handled.
+ */
 function onCommand(cmd, rest, user, room) {
 
     if (cmd != "look" && cmd != "read" ) {
@@ -27,7 +34,11 @@ function onCommand(cmd, rest, user, room) {
     return false;
 }
 
-// Executes when the room first loads.
+/**
+ * Called when the room first loads.
+ * @param {RoomObject} room - The room that loaded.
+ * @returns {void}
+ */
 function onLoad(room) {
     // Just running this to pre-cache the map so that if someone looks at the map it won't time out
     mapSignData = GetMap(room.RoomId(), 1, 22, 38, "Map of Startland", false, String(room.RoomId())+",×,Here");

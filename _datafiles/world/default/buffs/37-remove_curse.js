@@ -1,5 +1,10 @@
 
-// Invoked when the buff has run its course.
+/**
+ * Called when the buff expires or is removed.
+ * @param {ActorObject} actor - The actor the buff is applied to.
+ * @param {number} triggersLeft - How many trigger rounds remain.
+ * @returns {void}
+ */
 function onEnd(actor, triggersLeft) {
 
     items = actor.Uncurse();

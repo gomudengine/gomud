@@ -1,4 +1,11 @@
 
+/**
+ * Called when a user issues a read command on the item.
+ * @param {ActorObject} user - The user issuing the command.
+ * @param {ItemObject} item - The item.
+ * @param {RoomObject} room - The room where the command was issued.
+ * @returns {boolean} Return true if the command was handled.
+ */
 function onCommand_read(user, item, room) {
 
     SendUserMessage(user.UserId(), "You thumb through your <ansi fg=\"item\">"+item.Name(true)+"</ansi> book.");
@@ -17,6 +24,13 @@ function onCommand_read(user, item, room) {
     return true;
 }
 
+/**
+ * Called when a user issues a use command on the item.
+ * @param {ActorObject} user - The user issuing the command.
+ * @param {ItemObject} item - The item.
+ * @param {RoomObject} room - The room where the command was issued.
+ * @returns {boolean} Return true if the command was handled.
+ */
 function onCommand_use(user, item, room) {
     return onCommand_read(user, item, room);
 }

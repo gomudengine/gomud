@@ -3,9 +3,14 @@ const startNouns = ["rat", "rats", "too many", "problem"];
 const thievesNouns = ["thief", "thieves", "guild", "hideout", "entrance", "dogs", "slums"];
 const INN_ROOM_ID = 61;
 
+/**
+ * Called when a user asks the mob a question.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @param {AskEventDetails} eventDetails - Details about the ask event.
+ * @returns {boolean} Return true if the event was handled.
+ */
 function onAsk(mob, room, eventDetails) {
-
-
     if ( (user = GetUser(eventDetails.sourceId)) == null ) {
         return false;
     }
@@ -79,6 +84,13 @@ function onAsk(mob, room, eventDetails) {
     return false;
 }
 
+/**
+ * Called when a user gives the mob an item or gold.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @param {GiveEventDetails} eventDetails - Details about the give event.
+ * @returns {boolean} Return true if the event was handled.
+ */
 function onGive(mob, room, eventDetails) {
 
     if (eventDetails.sourceType == "mob") {
@@ -112,6 +124,13 @@ function onGive(mob, room, eventDetails) {
 }
 
 
+/**
+ * Called when the mob reaches a waypoint on its path.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @param {PathEventDetails} eventDetails - Details about the path event.
+ * @returns {boolean} Return true if the event was handled.
+ */
 function onPath(mob, room, eventDetails) {
 
     if ( eventDetails.status == "waypoint" && room.RoomId() == INN_ROOM_ID ) {
@@ -131,6 +150,12 @@ var RANDOM_IDLE = [
     "say I'm running out of traps and don't seem to be making a dent in the rat numbers.",
 ];
 
+/**
+ * Called each round when the mob is idle.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @returns {boolean} Return true if the event was handled.
+ */
 // Invoked once every round if mob is idle
 function onIdle(mob, room) {
 
@@ -158,6 +183,13 @@ function onIdle(mob, room) {
 }
 
 
+/**
+ * Called when a user shows the mob an item.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @param {ShowEventDetails} eventDetails - Details about the show event.
+ * @returns {boolean} Return true if the event was handled.
+ */
 function onShow(mob, room, eventDetails) {
 
     if (eventDetails.item.ItemId == 11) {

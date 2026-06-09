@@ -1,7 +1,12 @@
 
+/**
+ * Called each round when the mob is idle.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @returns {boolean} Return true if the event was handled.
+ */
 // Invoked once every round if mob is idle
 function onIdle(mob, room) {
-
     var roundNow = UtilGetRoundNumber();
 
     var charmedUserId = mob.GetCharmedUserId();
@@ -133,8 +138,14 @@ var silenceNouns = ["silence", "quiet", "shut up", "shh"];
 
 var leaveNouns = ["leave", "leave me alone", "die", "quit", "go away", "unfollow", "get lost"];
 
+/**
+ * Called when a user asks the mob a question.
+ * @param {ActorObject} mob - The mob.
+ * @param {RoomObject} room - The room the mob is in.
+ * @param {AskEventDetails} eventDetails - Details about the ask event.
+ * @returns {boolean} Return true if the event was handled.
+ */
 function onAsk(mob, room, eventDetails) {
-
     var charmedUserId = mob.GetCharmedUserId();
 
     if ( eventDetails.sourceId != charmedUserId ) {

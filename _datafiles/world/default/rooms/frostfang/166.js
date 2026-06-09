@@ -1,4 +1,11 @@
 
+/**
+ * Called when a user issues a vault command in the room.
+ * @param {string} rest - The arguments following the command.
+ * @param {ActorObject} user - The user issuing the command.
+ * @param {RoomObject} room - The room where the command was issued.
+ * @returns {boolean} Return true if the command was handled.
+ */
 function onCommand_vault(rest, user, room) {
 
     var presentMob = null;
