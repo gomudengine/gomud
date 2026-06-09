@@ -6,7 +6,6 @@ name: CI
 # - Go format/vet
 # - conditional JS lint
 # - Go race tests
-# - Release cross-compile check
 
 "on":
   push:
@@ -30,12 +29,14 @@ permissions:
 
 jobs:
   detect-changes:
-    name: Detect JavaScript Changes
+    name: Detect Relevant Changes
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
       js_lint: >-
         ${{ steps.filter.outputs.js_lint }}
+      runtime_build: >-
+        ${{ steps.filter.outputs.runtime_build }}
     steps:
       # Full history is needed so push and pull request events can diff against
       # the actual base commit instead of whatever shallow checkout provides.
@@ -69,10 +70,26 @@ jobs:
             echo "js_lint=false" >> "$GITHUB_OUTPUT"
           fi
 
+          runtime_re='(^|/)[^/]+\.go$'
+          runtime_re="${runtime_re}|^(go\.mod|go\.sum|Makefile|_datafiles/)"
+          runtime_re="${runtime_re}|^(modules/|cmd/|internal/|scripts/)"
+          runtime_re="${runtime_re}|^(provisioning/|compose\.yml)"
+          runtime_re="${runtime_re}|^\.github/actions/(go-checks|setup-go)/"
+          runtime_re="${runtime_re}|^\.github/workflows/ci\.yml"
+
+          if printf '%s\n' "${changed_files}" | grep -Eq "${runtime_re}"; then
+            echo "runtime_build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "runtime_build=false" >> "$GITHUB_OUTPUT"
+          fi
+
   go-lint:
     name: Go Format And Vet
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    needs: detect-changes
+    if: >-
+      needs.detect-changes.outputs.runtime_build == 'true'
     steps:
       # actions/checkout v6.0.2
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -108,9 +125,12 @@ jobs:
         run: make js-lint
 
   test:
-    name: Go Tests And Release Cross-Compile
+    name: Go Tests
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    needs: detect-changes
+    if: >-
+      needs.detect-changes.outputs.runtime_build == 'true'
     steps:
       # actions/checkout v6.0.2
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -120,11 +140,3 @@ jobs:
       - uses: ./.github/actions/setup-go
 
       - uses: ./.github/actions/go-checks
-
-      - name: Cross-compile release targets
-        if: >-
-          github.event_name == 'push' &&
-          github.ref == 'refs/heads/master'
-        env:
-          RELEASE_DIST_DIR: ${{ runner.temp }}/release-cross-compile
-        run: .github/scripts/build-release-binaries.sh

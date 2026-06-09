@@ -7,6 +7,9 @@ runs:
     - name: Generate code
       run: go generate ./...
       shell: bash
+    - name: Verify generated output is clean
+      run: git diff --exit-code
+      shell: bash
     - name: Run Go tests
       run: go test -race ./...
       shell: bash

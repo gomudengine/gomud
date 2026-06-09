@@ -15,14 +15,70 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  detect-changes:
+    name: Detect Docker Build Inputs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      docker_build: >-
+        ${{ steps.filter.outputs.docker_build }}
+    steps:
+      # Full history is needed so push and pull request events can diff against
+      # the actual base commit instead of whatever shallow checkout provides.
+      # actions/checkout v6.0.2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - id: filter
+        name: Detect Docker build inputs
+        env:
+          BASE_REF: >-
+            ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_REF: ${{ github.sha }}
+        run: |
+          set -eu
+
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            echo "docker_build=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ -z "${BASE_REF}" ] || \
+            [ "${BASE_REF}" = "0000000000000000000000000000000000000000" ]; then
+            BASE_REF="$(git rev-parse HEAD^)"
+          fi
+
+          changed_files="$(git diff --name-only "${BASE_REF}" "${HEAD_REF}")"
+          printf '%s\n' "${changed_files}"
+
+          docker_re='(^|/)[^/]+\.go$'
+          docker_re="${docker_re}|^(go\.mod|go\.sum|Makefile|_datafiles/)"
+          docker_re="${docker_re}|^(modules/|cmd/|internal/|scripts/)"
+          docker_re="${docker_re}|^(provisioning/|compose\.yml)"
+          docker_re="${docker_re}|^\.github/workflows/docker-package\.yml"
+
+          if printf '%s\n' "${changed_files}" | grep -Eq "${docker_re}"; then
+            echo "docker_build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "docker_build=false" >> "$GITHUB_OUTPUT"
+          fi
+
   package:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    needs: detect-changes
+    if: >-
+      needs.detect-changes.outputs.docker_build == 'true'
     permissions:
       contents: read
       packages: write
