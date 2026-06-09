@@ -1,7 +1,8 @@
 ---
 name: CI
 
-# ci.yml performs the Continuous Integration (CI) workflow and performs the following actions:
+# ci.yml performs the Continuous Integration (CI) workflow and performs the
+# following actions:
 # - Go format/vet
 # - conditional JS lint
 # - Go race tests
