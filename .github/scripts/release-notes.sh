@@ -154,8 +154,6 @@ irm https://raw.githubusercontent.com/GoMudEngine/GoMud/master/scripts/install.p
 | gomud-linux_armv7 | Linux | ARMv7 (32-bit) | Raspberry Pi 2/3 running 32-bit OS |
 </details>
 
-## Changes
-
 EOF
 
 cat "$generated_notes_file" >>"$notes_file"
