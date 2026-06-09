@@ -92,6 +92,7 @@ var allPermissions = []PermissionDef{
 	{Key: "quests.write", Category: "Quests", Description: "Create, edit, and delete quests"},
 	{Key: "races.write", Category: "Races", Description: "Create, edit, and delete races"},
 	{Key: "rooms.write", Category: "Rooms", Description: "Create, edit, and delete rooms"},
+	{Key: "skills.write", Category: "Skills", Description: "Create, edit, and delete skills and professions"},
 	{Key: "spells.write", Category: "Spells", Description: "Create, edit, and delete spells"},
 	{Key: "telemetry.write", Category: "Server", Description: "Clear telemetry data"},
 	{Key: "users.write", Category: "Users", Description: "Create and edit user accounts"},

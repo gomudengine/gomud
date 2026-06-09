@@ -9,7 +9,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
-	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
@@ -31,7 +30,7 @@ Level 4 - Remove the enchantment or curse from any object.
 */
 func Enchant(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
-	skillLevel := user.Character.GetSkillLevel(skills.Enchant)
+	skillLevel := user.Character.GetSkillLevel(`enchant`)
 
 	if skillLevel == 0 {
 		user.SendText("You don't know how to enchant.")
@@ -96,7 +95,7 @@ func Enchant(rest string, user *users.UserRecord, room *rooms.Room, flags events
 			}
 
 			// Fire an event that a skill has been used
-			events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: skills.Enchant, Details: `uncurse`})
+			events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: `enchant`, Details: `uncurse`})
 
 			user.Character.RemoveItem(matchItem)
 			matchItem.Uncurse()
@@ -122,7 +121,7 @@ func Enchant(rest string, user *users.UserRecord, room *rooms.Room, flags events
 			}
 
 			// Fire an event that a skill has been used
-			events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: skills.Enchant, Details: `remove`})
+			events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: `enchant`, Details: `remove`})
 
 			room.SendText(
 				fmt.Sprintf(`<ansi fg="username">%s</ansi> holds out their <ansi fg="itemname">%s</ansi> and slowly waves their hand over it. Runes appear to glow on the surface, which fade as they float away.`, user.Character.Name, matchItem.DisplayName()),
@@ -160,15 +159,15 @@ func Enchant(rest string, user *users.UserRecord, room *rooms.Room, flags events
 			return true, nil
 		}
 
-		if !user.Character.TryCooldown(skills.Enchant.String(), "15 real minutes") {
+		if !user.Character.TryCooldown(`enchant`, "15 real minutes") {
 			user.SendText(
-				fmt.Sprintf("You need to wait %d more rounds to use that skill again.", user.Character.GetCooldown(skills.Enchant.String())),
+				fmt.Sprintf("You need to wait %d more rounds to use that skill again.", user.Character.GetCooldown(`enchant`)),
 			)
 			return true, errors.New(`you're doing that too often`)
 		}
 
 		// Fire an event that a skill has been used
-		events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: skills.Enchant, Details: ``})
+		events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: `enchant`, Details: ``})
 
 		damageBonus := 0
 		defenseBonus := 0

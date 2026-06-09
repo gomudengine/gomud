@@ -46,7 +46,7 @@ func Remove(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 		}
 
 		if matchItem.IsCursed() && user.Character.Health > 0 {
-			if user.Character.GetSkillLevel(skills.Enchant) < 4 {
+			if user.Character.GetSkillLevel(`enchant`) < skills.MaxSkillLevel(`enchant`) {
 				user.SendText(
 					fmt.Sprintf(`You can't seem to remove your <ansi fg="item">%s</ansi>... It's <ansi fg="red-bold">CURSED!</ansi>`, matchItem.DisplayName()),
 				)

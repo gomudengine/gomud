@@ -1,0 +1,4 @@
+professionid: sorcerer
+name: Sorcerer
+description: Wielders of raw arcane power.
+skills: [cast, enchant]

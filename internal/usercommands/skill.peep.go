@@ -8,7 +8,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
-	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/term"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
@@ -22,7 +21,7 @@ Level 4 - Reveals detailed stats of the player or mob, plus equipment and items,
 */
 func Peep(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
-	skillLevel := user.Character.GetSkillLevel(skills.Peep)
+	skillLevel := user.Character.GetSkillLevel(`peep`)
 
 	if skillLevel == 0 {
 		user.SendText("You don't know how to peep.")
@@ -40,7 +39,7 @@ func Peep(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		return true, errors.New(`at level 1, peep is a passive skill`)
 	}
 
-	if !user.Character.TryCooldown(skills.Peep.String(), "1 round") {
+	if !user.Character.TryCooldown(`peep`, "1 round") {
 		user.SendText(
 			`You're using that skill just a little too fast.`,
 		)
@@ -51,7 +50,7 @@ func Peep(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 
 	if playerId > 0 || mobId > 0 {
 
-		events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: skills.Peep, Details: ``})
+		events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: `peep`, Details: ``})
 
 		statusTxt := ""
 		invTxt := ""

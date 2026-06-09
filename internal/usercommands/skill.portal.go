@@ -12,7 +12,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
-	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
@@ -38,7 +37,7 @@ func Portal(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 		}
 	}
 
-	skillLevel := user.Character.GetSkillLevel(skills.Portal)
+	skillLevel := user.Character.GetSkillLevel(`portal`)
 
 	if skillLevel == 0 {
 		user.SendText("You don't know how to portal.")
@@ -88,15 +87,15 @@ func Portal(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 			return true, nil
 		}
 
-		if !user.Character.TryCooldown(skills.Portal.String(), "1 real minute") {
+		if !user.Character.TryCooldown(`portal`, "1 real minute") {
 			user.SendText(
-				fmt.Sprintf("You need to wait %d more rounds to use that skill again.", user.Character.GetCooldown(skills.Portal.String())),
+				fmt.Sprintf("You need to wait %d more rounds to use that skill again.", user.Character.GetCooldown(`portal`)),
 			)
 			return true, errors.New(`you're doing that too often`)
 		}
 
 		// Fire an event that a skill has been used
-		events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: skills.Portal, Details: ``})
+		events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: `portal`, Details: ``})
 
 		// move to portalTargetRoomId
 		if err := rooms.MoveToRoom(user.UserId, portalTargetRoomId); err == nil {
@@ -122,7 +121,7 @@ func Portal(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 		if rest == "set" {
 
 			// Fire an event that a skill has been used
-			events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: skills.Portal, Details: `set`})
+			events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: `portal`, Details: `set`})
 
 			user.Character.SetSetting("portal", strconv.Itoa(user.Character.RoomId))
 
@@ -136,7 +135,7 @@ func Portal(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 		if rest == "unset" || rest == "clear" {
 
 			// Fire an event that a skill has been used
-			events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: skills.Portal, Details: `unset`})
+			events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: `portal`, Details: `unset`})
 
 			user.Character.SetSetting("portal", "")
 
@@ -163,9 +162,9 @@ func Portal(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 				return true, nil
 			}
 
-			if !user.Character.TryCooldown(skills.Portal.String(), "1 real minute") {
+			if !user.Character.TryCooldown(`portal`, "1 real minute") {
 				user.SendText(
-					fmt.Sprintf("You need to wait %d more rounds to use that skill again.", user.Character.GetCooldown(skills.Portal.String())),
+					fmt.Sprintf("You need to wait %d more rounds to use that skill again.", user.Character.GetCooldown(`portal`)),
 				)
 
 				return true, errors.New(`you're doing that too often`)
@@ -253,7 +252,7 @@ func Portal(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 			)
 
 			// Fire an event that a skill has been used
-			events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: skills.Portal, Details: `open`})
+			events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: `portal`, Details: `open`})
 
 			user.Character.SetSetting("portal:open", fmt.Sprintf("%d:%d", user.Character.RoomId, portalTargetRoomId))
 		}

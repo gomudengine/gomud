@@ -17,6 +17,7 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/quests"
 	"github.com/GoMudEngine/GoMud/internal/races"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
+	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/spells"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
@@ -165,6 +166,46 @@ func apiV1GetRaceYAML(w http.ResponseWriter, r *http.Request) {
 	}
 	race := races.GetRace(raceId)
 	path := dataFiles() + `/races/` + race.Filepath()
+	content, ok := readYAMLFile(w, path)
+	if !ok {
+		return
+	}
+	writeJSON(w, http.StatusOK, APIResponse[yamlResponse]{
+		Success: true,
+		Data:    yamlResp(content, path),
+	})
+}
+
+// ---------------------------------------------------------------------------
+// Skills & Professions
+// ---------------------------------------------------------------------------
+
+// GET /admin/api/v1/skills/{skillId}/yaml
+func apiV1GetSkillYAML(w http.ResponseWriter, r *http.Request) {
+	skillId, ok := resolveSkillId(w, r.PathValue("skillId"))
+	if !ok {
+		return
+	}
+	spec := skills.GetSkill(skillId)
+	path := dataFiles() + `/skills/` + spec.Filepath()
+	content, ok := readYAMLFile(w, path)
+	if !ok {
+		return
+	}
+	writeJSON(w, http.StatusOK, APIResponse[yamlResponse]{
+		Success: true,
+		Data:    yamlResp(content, path),
+	})
+}
+
+// GET /admin/api/v1/professions/{professionId}/yaml
+func apiV1GetProfessionYAML(w http.ResponseWriter, r *http.Request) {
+	professionId, ok := resolveProfessionId(w, r.PathValue("professionId"))
+	if !ok {
+		return
+	}
+	spec := skills.GetProfessionSpec(professionId)
+	path := dataFiles() + `/professions/` + spec.Filepath()
 	content, ok := readYAMLFile(w, path)
 	if !ok {
 		return

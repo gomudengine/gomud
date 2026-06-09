@@ -113,6 +113,16 @@ func buildAdminNav() []WebNavItem {
 						{Label: "API Docs", Target: "/admin/quests-api", Description: "REST API reference for the quests endpoint."},
 					},
 				},
+				{
+					Name:        "Skills",
+					Target:      "/admin/skills",
+					Description: "Define skills, their level caps, and the professions that group them.",
+					Children: []WebNavItem{
+						{Label: "View / Edit", Target: "/admin/skills", Description: "Browse, create, and edit skill definitions."},
+						{Label: "Professions", Target: "/admin/skills-professions", Description: "Browse, create, and edit profession definitions."},
+						{Label: "API Docs", Target: "/admin/skills-api", Description: "REST API reference for the skills and professions endpoints."},
+					},
+				},
 			},
 		},
 		{

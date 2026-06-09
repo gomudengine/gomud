@@ -1,0 +1,5 @@
+# TODO
+skillid: peep
+name: Peep
+description: Reveal special information about NPCs and players. Higher levels uncover more and can become passively useful.
+maxlevel: 4

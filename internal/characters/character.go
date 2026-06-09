@@ -193,7 +193,7 @@ func (c *Character) GetBaseCastSuccessChance(spellId string) int {
 
 	// add spell level bonus
 	// 10-30
-	skillLevel := c.GetSkillLevel(skills.Cast)
+	skillLevel := c.GetSkillLevel(`cast`)
 	//targetNumber += (skillLevel * 5)
 	//targetNumber -= 5 // cancel out the first level
 
@@ -887,18 +887,31 @@ func (c *Character) GetSkills() map[string]int {
 	return skillResults
 }
 
-func (c *Character) SetSkill(skillName string, level int) {
+// SetSkill sets a skill to an explicit level. Returns false (with a mudlog warning)
+// for unknown skills. Level 0 deletes the skill; otherwise the level is clamped to
+// the skill's configured maxlevel.
+func (c *Character) SetSkill(skillName string, level int) bool {
 	if c.Skills == nil {
 		c.Skills = make(map[string]int)
 	}
 	skillName = strings.ToLower(skillName)
 
-	if level == 0 {
+	if level <= 0 {
 		delete(c.Skills, skillName)
-		return
+		return true
+	}
+
+	if !skills.SkillExists(skillName) {
+		mudlog.Warn("SetSkill", "error", "unknown skill", "skill", skillName)
+		return false
+	}
+
+	if max := skills.MaxSkillLevel(skillName); level > max {
+		level = max
 	}
 
 	c.Skills[skillName] = level
+	return true
 }
 
 // Increases the skill training counter and returns the new value
@@ -908,6 +921,13 @@ func (c *Character) TrainSkill(skillName string, targetLevel ...int) int {
 	}
 
 	skillName = strings.ToLower(skillName)
+
+	if !skills.SkillExists(skillName) {
+		mudlog.Warn("TrainSkill", "error", "unknown skill", "skill", skillName)
+		return 0
+	}
+
+	max := skills.MaxSkillLevel(skillName)
 
 	skillLevel := 0
 
@@ -920,8 +940,11 @@ func (c *Character) TrainSkill(skillName string, targetLevel ...int) int {
 		if skillLevel < targetLevel[0] {
 			skillLevel = targetLevel[0]
 		}
+		if skillLevel > max {
+			skillLevel = max
+		}
 
-	} else if skillLevel < 4 {
+	} else if skillLevel < max {
 
 		skillLevel++
 
@@ -933,12 +956,19 @@ func (c *Character) TrainSkill(skillName string, targetLevel ...int) int {
 }
 
 // Gets the current value of the skillname provided
-func (c *Character) GetSkillLevel(skillName skills.SkillTag) int {
+func (c *Character) GetSkillLevel(skillName string) int {
 	if c.Skills == nil {
 		c.Skills = make(map[string]int)
 	}
 
-	if level, ok := c.Skills[string(skillName)]; ok {
+	skillName = strings.ToLower(skillName)
+
+	// zero reads: unknown skills (incl. orphaned save entries) report 0 and stay inert.
+	if !skills.SkillExists(skillName) {
+		return 0
+	}
+
+	if level, ok := c.Skills[skillName]; ok {
 		return level
 	}
 	return 0
@@ -949,12 +979,12 @@ func (c *Character) GetSkillLevelCost(currentLevel int) int {
 }
 
 func (c *Character) GetMaxCharmedCreatures() int {
-	lvl := c.GetSkillLevel(skills.Tame)
+	lvl := c.GetSkillLevel(`tame`)
 	return lvl + 1
 }
 
 func (c *Character) GetMemoryCapacity() int {
-	memCap := c.GetSkillLevel(skills.Map) * c.Stats.Smarts.ValueAdj
+	memCap := c.GetSkillLevel(`map`) * c.Stats.Smarts.ValueAdj
 	if memCap < 0 {
 		memCap = 0
 	}
@@ -962,7 +992,7 @@ func (c *Character) GetMemoryCapacity() int {
 }
 
 func (c *Character) GetMapSprawlCapacity() int {
-	sprawlCap := c.GetSkillLevel(skills.Map) + (c.Stats.Smarts.ValueAdj >> 2)
+	sprawlCap := c.GetSkillLevel(`map`) + (c.Stats.Smarts.ValueAdj >> 2)
 	if sprawlCap < 0 {
 		sprawlCap = 0
 	}
@@ -1575,7 +1605,7 @@ func (c *Character) AutoTrain() {
 }
 
 func (c *Character) CanDualWield() bool {
-	return c.GetSkillLevel(skills.DualWield) > 0
+	return c.GetSkillLevel(`dual-wield`) > 0
 }
 
 // Returns whether a correction was in order

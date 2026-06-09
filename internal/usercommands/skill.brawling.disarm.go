@@ -7,7 +7,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
-	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
 )
@@ -18,7 +17,7 @@ Level 4 - Attempt to disarm an opponent.
 */
 func Disarm(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
-	skillLevel := user.Character.GetSkillLevel(skills.Brawling)
+	skillLevel := user.Character.GetSkillLevel(`brawling`)
 
 	// If they don't have a skill, act like it's not a valid command
 	if skillLevel < 4 {
@@ -34,14 +33,14 @@ func Disarm(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 	attackPlayerId := user.Character.Aggro.UserId
 
 	if attackMobInstanceId > 0 || attackPlayerId > 0 {
-		if !user.Character.TryCooldown(skills.Brawling.String(`disarm`), "1 real minute") {
-			user.SendText(fmt.Sprintf("You can try disarming again in %d rounds.", user.Character.GetCooldown(skills.Brawling.String(`disarm`))))
+		if !user.Character.TryCooldown(`brawling:disarm`, "1 real minute") {
+			user.SendText(fmt.Sprintf("You can try disarming again in %d rounds.", user.Character.GetCooldown(`brawling:disarm`)))
 			return true, nil
 		}
 	}
 
 	// Fire an event that a skill has been used
-	events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: skills.Brawling, Details: `disarm`})
+	events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: `brawling`, Details: `disarm`})
 
 	if attackMobInstanceId > 0 {
 

@@ -2,6 +2,7 @@ package characters
 
 import (
 	"math"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -11,6 +12,23 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestMain(m *testing.M) {
+	// Seed the skills cache so skill-gated helpers (SetSkill/TrainSkill/GetSkillLevel)
+	// behave deterministically without loading datafiles from disk.
+	seedSkills := []*skills.Skill{}
+	for _, id := range []string{
+		`cast`, `dual-wield`, `map`, `enchant`, `peep`,
+		`inspect`, `portal`, `search`, `track`, `skulduggery`,
+		`brawling`, `scribe`, `protection`, `tame`, `trading`,
+		`changeform`,
+	} {
+		seedSkills = append(seedSkills, &skills.Skill{SkillId: id, Name: id, Description: id, MaxLevel: 4})
+	}
+	skills.SetTestData(seedSkills, nil)
+
+	os.Exit(m.Run())
+}
 
 func TestCharacter_XPTLClampsToMaxInt(t *testing.T) {
 	c := New()
@@ -51,7 +69,7 @@ func TestCharacter_CanDualWield(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := New()
-			c.Skills[string(skills.DualWield)] = tt.skillLevel
+			c.Skills[`dual-wield`] = tt.skillLevel
 			got := c.CanDualWield()
 			assert.Equal(t, tt.want, got)
 		})
@@ -2016,7 +2034,7 @@ func TestCharacter_EndAggro(t *testing.T) {
 func TestCharacter_GetSkillLevel(t *testing.T) {
 	type args struct {
 		skillsMap map[string]int
-		skillTag  skills.SkillTag
+		skillTag  string
 	}
 	tests := []struct {
 		name     string
@@ -2026,24 +2044,24 @@ func TestCharacter_GetSkillLevel(t *testing.T) {
 		{
 			name: "Skill exists with positive value",
 			args: args{
-				skillsMap: map[string]int{string(skills.DualWield): 3},
-				skillTag:  skills.DualWield,
+				skillsMap: map[string]int{`dual-wield`: 3},
+				skillTag:  `dual-wield`,
 			},
 			expected: 3,
 		},
 		{
 			name: "Skill exists with zero value",
 			args: args{
-				skillsMap: map[string]int{string(skills.Cast): 0},
-				skillTag:  skills.Cast,
+				skillsMap: map[string]int{`cast`: 0},
+				skillTag:  `cast`,
 			},
 			expected: 0,
 		},
 		{
 			name: "Skill does not exist",
 			args: args{
-				skillsMap: map[string]int{string(skills.Tame): 2},
-				skillTag:  skills.Cast,
+				skillsMap: map[string]int{`tame`: 2},
+				skillTag:  `cast`,
 			},
 			expected: 0,
 		},
@@ -2051,7 +2069,7 @@ func TestCharacter_GetSkillLevel(t *testing.T) {
 			name: "Nil Skills map",
 			args: args{
 				skillsMap: nil,
-				skillTag:  skills.Map,
+				skillTag:  `map`,
 			},
 			expected: 0,
 		},
@@ -2059,19 +2077,19 @@ func TestCharacter_GetSkillLevel(t *testing.T) {
 			name: "Multiple skills, get correct one",
 			args: args{
 				skillsMap: map[string]int{
-					string(skills.Cast):      2,
-					string(skills.DualWield): 1,
-					string(skills.Map):       4,
+					`cast`:       2,
+					`dual-wield`: 1,
+					`map`:        4,
 				},
-				skillTag: skills.Map,
+				skillTag: `map`,
 			},
 			expected: 4,
 		},
 		{
 			name: "Skill exists with negative value",
 			args: args{
-				skillsMap: map[string]int{string(skills.Cast): -2},
-				skillTag:  skills.Cast,
+				skillsMap: map[string]int{`cast`: -2},
+				skillTag:  `cast`,
 			},
 			expected: -2,
 		},

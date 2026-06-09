@@ -134,9 +134,9 @@ func HandleQuestUpdate(e events.Event) events.ListenerReturn {
 			if len(details) > 1 {
 				skillName := strings.ToLower(details[0])
 				skillLevel, _ := strconv.Atoi(details[1])
-				currentLevel := questUser.Character.GetSkillLevel(skills.SkillTag(skillName))
+				currentLevel := questUser.Character.GetSkillLevel(skillName)
 
-				if currentLevel < skillLevel {
+				if skills.SkillExists(skillName) && currentLevel < skillLevel {
 					newLevel := questUser.Character.TrainSkill(skillName, skillLevel)
 
 					skillData := struct {

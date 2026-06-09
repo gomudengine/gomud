@@ -12,7 +12,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/gametime"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mutators"
-	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/term"
 	"github.com/GoMudEngine/GoMud/internal/users"
 	"github.com/GoMudEngine/GoMud/internal/util"
@@ -239,7 +238,7 @@ func GetDetails(r *Room, user *users.UserRecord, tinymap ...[]string) RoomTempla
 	}
 
 	nameFlags := []characters.NameRenderFlag{}
-	if user.Character.GetSkillLevel(skills.Peep) > 0 {
+	if user.Character.GetSkillLevel(`peep`) > 0 {
 		nameFlags = append(nameFlags, characters.RenderHealth)
 	}
 

@@ -12,7 +12,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/parties"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
-	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/templates"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
@@ -26,7 +25,7 @@ Level 4 - Map a 17x9 area, and enables the "wide" version.
 */
 func Map(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
-	skillLevel := user.Character.GetSkillLevel(skills.Map)
+	skillLevel := user.Character.GetSkillLevel(`map`)
 
 	if skillLevel == 0 {
 		user.SendText("You don't know how to map.")
@@ -43,7 +42,7 @@ func Map(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 		return true, errors.New(`you don't know how to create a wide map`)
 	}
 
-	if !user.Character.TryCooldown(skills.Map.String(), "1 round") {
+	if !user.Character.TryCooldown(`map`, "1 round") {
 		user.SendText(
 			`You can only create 1 map per round.`,
 		)
@@ -51,7 +50,7 @@ func Map(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 	}
 
 	// Fire an event that a skill has been used
-	events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: skills.Map, Details: ``})
+	events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: `map`, Details: ``})
 
 	// replace any non alpha/numeric characters in "rest"
 	zone := rest

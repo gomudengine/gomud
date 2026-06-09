@@ -1,5 +1,20 @@
 # Skills
 
+## Data files (data-driven)
+
+Skills and professions are loaded from YAML datafiles, not hardcoded:
+
+* `_datafiles/world/default/skills/<skillid>.yaml` — one file per skill (`skillid`, `name`, `description`, `maxlevel`). The filename is the raw `skillid` (e.g. `dual-wield.yaml`).
+* `_datafiles/world/default/professions/<professionid>.yaml` — one file per profession (`professionid`, `name`, `description`, `skills: [...]`). The filename runs the spaced id through `util.ConvertForFilename` (e.g. `treasure hunter` → `treasure_hunter.yaml`).
+
+Skills are keyed by lowercase string ids matching `Character.Skills map[string]int`, so no save migration was needed. `maxlevel` defaults to 4 when unset.
+
+Loaded at boot in `main.go` (`skills.LoadDataFiles()` then `skills.LoadProfessionDataFiles()` — skills first so profession cross-references can warn). Hot-reload in-game with `reload skills`. Manage via the admin pages (`/admin/skills`, `/admin/skills-professions`), the CRUD API (`/admin/api/v1/skills`, `/admin/api/v1/professions`), and the API docs at `/admin/skills-api`.
+
+Validation policy is **reject writes, zero reads**: `SetSkill`/`TrainSkill` no-op (with a mudlog warning) for unknown skill ids; `GetSkillLevel` returns 0 for unknown skills, so orphaned save entries stay inert. Deleting a skill that a profession references is rejected.
+
+Skills are referenced everywhere as plain lowercase string ids (e.g. `"cast"`, `"dual-wield"`); there are no compiled-in skill-name constants. The YAML files are the source of truth for which skills exist at runtime.
+
 TODO: Improve this documentation. For now, documenting philosophy/approach to skill implementation
 
 ## Training

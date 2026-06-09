@@ -4,7 +4,6 @@ import (
 	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
-	"github.com/GoMudEngine/GoMud/internal/skills"
 	"github.com/GoMudEngine/GoMud/internal/users"
 )
 
@@ -14,7 +13,7 @@ Level 1 - Sneak
 */
 func Sneak(rest string, user *users.UserRecord, room *rooms.Room, flags events.EventFlag) (bool, error) {
 
-	skillLevel := user.Character.GetSkillLevel(skills.Skulduggery)
+	skillLevel := user.Character.GetSkillLevel(`skulduggery`)
 
 	// If they don't have a skill, act like it's not a valid command
 	if skillLevel < 1 {
@@ -41,7 +40,7 @@ func Sneak(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 	user.AddBuff(9, `skill`)
 
 	// Fire an event that a skill has been used
-	events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: skills.Skulduggery, Details: `sneak`})
+	events.AddToQueue(events.SkillUsed{UserId: user.UserId, Skill: `skulduggery`, Details: `sneak`})
 
 	return true, nil
 }
