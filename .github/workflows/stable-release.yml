@@ -262,3 +262,18 @@ jobs:
             "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" \
             -F draft=false \
             -F prerelease=false
+
+  docker-image:
+    name: Publish Stable Docker Image
+    needs:
+      - validate-release
+      - publish
+    uses: ./.github/workflows/docker-package.yml
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    secrets: inherit
+    with:
+      release_tag: ${{ inputs.release_tag }}

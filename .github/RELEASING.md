@@ -34,6 +34,9 @@ workflow to avoid duplicate full race-test runs on merge.
    required reviewers on that environment in repository settings.
 5. After environment approval, the workflow creates a draft release, uploads
    assets, attaches release notes, then publishes the stable release.
+6. After the stable release is published, the `Stable Release` workflow calls
+   the `Docker Image` workflow to build and publish the GitHub Container
+   Registry image.
 
 Stable release workflow policy does not move tags, use `--clobber`, or replace
 existing releases. Keep repository-wide immutable releases disabled so the
@@ -59,6 +62,8 @@ After a release workflow succeeds:
 - Confirm binaries and `SHA256SUMS.txt` have artifact attestations.
 - For stable releases, confirm the release tag points at the intended commit and
   the release is no longer a draft.
+- For stable releases, confirm the GitHub Container Registry image was updated
+  with the stable release tag and `latest` tags.
 
 ### FAQ
 

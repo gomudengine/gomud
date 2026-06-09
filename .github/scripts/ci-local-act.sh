@@ -32,7 +32,5 @@ run_act pull_request .github/act/pull_request.json \
 run_act push .github/act/push_master.json .github/workflows/prerelease.yml
 run_act workflow_dispatch .github/act/stable_release.json \
 	.github/workflows/stable-release.yml
-run_act push .github/act/push_master.json \
-	.github/workflows/docker-package.yml ${ACT_DRYRUN_SECRETS:-}
-run_act pull_request .github/act/pull_request.json \
+run_act workflow_call .github/act/docker_package_call.json \
 	.github/workflows/docker-package.yml ${ACT_DRYRUN_SECRETS:-}
