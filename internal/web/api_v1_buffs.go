@@ -64,6 +64,11 @@ func apiV1PatchBuff(w http.ResponseWriter, r *http.Request) {
 
 	// Decode into a copy so only supplied fields are changed.
 	updated := *existing
+	// Nil out map fields that must be fully replaced (not merged) by the JSON
+	// decode. Go's json.Decoder merges into existing maps, so without this a
+	// stat mod removed in the editor (zeroed/deleted, hence omitted from the
+	// payload) would keep its old value and reappear on reload.
+	updated.StatMods = nil
 	if err := json.NewDecoder(r.Body).Decode(&updated); err != nil {
 		writeAPIError(w, http.StatusBadRequest, "malformed request body: "+err.Error())
 		return
