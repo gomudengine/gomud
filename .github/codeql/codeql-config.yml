@@ -3,6 +3,8 @@ name: GoMud CodeQL config
 
 # Keep CodeQL focused on GoMud source. These are checked-in third-party
 # browser bundles, better covered by dependency maintenance than source scans.
+# If a first-party script moves under one of these directories, remove or
+# narrow the matching ignore before relying on CodeQL coverage for that file.
 paths-ignore:
   - _datafiles/html/admin/static/js/monaco/**
   - _datafiles/html/admin/static/js/highlight.js
