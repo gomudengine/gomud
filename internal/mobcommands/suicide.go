@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
@@ -23,13 +22,13 @@ func Suicide(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 	currentRound := util.GetRoundCount()
 	config := configs.GetGamePlayConfig()
 
-	if rest != `vanish` && mob.Character.HasBuffFlag(buffs.ReviveOnDeath) {
+	if rest != `vanish` && mob.Character.HasBuffFlag("revive-on-death") {
 
 		mob.Character.Health = mob.Character.HealthMax.Value
 
 		room.SendText(`<ansi fg="mobname">` + mob.Character.Name + `</ansi> is suddenly revived in a shower of sparks!`)
 
-		mob.Character.CancelBuffsWithFlag(buffs.ReviveOnDeath)
+		mob.Character.CancelBuffsWithFlag("revive-on-death")
 
 		return true, nil
 	}
@@ -327,7 +326,7 @@ func Suicide(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 	}
 
-	if !mob.Character.HasBuffFlag(buffs.PermaGear) {
+	if !mob.Character.HasBuffFlag("perma-gear") {
 
 		corpseItems := []items.Item{}
 		corpseGold := 0

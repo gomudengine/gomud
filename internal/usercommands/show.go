@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -44,7 +43,7 @@ func Show(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 
 	if playerId > 0 {
 
-		user.Character.CancelBuffsWithFlag(buffs.Hidden)
+		user.Character.CancelBuffsWithFlag("hidden")
 
 		targetUser := users.GetByUserId(playerId)
 
@@ -84,7 +83,7 @@ func Show(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 	//
 	if mobId > 0 {
 
-		user.Character.CancelBuffsWithFlag(buffs.Hidden)
+		user.Character.CancelBuffsWithFlag("hidden")
 
 		targetMob := mobs.GetInstance(mobId)
 

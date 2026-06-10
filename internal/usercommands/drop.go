@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -55,7 +54,7 @@ func Drop(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 			return true, nil
 		}
 
-		user.Character.CancelBuffsWithFlag(buffs.Hidden)
+		user.Character.CancelBuffsWithFlag("hidden")
 
 		room.Gold += dropAmt
 		user.Character.Gold -= dropAmt
@@ -83,7 +82,7 @@ func Drop(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		user.SendText(fmt.Sprintf("You don't have a %s to drop.", rest))
 	} else {
 
-		user.Character.CancelBuffsWithFlag(buffs.Hidden)
+		user.Character.CancelBuffsWithFlag("hidden")
 
 		iSpec := matchItem.GetSpec()
 

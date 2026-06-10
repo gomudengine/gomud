@@ -3,7 +3,6 @@ package usercommands
 import (
 	"fmt"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -24,14 +23,14 @@ func Go(rest string, user *users.UserRecord, room *rooms.Room, flags events.Even
 	}
 
 	// If has a buff that prevents combat, skip the player
-	if user.Character.HasBuffFlag(buffs.NoMovement) {
+	if user.Character.HasBuffFlag("no-go") {
 		user.SendText("You can't do that!")
 		return true, nil
 	}
 
 	c := configs.GetTextFormatsConfig()
 
-	isSneaking := user.Character.HasBuffFlag(buffs.Hidden)
+	isSneaking := user.Character.HasBuffFlag("hidden")
 
 	handled := false
 
@@ -378,7 +377,7 @@ func Go(rest string, user *users.UserRecord, room *rooms.Room, flags events.Even
 				}
 			}
 
-			if !user.Character.HasBuffFlag(buffs.Hidden) {
+			if !user.Character.HasBuffFlag("hidden") {
 
 				room.SendText(
 					fmt.Sprintf(string(c.ExitRoomMessageWrapper),

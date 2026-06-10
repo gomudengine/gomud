@@ -3,7 +3,6 @@ package usercommands
 import (
 	"fmt"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -38,7 +37,7 @@ func Feed(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		return true, nil
 	}
 
-	user.Character.CancelBuffsWithFlag(buffs.Hidden)
+	user.Character.CancelBuffsWithFlag("hidden")
 
 	if usesLeft := user.Character.UseItem(matchItem); usesLeft < 1 {
 		events.AddToQueue(events.ItemOwnership{

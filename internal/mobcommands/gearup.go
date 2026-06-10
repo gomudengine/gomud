@@ -3,7 +3,6 @@ package mobcommands
 import (
 	"fmt"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -11,7 +10,7 @@ import (
 
 func Gearup(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
-	if mob.Character.HasBuffFlag(buffs.PermaGear) {
+	if mob.Character.HasBuffFlag("perma-gear") {
 		mob.Command(`emote struggles with their gear for a while, then gives up.`)
 		return true, nil
 	}

@@ -1,0 +1,4 @@
+flag: see-nouns
+name: "See Nouns"
+description: "Allows the character to see identifying details in rooms."
+locked: true

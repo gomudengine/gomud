@@ -1,0 +1,4 @@
+flag: hidden
+name: "Hidden"
+description: "Marks the character as hidden or stealthed, concealing them from others."
+locked: true

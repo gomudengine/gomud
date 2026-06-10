@@ -3,7 +3,6 @@ package usercommands
 import (
 	"fmt"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -71,7 +70,7 @@ func Aid(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 
 			if continueCasting {
 				spellInfo := spells.GetSpell(`aidskill`)
-				user.Character.CancelBuffsWithFlag(buffs.Hidden)
+				user.Character.CancelBuffsWithFlag("hidden")
 				user.Character.SetCast(spellInfo.WaitRounds, spellAggro)
 			}
 

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -14,7 +13,7 @@ import (
 func Go(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 	// If has a buff that prevents combat, skip the player
-	if mob.Character.HasBuffFlag(buffs.NoMovement) {
+	if mob.Character.HasBuffFlag("no-go") {
 		return true, nil
 	}
 

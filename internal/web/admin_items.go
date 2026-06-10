@@ -17,6 +17,7 @@ var pageWritePermissions = map[string]string{
 	"/admin/audio":                 "audio.write",
 	"/admin/biomes":                "biomes.write",
 	"/admin/buffs":                 "buffs.write",
+	"/admin/buffs-flags":           "buffs.write",
 	"/admin/color-aliases":         "color-aliases.write",
 	"/admin/colorpatterns":         "colorpatterns.write",
 	"/admin/config":                "config.write",
@@ -118,6 +119,10 @@ func adminItemsRankArmor(w http.ResponseWriter, r *http.Request) {
 
 func adminBuffs(w http.ResponseWriter, r *http.Request) {
 	serveAdminTemplate(w, r, "buffs.html", nil)
+}
+
+func adminBuffsFlags(w http.ResponseWriter, r *http.Request) {
+	serveAdminTemplate(w, r, "buffs-flags.html", nil)
 }
 
 func adminBuffsAPI(w http.ResponseWriter, r *http.Request) {

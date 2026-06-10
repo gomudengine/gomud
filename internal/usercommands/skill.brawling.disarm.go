@@ -3,7 +3,6 @@ package usercommands
 import (
 	"fmt"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -48,7 +47,7 @@ func Disarm(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 
 		if m != nil {
 
-			if m.Character.HasBuffFlag(buffs.PermaGear) {
+			if m.Character.HasBuffFlag("perma-gear") {
 				user.SendText(fmt.Sprintf(`Some force prevents you from disarming <ansi fg="mobname">%s</ansi>!`, m.Character.Name))
 				return true, nil
 			}
@@ -105,7 +104,7 @@ func Disarm(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 
 		if u != nil {
 
-			if u.Character.HasBuffFlag(buffs.PermaGear) {
+			if u.Character.HasBuffFlag("perma-gear") {
 				user.SendText(fmt.Sprintf(`Some force prevents you from disarming <ansi fg="username">%s</ansi>!`, u.Character.Name))
 				return true, nil
 			}

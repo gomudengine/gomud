@@ -265,7 +265,7 @@
     'use strict';
 
     let allBuffs    = {};  // buffId -> spec
-    let allFlags    = {};  // flag   -> description
+    let allFlags    = [];  // array of FlagSpec {Flag, Name, Description, Locked}
     let allStatMods = {};  // statName -> description  (from /admin/api/v1/statmods)
     let currentBuffId = null;
     let isNew = false;
@@ -314,7 +314,7 @@
         if (!statmodsRes.ok) { showStatus('Failed to load statmods: ' + statmodsRes.error, false); return; }
 
         const buffsData = buffsRes.data.data || {};
-        allFlags    = buffsData.flags || {};
+        allFlags    = buffsData.flags || [];
         allBuffs    = buffsData.specs || {};
         allStatMods = statmodsRes.data.data || {};
 
@@ -588,14 +588,15 @@
         const grid = document.getElementById('flags-grid');
         grid.innerHTML = '';
         const active = new Set(activeFlags || []);
-        for (const [flag, desc] of Object.entries(allFlags)) {
+        for (const fSpec of allFlags) {
+            const flag = fSpec.Flag;
             const label = document.createElement('label');
             label.className = 'flag-item';
             label.innerHTML = `
                 <input type="checkbox" value="${esc(flag)}" ${active.has(flag) ? 'checked' : ''} />
                 <span class="flag-label">
-                    <span class="flag-name">${esc(flag)}</span>
-                    <span class="flag-desc">${esc(desc)}</span>
+                    <span class="flag-name">${esc(fSpec.Name || flag)}</span>
+                    <span class="flag-desc">${esc(fSpec.Description || '')}</span>
                 </span>`;
             grid.appendChild(label);
         }

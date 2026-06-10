@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/plugins"
@@ -88,7 +87,7 @@ func (c *CleanupModule) userTrashCommand(rest string, user *users.UserRecord, ro
 
 		c.loadConfig()
 
-		isSneaking := user.Character.HasBuffFlag(buffs.Hidden)
+		isSneaking := user.Character.HasBuffFlag("hidden")
 
 		user.Character.RemoveItem(matchItem)
 

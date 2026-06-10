@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -226,7 +225,7 @@ func Get(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 			if corpseRef.Gold < 1 {
 				user.SendText(fmt.Sprintf(`There is no gold on the %s.`, corpseName))
 			} else {
-				user.Character.CancelBuffsWithFlag(buffs.Hidden)
+				user.Character.CancelBuffsWithFlag("hidden")
 
 				goldAmt := corpseRef.Gold
 				user.Character.Gold += goldAmt
@@ -263,7 +262,7 @@ func Get(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 			return true, nil
 		}
 
-		user.Character.CancelBuffsWithFlag(buffs.Hidden)
+		user.Character.CancelBuffsWithFlag("hidden")
 
 		if !user.Character.StoreItem(matchItem) {
 			user.SendText(fmt.Sprintf(`You can't carry the <ansi fg="itemname">%s</ansi>.`, matchItem.DisplayName()))
@@ -296,7 +295,7 @@ func Get(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 				user.SendText("There's no gold to grab.")
 			} else {
 
-				user.Character.CancelBuffsWithFlag(buffs.Hidden) // No longer sneaking
+				user.Character.CancelBuffsWithFlag("hidden") // No longer sneaking
 
 				goldAmt := container.Gold
 				user.Character.Gold += goldAmt
@@ -326,7 +325,7 @@ func Get(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 			user.SendText(fmt.Sprintf(`You don't see a %s in the <ansi fg="container">%s</ansi>.`, rest, containerName))
 		} else {
 
-			user.Character.CancelBuffsWithFlag(buffs.Hidden) // No longer sneaking
+			user.Character.CancelBuffsWithFlag("hidden") // No longer sneaking
 
 			// Trigger onFound event
 			if user.Character.StoreItem(matchItem) {
@@ -368,7 +367,7 @@ func Get(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 				user.SendText("There's no gold to grab.")
 			} else {
 
-				user.Character.CancelBuffsWithFlag(buffs.Hidden) // No longer sneaking
+				user.Character.CancelBuffsWithFlag("hidden") // No longer sneaking
 
 				goldAmt := room.Gold
 				user.Character.Gold += goldAmt
@@ -411,7 +410,7 @@ func Get(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 				return true, nil
 			}
 
-			user.Character.CancelBuffsWithFlag(buffs.Hidden) // No longer sneaking
+			user.Character.CancelBuffsWithFlag("hidden") // No longer sneaking
 
 			// If it was in the stash, remove the stash owner tag
 			if getFromStash {

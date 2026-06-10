@@ -1,0 +1,4 @@
+flag: perma-gear
+name: "Unremovable Gear"
+description: "Prevents equipped items from being removed while the buff is active."
+locked: true

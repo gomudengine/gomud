@@ -32,7 +32,7 @@ func TestBuffSpec_GetValue(t *testing.T) {
 			name: "Statmods, flags, no triggercount",
 			spec: BuffSpec{
 				StatMods:      statmods.StatMods{"str": 2},
-				Flags:         []Flag{NoCombat, Hidden},
+				Flags:         []string{"no-combat", "hidden"},
 				RoundInterval: 3,
 			},
 			expectedVal: 2 + (5 - 3) + 2*5, // 2 + 2 + 10 = 14
@@ -41,7 +41,7 @@ func TestBuffSpec_GetValue(t *testing.T) {
 			name: "Statmods, flags, triggercount > 0",
 			spec: BuffSpec{
 				StatMods:      statmods.StatMods{"str": 1, "dex": 2},
-				Flags:         []Flag{NoCombat},
+				Flags:         []string{"no-combat"},
 				RoundInterval: 2,
 				TriggerCount:  3,
 			},
@@ -51,7 +51,7 @@ func TestBuffSpec_GetValue(t *testing.T) {
 			name: "Negative RoundInterval",
 			spec: BuffSpec{
 				StatMods:      statmods.StatMods{"str": 2},
-				Flags:         []Flag{},
+				Flags:         []string{},
 				RoundInterval: 10,
 			},
 			expectedVal: 2, // freqVal = 5-10 = -5 -> 0, so 2+0+0=2
@@ -60,7 +60,7 @@ func TestBuffSpec_GetValue(t *testing.T) {
 			name: "Zero RoundInterval",
 			spec: BuffSpec{
 				StatMods:      statmods.StatMods{},
-				Flags:         []Flag{NoCombat},
+				Flags:         []string{"no-combat"},
 				RoundInterval: 0,
 			},
 			expectedVal: 0 + 5 + 5, // freqVal = 5-0=5, flags=1*5=5, total=10
@@ -69,7 +69,7 @@ func TestBuffSpec_GetValue(t *testing.T) {
 			name: "TriggerCount is 1 (should not multiply)",
 			spec: BuffSpec{
 				StatMods:      statmods.StatMods{"str": 2},
-				Flags:         []Flag{},
+				Flags:         []string{},
 				RoundInterval: 4,
 				TriggerCount:  1,
 			},

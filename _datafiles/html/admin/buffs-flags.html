@@ -1,0 +1,294 @@
+{{template "header" .}}
+
+<style>
+    h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .subtitle { color: var(--color-text-muted); margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+    .page-layout { display: grid; grid-template-columns: 280px 1fr; gap: 1.25rem; align-items: start; }
+    @media (max-width: 800px) { .page-layout { grid-template-columns: 1fr; } }
+
+    /* sidebar */
+    .sidebar { background: var(--color-surface-white); border: 1px solid var(--color-border); border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; }
+    .sidebar-header { padding: 0.75rem 0.9rem; border-bottom: 1px solid var(--color-border-light); }
+    .sidebar-header input[type="search"] { width: 100%; padding: 0.35rem 0.6rem; border: 1px solid var(--color-border-medium); border-radius: 4px; font-size: 0.85rem; }
+    .flag-list { overflow-y: auto; max-height: 72vh; }
+    .flag-row {
+        padding: 0.5rem 0.9rem; cursor: pointer; border-bottom: 1px solid var(--color-border-faint);
+        display: flex; align-items: center; gap: 0.6rem; font-size: 0.875rem;
+    }
+    .flag-row:last-child { border-bottom: none; }
+    .flag-row:hover { background: var(--color-row-hover); }
+    .flag-row.active { background: var(--color-primary); color: var(--color-surface-white); }
+    .flag-id-badge { font-size: 0.72rem; color: var(--color-text-secondary); font-family: monospace; flex-shrink: 0; }
+    .flag-row.active .flag-id-badge { color: var(--color-active-id); }
+    .flag-row-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .lock-badge {
+        font-size: 0.65rem; padding: 0.1rem 0.35rem; border-radius: 3px;
+        font-weight: 600; text-transform: uppercase; margin-left: auto; flex-shrink: 0;
+        background: var(--color-code-bg); color: var(--color-text-placeholder);
+    }
+    .flag-row.active .lock-badge { background: #111; color: var(--color-border-medium); }
+    .no-flags { padding: 1.5rem; text-align: center; color: var(--color-text-faint); font-size: 0.85rem; }
+    .btn-new { margin: 0.6rem 0.9rem; padding: 0.4rem 0.9rem; border: none; border-radius: 4px; background: var(--color-success-text); color: var(--color-surface-white); font-size: 0.85rem; font-weight: 600; cursor: pointer; display: block; text-align: center; }
+    .btn-new:hover { background: var(--color-btn-new-hover); }
+
+    /* editor */
+    .editor-panel { background: var(--color-surface-white); border: 1px solid var(--color-border); border-radius: 6px; padding: 1.25rem; }
+    .editor-placeholder { color: var(--color-text-placeholder); text-align: center; padding: 4rem 1rem; font-size: 0.9rem; }
+
+    .status-bar { display: none; padding: 0.55rem 0.9rem; border-radius: 4px; font-size: 0.85rem; margin-bottom: 1rem; }
+    .status-bar.success { background: var(--color-success-bg); color: var(--color-success-text); display: block; }
+    .status-bar.error   { background: var(--color-error-bg); color: var(--color-error-text); display: block; }
+
+    .locked-notice { display: none; padding: 0.55rem 0.9rem; border-radius: 4px; font-size: 0.82rem; margin-bottom: 1rem; background: var(--color-warning-bg); color: var(--color-warning-text); }
+    .locked-notice.visible { display: block; }
+
+    /* form */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem 1.25rem; }
+    .form-grid .span2 { grid-column: 1 / -1; }
+    .field label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--color-text-muted); margin-bottom: 0.25rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .field input[type="text"], .field textarea {
+        width: 100%; padding: 0.4rem 0.6rem; border: 1px solid var(--color-border-medium); border-radius: 4px;
+        font-size: 0.875rem; font-family: inherit; background: var(--color-surface-white);
+    }
+    .field input[readonly], .field textarea[readonly] { background: var(--color-page-bg); color: var(--color-text-subtle); cursor: default; }
+    .field input:focus, .field textarea:focus { outline: 2px solid var(--color-primary); outline-offset: 1px; border-color: transparent; }
+    .field textarea { resize: vertical; min-height: 70px; }
+    .field-hint { font-size: 0.75rem; color: var(--color-text-faint); margin-top: 0.2rem; }
+
+    .section-title { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-subtle); padding: 0.75rem 0 0.4rem; border-bottom: 1px solid var(--color-border-light); margin-bottom: 0.5rem; grid-column: 1 / -1; }
+
+    .btn-row { display: flex; gap: 0.6rem; margin-top: 1.25rem; grid-column: 1 / -1; }
+    .btn-save { padding: 0.45rem 1.2rem; background: var(--color-primary); color: var(--color-surface-white); border: none; border-radius: 4px; font-size: 0.875rem; font-weight: 600; cursor: pointer; }
+    .btn-save:hover { background: var(--color-primary-hover); }
+    .btn-save:disabled { background: var(--color-text-secondary); cursor: default; }
+    .btn-delete { padding: 0.45rem 1rem; background: var(--color-surface-white); color: var(--color-error-text); border: 1px solid var(--color-btn-delete-border); border-radius: 4px; font-size: 0.875rem; font-weight: 600; cursor: pointer; }
+    .btn-delete:hover { background: var(--color-error-bg); }
+    .btn-delete:disabled { opacity: 0.4; cursor: default; }
+</style>
+
+<h1>Buff Flags</h1>
+<p class="subtitle">Browse, create, edit, and delete buff flag definitions. Locked flags are used by the engine and cannot be edited or removed.</p>
+
+<div class="page-layout">
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <input type="search" id="flagSearch" placeholder="Search flags&hellip;" oninput="filterFlags()" />
+        </div>
+        <div id="flagList" class="flag-list">
+            <div class="no-flags">Loading&hellip;</div>
+        </div>
+        <button class="btn-new" onclick="newFlag()">+ New Flag</button>
+    </div>
+
+    <div class="editor-panel">
+        <div id="statusBar" class="status-bar"></div>
+        <div id="lockedNotice" class="locked-notice">This flag is locked and cannot be edited or deleted.</div>
+        <div id="editorPlaceholder" class="editor-placeholder">Select a flag to edit, or click <strong>+ New Flag</strong>.</div>
+        <div id="editorForm" style="display:none">
+            <div class="form-grid">
+                <div style="grid-column:1/-1;display:flex;align-items:baseline;gap:0.75rem;margin-bottom:0.25rem">
+                    <p class="section-title" id="editorTitle" style="margin:0;flex:1">Edit Flag</p>
+                    <button class="yaml-badge" id="yaml-view-btn" style="display:none" onclick="showYamlModal(this.dataset.url,'Flag YAML')">YAML</button>
+                </div>
+
+                <div class="field">
+                    <label>Flag ID</label>
+                    <input type="text" id="fFlag" placeholder="e.g. perma-gear" />
+                    <div class="field-hint">Lowercase identifier (letters, numbers, hyphens, underscores). Cannot be changed after creation.</div>
+                </div>
+                <div class="field">
+                    <label>Name</label>
+                    <input type="text" id="fName" placeholder="e.g. Unremovable Gear" />
+                </div>
+
+                <div class="field span2">
+                    <label>Description</label>
+                    <textarea id="fDescription" rows="3" placeholder="One sentence describing what this flag represents."></textarea>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn-save" id="btnSave" onclick="saveFlag()">Save</button>
+                    <button class="btn-delete" id="btnDelete" onclick="deleteFlag()" style="display:none">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    let flagsData = []; // sorted array of FlagSpec
+    let activeId  = null;
+    let isNew     = false;
+
+    async function init() {
+        const res = await AdminAPI.get('/admin/api/v1/buff-flags');
+        if (!res.ok) { showStatus('error', 'Failed to load flags: ' + res.error); return; }
+        flagsData = (res.data && res.data.data) || [];
+        renderList();
+        const hashId = decodeURIComponent(location.hash.slice(1));
+        if (hashId && flagsData.find(f => f.Flag === hashId)) selectFlag(hashId);
+    }
+
+    window.filterFlags = function () {
+        const q = document.getElementById('flagSearch').value.toLowerCase();
+        document.querySelectorAll('.flag-row').forEach(row => {
+            const id   = (row.dataset.id   || '').toLowerCase();
+            const name = (row.dataset.name || '').toLowerCase();
+            row.style.display = (!q || id.includes(q) || name.includes(q)) ? '' : 'none';
+        });
+    };
+
+    function renderList() {
+        const list = document.getElementById('flagList');
+        if (!flagsData.length) {
+            list.innerHTML = '<div class="no-flags">No flags found.</div>';
+            return;
+        }
+        list.innerHTML = flagsData.map(f => {
+            const lock = f.Locked ? '<span class="lock-badge">locked</span>' : '';
+            return `<div class="flag-row${f.Flag === activeId ? ' active' : ''}"
+                data-id="${escAttr(f.Flag)}" data-name="${escAttr(f.Name || '')}"
+                onclick="selectFlag('${escAttr(f.Flag)}')">
+                <span class="flag-id-badge">${escHtml(f.Flag)}</span>
+                <span class="flag-row-name">${escHtml(f.Name || '(unnamed)')}</span>
+                ${lock}
+            </div>`;
+        }).join('');
+    }
+
+    function highlightRow(id) {
+        document.querySelectorAll('.flag-row').forEach(r =>
+            r.classList.toggle('active', r.dataset.id === id)
+        );
+    }
+
+    window.selectFlag = function (id) {
+        activeId = id;
+        isNew    = false;
+        location.hash = encodeURIComponent(id);
+        highlightRow(id);
+        populateForm(flagsData.find(f => f.Flag === id));
+    };
+
+    window.newFlag = function () {
+        activeId = null;
+        isNew    = true;
+        document.querySelectorAll('.flag-row').forEach(r => r.classList.remove('active'));
+        populateForm(null);
+    };
+
+    function populateForm(flag) {
+        document.getElementById('editorPlaceholder').style.display = 'none';
+        document.getElementById('editorForm').style.display        = '';
+        document.getElementById('statusBar').className             = 'status-bar';
+        document.getElementById('statusBar').textContent           = '';
+
+        const locked = !!(flag && flag.Locked);
+        document.getElementById('lockedNotice').classList.toggle('visible', locked);
+
+        const f = flag || {};
+        document.getElementById('fFlag').value          = f.Flag        || '';
+        document.getElementById('fFlag').readOnly       = !isNew;
+        document.getElementById('fName').value          = f.Name        || '';
+        document.getElementById('fName').readOnly       = locked;
+        document.getElementById('fDescription').value   = f.Description  || '';
+        document.getElementById('fDescription').readOnly = locked;
+
+        document.getElementById('btnSave').style.display   = locked ? 'none' : '';
+        document.getElementById('btnDelete').style.display = (isNew || locked) ? 'none' : '';
+
+        document.getElementById('editorTitle').textContent = isNew
+            ? 'New Flag'
+            : 'Edit: ' + (flag ? (flag.Name || flag.Flag) : '');
+
+        const yamlBtn = document.getElementById('yaml-view-btn');
+        if (!isNew && flag && flag.Flag) {
+            yamlBtn.dataset.url = '/admin/api/v1/buff-flags/' + encodeURIComponent(flag.Flag) + '/yaml';
+            yamlBtn.style.display = '';
+        } else {
+            yamlBtn.style.display = 'none';
+        }
+    }
+
+    function buildPayload() {
+        return {
+            Flag:        document.getElementById('fFlag').value.trim().toLowerCase(),
+            Name:        document.getElementById('fName').value.trim(),
+            Description: document.getElementById('fDescription').value.trim(),
+        };
+    }
+
+    window.saveFlag = async function () {
+        const payload = buildPayload();
+        if (!payload.Flag) { showStatus('error', 'Flag ID is required.'); return; }
+        if (!payload.Name) { showStatus('error', 'Name is required.');    return; }
+
+        const btn = document.getElementById('btnSave');
+        btn.disabled = true; btn.textContent = 'Saving\u2026';
+
+        let res;
+        if (isNew) {
+            res = await AdminAPI.post('/admin/api/v1/buff-flags', payload);
+        } else {
+            res = await AdminAPI.patch('/admin/api/v1/buff-flags/' + encodeURIComponent(activeId), payload);
+        }
+
+        btn.disabled = false; btn.textContent = 'Save';
+        if (!res.ok) { showStatus('error', res.error || 'Save failed.'); return; }
+
+        const saved   = (res.data && res.data.data) || payload;
+        const savedId = saved.Flag || payload.Flag;
+
+        const idx = flagsData.findIndex(f => f.Flag === savedId);
+        if (idx !== -1) flagsData[idx] = saved;
+        else flagsData.push(saved);
+        flagsData.sort((a, b) => a.Flag.localeCompare(b.Flag));
+
+        activeId = savedId;
+        isNew    = false;
+        location.hash = encodeURIComponent(savedId);
+        renderList();
+        highlightRow(savedId);
+        populateForm(saved);
+        showStatus('success', 'Flag "' + savedId + '" saved.');
+    };
+
+    window.deleteFlag = async function () {
+        if (!activeId) return;
+        const flag = flagsData.find(f => f.Flag === activeId);
+        if (flag && flag.Locked) { showStatus('error', 'Locked flags cannot be deleted.'); return; }
+        const label = flag ? '"' + flag.Name + '" (' + activeId + ')' : activeId;
+        if (!confirm('Delete flag ' + label + '? This cannot be undone.')) return;
+
+        const res = await AdminAPI.delete('/admin/api/v1/buff-flags/' + encodeURIComponent(activeId));
+        if (!res.ok) { showStatus('error', res.error || 'Delete failed.'); return; }
+
+        flagsData = flagsData.filter(f => f.Flag !== activeId);
+        activeId  = null;
+        history.replaceState(null, '', location.pathname + location.search);
+        renderList();
+        document.getElementById('editorForm').style.display        = 'none';
+        document.getElementById('editorPlaceholder').style.display = '';
+        document.getElementById('lockedNotice').classList.remove('visible');
+        showStatus('success', 'Flag deleted.');
+    };
+
+    function showStatus(type, msg) {
+        const bar = document.getElementById('statusBar');
+        bar.className   = 'status-bar ' + type;
+        bar.textContent = msg;
+        if (type === 'success') setTimeout(() => { bar.className = 'status-bar'; }, 3000);
+    }
+
+    function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function escAttr(s) { return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+    init();
+})();
+</script>
+
+{{template "footer" .}}

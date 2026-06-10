@@ -1,0 +1,4 @@
+flag: cancel-on-combat
+name: "Cancel On Combat"
+description: "Automatically removes the buff when the character enters combat."
+locked: true

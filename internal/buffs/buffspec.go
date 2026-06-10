@@ -36,7 +36,7 @@ type BuffSpec struct {
 	RoundInterval int               `yaml:"roundinterval,omitempty"` // triggers every x rounds
 	TriggerCount  int               `yaml:"triggercount,omitempty"`  // How many times it triggers before it is removed
 	StatMods      statmods.StatMods `yaml:"statmods,omitempty"`      // stat mods for the duration of the buff
-	Flags         []Flag            `yaml:"flags,omitempty"`         // A list of actions and such that this buff prevents or enables
+	Flags         []string          `yaml:"flags,omitempty"`         // A list of actions and such that this buff prevents or enables
 }
 
 // Calculates the value of this buff
@@ -141,6 +141,14 @@ func (b *BuffSpec) Validate() error {
 	if b.RoundInterval < 1 {
 		return fmt.Errorf("buffId %d (%s) has a RoundInterval of < 1, must be at least 1. Is %s a valid time string?", b.BuffId, b.Name, b.TriggerRate)
 	}
+
+	// Lenient: warn on unknown flags but do not reject the buff.
+	for _, flag := range b.Flags {
+		if !IsValidFlag(flag) {
+			mudlog.Warn("buffSpec.Validate()", "buffId", b.BuffId, "flag", flag, "error", "unknown buff flag")
+		}
+	}
+
 	return nil
 }
 

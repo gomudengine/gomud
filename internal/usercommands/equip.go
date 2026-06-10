@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -47,7 +46,7 @@ func Equip(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 
 		if wearSuccess {
 
-			user.Character.CancelBuffsWithFlag(buffs.Hidden)
+			user.Character.CancelBuffsWithFlag("hidden")
 
 			user.Character.RemoveItem(matchItem)
 

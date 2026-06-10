@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -93,7 +92,7 @@ func Tame(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 
 			if continueCasting {
 				spellInfo := spells.GetSpell(`tameskill`)
-				user.Character.CancelBuffsWithFlag(buffs.Hidden)
+				user.Character.CancelBuffsWithFlag("hidden")
 				user.Character.SetCast(spellInfo.WaitRounds, spellAggro)
 			}
 

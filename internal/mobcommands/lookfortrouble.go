@@ -3,7 +3,6 @@ package mobcommands
 import (
 	"fmt"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
 	"github.com/GoMudEngine/GoMud/internal/parties"
@@ -52,7 +51,7 @@ func LookForTrouble(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) 
 
 			if user.Character.Health < 1 {
 				ignoreUser = true
-			} else if user.Character.HasBuffFlag(buffs.Hidden) {
+			} else if user.Character.HasBuffFlag("hidden") {
 				ignoreUser = true
 			}
 

@@ -1,7 +1,6 @@
 package usercommands
 
 import (
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/users"
@@ -21,7 +20,7 @@ func Sneak(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 	}
 
 	// Must be sneaking
-	isSneaking := user.Character.HasBuffFlag(buffs.Hidden)
+	isSneaking := user.Character.HasBuffFlag("hidden")
 	if isSneaking {
 		user.SendText("You're already hidden!")
 		return true, nil

@@ -1,0 +1,4 @@
+flag: drunk
+name: "Drunk"
+description: "Marks the character as intoxicated, causing impaired behavior."
+locked: true

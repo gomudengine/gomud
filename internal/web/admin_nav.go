@@ -93,7 +93,8 @@ func buildAdminNav() []WebNavItem {
 					Description: "Define status effects applied to characters by spells, items, and rooms.",
 					Children: []WebNavItem{
 						{Label: "View / Edit", Target: "/admin/buffs", Description: "Browse, create, and edit buff definitions."},
-						{Label: "API Docs", Target: "/admin/buffs-api", Description: "REST API reference for the buffs endpoint."},
+						{Label: "Flags", Target: "/admin/buffs-flags", Description: "Browse, create, and edit buff flag definitions."},
+						{Label: "API Docs", Target: "/admin/buffs-api", Description: "REST API reference for the buffs and buff flags endpoints."},
 					},
 				},
 				{

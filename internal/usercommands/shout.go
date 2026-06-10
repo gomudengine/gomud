@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/users"
@@ -17,8 +16,8 @@ func Shout(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		return true, nil
 	}
 
-	isSneaking := user.Character.HasBuffFlag(buffs.Hidden)
-	isDrunk := user.Character.HasBuffFlag(buffs.Drunk)
+	isSneaking := user.Character.HasBuffFlag("hidden")
+	isDrunk := user.Character.HasBuffFlag("drunk")
 
 	rest = strings.ToUpper(rest)
 

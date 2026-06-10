@@ -136,9 +136,8 @@ func buildInspectPanel(inspectLevel int, itm *items.Item, iSpec *items.ItemSpec)
 					p.Add(``, ``, `  `+valStr)
 				}
 				for _, flag := range spec.Flags {
-					allFlags := buffs.GetAllFlags()
-					if desc, ok := allFlags[flag]; ok {
-						p.Add(``, ``, fmt.Sprintf(`- <ansi fg="cyan">%s</ansi>`, desc))
+					if fSpec := buffs.GetFlagSpec(flag); fSpec != nil {
+						p.Add(``, ``, fmt.Sprintf(`- <ansi fg="cyan">%s</ansi>`, fSpec.Description))
 					}
 				}
 				added = true
@@ -166,9 +165,8 @@ func buildInspectPanel(inspectLevel int, itm *items.Item, iSpec *items.ItemSpec)
 					p.Add(``, ``, `  `+valStr)
 				}
 				for _, flag := range spec.Flags {
-					allFlags := buffs.GetAllFlags()
-					if desc, ok := allFlags[flag]; ok {
-						p.Add(``, ``, fmt.Sprintf(`  <ansi fg="cyan">%s</ansi>`, desc))
+					if fSpec := buffs.GetFlagSpec(flag); fSpec != nil {
+						p.Add(``, ``, fmt.Sprintf(`  <ansi fg="cyan">%s</ansi>`, fSpec.Description))
 					}
 				}
 				added = true

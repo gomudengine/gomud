@@ -5,7 +5,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -49,7 +48,7 @@ func handlePlayerCombat(evt events.NewRound) (affectedPlayerIds []int, affectedM
 		user := users.GetByUserId(userId)
 
 		// If has a buff that prevents combat, skip the player
-		if user.Character.HasBuffFlag(buffs.NoCombat) {
+		if user.Character.HasBuffFlag("no-combat") {
 			continue
 		}
 
@@ -58,7 +57,7 @@ func handlePlayerCombat(evt events.NewRound) (affectedPlayerIds []int, affectedM
 		}
 
 		// Disable any buffs that are cancelled by combat
-		user.Character.CancelBuffsWithFlag(buffs.CancelIfCombat)
+		user.Character.CancelBuffsWithFlag("cancel-on-combat")
 
 		roomId := user.Character.RoomId
 
@@ -250,7 +249,7 @@ func handlePlayerCombat(evt events.NewRound) (affectedPlayerIds []int, affectedM
 									}
 								}
 
-								defMob.Character.CancelBuffsWithFlag(buffs.CancelIfCombat)
+								defMob.Character.CancelBuffsWithFlag("cancel-on-combat")
 
 								if defMob.Character.Health <= 0 {
 									defMob.Character.EndAggro()
@@ -327,7 +326,7 @@ func handlePlayerCombat(evt events.NewRound) (affectedPlayerIds []int, affectedM
 				continue
 			}
 
-			defUser.Character.CancelBuffsWithFlag(buffs.CancelIfCombat)
+			defUser.Character.CancelBuffsWithFlag("cancel-on-combat")
 
 			if defUser.Character.Health < 1 {
 				user.SendText(`Your rage subsides.`)
@@ -367,7 +366,7 @@ func handlePlayerCombat(evt events.NewRound) (affectedPlayerIds []int, affectedM
 			}
 
 			// Can't see them, can't fight them.
-			if defUser.Character.HasBuffFlag(buffs.Hidden) {
+			if defUser.Character.HasBuffFlag("hidden") {
 				user.SendText("You can't seem to find your target.")
 				continue
 			}
@@ -517,7 +516,7 @@ func handlePlayerCombat(evt events.NewRound) (affectedPlayerIds []int, affectedM
 
 			defRoom := rooms.LoadRoom(defMob.Character.RoomId)
 
-			defMob.Character.CancelBuffsWithFlag(buffs.CancelIfCombat)
+			defMob.Character.CancelBuffsWithFlag("cancel-on-combat")
 
 			if defMob.Character.Health < 1 {
 				user.SendText("Your rage subsides.")
@@ -549,7 +548,7 @@ func handlePlayerCombat(evt events.NewRound) (affectedPlayerIds []int, affectedM
 			}
 
 			// Can't see them, can't fight them.
-			if defMob.Character.HasBuffFlag(buffs.Hidden) {
+			if defMob.Character.HasBuffFlag("hidden") {
 				user.SendText("You can't seem to find your target.")
 				continue
 			}
@@ -659,7 +658,7 @@ func handleMobCombat(evt events.NewRound) (affectedPlayerIds []int, affectedMobI
 		}
 
 		// If has a buff that prevents combat, skip the player
-		if mob.Character.HasBuffFlag(buffs.NoCombat) {
+		if mob.Character.HasBuffFlag("no-combat") {
 			continue
 		}
 
@@ -672,7 +671,7 @@ func handleMobCombat(evt events.NewRound) (affectedPlayerIds []int, affectedMobI
 		}
 
 		// Disable any buffs that are cancelled by combat
-		mob.Character.CancelBuffsWithFlag(buffs.CancelIfCombat)
+		mob.Character.CancelBuffsWithFlag("cancel-on-combat")
 
 		/**************************
 		*
@@ -719,7 +718,7 @@ func handleMobCombat(evt events.NewRound) (affectedPlayerIds []int, affectedMobI
 
 							if defMob := mobs.GetInstance(mobId); defMob != nil {
 
-								defMob.Character.CancelBuffsWithFlag(buffs.CancelIfCombat)
+								defMob.Character.CancelBuffsWithFlag("cancel-on-combat")
 
 								if defMob.Character.Health <= 0 {
 									defMob.Character.EndAggro()
@@ -806,14 +805,14 @@ func handleMobCombat(evt events.NewRound) (affectedPlayerIds []int, affectedMobI
 				continue
 			}
 
-			defUser.Character.CancelBuffsWithFlag(buffs.CancelIfCombat)
+			defUser.Character.CancelBuffsWithFlag("cancel-on-combat")
 
 			if defUser.Character.Health < 1 {
 				mob.Character.Aggro = nil
 				events.AddToQueue(events.AggroChanged{MobInstanceId: mob.InstanceId, RoomId: mob.Character.RoomId})
 				continue
 			}
-			if defUser.Character.HasBuffFlag(buffs.Hidden) {
+			if defUser.Character.HasBuffFlag("hidden") {
 				continue
 			}
 
@@ -978,7 +977,7 @@ func handleMobCombat(evt events.NewRound) (affectedPlayerIds []int, affectedMobI
 
 			defRoom := rooms.LoadRoom(defMob.Character.RoomId)
 
-			defMob.Character.CancelBuffsWithFlag(buffs.CancelIfCombat)
+			defMob.Character.CancelBuffsWithFlag("cancel-on-combat")
 
 			if defMob.Character.Health < 1 {
 				mob.Character.Aggro = nil
@@ -1005,7 +1004,7 @@ func handleMobCombat(evt events.NewRound) (affectedPlayerIds []int, affectedMobI
 			}
 
 			// Can't see them, can't fight them.
-			if defMob.Character.HasBuffFlag(buffs.Hidden) {
+			if defMob.Character.HasBuffFlag("hidden") {
 				continue
 			}
 

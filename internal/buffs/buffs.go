@@ -37,21 +37,21 @@ func (b *Buff) Expired() bool {
 // A list of applied buffs
 type Buffs struct {
 	List      []*Buff
-	buffFlags map[Flag][]int // a map of buff flags to the index of the buff
-	buffIds   map[int]int    // a map of a buffId to it position in buffList
+	buffFlags map[string][]int // a map of buff flags to the index of the buff
+	buffIds   map[int]int      // a map of a buffId to it position in buffList
 }
 
 func New() Buffs {
 	return Buffs{
 		List:      []*Buff{},
-		buffFlags: make(map[Flag][]int),
+		buffFlags: make(map[string][]int),
 		buffIds:   make(map[int]int),
 	}
 }
 
 func (bs *Buffs) Validate(forceRebuild ...bool) {
 	if bs.buffFlags == nil {
-		bs.buffFlags = make(map[Flag][]int)
+		bs.buffFlags = make(map[string][]int)
 	}
 	if bs.buffIds == nil {
 		bs.buffIds = make(map[int]int)
@@ -60,7 +60,7 @@ func (bs *Buffs) Validate(forceRebuild ...bool) {
 	if (len(bs.List) != len(bs.buffIds)) || (len(forceRebuild) > 0 && forceRebuild[0]) {
 		// Rebuild
 		bs.buffIds = make(map[int]int)
-		bs.buffFlags = make(map[Flag][]int)
+		bs.buffFlags = make(map[string][]int)
 
 		for idx, b := range bs.List {
 			bs.buffIds[b.BuffId] = idx
@@ -109,7 +109,10 @@ func (bs *Buffs) TriggersLeft(buffId int) int {
 	return 0
 }
 
-func (bs *Buffs) GetBuffIdsWithFlag(action Flag) []int {
+func (bs *Buffs) GetBuffIdsWithFlag(action string) []int {
+	if action != All && !IsValidFlag(action) {
+		mudlog.Warn("buffs.GetBuffIdsWithFlag()", "flag", action, "error", "unknown buff flag")
+	}
 	buffIds := []int{}
 	for _, idx := range bs.buffFlags[action] {
 		buffIds = append(buffIds, bs.List[idx].BuffId)
@@ -117,9 +120,12 @@ func (bs *Buffs) GetBuffIdsWithFlag(action Flag) []int {
 	return buffIds
 }
 
-func (bs *Buffs) HasFlag(action Flag, expire bool) bool {
+func (bs *Buffs) HasFlag(action string, expire bool) bool {
 
 	if action != All {
+		if !IsValidFlag(action) {
+			mudlog.Warn("buffs.HasFlag()", "flag", action, "error", "unknown buff flag")
+		}
 		if _, ok := bs.buffFlags[action]; !ok {
 			return false
 		}

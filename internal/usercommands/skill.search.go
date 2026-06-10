@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/gametime"
@@ -95,7 +94,7 @@ func Search(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 				util.LogRoll(`Hidden Player`, roll, searchOddsIn100)
 
 				if roll < searchOddsIn100 {
-					if p.Character.HasBuffFlag(buffs.Hidden) {
+					if p.Character.HasBuffFlag("hidden") {
 						hiddenPlayers = append(hiddenPlayers, p.Character.Name+` <ansi fg="black-bold">(hiding)</ansi>`)
 					}
 				}
@@ -132,7 +131,7 @@ func Search(rest string, user *users.UserRecord, room *rooms.Room, flags events.
 				util.LogRoll(`Hidden Mob`, roll, searchOddsIn100)
 
 				if roll < searchOddsIn100 {
-					if m.Character.HasBuffFlag(buffs.Hidden) {
+					if m.Character.HasBuffFlag("hidden") {
 						hiddenMobs = append(hiddenPlayers, m.Character.Name+` <ansi fg="black-bold">(hiding)</ansi>`)
 					}
 				}

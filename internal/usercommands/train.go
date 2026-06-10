@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/skills"
@@ -106,7 +105,7 @@ func Train(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 		user.SendText(buildTrainPanel(trainingData))
 	} else {
 
-		user.Character.CancelBuffsWithFlag(buffs.Hidden)
+		user.Character.CancelBuffsWithFlag("hidden")
 
 		allSkills := []string{}
 		for skillName, _ := range room.SkillTraining {

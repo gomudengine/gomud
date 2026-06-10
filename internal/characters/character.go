@@ -634,15 +634,15 @@ func (c *Character) GetAdjectives() []string {
 		retAdjectives = append(retAdjectives, `shop`)
 	}
 
-	if c.HasBuffFlag(buffs.EmitsLight) {
+	if c.HasBuffFlag("lightsource") {
 		retAdjectives = append(retAdjectives, `lit`)
 	}
 
-	if c.HasBuffFlag(buffs.Hidden) {
+	if c.HasBuffFlag("hidden") {
 		retAdjectives = append(retAdjectives, `hidden`)
 	}
 
-	if c.HasBuffFlag(buffs.Poison) {
+	if c.HasBuffFlag("poison") {
 		retAdjectives = append(retAdjectives, `poisoned`)
 	}
 
@@ -1235,11 +1235,11 @@ func (c *Character) IsDisabled() bool {
 	return c.Health <= 0
 }
 
-func (c *Character) HasBuffFlag(buffFlag buffs.Flag) bool {
+func (c *Character) HasBuffFlag(buffFlag string) bool {
 	return c.Buffs.HasFlag(buffFlag, false)
 }
 
-func (c *Character) CancelBuffsWithFlag(buffFlag buffs.Flag) bool {
+func (c *Character) CancelBuffsWithFlag(buffFlag string) bool {
 	if c.Buffs.HasFlag(buffFlag, true) {
 		c.Validate(true)
 		return true
@@ -1316,7 +1316,7 @@ func (c *Character) ApplyHealthChange(healthChange int) int {
 	oldHealth := c.Health
 	newHealth := c.Health + healthChange
 	if newHealth < 0 {
-		c.CancelBuffsWithFlag(buffs.CancelIfCombat)
+		c.CancelBuffsWithFlag("cancel-on-combat")
 
 		// If they haven't dropped yet, require a drop before going straight to death.
 		// Don't allow players to drop under -5 in a single hit.

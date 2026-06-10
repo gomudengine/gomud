@@ -68,6 +68,14 @@ func registerAdminAPIRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("PATCH /admin/api/v1/buffs/{buffId}", doBasicAuth(RequirePermission("buffs.write", RunWithMUDLocked(apiV1PatchBuff))))
 	mux.HandleFunc("DELETE /admin/api/v1/buffs/{buffId}", doBasicAuth(RequirePermission("buffs.write", RunWithMUDLocked(apiV1DeleteBuff))))
 
+	// Buff Flags (separate path from /buffs to avoid ServeMux wildcard conflicts)
+	mux.HandleFunc("GET /admin/api/v1/buff-flags", doBasicAuth(RunWithMUDLocked(apiV1GetBuffFlags)))
+	mux.HandleFunc("POST /admin/api/v1/buff-flags", doBasicAuth(RequirePermission("buffs.write", RunWithMUDLocked(apiV1CreateBuffFlag))))
+	mux.HandleFunc("GET /admin/api/v1/buff-flags/{flag}/yaml", doBasicAuth(RunWithMUDLocked(apiV1GetBuffFlagYAML)))
+	mux.HandleFunc("GET /admin/api/v1/buff-flags/{flag}", doBasicAuth(RunWithMUDLocked(apiV1GetBuffFlag)))
+	mux.HandleFunc("PATCH /admin/api/v1/buff-flags/{flag}", doBasicAuth(RequirePermission("buffs.write", RunWithMUDLocked(apiV1PatchBuffFlag))))
+	mux.HandleFunc("DELETE /admin/api/v1/buff-flags/{flag}", doBasicAuth(RequirePermission("buffs.write", RunWithMUDLocked(apiV1DeleteBuffFlag))))
+
 	// Quests
 	mux.HandleFunc("GET /admin/api/v1/quests", doBasicAuth(RunWithMUDLocked(apiV1GetQuests)))
 	mux.HandleFunc("GET /admin/api/v1/quests/{questId}/yaml", doBasicAuth(RunWithMUDLocked(apiV1GetQuestYAML)))

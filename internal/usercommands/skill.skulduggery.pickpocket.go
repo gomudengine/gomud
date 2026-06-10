@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
@@ -26,7 +25,7 @@ func Pickpocket(rest string, user *users.UserRecord, room *rooms.Room, flags eve
 	}
 
 	// Must be sneaking
-	isSneaking := user.Character.HasBuffFlag(buffs.Hidden)
+	isSneaking := user.Character.HasBuffFlag("hidden")
 
 	if user.Character.Aggro != nil {
 		user.SendText("You can't do that while in combat!")
@@ -145,7 +144,7 @@ func Pickpocket(rest string, user *users.UserRecord, room *rooms.Room, flags eve
 					user.UserId,
 				)
 
-				user.Character.CancelBuffsWithFlag(buffs.Hidden)
+				user.Character.CancelBuffsWithFlag("hidden")
 
 				m.Command(fmt.Sprintf(`attack @%d`, user.UserId))
 
@@ -253,7 +252,7 @@ func Pickpocket(rest string, user *users.UserRecord, room *rooms.Room, flags eve
 					user.UserId,
 				)
 
-				user.Character.CancelBuffsWithFlag(buffs.Hidden)
+				user.Character.CancelBuffsWithFlag("hidden")
 
 			}
 		}

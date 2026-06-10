@@ -3,7 +3,6 @@ package combat
 import (
 	"math"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -202,8 +201,8 @@ func Crits(sourceChar characters.Character, targetChar characters.Character) boo
 	chance := critChance(
 		sourceChar.Stats.Smarts.ValueAdj,
 		targetChar.Stats.Smarts.ValueAdj,
-		sourceChar.HasBuffFlag(buffs.Accuracy),
-		targetChar.HasBuffFlag(buffs.Blink),
+		sourceChar.HasBuffFlag("accuracy"),
+		targetChar.HasBuffFlag("blink"),
 	)
 	critRoll := util.Rand(100)
 	util.LogRoll(`Crits`, critRoll, chance)

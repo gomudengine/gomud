@@ -3,7 +3,6 @@ package mobcommands
 import (
 	"fmt"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -12,7 +11,7 @@ import (
 
 func Remove(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
-	if mob.Character.HasBuffFlag(buffs.PermaGear) {
+	if mob.Character.HasBuffFlag("perma-gear") {
 		mob.Command(`emote struggles with their gear for a while, then gives up.`)
 		return true, nil
 	}
@@ -39,7 +38,7 @@ func Remove(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 		if mob.Character.RemoveFromBody(matchItem) {
 
-			mob.Character.CancelBuffsWithFlag(buffs.Hidden)
+			mob.Character.CancelBuffsWithFlag("hidden")
 
 			room.SendText(
 				fmt.Sprintf(`<ansi fg="mobname">%s</ansi> removes their <ansi fg="item">%s</ansi> and stores it away.`, mob.Character.Name, matchItem.DisplayName()),

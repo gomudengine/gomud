@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/users"
@@ -18,7 +17,7 @@ func Look(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 		rest = strings.TrimSpace(strings.TrimPrefix(rest, "secretly"))
 	}
 
-	isSneaking := mob.Character.HasBuffFlag(buffs.Hidden)
+	isSneaking := mob.Character.HasBuffFlag("hidden")
 
 	// trim off some fluff
 	if len(rest) > 2 {

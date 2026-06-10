@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/items"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
@@ -43,7 +42,7 @@ func Get(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 		if room.Gold > 0 {
 
-			mob.Character.CancelBuffsWithFlag(buffs.Hidden) // No longer sneaking
+			mob.Character.CancelBuffsWithFlag("hidden") // No longer sneaking
 
 			goldAmt := room.Gold
 			mob.Character.Gold += goldAmt
@@ -84,7 +83,7 @@ func Get(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 
 	if found {
 
-		mob.Character.CancelBuffsWithFlag(buffs.Hidden) // No longer sneaking
+		mob.Character.CancelBuffsWithFlag("hidden") // No longer sneaking
 
 		// Swap the item location
 		room.RemoveItem(matchItem, getFromStash)

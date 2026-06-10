@@ -47,17 +47,17 @@
         <summary>
             <span class="method method-get">GET</span>
             <span class="api-path">/admin/api/v1/buffs</span>
-            <span class="api-desc">Return all buff specs and flag descriptions</span>
+            <span class="api-desc">Return all buff specs and flag specs</span>
             <span class="perm-badge">buffs.read</span>
         </summary>
         <div class="api-body">
-            <p>Returns two maps: <code>specs</code> (buffId &rarr; BuffSpec) and <code>flags</code> (flagName &rarr; description).</p>
+            <p>Returns <code>specs</code> (buffId &rarr; BuffSpec) and <code>flags</code> (an array of FlagSpec objects).</p>
             <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
      <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/buffs</span></div>
             <div class="response-examples">
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
-                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"flags":{"poison":"Marks the character as poisoned, causing periodic damage.","hidden":"Hides the buff from the character's status display."},"specs":{"1":{"BuffId":1,"Name":"Fast Healing","TriggerRate":"1 round","TriggerCount":10,"Flags":["hidden"]}}}}</div></div>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"flags":[{"Flag":"hidden","Name":"Hidden","Description":"Marks the character as hidden or stealthed, concealing them from others.","Locked":true}],"specs":{"1":{"BuffId":1,"Name":"Fast Healing","TriggerRate":"1 round","TriggerCount":10,"Flags":["hidden"]}}}}</div></div>
                 </details>
             </div>
         </div>
@@ -193,6 +193,160 @@
                 <details class="resp-entry">
                     <summary><span class="method resp-label status-err">404</span> <span class="resp-label">Not Found</span></summary>
                     <div class="resp-body"><div class="curl-block">{"success":false,"error":"buff not found: 999"}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <h1 style="margin-top:2rem">Buff Flags API Reference</h1>
+    <p class="subtitle">REST endpoints for browsing, editing, and deleting buff flag definitions. Locked flags cannot be edited or deleted.</p>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-get">GET</span>
+            <span class="api-path">/admin/api/v1/buff-flags</span>
+            <span class="api-desc">Return all flag specs (sorted)</span>
+            <span class="perm-badge">buffs.read</span>
+        </summary>
+        <div class="api-body">
+            <p>Returns an array of FlagSpec objects sorted by flag identifier.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/buff-flags</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":[{"Flag":"perma-gear","Name":"Unremovable Gear","Description":"Prevents equipped items from being removed while the buff is active.","Locked":true}]}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-get">GET</span>
+            <span class="api-path">/admin/api/v1/buff-flags/{flag}</span>
+            <span class="api-desc">Get a single flag spec</span>
+            <span class="perm-badge">buffs.read</span>
+        </summary>
+        <div class="api-body">
+            <p><code>{flag}</code> is the flag identifier, e.g. <code>perma-gear</code>.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/buff-flags/perma-gear</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"Flag":"perma-gear","Name":"Unremovable Gear","Description":"Prevents equipped items from being removed while the buff is active.","Locked":true}}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">404</span> <span class="resp-label">Not Found</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"flag not found: nope"}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-get">POST</span>
+            <span class="api-path">/admin/api/v1/buff-flags</span>
+            <span class="api-desc">Create a new flag</span>
+            <span class="perm-badge">buffs.write</span>
+        </summary>
+        <div class="api-body">
+            <p>Creates a new flag definition. New flags are always created unlocked; the <code>Locked</code> field in the body is ignored. The <code>Flag</code> identifier must be lowercase alphanumeric with hyphens/underscores, starting with a letter.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="flag">-X</span> POST \
+     <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
+     <span class="flag">-d</span> <span class="str">'{"Flag":"my-flag","Name":"My Flag","Description":"Does something."}'</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/buff-flags</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">201</span> <span class="resp-label">Created</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"Flag":"my-flag","Name":"My Flag","Description":"Does something.","Locked":false}}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"flag already exists: my-flag"}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-patch">PATCH</span>
+            <span class="api-path">/admin/api/v1/buff-flags/{flag}</span>
+            <span class="api-desc">Update a flag's name/description</span>
+            <span class="perm-badge">buffs.write</span>
+        </summary>
+        <div class="api-body">
+            <p>Updates the <code>Name</code> and/or <code>Description</code>. The flag identifier cannot be changed. Locked flags reject this request with a 400.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="flag">-X</span> PATCH \
+     <span class="flag">-H</span> <span class="str">"Content-Type: application/json"</span> \
+     <span class="flag">-d</span> <span class="str">'{"Name":"My Renamed Flag"}'</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/buff-flags/my-flag</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"Flag":"my-flag","Name":"My Renamed Flag","Description":"Does something.","Locked":false}}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request (locked)</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"flag \"perma-gear\" is locked and cannot be edited"}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">404</span> <span class="resp-label">Not Found</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"flag not found: nope"}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-delete">DELETE</span>
+            <span class="api-path">/admin/api/v1/buff-flags/{flag}</span>
+            <span class="api-desc">Delete a flag</span>
+            <span class="perm-badge">buffs.write</span>
+        </summary>
+        <div class="api-body">
+            <p>Permanently removes the flag YAML from disk and the in-memory cache. Locked flags reject this request with a 400.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="flag">-X</span> DELETE \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/buff-flags/my-flag</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">400</span> <span class="resp-label">Bad Request (locked)</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"flag \"perma-gear\" is locked and cannot be deleted"}</div></div>
+                </details>
+            </div>
+        </div>
+    </details>
+
+    <details class="api-entry">
+        <summary>
+            <span class="method method-get">GET</span>
+            <span class="api-path">/admin/api/v1/buff-flags/{flag}/yaml</span>
+            <span class="api-desc">View the flag's raw YAML</span>
+            <span class="perm-badge">buffs.read</span>
+        </summary>
+        <div class="api-body">
+            <p>Returns the raw on-disk YAML for the flag along with its relative path.</p>
+            <div class="curl-block"><span class="kw">curl</span> <span class="flag">-s</span> <span class="flag">-u</span> <span class="str">admin:password</span> \
+     <span class="str">http://{{.CONFIG.FilePaths.WebDomain}}/admin/api/v1/buff-flags/perma-gear/yaml</span></div>
+            <div class="response-examples">
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-ok">200</span> <span class="resp-label">Success</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":true,"data":{"yaml":"flag: perma-gear\nname: ...","path":"buffs-flags/perma-gear.yaml"}}</div></div>
+                </details>
+                <details class="resp-entry">
+                    <summary><span class="method resp-label status-err">404</span> <span class="resp-label">Not Found</span></summary>
+                    <div class="resp-body"><div class="curl-block">{"success":false,"error":"flag not found: nope"}</div></div>
                 </details>
             </div>
         </div>

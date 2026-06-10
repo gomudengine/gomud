@@ -198,6 +198,7 @@ func main() {
 	items.RegisterFS(plugins.GetPluginRegistry())
 	mutators.RegisterFS(plugins.GetPluginRegistry())
 	buffs.RegisterFS(plugins.GetPluginRegistry())
+	buffs.RegisterFlagFS(plugins.GetPluginRegistry())
 	pets.RegisterFS(plugins.GetPluginRegistry())
 	quests.RegisterFS(plugins.GetPluginRegistry())
 	mobs.RegisterFS(plugins.GetPluginRegistry())
@@ -1621,7 +1622,8 @@ func loadAllDataFiles(isReload bool) {
 	rooms.LoadBiomeDataFiles()
 	spells.LoadSpellFiles()
 	rooms.LoadDataFiles()
-	buffs.LoadDataFiles() // Load buffs before items for cost calculation reasons
+	buffs.LoadFlagDataFiles() // Load buff flags before buffs so buff validation can check flags
+	buffs.LoadDataFiles()     // Load buffs before items for cost calculation reasons
 	items.LoadDataFiles()
 	races.LoadDataFiles()
 	skills.LoadDataFiles()           // skills before professions for cross-ref warnings

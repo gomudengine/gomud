@@ -10,16 +10,16 @@ import (
 )
 
 // GET /admin/api/v1/buffs
-// Returns all buff flags (flag -> description map) AND all buff specs.
+// Returns all buff flags (flag specs) AND all buff specs.
 func apiV1GetBuffs(w http.ResponseWriter, r *http.Request) {
 	type buffsResponse struct {
-		Flags map[buffs.Flag]string   `json:"flags"`
+		Flags []buffs.FlagSpec        `json:"flags"`
 		Specs map[int]*buffs.BuffSpec `json:"specs"`
 	}
 	writeJSON(w, http.StatusOK, APIResponse[buffsResponse]{
 		Success: true,
 		Data: buffsResponse{
-			Flags: buffs.GetAllFlags(),
+			Flags: buffs.GetAllFlagSpecsSorted(),
 			Specs: buffs.GetAllBuffSpecs(),
 		},
 	})

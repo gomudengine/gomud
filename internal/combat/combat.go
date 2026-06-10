@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -138,7 +137,7 @@ func GetWaitMessages(stepType items.Intensity, sourceChar *characters.Character,
 		attackResult.SendToSource(string(toAttackerMsg))
 	}
 
-	if !sourceChar.HasBuffFlag(buffs.Hidden) {
+	if !sourceChar.HasBuffFlag("hidden") {
 
 		if string(toDefenderMsg) != `` {
 			attackResult.SendToTarget(string(toDefenderMsg))

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/rooms"
 	"github.com/GoMudEngine/GoMud/internal/users"
@@ -18,8 +17,8 @@ func Say(rest string, user *users.UserRecord, room *rooms.Room, flags events.Eve
 		return true, nil
 	}
 
-	isSneaking := user.Character.HasBuffFlag(buffs.Hidden)
-	isDrunk := user.Character.HasBuffFlag(buffs.Drunk)
+	isSneaking := user.Character.HasBuffFlag("hidden")
+	isDrunk := user.Character.HasBuffFlag("drunk")
 
 	if isDrunk {
 		// modify the text to look like it's the speech of a drunk person

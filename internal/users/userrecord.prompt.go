@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/connections"
 	"github.com/GoMudEngine/GoMud/internal/gametime"
@@ -246,7 +245,7 @@ func (u *UserRecord) ProcessPromptString(promptStr string) string {
 				value = strconv.Itoa(int(math.Floor(float64(currentXP)/float64(tnlXP)*100))) + `%`
 
 			case `{h}`:
-				if u.Character.HasBuffFlag(buffs.Hidden) {
+				if u.Character.HasBuffFlag("hidden") {
 					value = `H`
 				}
 

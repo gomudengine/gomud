@@ -1,7 +1,6 @@
 package hooks
 
 import (
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/connections"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
@@ -68,7 +67,7 @@ func Message_SendMessage(e events.Event) events.ListenerReturn {
 
 				// If this is a quiet message, make sure the player can hear it
 				if message.IsQuiet {
-					if !user.Character.HasBuffFlag(buffs.SuperHearing) {
+					if !user.Character.HasBuffFlag("superhearing") {
 						continue
 					}
 				}

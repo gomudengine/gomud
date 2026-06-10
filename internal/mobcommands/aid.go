@@ -1,7 +1,6 @@
 package mobcommands
 
 import (
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/mobs"
 	"github.com/GoMudEngine/GoMud/internal/races"
@@ -44,7 +43,7 @@ func Aid(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 				return true, nil
 			}
 
-			mob.Character.CancelBuffsWithFlag(buffs.Hidden)
+			mob.Character.CancelBuffsWithFlag("hidden")
 
 			// Set spell Aid
 			spellAggro := characters.SpellAggroInfo{
@@ -62,7 +61,7 @@ func Aid(rest string, mob *mobs.Mob, room *rooms.Room) (bool, error) {
 			if continueCasting {
 
 				spellInfo := spells.GetSpell(`aidskill`)
-				mob.Character.CancelBuffsWithFlag(buffs.Hidden)
+				mob.Character.CancelBuffsWithFlag("hidden")
 				mob.Character.SetCast(spellInfo.WaitRounds, spellAggro)
 			}
 

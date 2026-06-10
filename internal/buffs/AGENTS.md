@@ -9,7 +9,9 @@
 
 - `buffspec.go`: immutable buff definitions, validation, duration math, and data-file loading.
 - `buffs.go`: runtime buff state, collection indexing, trigger flow, pruning, and stat aggregation.
-- `flags.go`: shared flag constants used by other systems.
+- `flags.go`: YAML-backed buff flag definitions (`FlagSpec`), accessors, `IsValidFlag`, and the `All` sentinel. Flags are plain strings everywhere; there is no `Flag` type. Flag data files live in `<DataFiles>/buffs-flags/<flag>.yaml`.
+- `flags_admin.go`: CRUD helpers for flag specs. Locked flags reject edits/deletes; the flag identifier cannot be changed.
+- `flags_plugin.go`: module flag data-file integration. `RegisterFlagFS(...)` registers plugin filesystems; `loadPluginFlags` merges embedded `buffs-flags/*.yaml` (disk wins on duplicate ids).
 - `admin.go`: CRUD helpers that persist buff YAML and refresh in-memory state.
 - `plugin.go`: module data-file integration. `RegisterFS(...)` registers plugin filesystems; `loadPluginBuffs` merges embedded `buffs/*.yaml` into the spec map inside `LoadDataFiles` (after disk load, before items load). `RegisterBuffScript(buffId, src)` registers embedded JS; `BuffSpec.GetScript()` checks it before the disk path. Disk buffs win on duplicate ids.
 
@@ -18,7 +20,7 @@
 - Keep spec fields and runtime behavior aligned. If you add a field to `BuffSpec`, update validation, load/save paths, and any admin helpers in the same change.
 - Preserve the `buffIds` and `buffFlags` indexes in `Buffs`; changes to add/remove/expire behavior usually need `Validate()` or equivalent rebuild logic to stay correct.
 - `TriggerCount`, `TriggerRate`, and permanent buffs interact. Check both one-shot and repeating behavior before changing expiration logic.
-- Flag changes are cross-cutting. Search for the flag name outside this package before renaming or changing semantics.
+- Flag changes are cross-cutting. Flags are plain strings (e.g. `"hidden"`, `"perma-gear"`); search for the literal flag string outside this package before renaming or changing semantics. Runtime flag checks are lenient: an unknown flag logs a warning and is treated as no-match. The `All` sentinel (`""`) matches any buff. New flag definitions must be added as `<DataFiles>/buffs-flags/<flag>.yaml`.
 
 ## Verification
 

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/gametime"
@@ -26,13 +25,13 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 	visibility := room.GetVisibility()
 
 	if visibility < 1 {
-		if !user.Character.HasBuffFlag(buffs.NightVision) {
+		if !user.Character.HasBuffFlag("nightvision") {
 			user.SendText(`You can't see anything!`)
 			return true, nil
 		}
 	}
 
-	isSneaking := user.Character.HasBuffFlag(buffs.Hidden)
+	isSneaking := user.Character.HasBuffFlag("hidden")
 
 	// trim off some fluff
 	if len(rest) > 2 {
@@ -231,7 +230,7 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 
 		if visibility < 2 {
 
-			if !user.Character.HasBuffFlag(buffs.NightVision) {
+			if !user.Character.HasBuffFlag("nightvision") {
 				biome := room.GetBiome()
 				if !biome.IsLit() {
 					user.SendText(`It's too dark to see anything in that direction.`)
@@ -318,7 +317,7 @@ func Look(rest string, user *users.UserRecord, room *rooms.Room, flags events.Ev
 		if !isSneaking {
 
 			renderNouns := user.HasRolePermission(`room.nouns`)
-			if user.Character.Pet.Exists() && user.Character.HasBuffFlag(buffs.SeeNouns) {
+			if user.Character.Pet.Exists() && user.Character.HasBuffFlag("see-nouns") {
 				renderNouns = true
 			}
 

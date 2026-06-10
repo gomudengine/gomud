@@ -148,7 +148,7 @@ func Suicide(rest string, user *users.UserRecord, room *rooms.Room, flags events
 	user.EventLog.Add(`death`, fmt.Sprintf(`<ansi fg="username">%s</ansi> has <ansi fg="red-bold">DIED</ansi>`, user.Character.Name))
 
 	// Only apply penalties if they were above the threshold
-	if allowPenalties && !user.Character.HasBuffFlag(buffs.PermaGear) {
+	if allowPenalties && !user.Character.HasBuffFlag("perma-gear") {
 
 		corpseItems := []items.Item{}
 		corpseGold := 0

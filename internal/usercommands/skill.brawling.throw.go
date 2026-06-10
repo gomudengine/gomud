@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/events"
 	"github.com/GoMudEngine/GoMud/internal/exit"
 	"github.com/GoMudEngine/GoMud/internal/items"
@@ -160,7 +159,7 @@ func Throw(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 				return true, nil
 			}
 
-			user.Character.CancelBuffsWithFlag(buffs.Hidden)
+			user.Character.CancelBuffsWithFlag("hidden")
 
 			throwToRoom := rooms.LoadRoom(throwRoomId)
 			if throwToRoom == nil {
@@ -233,7 +232,7 @@ func Throw(rest string, user *users.UserRecord, room *rooms.Room, flags events.E
 
 				if tempExitFound {
 
-					user.Character.CancelBuffsWithFlag(buffs.Hidden)
+					user.Character.CancelBuffsWithFlag("hidden")
 
 					// do something with tempExit
 					throwToRoom := rooms.LoadRoom(tempExit.RoomId)

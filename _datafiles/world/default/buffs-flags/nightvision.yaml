@@ -1,0 +1,4 @@
+flag: nightvision
+name: "Night Vision"
+description: "Allows the character to see normally in dark or unlit rooms."
+locked: true

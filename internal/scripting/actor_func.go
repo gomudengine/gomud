@@ -3,7 +3,6 @@ package scripting
 import (
 	"strings"
 
-	"github.com/GoMudEngine/GoMud/internal/buffs"
 	"github.com/GoMudEngine/GoMud/internal/characters"
 	"github.com/GoMudEngine/GoMud/internal/combat"
 	"github.com/GoMudEngine/GoMud/internal/configs"
@@ -528,14 +527,14 @@ func (a ScriptActor) GetStatMod(statModName string) int {
 }
 
 func (a ScriptActor) HasBuffFlag(buffFlag string) bool {
-	return a.characterRecord.HasBuffFlag(buffs.Flag(buffFlag))
+	return a.characterRecord.HasBuffFlag(buffFlag)
 }
 
 func (a ScriptActor) CancelBuffWithFlag(buffFlag string) bool {
 
 	found := false
 
-	for _, buffId := range a.characterRecord.Buffs.GetBuffIdsWithFlag(buffs.Flag(strings.ToLower(buffFlag))) {
+	for _, buffId := range a.characterRecord.Buffs.GetBuffIdsWithFlag(strings.ToLower(buffFlag)) {
 		found = found || a.RemoveBuff(buffId)
 	}
 

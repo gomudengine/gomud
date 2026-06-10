@@ -1,0 +1,4 @@
+flag: cancel-on-action
+name: "Cancel On Action"
+description: "Automatically removes the buff when the character takes any action."
+locked: true
