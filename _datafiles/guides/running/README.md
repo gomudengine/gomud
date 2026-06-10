@@ -14,9 +14,9 @@ or choose a numbered release for a permanent versioned build.
 
 You can download a build from the [releases page](https://github.com/GoMudEngine/GoMud/releases),
 unzip it and run the binary to get started, or if you prefer to build it
-yourself, follow the instructions below. Use `prerelease` for the newest
-`master` build, or a numbered release if you want a stable version you can
-return to later.
+yourself, follow the instructions below. Use the rolling `prerelease` entry for
+the newest `master` build, or a numbered release if you want a stable version
+you can return to later.
 
 A youtube playlist to getting started has been set up here:
 

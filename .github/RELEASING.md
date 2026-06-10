@@ -6,7 +6,8 @@ Recommended versioning for the next release line:
 
 - Start the next stable release at `v0.10.0`.
 - Keep the binary's embedded version in source as a normal semver such as `0.10.0`.
-- Let merge-driven builds update a single rolling `prerelease` tag.
+- Let merge-driven builds update a rolling `prerelease` entry using generated
+  immutable tags.
 - Reserve stable semver tags like `v0.10.0` for protected stable releases.
 
 ### Prerelease
@@ -14,9 +15,11 @@ Recommended versioning for the next release line:
 1. Merge to `master`.
 2. The `Prerelease` workflow runs tests, builds the seven supported binaries,
    assembles `gomud-ALL-datafiles.zip` and `SHA256SUMS.txt`, generates
-   attestations, and updates the mutable `prerelease` GitHub prerelease.
-3. The workflow may move the `prerelease` tag and clobber existing prerelease
-   assets. This is intentional so the rolling prerelease remains mutable.
+   attestations, and publishes a new GitHub prerelease named `prerelease`.
+3. The workflow uses a generated tag such as
+   `prerelease-123456789-1` for the new prerelease, then removes older
+   rolling prerelease releases and tags. Prerelease tags are not force-moved, so
+   normal developer `git pull` commands do not fail on tag clobber conflicts.
 4. The prerelease is marked as a prerelease and is not marked as `Latest`.
 
 Pull requests do not publish release binaries. The generic `CI` workflow runs
@@ -39,8 +42,9 @@ workflow to avoid duplicate full race-test runs on merge.
    Registry image.
 
 Stable release workflow policy does not move tags, use `--clobber`, or replace
-existing releases. Keep repository-wide immutable releases disabled so the
-rolling `prerelease` release can remain mutable.
+existing releases. The rolling prerelease workflow also avoids moving tags, but
+it still replaces the visible prerelease entry by creating a new generated tag
+and deleting older rolling prerelease releases.
 
 ### Assets
 

@@ -6,8 +6,9 @@ name: Prerelease
     branches:
       - master
 
-# Prerelease is intentionally mutable: each successful merge to master replaces
-# the existing prerelease assets and moves the prerelease tag forward.
+# The prerelease entry is intentionally rolling: each successful merge to master
+# replaces the existing prerelease assets. The Git tags are unique per workflow
+# attempt so normal developer fetches do not fail on a force-moved tag.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
@@ -110,7 +111,8 @@ jobs:
       id-token: write
       attestations: write
     env:
-      RELEASE_TAG: prerelease
+      RELEASE_TAG: prerelease-${{ github.run_id }}-${{ github.run_attempt }}
+      RELEASE_TAG_PREFIX: prerelease
       RELEASE_TITLE: prerelease
       BINARY_VERSION: ${{ needs.metadata.outputs.binary_version }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -162,32 +164,40 @@ jobs:
             .github/scripts/release-assets.sh upload-paths
           )
 
-          # Move the lightweight prerelease tag when it already exists. If it
-          # does not exist, gh release create will create it at this commit.
+          mapfile -t old_release_tags < <(
+            gh release list \
+              --limit 100 \
+              --json isPrerelease,tagName \
+              --jq '.[] | select(
+                .isPrerelease
+                and (
+                  .tagName == "prerelease"
+                  or (.tagName | startswith("prerelease-"))
+                )
+              ) | .tagName'
+          )
+
+          gh release create "$RELEASE_TAG" \
+            "${assets[@]}" \
+            --title "$RELEASE_TITLE" \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --latest=false \
+            --notes-file release-notes.md
+
+          for old_tag in "${old_release_tags[@]}"; do
+            if [ "$old_tag" = "$RELEASE_TAG" ]; then
+              continue
+            fi
+            gh release delete "$old_tag" --yes --cleanup-tag
+          done
+
+          # Remove a retired mutable prerelease tag even if it is not attached
+          # to a release anymore.
           if gh api \
-            "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}" \
+            "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG_PREFIX}" \
             >/dev/null 2>&1; then
             gh api \
-              -X PATCH \
-              "repos/${GITHUB_REPOSITORY}/git/refs/tags/${RELEASE_TAG}" \
-              -f "sha=${GITHUB_SHA}" \
-              -F force=true
-          fi
-
-          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
-            gh release edit "$RELEASE_TAG" \
-              --title "$RELEASE_TITLE" \
-              --target "$GITHUB_SHA" \
-              --prerelease \
-              --latest=false \
-              --notes-file release-notes.md
-          else
-            gh release create "$RELEASE_TAG" \
-              "${assets[@]}" \
-              --title "$RELEASE_TITLE" \
-              --target "$GITHUB_SHA" \
-              --prerelease \
-              --latest=false \
-              --notes-file release-notes.md
+              -X DELETE \
+              "repos/${GITHUB_REPOSITORY}/git/refs/tags/${RELEASE_TAG_PREFIX}"
           fi

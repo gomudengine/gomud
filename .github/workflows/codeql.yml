@@ -28,18 +28,92 @@ permissions:
   security-events: write
 
 jobs:
-  analyze:
-    name: Analyze (${{ matrix.language }})
+  changes:
+    name: Detect CodeQL Inputs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      go: ${{ steps.detect.outputs.go }}
+      javascript_typescript: ${{ steps.detect.outputs.javascript_typescript }}
+    steps:
+      # actions/checkout v6.0.3
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Detect changed CodeQL inputs
+        id: detect
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+
+          go_changed=false
+          js_changed=false
+
+          if [ "$EVENT_NAME" = "schedule" ]; then
+            go_changed=true
+            js_changed=true
+          else
+            zero_sha=0000000000000000000000000000000000000000
+            if git rev-parse --verify --quiet HEAD^2 >/dev/null; then
+              diff_base=HEAD^1
+              diff_head=HEAD^2
+            elif [ -n "${BEFORE_SHA}" ] &&
+              [ "${BEFORE_SHA}" != "${zero_sha}" ]; then
+              diff_base="${BEFORE_SHA}"
+              diff_head=HEAD
+            else
+              diff_base=HEAD^
+              diff_head=HEAD
+            fi
+
+            mapfile -t changed_files < <(
+              git diff --name-only "$diff_base" "$diff_head"
+            )
+
+            for file in "${changed_files[@]}"; do
+              case "$file" in
+                .github/workflows/codeql.yml | .github/codeql/*)
+                  go_changed=true
+                  js_changed=true
+                  ;;
+                *.go | go.mod | go.sum | Makefile | \
+                  .github/actions/setup-go/* | .github/actions/go-checks/*)
+                  go_changed=true
+                  ;;
+                _datafiles/html/admin/static/js/monaco* | \
+                  _datafiles/html/admin/static/js/highlight.js | \
+                  _datafiles/html/admin/static/css/monaco-editor.css | \
+                  _datafiles/html/public/static/js/xterm/*)
+                  ;;
+                *.html | *.htm | *.js | *.jsx | *.ts | *.tsx | *.mjs | *.cjs | \
+                  package.json | package-lock.json | npm-shrinkwrap.json | \
+                  yarn.lock | pnpm-lock.yaml)
+                  js_changed=true
+                  ;;
+              esac
+            done
+          fi
+
+          {
+            echo "go=${go_changed}"
+            echo "javascript_typescript=${js_changed}"
+          } >> "$GITHUB_OUTPUT"
+
+  analyze-go:
+    name: Analyze (go)
+    needs: changes
+    if: >-
+      ${{
+        github.event_name == 'schedule' ||
+        needs.changes.outputs.go == 'true'
+      }}
     runs-on: ubuntu-24.04
     # Keep analyzer regressions from tying up a runner indefinitely.
     timeout-minutes: 30
-    strategy:
-      # Run both languages so one analyzer failure does not hide the other.
-      fail-fast: false
-      matrix:
-        language:
-          - go
-          - javascript-typescript
 
     steps:
       # actions/checkout v6.0.3
@@ -52,13 +126,11 @@ jobs:
         # yamllint disable-line rule:line-length
         uses: github/codeql-action/init@8aad20d150bbac5944a9f9d289da16a4b0d87c1e
         with:
-          languages: ${{ matrix.language }}
+          languages: go
           # Path filters live in CodeQL config, not workflow event filters.
           config-file: ./.github/codeql/codeql-config.yml
 
       - name: Autobuild
-        # JavaScript/TypeScript is interpreted here; only Go needs autobuild.
-        if: matrix.language == 'go'
         # github/codeql-action v4.36.2
         # yamllint disable-line rule:line-length
         uses: github/codeql-action/autobuild@8aad20d150bbac5944a9f9d289da16a4b0d87c1e
@@ -69,4 +141,39 @@ jobs:
         uses: github/codeql-action/analyze@8aad20d150bbac5944a9f9d289da16a4b0d87c1e
         with:
           # Keep separate code scanning result categories for each language.
-          category: "/language:${{ matrix.language }}"
+          category: "/language:go"
+
+  analyze-javascript-typescript:
+    name: Analyze (javascript-typescript)
+    needs: changes
+    if: >-
+      ${{
+        github.event_name == 'schedule' ||
+        needs.changes.outputs.javascript_typescript == 'true'
+      }}
+    runs-on: ubuntu-24.04
+    # Keep analyzer regressions from tying up a runner indefinitely.
+    timeout-minutes: 30
+
+    steps:
+      # actions/checkout v6.0.3
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        with:
+          persist-credentials: false
+
+      - name: Initialize CodeQL
+        # github/codeql-action v4.36.2
+        # yamllint disable-line rule:line-length
+        uses: github/codeql-action/init@8aad20d150bbac5944a9f9d289da16a4b0d87c1e
+        with:
+          languages: javascript-typescript
+          # Path filters live in CodeQL config, not workflow event filters.
+          config-file: ./.github/codeql/codeql-config.yml
+
+      - name: Perform CodeQL Analysis
+        # github/codeql-action v4.36.2
+        # yamllint disable-line rule:line-length
+        uses: github/codeql-action/analyze@8aad20d150bbac5944a9f9d289da16a4b0d87c1e
+        with:
+          # Keep separate code scanning result categories for each language.
+          category: "/language:javascript-typescript"
