@@ -14,8 +14,8 @@ import (
 // There is a single, global user script that applies to every player. It is
 // cached as one shared VM (unlike rooms/mobs which cache one VM per owner).
 var (
-	userVM         scriptVM
-	userVMLoaded   bool
+	userVM            scriptVM
+	userVMLoaded      bool
 	scriptUserTimeout = 50 * time.Millisecond
 
 	// userScriptPathFn resolves the path to the global user script. It is a
