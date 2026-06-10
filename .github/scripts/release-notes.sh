@@ -49,14 +49,8 @@ if [ "${RELEASE_NOTES_SKIP_GH:-}" = "true" ]; then
 	printf 'Generated release notes skipped for local dry run.\n' \
 		>"$generated_notes_file"
 else
-	notes_tag="$release_tag"
-	if [ "$release_kind" = "prerelease" ]; then
-		# GitHub ignores target_commitish when tag_name already exists.
-		notes_tag="${release_tag}-notes-${commit_sha}"
-	fi
-
 	generate_notes_args=(
-		-f "tag_name=${notes_tag}"
+		-f "tag_name=${release_tag}"
 		-f "target_commitish=${commit_sha}"
 	)
 	if [ -n "$previous_tag" ] && [ "$previous_tag" != "$release_tag" ]; then
@@ -75,7 +69,7 @@ published_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
 if [ "$release_kind" = "prerelease" ]; then
 	overview="Rolling prerelease build from \`${ref_name:-master}\`."
-	summary="This mutable prerelease is replaced on each successful merge to \`master\`."
+	summary="The rolling prerelease entry is replaced on each successful merge to \`master\`, using a generated tag for this build."
 else
 	overview="Stable release \`${release_tag}\`."
 	summary="This stable release is immutable. Tags and assets are not replaced by workflow policy."
