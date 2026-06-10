@@ -111,7 +111,7 @@ jobs:
       id-token: write
       attestations: write
     env:
-      RELEASE_TAG: prerelease-${{ github.run_number }}-${{ github.run_attempt }}-${{ github.sha }}
+      RELEASE_TAG: prerelease-${{ github.run_id }}-${{ github.run_attempt }}
       RELEASE_TAG_PREFIX: prerelease
       RELEASE_TITLE: prerelease
       BINARY_VERSION: ${{ needs.metadata.outputs.binary_version }}

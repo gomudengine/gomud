@@ -17,7 +17,7 @@ Recommended versioning for the next release line:
    assembles `gomud-ALL-datafiles.zip` and `SHA256SUMS.txt`, generates
    attestations, and publishes a new GitHub prerelease named `prerelease`.
 3. The workflow uses a generated tag such as
-   `prerelease-1234-1-<commit-sha>` for the new prerelease, then removes older
+   `prerelease-123456789-1` for the new prerelease, then removes older
    rolling prerelease releases and tags. Prerelease tags are not force-moved, so
    normal developer `git pull` commands do not fail on tag clobber conflicts.
 4. The prerelease is marked as a prerelease and is not marked as `Latest`.
