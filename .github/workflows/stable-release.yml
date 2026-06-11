@@ -335,24 +335,25 @@ jobs:
         run: |
           set -euo pipefail
 
-          release_endpoint="repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}"
-          if [ -n "$RELEASE_ID" ]; then
-            release_endpoint="repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}"
-          fi
-
-          release_data="$(
-            gh api "$release_endpoint" \
-              --jq '[.id, .draft, .target_commitish] | @tsv' \
-              2>/dev/null || true
-          )"
-          if [ -z "$release_data" ]; then
-            echo "No stable draft release found for ${RELEASE_TAG}."
+          if [ -z "$RELEASE_ID" ]; then
+            echo "No draft release ID was created by this workflow run."
             exit 0
           fi
 
-          IFS=$'\t' read -r release_id draft target_commitish \
+          release_data="$(
+            gh api "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" \
+              --jq '[.id, .tag_name, .draft, .target_commitish] | @tsv' \
+              2>/dev/null || true
+          )"
+          if [ -z "$release_data" ]; then
+            echo "Draft release ${RELEASE_ID} was not found."
+            exit 0
+          fi
+
+          IFS=$'\t' read -r release_id tag_name draft target_commitish \
             <<<"$release_data"
-          if [ "$draft" != "true" ] ||
+          if [ "$tag_name" != "$RELEASE_TAG" ] ||
+            [ "$draft" != "true" ] ||
             [ "$target_commitish" != "$GITHUB_SHA" ]; then
             echo "Release ${RELEASE_TAG} is not this run's draft; leaving it."
             exit 0
