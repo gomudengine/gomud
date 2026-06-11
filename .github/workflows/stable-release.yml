@@ -335,6 +335,8 @@ jobs:
         run: |
           set -euo pipefail
 
+          # Only delete a draft whose ID came from this run. Looking it up by
+          # tag can delete a draft created while this run waited for approval.
           if [ -z "$RELEASE_ID" ]; then
             echo "No draft release ID was created by this workflow run."
             exit 0
