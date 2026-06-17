@@ -89,12 +89,16 @@ var (
 	// Client agrees / refuses to use NEW-ENVIRON.
 	TelnetWillNewEnviron = TerminalCommand{[]byte{TELNET_IAC, TELNET_WILL, TELNET_OPT_NEW_ENV}, []byte{}}
 	TelnetWontNewEnviron = TerminalCommand{[]byte{TELNET_IAC, TELNET_WONT, TELNET_OPT_NEW_ENV}, []byte{}}
-	// Server -> Client request for variables. Payload is a VAR-prefixed list of
-	// variable names (see TelnetRequestMNESVars).
+	// Server -> Client request for variables. Sent with an empty payload to
+	// request ALL of the client's environment variables (broadly compatible;
+	// Mudlet replies with CLIENT_NAME among them).
 	TelnetNewEnvironSendRequest = TerminalCommand{[]byte{TELNET_IAC, TELNET_SB, TELNET_OPT_NEW_ENV, TELNET_NEWENV_SEND}, []byte{TELNET_IAC, TELNET_SE}}
-	// Client -> Server response carrying the requested variable values. Payload
-	// is a sequence of VAR/VALUE pairs.
-	TelnetNewEnvironResponse = TerminalCommand{[]byte{TELNET_IAC, TELNET_SB, TELNET_OPT_NEW_ENV, TELNET_NEWENV_IS}, []byte{TELNET_IAC, TELNET_SE}}
+	// Client -> Server response carrying the variable values. EndChars are left
+	// empty so the match succeeds on the `IAC SB NEW-ENVIRON IS` prefix alone -
+	// the trailing IAC SE is tolerated inside the payload and ignored by the
+	// parser. This is more robust to TCP segmentation and trailing bytes than
+	// requiring an exact terminator.
+	TelnetNewEnvironResponse = TerminalCommand{[]byte{TELNET_IAC, TELNET_SB, TELNET_OPT_NEW_ENV, TELNET_NEWENV_IS}, []byte{}}
 
 	///////////////////////////
 	// ANSI COMMANDS
@@ -203,17 +207,6 @@ var (
 	// Payload is bell duration in msec
 	AnsiSetBellDuration = TerminalCommand{[]byte{ANSI_ESC, '[', '1', '1', ';'}, []byte{']'}}
 )
-
-// TelnetRequestMNESVars builds the NEW-ENVIRON SEND request that asks the
-// client for the standard MNES identification variables. Mudlet replies with
-// CLIENT_NAME=Mudlet, which is how we recognise it.
-func TelnetRequestMNESVars() []byte {
-	payload := []byte{TELNET_NEWENV_VAR}
-	payload = append(payload, []byte("CLIENT_NAME")...)
-	payload = append(payload, TELNET_NEWENV_VAR)
-	payload = append(payload, []byte("CLIENT_VERSION")...)
-	return TelnetNewEnvironSendRequest.BytesWithPayload(payload)
-}
 
 func IsTelnetCommand(b []byte) bool {
 	return len(b) > 0 && b[0] == TELNET_IAC

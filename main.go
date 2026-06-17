@@ -745,6 +745,15 @@ func handleTelnetConnection(connDetails *connections.ConnectionDetails, wg *sync
 		connDetails.ConnectionId(),
 	)
 
+	// Offer EOR (End Of Record) support. Mudlet prefers EOR over GA and uses it
+	// to delimit prompts; without it (and with SUPPRESS-GO-AHEAD set) Mudlet has
+	// no prompt anchor, which can prevent its input-line password masking from
+	// engaging even though it honors the ECHO option.
+	connections.SendTo(
+		term.TelnetWILL(term.TELNET_OPT_EOR),
+		connDetails.ConnectionId(),
+	)
+
 	clientSetupCommands := "" + //term.AnsiAltModeStart.String() + // alternative mode (No scrollback)
 		//term.AnsiCursorHide.String() + // Hide Cursor (Because we will manually echo back)
 		//term.AnsiCharSetUTF8.String() + // UTF8 mode

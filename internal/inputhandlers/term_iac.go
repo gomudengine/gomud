@@ -154,10 +154,12 @@ func TelnetIACHandler(clientInput *connections.ClientInput, sharedState map[stri
 		// NEW-ENVIRON / MNES client detection (see handleTelnetConnection in main.go).
 		//
 
-		// Client agreed to NEW-ENVIRON: ask it for the MNES identity variables.
+		// Client agreed to NEW-ENVIRON: ask it to send all of its variables.
+		// (Requesting all is more broadly compatible than naming specific vars;
+		// Mudlet replies with CLIENT_NAME among them.)
 		if ok, _ := term.Matches(iacCmd, term.TelnetWillNewEnviron); ok {
 			mudlog.Debug("Received", "type", "IAC (WILL NEW-ENVIRON)")
-			connections.SendTo(term.TelnetRequestMNESVars(), clientInput.ConnectionId)
+			connections.SendTo(term.TelnetNewEnvironSendRequest.BytesWithPayload(nil), clientInput.ConnectionId)
 			continue
 		}
 
@@ -195,15 +197,17 @@ func TelnetIACHandler(clientInput *connections.ClientInput, sharedState map[stri
 	return false
 }
 
-// newEnvironIsMudlet walks a NEW-ENVIRON IS payload (the bytes between
-// `IAC SB NEW-ENVIRON IS` and the trailing `IAC SE`) looking for the MNES
+// newEnvironIsMudlet walks a NEW-ENVIRON IS payload looking for the MNES
 // CLIENT_NAME variable. It returns true when CLIENT_NAME equals "MUDLET"
 // (case-insensitive). The payload is a sequence of VAR/USERVAR name segments,
 // each optionally followed by a VALUE segment; segments are delimited by the
-// VAR(0)/VALUE(1)/USERVAR(3) control bytes.
+// VAR(0)/VALUE(1)/USERVAR(3) control bytes. IAC (255) is also treated as a
+// terminator so a trailing `IAC SE` left in the payload by the lenient matcher
+// never bleeds into the final variable's value.
 func newEnvironIsMudlet(payload []byte) bool {
 	isControl := func(b byte) bool {
-		return b == term.TELNET_NEWENV_VAR || b == term.TELNET_NEWENV_VALUE || b == term.TELNET_NEWENV_USERVAR
+		return b == term.TELNET_NEWENV_VAR || b == term.TELNET_NEWENV_VALUE ||
+			b == term.TELNET_NEWENV_USERVAR || b == term.TELNET_IAC
 	}
 
 	i := 0

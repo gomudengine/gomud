@@ -72,16 +72,20 @@ func TestNewEnvironIsMudlet(t *testing.T) {
 }
 
 // TestNewEnvironResponseMatcher verifies the term matcher extracts the payload
-// that newEnvironIsMudlet expects from a full client response frame.
+// that newEnvironIsMudlet expects from a full client response frame, including
+// the trailing IAC SE terminator that the lenient matcher leaves in the payload.
 func TestNewEnvironResponseMatcher(t *testing.T) {
-	frame := term.TelnetNewEnvironResponse.BytesWithPayload(
-		newEnvironPayload([2]string{"CLIENT_NAME", "Mudlet"}),
+	// IAC SB NEW-ENVIRON IS <vars> IAC SE
+	frame := append(
+		term.TelnetNewEnvironResponse.BytesWithPayload(newEnvironPayload([2]string{"CLIENT_NAME", "Mudlet"})),
+		term.TELNET_IAC, term.TELNET_SE,
 	)
 
 	ok, payload := term.Matches(frame, term.TelnetNewEnvironResponse)
 	if !ok {
 		t.Fatalf("expected frame to match TelnetNewEnvironResponse")
 	}
+	// The trailing IAC SE remains in payload; the parser must still detect Mudlet.
 	if !newEnvironIsMudlet(payload) {
 		t.Errorf("expected extracted payload to be detected as Mudlet, payload=%v", payload)
 	}
