@@ -12,6 +12,14 @@ type ClientSettings struct {
 	// Is MSP enabled?
 	MSPEnabled        bool // Do they accept sound in their client?
 	SendTelnetGoAhead bool // Defaults false, should we send a IAC GA after prompts?
+	// IsMudlet is true when the client identified itself as Mudlet (via the MNES
+	// NEW-ENVIRON CLIENT_NAME variable). Mudlet echoes input locally and treats
+	// the telnet ECHO option purely as a password-masking hint, so it must not
+	// receive server-side echo.
+	IsMudlet bool
+	// DetectionComplete is set once the connect-time client-type probe has
+	// resolved (either a NEW-ENVIRON reply arrived or the probe timed out).
+	DetectionComplete bool
 }
 
 func (c ClientSettings) IsMsp() bool {

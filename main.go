@@ -604,6 +604,81 @@ func resumeRestoredConnection(connDetails *connections.ConnectionDetails, userOb
 	}
 }
 
+// Bounds for the connect-time client-type detection probe.
+const (
+	clientDetectTimeout      = 2 * time.Second        // overall budget before defaulting to non-Mudlet
+	clientDetectReadDeadline = 200 * time.Millisecond // per-read slice so we can re-check the budget
+)
+
+// detectClientType probes a raw telnet client with an MNES NEW-ENVIRON request
+// and synchronously waits (with a bounded timeout) for the reply so the caller
+// can choose the correct echo baseline before the first prompt is shown.
+//
+// Replies are fed through the normal input handler chain, where TelnetIACHandler
+// performs the NEW-ENVIRON negotiation and records IsMudlet/DetectionComplete on
+// the connection's client settings. The login handler is intentionally not in
+// the chain yet, so stray pre-login input is simply buffered (not echoed) and is
+// preserved for the main loop. On timeout the client defaults to non-Mudlet.
+//
+// AI connections skip the probe entirely and keep the historical raw-telnet
+// baseline, so automated clients are not delayed by the detection window.
+func detectClientType(connDetails *connections.ConnectionDetails, clientInput *connections.ClientInput, sharedState map[string]any) {
+
+	connId := connDetails.ConnectionId()
+
+	if connDetails.ConnType() == connections.ConnAI {
+		cs := connections.GetClientSettings(connId)
+		cs.DetectionComplete = true
+		connections.OverwriteClientSettings(connId, cs)
+		return
+	}
+
+	// Ask the client to enable NEW-ENVIRON. A Mudlet client replies WILL, which
+	// TelnetIACHandler answers with the MNES SEND request; Mudlet then returns
+	// its CLIENT_NAME. Non-Mudlet clients reply WONT (or never reply -> timeout).
+	connections.SendTo(term.TelnetRequestNewEnviron.BytesWithPayload(nil), connId)
+
+	buf := make([]byte, connections.ReadBufferSize)
+	deadline := time.Now().Add(clientDetectTimeout)
+
+	for {
+		if connections.GetClientSettings(connId).DetectionComplete {
+			break
+		}
+		if !time.Now().Before(deadline) {
+			break
+		}
+
+		_ = connDetails.SetReadDeadline(time.Now().Add(clientDetectReadDeadline))
+
+		n, err := connDetails.Read(buf)
+		if err != nil {
+			if ne, ok := err.(net.Error); ok && ne.Timeout() {
+				continue // no data this slice; re-check the overall budget
+			}
+			break // a real read error; let the main loop surface it
+		}
+		if n == 0 {
+			continue
+		}
+
+		clientInput.DataIn = buf[:n]
+		if _, lastHandler, herr := connDetails.HandleInput(clientInput, sharedState); herr != nil {
+			mudlog.Warn("Client detection input", "handler", lastHandler, "connectionId", connId, "error", herr)
+		}
+	}
+
+	// Restore blocking reads for the main loop.
+	_ = connDetails.SetReadDeadline(time.Time{})
+
+	// Ensure detection is flagged complete even if we timed out.
+	cs := connections.GetClientSettings(connId)
+	if !cs.DetectionComplete {
+		cs.DetectionComplete = true
+		connections.OverwriteClientSettings(connId, cs)
+	}
+}
+
 func handleTelnetConnection(connDetails *connections.ConnectionDetails, wg *sync.WaitGroup) {
 	defer func() {
 		wg.Done()
@@ -625,8 +700,10 @@ func handleTelnetConnection(connDetails *connections.ConnectionDetails, wg *sync
 	connDetails.AddInputHandler("CleanserInputHandler", inputhandlers.CleanserInputHandler)
 	connDetails.AddInputHandler("TextPrefixHandler", inputhandlers.TextPrefixHandler)
 
-	loginHandler := inputhandlers.GetLoginPromptHandler()           // Get the configured handler func
-	connDetails.AddInputHandler("LoginPromptHandler", loginHandler) // Add it with a unique name
+	// Get the configured login handler func. It is added to the input handler
+	// chain further down, AFTER client-type detection, so that the connect-time
+	// echo baseline is correct before the very first (username) prompt is shown.
+	loginHandler := inputhandlers.GetLoginPromptHandler()
 
 	// Turn off "line at a time", send chars as typed
 	connections.SendTo(
@@ -639,13 +716,12 @@ func handleTelnetConnection(connDetails *connections.ConnectionDetails, wg *sync
 		connDetails.ConnectionId(),
 	)
 
-	// Tell the client we intend to echo back what they type
-	// So they shouldn't locally echo it
+	// NOTE: The echo negotiation (WILL/WONT ECHO) is deliberately NOT sent here.
+	// It depends on the client type, which we detect below before showing the
+	// first prompt. Raw telnet clients rely on server-side echo (WILL ECHO),
+	// while local-echo clients such as Mudlet must start at WONT ECHO. See the
+	// detection block further down.
 
-	connections.SendTo(
-		term.TelnetWILL(term.TELNET_OPT_ECHO),
-		connDetails.ConnectionId(),
-	)
 	// Request that the client report window size changes as they happen
 	connections.SendTo(
 		term.TelnetDO(term.TELNET_OPT_NAWS),
@@ -715,6 +791,26 @@ func handleTelnetConnection(connDetails *connections.ConnectionDetails, wg *sync
 	if connDetails.ConnType() == connections.ConnAI {
 		connections.SendTo([]byte("\r\nThis port is for AI clients. Human players, please use the standard telnet port.\r\n\r\n"), connDetails.ConnectionId())
 	}
+
+	// --- Detect the client type and pick the connect-time echo baseline ---
+	// Local-echo clients such as Mudlet echo input themselves and read telnet
+	// ECHO purely as a "mask this field" hint, so they must start at WONT ECHO
+	// (and only see WILL ECHO transiently around password prompts). Raw telnet
+	// clients rely on server-side echo, so they keep the historical WILL ECHO.
+	detectClientType(connDetails, clientInput, sharedState)
+
+	clientCS := connections.GetClientSettings(connDetails.ConnectionId())
+	if clientCS.IsMudlet {
+		// Mudlet does its own local echo -> baseline is WONT ECHO.
+		connections.SendTo(term.TelnetWONT(term.TELNET_OPT_ECHO), connDetails.ConnectionId())
+	} else {
+		// Raw telnet keeps server-side echo (unchanged behavior).
+		connections.SendTo(term.TelnetWILL(term.TELNET_OPT_ECHO), connDetails.ConnectionId())
+	}
+
+	// Now that the echo baseline is correct, add the login handler so the first
+	// prompt is rendered with the right masking behavior.
+	connDetails.AddInputHandler("LoginPromptHandler", loginHandler)
 
 	// --- Trigger the Prompt Handler to initialize state and send the FIRST prompt ---
 	// Create a dummy input that signifies "start the process" but has no actual user data/control codes.

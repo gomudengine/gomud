@@ -1,6 +1,8 @@
 package inputhandlers
 
 import (
+	"strings"
+
 	"github.com/GoMudEngine/GoMud/internal/configs"
 	"github.com/GoMudEngine/GoMud/internal/connections"
 	"github.com/GoMudEngine/GoMud/internal/mudlog"
@@ -148,11 +150,94 @@ func TelnetIACHandler(clientInput *connections.ClientInput, sharedState map[stri
 			continue
 		}
 
+		//
+		// NEW-ENVIRON / MNES client detection (see handleTelnetConnection in main.go).
+		//
+
+		// Client agreed to NEW-ENVIRON: ask it for the MNES identity variables.
+		if ok, _ := term.Matches(iacCmd, term.TelnetWillNewEnviron); ok {
+			mudlog.Debug("Received", "type", "IAC (WILL NEW-ENVIRON)")
+			connections.SendTo(term.TelnetRequestMNESVars(), clientInput.ConnectionId)
+			continue
+		}
+
+		// Client refused NEW-ENVIRON: it won't identify itself this way, so
+		// treat detection as complete (and not Mudlet).
+		if ok, _ := term.Matches(iacCmd, term.TelnetWontNewEnviron); ok {
+			mudlog.Debug("Received", "type", "IAC (WONT NEW-ENVIRON)")
+
+			cs := connections.GetClientSettings(clientInput.ConnectionId)
+			cs.DetectionComplete = true
+			connections.OverwriteClientSettings(clientInput.ConnectionId, cs)
+
+			continue
+		}
+
+		// Client sent its NEW-ENVIRON variables. Scan for CLIENT_NAME=MUDLET.
+		if ok, payload := term.Matches(iacCmd, term.TelnetNewEnvironResponse); ok {
+			isMudlet := newEnvironIsMudlet(payload)
+			mudlog.Debug("Received", "type", "IAC (NEW-ENVIRON IS)", "isMudlet", isMudlet, "data", term.BytesString(payload))
+
+			cs := connections.GetClientSettings(clientInput.ConnectionId)
+			cs.IsMudlet = isMudlet
+			cs.DetectionComplete = true
+			connections.OverwriteClientSettings(clientInput.ConnectionId, cs)
+
+			continue
+		}
+
 		// Unhanlded IAC command, log it
 		mudlog.Debug("Received", "type", "IAC (Unhandled)", "size", len(clientInput.DataIn), "data", term.TelnetCommandToString(iacCmd))
 
 	}
 
 	// We handled it, so don't pass it on
+	return false
+}
+
+// newEnvironIsMudlet walks a NEW-ENVIRON IS payload (the bytes between
+// `IAC SB NEW-ENVIRON IS` and the trailing `IAC SE`) looking for the MNES
+// CLIENT_NAME variable. It returns true when CLIENT_NAME equals "MUDLET"
+// (case-insensitive). The payload is a sequence of VAR/USERVAR name segments,
+// each optionally followed by a VALUE segment; segments are delimited by the
+// VAR(0)/VALUE(1)/USERVAR(3) control bytes.
+func newEnvironIsMudlet(payload []byte) bool {
+	isControl := func(b byte) bool {
+		return b == term.TELNET_NEWENV_VAR || b == term.TELNET_NEWENV_VALUE || b == term.TELNET_NEWENV_USERVAR
+	}
+
+	i := 0
+	for i < len(payload) {
+		code := payload[i]
+		i++
+
+		// Only VAR / USERVAR start a named variable.
+		if code != term.TELNET_NEWENV_VAR && code != term.TELNET_NEWENV_USERVAR {
+			continue
+		}
+
+		// Read the variable name up to the next control byte.
+		nameStart := i
+		for i < len(payload) && !isControl(payload[i]) {
+			i++
+		}
+		name := string(payload[nameStart:i])
+
+		// An optional VALUE segment follows.
+		value := ""
+		if i < len(payload) && payload[i] == term.TELNET_NEWENV_VALUE {
+			i++
+			valueStart := i
+			for i < len(payload) && !isControl(payload[i]) {
+				i++
+			}
+			value = string(payload[valueStart:i])
+		}
+
+		if name == "CLIENT_NAME" && strings.EqualFold(value, "MUDLET") {
+			return true
+		}
+	}
+
 	return false
 }

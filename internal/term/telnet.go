@@ -132,6 +132,17 @@ const (
 	TELNET_OPT_PRAGMA_HEARTBEAT  IACByte = 140 // TELOPT PRAGMA HEARTBEAT									RFC:
 	TELNET_OPT_254               IACByte = 254
 	TELNET_OPT_EXTENDED_OPT      IACByte = 255 // Extended-Options-List										RFC: https://www.ietf.org/rfc/rfc861.txt
+
+	// NEW-ENVIRON (option 39) sub-negotiation codes.								RFC: https://www.ietf.org/rfc/rfc1572.txt
+	// These are reused by the MNES (Mud New-Environ Standard) handshake that we
+	// use to detect Mudlet (and other clients that advertise CLIENT_NAME).
+	TELNET_NEWENV_IS      IACByte = 0 // Client -> Server: here are my variables
+	TELNET_NEWENV_SEND    IACByte = 1 // Server -> Client: please send these variables
+	TELNET_NEWENV_INFO    IACByte = 2 // Client -> Server: a variable changed
+	TELNET_NEWENV_VAR     IACByte = 0 // A well-known variable name follows
+	TELNET_NEWENV_VALUE   IACByte = 1 // A variable value follows
+	TELNET_NEWENV_ESC     IACByte = 2 // Escape the next byte (it is data, not a code)
+	TELNET_NEWENV_USERVAR IACByte = 3 // A user-defined variable name follows
 )
 
 // https://users.cs.cf.ac.uk/Dave.Marshall/Internet/node142.html
