@@ -80,6 +80,26 @@ var (
 	// Go Ahead
 	TelnetGoAhead = TerminalCommand{[]byte{TELNET_IAC, TELNET_GA}, []byte{}}
 
+	//
+	// NEW-ENVIRON / MNES (used to detect the client at connect time)
+	//
+	// Ask the client to enable NEW-ENVIRON. A compliant client replies with
+	// TelnetWillNewEnviron (or TelnetWontNewEnviron to refuse).
+	TelnetRequestNewEnviron = TerminalCommand{[]byte{TELNET_IAC, TELNET_DO, TELNET_OPT_NEW_ENV}, []byte{}}
+	// Client agrees / refuses to use NEW-ENVIRON.
+	TelnetWillNewEnviron = TerminalCommand{[]byte{TELNET_IAC, TELNET_WILL, TELNET_OPT_NEW_ENV}, []byte{}}
+	TelnetWontNewEnviron = TerminalCommand{[]byte{TELNET_IAC, TELNET_WONT, TELNET_OPT_NEW_ENV}, []byte{}}
+	// Server -> Client request for variables. Sent with an empty payload to
+	// request ALL of the client's environment variables (broadly compatible;
+	// Mudlet replies with CLIENT_NAME among them).
+	TelnetNewEnvironSendRequest = TerminalCommand{[]byte{TELNET_IAC, TELNET_SB, TELNET_OPT_NEW_ENV, TELNET_NEWENV_SEND}, []byte{TELNET_IAC, TELNET_SE}}
+	// Client -> Server response carrying the variable values. EndChars are left
+	// empty so the match succeeds on the `IAC SB NEW-ENVIRON IS` prefix alone -
+	// the trailing IAC SE is tolerated inside the payload and ignored by the
+	// parser. This is more robust to TCP segmentation and trailing bytes than
+	// requiring an exact terminator.
+	TelnetNewEnvironResponse = TerminalCommand{[]byte{TELNET_IAC, TELNET_SB, TELNET_OPT_NEW_ENV, TELNET_NEWENV_IS}, []byte{}}
+
 	///////////////////////////
 	// ANSI COMMANDS
 	///////////////////////////

@@ -324,6 +324,17 @@ func (cd *ConnectionDetails) Read(p []byte) (n int, err error) {
 	return cd.conn.Read(p)
 }
 
+// SetReadDeadline bounds how long the next Read may block. It only applies to
+// the raw telnet path (net.Conn); SSH and WebSocket connections do not use the
+// connect-time detection probe, so this is a no-op for them. Pass the zero time
+// to clear a previously-set deadline.
+func (cd *ConnectionDetails) SetReadDeadline(t time.Time) error {
+	if cd.conn != nil {
+		return cd.conn.SetReadDeadline(t)
+	}
+	return nil
+}
+
 func (cd *ConnectionDetails) Close() {
 	if cd.heartbeat != nil {
 		cd.heartbeat.stop()

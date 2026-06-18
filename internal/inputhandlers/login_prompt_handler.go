@@ -204,31 +204,41 @@ func CreatePromptHandler(steps []*PromptStep, onComplete CompletionFunc) connect
 				// Handle printable characters
 				//clientInput.Buffer = append(clientInput.Buffer, clientInput.DataIn...)
 
-				// Echo or Mask
-				if currentStep.MaskInput {
+				// Local-echo clients (Mudlet, web client) echo input themselves,
+				// so the server must not echo or emit mask characters per byte -
+				// doing so would double every character. Their masking is handled
+				// out-of-band (telnet ECHO toggling for Mudlet, TEXTMASK for the
+				// web client). Only raw telnet relies on this server-side echo.
+				cs := connections.GetClientSettings(clientInput.ConnectionId)
+				isLocalEcho := cs.IsMudlet || connections.IsWebsocket(clientInput.ConnectionId)
 
-					// Cache the mask template string if needed
-					if state.maskTemplate == "" && currentStep.MaskTemplate != "" {
+				if !isLocalEcho {
+					// Echo or Mask
+					if currentStep.MaskInput {
 
-						if maskStr, err := templates.Process(currentStep.MaskTemplate, nil); err != nil {
-							mudlog.Error("Mask template error", "template", currentStep.MaskTemplate, "error", err)
-							state.maskTemplate = "*" // Fallback mask
-						} else {
-							state.maskTemplate = templates.AnsiParse(maskStr)
+						// Cache the mask template string if needed
+						if state.maskTemplate == "" && currentStep.MaskTemplate != "" {
+
+							if maskStr, err := templates.Process(currentStep.MaskTemplate, nil); err != nil {
+								mudlog.Error("Mask template error", "template", currentStep.MaskTemplate, "error", err)
+								state.maskTemplate = "*" // Fallback mask
+							} else {
+								state.maskTemplate = templates.AnsiParse(maskStr)
+							}
+
+						} else if state.maskTemplate == "" {
+							state.maskTemplate = "*" // Default fallback if no template specified
 						}
 
-					} else if state.maskTemplate == "" {
-						state.maskTemplate = "*" // Default fallback if no template specified
-					}
+						// Send mask character(s)
+						for i := 0; i < len(clientInput.DataIn); i++ {
+							connections.SendTo([]byte(state.maskTemplate), clientInput.ConnectionId)
+						}
 
-					// Send mask character(s)
-					for i := 0; i < len(clientInput.DataIn); i++ {
-						connections.SendTo([]byte(state.maskTemplate), clientInput.ConnectionId)
+					} else {
+						// Echo input directly
+						connections.SendTo(clientInput.DataIn, clientInput.ConnectionId)
 					}
-
-				} else {
-					// Echo input directly
-					connections.SendTo(clientInput.DataIn, clientInput.ConnectionId)
 				}
 
 			}
@@ -258,7 +268,12 @@ func CreatePromptHandler(steps []*PromptStep, onComplete CompletionFunc) connect
 		}
 
 		// Enter Pressed: Process Input
-		connections.SendTo(term.CRLF, clientInput.ConnectionId) // Echo newline
+		// Mudlet echoes the submitted line (and its newline) locally, so a
+		// server-sent CRLF here would produce a blank line. Raw telnet
+		// (server-side echo) and the web client still need it.
+		if !connections.GetClientSettings(clientInput.ConnectionId).IsMudlet {
+			connections.SendTo(term.CRLF, clientInput.ConnectionId) // Echo newline
+		}
 		submittedInput := strings.TrimSpace(string(clientInput.Buffer))
 		clientInput.Buffer = clientInput.Buffer[:0] // Clear buffer for next input
 		state.maskTemplate = ""                     // Clear cached mask template
@@ -307,6 +322,14 @@ func CreatePromptHandler(steps []*PromptStep, onComplete CompletionFunc) connect
 			mudlog.Debug("Prompt Step Success", "step", currentStep.ID, "value", "***REDACTED***", "connectionId", clientInput.ConnectionId)
 		} else {
 			mudlog.Debug("Prompt Step Success", "step", currentStep.ID, "value", validatedValue, "connectionId", clientInput.ConnectionId)
+		}
+
+		// A masked Mudlet step just passed: withdraw the telnet ECHO mask so
+		// input is visible again. If the next step is also masked, sendPrompt
+		// re-asserts WILL ECHO; if this was the last step, this restores normal
+		// echo before gameplay begins.
+		if currentStep.MaskInput && connections.GetClientSettings(clientInput.ConnectionId).IsMudlet {
+			connections.SendTo(term.TelnetWONT(term.TELNET_OPT_ECHO), clientInput.ConnectionId)
 		}
 
 		// Advance to Next Step or Complete
@@ -365,6 +388,14 @@ func sendPrompt(step *PromptStep, clientInput *connections.ClientInput, results 
 			maskCmd = "TEXTMASK:true"
 		}
 		connections.SendTo([]byte(maskCmd), clientInput.ConnectionId)
+	}
+
+	// Mudlet reads telnet WILL ECHO as "mask this field". Assert it for masked
+	// steps (passwords) so Mudlet hides the input; it is withdrawn (WONT ECHO)
+	// once the step validates. Sent before the prompt text so masking is active
+	// the moment the prompt appears.
+	if step.MaskInput && connections.GetClientSettings(clientInput.ConnectionId).IsMudlet {
+		connections.SendTo(term.TelnetWILL(term.TELNET_OPT_ECHO), clientInput.ConnectionId)
 	}
 
 	connections.SendTo([]byte(parsedPrompt), clientInput.ConnectionId)
